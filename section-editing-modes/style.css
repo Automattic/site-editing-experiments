@@ -637,3 +637,7 @@ body.editing .ins { display: none; }
 .sitewide { display: inline-flex; align-items: center; gap: 6px; padding: 0 10px 0 8px; font-size: 13px; color: #fff; }
 .tb .sitewide + .free-tools, .tb .sitewide + .free-tools + [data-act="restore"] { margin-left: 4px; }
 .lpnote { display: inline-flex; align-items: center; gap: 6px; margin-top: -2px; font-size: 13px; font-weight: 600; color: #fff; }
+
+/* Done (and Restore removed, when there is something to restore) along the bottom of the layouts panel. */
+.lpfoot { display: flex; align-items: center; justify-content: center; gap: 8px; }
+.lpfoot .done { min-height: 36px; padding: 0 18px; font-size: 13px; }

@@ -334,6 +334,7 @@
       ? '<span class="lph">Layouts</span><span class="lpnote">' + GLOBE_ICON + 'You\u2019re editing the ' + title.toLowerCase() + ' on every page of your site</span><div class="lpo"></div>'
       : '<span class="lph">Layouts</span><div class="lpo"></div>';
     if (global) lp.classList.add('global');
+    lp.insertAdjacentHTML('beforeend', '<div class="lpfoot"><button class="done" type="button" data-act="done">Done</button></div>');
     document.body.appendChild(lp);
     sec._lp = lp;
 
@@ -621,7 +622,8 @@
         rb.className = 'lprestore';
         rb.dataset.act = 'restore';
         rb.textContent = 'Restore removed (' + nRemoved + ')';
-        lp.appendChild(rb);
+        var foot = lp.querySelector('.lpfoot');
+        foot.insertBefore(rb, foot.firstChild);
       }
       options.forEach(function (l) {
         var b = document.createElement('button');

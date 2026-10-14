@@ -213,7 +213,8 @@
       '<div class="grid" aria-hidden="true"><div class="gridin">' + new Array(13).join('<span class="gcol"></span>') + '<span class="gmid"></span></div></div>' +
       '<span class="gv" aria-hidden="true"></span><span class="gh" aria-hidden="true"></span>' +
       '<div class="selbox" aria-hidden="true">' + HANDLES.map(function (h) { return '<span class="hd" data-h="' + h + '"></span>'; }).join('') + '<span class="dim"></span></div>' +
-      '<div class="ov"><div class="ovtl"><span class="ovl">' + title + '</span>' +
+      '<span class="sectab" aria-hidden="true">' + title + '</span>' +
+      '<div class="ov"><div class="ovtl">' +
         '<div class="addwrap"><button class="addtrig" data-sec-act="addmenu" aria-haspopup="menu" aria-expanded="false">' +
           '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>Add</button>' +
           '<div class="addmenu" role="menu" aria-label="Add to ' + title + '">' +
@@ -477,7 +478,7 @@
 
   // ---------- Layout panel: live previews of this section's own content ----------
   var MINI_W = 120, MINI_H = 76;
-  var CHROME = '.grid, .gv, .gh, .selbox, .ov, .tb, .xlayer, .lp, .rep';
+  var CHROME = '.grid, .gv, .gh, .selbox, .sectab, .ov, .tb, .xlayer, .lp, .rep';
 
   // A miniature copy of the section's content, rendered in the given layout.
   function miniPreview(sec, layoutId) {
@@ -830,7 +831,7 @@
     var pre = 'd' + dupCount + '-';
     var copy = sec.cloneNode(true);
     // Strip the editing chrome; initSection adds fresh chrome to the copy.
-    copy.querySelectorAll('.grid, .gv, .gh, .selbox, .ov, .tb, .xlayer, .lp').forEach(function (n) { n.remove(); });
+    copy.querySelectorAll('.grid, .gv, .gh, .selbox, .sectab, .ov, .tb, .xlayer, .lp').forEach(function (n) { n.remove(); });
     copy.classList.remove('on', 'sec-flash');
     copy.removeAttribute('data-mode');
     copy.querySelectorAll('.doomed, .dragging, .fresh').forEach(function (n) { n.classList.remove('doomed', 'dragging', 'fresh'); });

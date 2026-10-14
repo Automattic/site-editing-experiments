@@ -36,6 +36,7 @@ import {
 	useSitePalette,
 } from './settings';
 import { EditSectionPanel, LayoutsPanel } from './section-panel';
+import { PartChrome } from './part-editing';
 import { categoryForSection, useSectionPatterns } from './section-patterns';
 
 const SECTION_CONTAINERS = [ 'core/post-content' ];
@@ -466,6 +467,16 @@ function SectionAnchor( { clientId, info } ) {
 		[ clientId ]
 	);
 	const stickyRef = useStickyMenu();
+	if ( info.isTemplatePart ) {
+		return (
+			<div
+				className="sse-section-anchor is-part"
+				data-sse-section-chrome=""
+			>
+				<PartChrome clientId={ clientId } info={ info } />
+			</div>
+		);
+	}
 	return (
 		<div
 			ref={ stickyRef }
@@ -534,6 +545,10 @@ const withSectionControls = createHigherOrderComponent(
 		function SSESectionBlock( props ) {
 			const { clientId, name } = props;
 			const info = useSectionInfo( clientId, name );
+			const editingPart = useSelect(
+				( select ) => select( STORE_NAME ).getEditingPart(),
+				[]
+			);
 
 			if ( name === 'core/post-content' ) {
 				return (
@@ -555,6 +570,7 @@ const withSectionControls = createHigherOrderComponent(
 						{ ...props }
 						className={ clsx( props.className, 'sse-section', {
 							'sse-section--shared': info.isTemplatePart,
+							'is-sse-editing-part': editingPart === clientId,
 						} ) }
 					/>
 					{ info.isLast && info.canAddAfter && (

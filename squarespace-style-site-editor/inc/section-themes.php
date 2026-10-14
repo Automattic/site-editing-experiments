@@ -155,7 +155,7 @@ function sse_section_themes_css() {
 
 	$s    = '[class*="is-style-sse-"]';
 	$css .= "{$s}{background-color:var(--sse-bg);color:var(--sse-text);}";
-	$css .= ":where({$s}){padding-block:var(--wp--custom--sse--section-padding,5rem);}";
+	$css .= ":where({$s}:not(.wp-block-template-part)){padding-block:var(--wp--custom--sse--section-padding,5rem);}";
 	// Coloured sections sit flush against each other, like Squarespace.
 	$css .= "{$s}+{$s}{margin-block-start:0;}";
 	$css .= "{$s} :is(h1,h2,h3,h4,h5,h6){color:var(--sse-heading);}";

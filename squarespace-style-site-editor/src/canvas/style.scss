@@ -298,3 +298,108 @@ $sse-font: -apple-system, blinkmacsystemfont, "Segoe UI", roboto, "Helvetica Neu
 .sse-section-menu {
 	z-index: 2;
 }
+
+// Header and footer: "Edit site header" over the part on hover; while
+// editing, the rest of the page is dimmed and the part's buttons sit just
+// below it.
+.sse-part-chrome {
+	position: absolute;
+	inset: 0 0 auto;
+	height: 0;
+}
+
+.sse-part-hover {
+	position: absolute;
+	inset: 0 0 auto;
+	height: var(--sse-part-h, 80px);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: rgba(0, 0, 0, 0.32);
+	opacity: 0;
+	pointer-events: none;
+	transition: opacity 0.12s ease;
+
+	.sse-section-anchor:has(+ .sse-section:hover) &,
+	&:hover,
+	&:focus-within {
+		opacity: 1;
+		pointer-events: auto;
+	}
+}
+
+.sse-part-button {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	height: 38px;
+	padding: 0 16px 0 12px;
+	border: 0;
+	border-radius: 4px;
+	background: #fff;
+	color: $sse-ink;
+	font: 600 11px/1 $sse-font;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	white-space: nowrap;
+	cursor: pointer;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+
+	svg {
+		fill: currentcolor;
+	}
+
+	&:hover,
+	&[aria-expanded="true"] {
+		background: #f3f3f3;
+	}
+
+	&:focus-visible {
+		outline: 2px solid $sse-blue;
+		outline-offset: 2px;
+	}
+}
+
+.sse-part-actions {
+	position: absolute;
+	top: calc(var(--sse-part-h, 80px) + 18px);
+	left: 18px;
+	right: 18px;
+	z-index: 41;
+	display: flex;
+	justify-content: space-between;
+	pointer-events: none;
+
+	> * {
+		pointer-events: auto;
+	}
+}
+
+// Above the dimmed page while editing.
+.sse-section-anchor.is-part:has(.sse-part-actions) {
+	z-index: 45;
+}
+
+// The footer's buttons go above it.
+.sse-section-anchor.is-part:has(+ footer) .sse-part-actions {
+	top: -56px;
+}
+
+.sse-section.is-sse-editing-part {
+	position: relative;
+	z-index: 40;
+	outline: 2px solid $sse-blue !important;
+	outline-offset: -2px;
+	box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.42);
+	clip-path: none;
+}
+
+// Nothing else is editable meanwhile, so hide the other sections' chrome.
+.is-root-container:has(.is-sse-editing-part) .sse-section-anchor:not(.is-part),
+.is-root-container:has(.is-sse-editing-part) .sse-section-anchor.is-part:not(:has(.sse-part-actions)) {
+	display: none;
+}
+
+.is-root-container:has(.is-sse-editing-part) .sse-section:not(.is-sse-editing-part):hover {
+	outline: 0;
+}

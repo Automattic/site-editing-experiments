@@ -309,6 +309,24 @@ $sse-font: -apple-system, blinkmacsystemfont, "Segoe UI", roboto, "Helvetica Neu
 	margin-right: 8px;
 }
 
+// "Editing Site Header · Global" in place of the document title.
+.editor-header__center:has(.sse-part-title) > :not(.sse-part-title) {
+	display: none !important;
+}
+
+.sse-part-title {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 2px;
+	font: 500 12px/1.2 $sse-font;
+
+	span {
+		color: $sse-muted;
+		font-size: 11px;
+	}
+}
+
 // Browse mode: an Edit button on the site preview.
 .sse-browse-edit {
 	position: absolute;
@@ -775,6 +793,10 @@ $sse-font: -apple-system, blinkmacsystemfont, "Segoe UI", roboto, "Helvetica Neu
 	border-radius: 4px;
 	box-shadow: 0 0 0 1px $sse-line;
 	pointer-events: none;
+}
+
+.sse-layouts__preview.is-part {
+	max-height: 90px;
 }
 
 .sse-layouts__title {

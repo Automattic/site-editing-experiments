@@ -17,6 +17,9 @@ import { useDispatch, useSelect } from '@wordpress/data';
 import { store as coreStore } from '@wordpress/core-data';
 import { Icon, desktop, mobile } from '@wordpress/icons';
 
+import { STORE_NAME } from './store';
+import { partArea } from './part-editing';
+
 /**
  * Whether the site editor is in edit mode (the canvas fills the screen).
  *
@@ -150,6 +153,47 @@ function SaveAndExit() {
 	);
 }
 
+/**
+ * While the header or footer is being edited, the top bar's title says so,
+ * as in Squarespace ("Editing Site Header · Global").
+ */
+function PartTitle() {
+	const area = useSelect( ( select ) => {
+		const id = select( STORE_NAME ).getEditingPart();
+		if ( ! id ) {
+			return null;
+		}
+		return partArea(
+			select( 'core/block-editor' ).getBlockAttributes( id )
+		);
+	}, [] );
+	const node = useMountPoint(
+		'.editor-header__center',
+		'sse-part-title',
+		!! area
+	);
+	if ( ! area || ! node ) {
+		return null;
+	}
+	return createPortal(
+		<>
+			<strong>
+				{ area === 'footer'
+					? __(
+							'Editing Site Footer',
+							'squarespace-style-site-editor'
+						)
+					: __(
+							'Editing Site Header',
+							'squarespace-style-site-editor'
+						) }
+			</strong>
+			<span>{ __( 'Global', 'squarespace-style-site-editor' ) }</span>
+		</>,
+		node
+	);
+}
+
 function DeviceSwitch() {
 	const node = useMountPoint(
 		'.editor-header__settings',
@@ -214,6 +258,7 @@ export default function Chrome() {
 	return (
 		<>
 			<SaveAndExit />
+			<PartTitle />
 			<DeviceSwitch />
 		</>
 	);

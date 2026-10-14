@@ -210,6 +210,129 @@ $sse-font: -apple-system, blinkmacsystemfont, "Segoe UI", roboto, "Helvetica Neu
 	}
 }
 
+/* ------------------------------------------- Save, Exit, device switch */
+
+.sse-studio {
+	// Replaced by Save and Exit on the left and the device switch.
+	.editor-header__back-button,
+	.editor-preview-dropdown {
+		display: none !important;
+	}
+
+	// Still clicked by our Save button, so hidden rather than removed.
+	.editor-header .editor-post-publish-button {
+		position: absolute !important;
+		width: 1px !important;
+		height: 1px !important;
+		min-width: 0 !important;
+		padding: 0 !important;
+		overflow: hidden;
+		clip-path: inset(50%);
+	}
+
+	.editor-header__toolbar {
+		padding-left: 12px;
+	}
+}
+
+.sse-save-exit {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	margin-right: 12px;
+}
+
+.sse-save-exit__save,
+.sse-save-exit__exit {
+	height: 32px;
+	padding: 0 12px;
+	border: 0;
+	border-radius: 3px;
+	font: 500 13px/1 $sse-font;
+	cursor: pointer;
+}
+
+.sse-save-exit__save {
+	background: #c4c4c4;
+	color: #fff;
+	cursor: default;
+
+	&.is-dirty {
+		background: $sse-ink;
+		cursor: pointer;
+
+		&:hover {
+			background: #000;
+		}
+	}
+}
+
+.sse-save-exit__exit {
+	background: transparent;
+	color: $sse-ink;
+
+	&:hover {
+		background: #f2f2f2;
+	}
+}
+
+.sse-device-switch__group {
+	display: flex;
+	padding: 2px;
+	border-radius: 4px;
+	background: #f2f2f2;
+
+	button {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 36px;
+		height: 28px;
+		border: 0;
+		border-radius: 3px;
+		background: transparent;
+		color: $sse-ink;
+		cursor: pointer;
+
+		svg {
+			fill: currentcolor;
+		}
+
+		&.is-active {
+			background: #fff;
+			box-shadow: 0 1px 2px rgba(0, 0, 0, 0.14);
+		}
+	}
+}
+
+.sse-device-switch {
+	margin-right: 8px;
+}
+
+// Browse mode: an Edit button on the site preview.
+.sse-browse-edit {
+	position: absolute;
+	top: 16px;
+	left: 16px;
+	z-index: 10;
+}
+
+.sse-browse-edit__button {
+	height: 32px;
+	padding: 0 14px;
+	border: 0;
+	border-radius: 3px;
+	background: $sse-ink;
+	color: #fff;
+	font: 500 13px/1 $sse-font;
+	cursor: pointer;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+
+	&:hover {
+		background: #000;
+	}
+}
+
 /* -------------------------------------------------------- Section picker */
 
 .sse-picker-overlay {

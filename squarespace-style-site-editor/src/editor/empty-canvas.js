@@ -10,6 +10,7 @@ import { createPortal, useEffect, useState } from '@wordpress/element';
 import { store as blockEditorStore } from '@wordpress/block-editor';
 
 import { AddSectionButton } from './section-controls';
+import { useIsEditMode } from './chrome';
 
 function findRootContainer() {
 	const iframe = document.querySelector( 'iframe[name="editor-canvas"]' );
@@ -37,10 +38,12 @@ export default function EmptyCanvas() {
 		return ! be.getTemplateLock();
 	}, [] );
 
+	const isEditMode = useIsEditMode();
+	const show = isEmpty && isEditMode;
 	const [ container, setContainer ] = useState( null );
 
 	useEffect( () => {
-		if ( ! isEmpty ) {
+		if ( ! show ) {
 			setContainer( null );
 			return;
 		}
@@ -62,7 +65,7 @@ export default function EmptyCanvas() {
 			clearTimeout( timer );
 			node?.remove();
 		};
-	}, [ isEmpty ] );
+	}, [ show ] );
 
 	if ( ! container ) {
 		return null;

@@ -9,7 +9,7 @@
 import clsx from 'clsx';
 import { __, sprintf } from '@wordpress/i18n';
 import { addFilter } from '@wordpress/hooks';
-import { createHigherOrderComponent } from '@wordpress/compose';
+import { createHigherOrderComponent, useRefEffect } from '@wordpress/compose';
 import { useDispatch, useRegistry, useSelect } from '@wordpress/data';
 import { useState } from '@wordpress/element';
 import { store as blockEditorStore } from '@wordpress/block-editor';
@@ -393,6 +393,45 @@ function SectionMenu( { clientId, info } ) {
 	);
 }
 
+/**
+ * Keeps a tall section's menu in view while you scroll through it, by
+ * setting --sse-stick on the anchor (how far the menu should drop).
+ *
+ * @return {Function} Ref callback for the anchor element.
+ */
+function useStickyMenu() {
+	return useRefEffect( ( anchor ) => {
+		const view = anchor.ownerDocument.defaultView;
+		let frame;
+		const update = () => {
+			frame = null;
+			const section = anchor.nextElementSibling;
+			if ( ! section ) {
+				return;
+			}
+			const top = anchor.getBoundingClientRect().top;
+			const height = section.getBoundingClientRect().height;
+			const offset = Math.max( 0, Math.min( -top + 12, height - 320 ) );
+			anchor.style.setProperty( '--sse-stick', `${ offset }px` );
+		};
+		const onScroll = () => {
+			if ( ! frame ) {
+				frame = view.requestAnimationFrame( update );
+			}
+		};
+		update();
+		view.addEventListener( 'scroll', onScroll, { passive: true } );
+		view.addEventListener( 'resize', onScroll );
+		return () => {
+			view.removeEventListener( 'scroll', onScroll );
+			view.removeEventListener( 'resize', onScroll );
+			if ( frame ) {
+				view.cancelAnimationFrame( frame );
+			}
+		};
+	}, [] );
+}
+
 function ThemeTag( { slug } ) {
 	const palette = useSitePalette();
 	const theme = getSectionThemes().find( ( t ) => t.slug === slug );
@@ -422,8 +461,10 @@ function SectionAnchor( { clientId, info } ) {
 		} ),
 		[ clientId ]
 	);
+	const stickyRef = useStickyMenu();
 	return (
 		<div
+			ref={ stickyRef }
 			className={ clsx( 'sse-section-anchor', {
 				'is-panel-open': isPanelOpen,
 			} ) }

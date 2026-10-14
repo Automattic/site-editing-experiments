@@ -182,7 +182,7 @@ $sse-font: -apple-system, blinkmacsystemfont, "Segoe UI", roboto, "Helvetica Neu
 // Edit section, View layouts, an icon row and Remove, stacked.
 .sse-section-menu {
 	position: absolute;
-	top: 18px;
+	top: calc(18px + var(--sse-stick, 0px));
 	right: 18px;
 	display: flex;
 	flex-direction: column;

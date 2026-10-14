@@ -403,6 +403,28 @@
     lp.addEventListener('click', onClick);
   }
 
+  // Fill out the page with more example sections, so there's more to try the tools on.
+  (function addExampleSections() {
+    var cta = main.querySelector('[data-section="cta"]');
+    var plan = [
+      ['gallery', 'ex-gallery', cta], ['quote', 'ex-quote', cta], ['pricing', 'ex-pricing', cta],
+      ['faq', 'ex-faq', cta], ['newsletter', 'ex-newsletter', cta], ['contact', 'ex-contact', null]
+    ];
+    var n = 0;
+    plan.forEach(function (p) {
+      var wrap = document.createElement('div');
+      wrap.innerHTML = newSectionHTML(p[0], p[1]);
+      var sec = wrap.firstChild;
+      main.insertBefore(sec, p[2]);
+      sec.querySelectorAll('img[data-img]').forEach(function (img) {
+        state.images[img.dataset.img] = n++ % IMAGES.length;
+      });
+    });
+    // A little variety in the starting layouts.
+    state.layout['ex-quote'] = 'dark';
+    state.layout['ex-newsletter'] = 'split';
+  })();
+
   allSections().forEach(initSection);
 
   // ---------- Adding and removing items ----------

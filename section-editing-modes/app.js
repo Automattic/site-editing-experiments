@@ -236,6 +236,7 @@
       active: null,
       mode: null,
       layout: {},
+      palette: {},
       offsets: {},
       sizes: {},
       selected: null,
@@ -265,6 +266,19 @@
 
   function layoutOf(sec) {
     return state.layout[sec.dataset.section] || DEFAULT_LAYOUT[sec.dataset.type];
+  }
+
+  // Colour palettes a section can switch between. Swatch colours: background, text, accent.
+  var PALETTES = [
+    { id: 'default', label: 'Default', sw: ['#F4F2EE', '#1A1A1A', '#2F5D50'] },
+    { id: 'sand', label: 'Sand', sw: ['#EFE6D8', '#2B2118', '#9A4E26'] },
+    { id: 'sage', label: 'Sage', sw: ['#DCE6DF', '#16261F', '#2F5D50'] },
+    { id: 'sky', label: 'Sky', sw: ['#E2EBF4', '#14213A', '#2B57A8'] },
+    { id: 'clay', label: 'Clay', sw: ['#F2E1D7', '#2A1A14', '#A84A22'] },
+    { id: 'night', label: 'Night', sw: ['#191919', '#F4F2EE', '#E2B865'] }
+  ];
+  function paletteOf(sec) {
+    return (state.palette && state.palette[sec.dataset.section]) || 'default';
   }
 
   var SEC_ICONS = {
@@ -330,13 +344,19 @@
     lp.className = 'lp';
     lp.setAttribute('role', 'group');
     lp.setAttribute('aria-label', title + ' layouts');
-    lp.innerHTML = global
-      ? '<span class="lph">Layouts</span><span class="lpnote">' + GLOBE_ICON + 'You\u2019re editing the ' + title.toLowerCase() + ' on every page of your site</span><div class="lpo"></div>'
-      : '<span class="lph">Layouts</span><div class="lpo"></div>';
+    // Header row: the panel's name on the left; Restore removed (when needed), Reset and Done on the right.
+    lp.innerHTML = '<div class="lphead"><span class="lph">Layouts</span><div class="lpactions">' +
+        '<button class="lpreset" type="button" data-act="layoutreset" title="Undo changes since you opened Edit layout">Reset</button>' +
+        '<button class="done" type="button" data-act="done">Done</button></div></div>' +
+      (global ? '<span class="lpnote">' + GLOBE_ICON + 'You\u2019re editing the ' + title.toLowerCase() + ' on every page of your site</span>' : '') +
+      '<div class="lpo"></div>' +
+      '<div class="lpsec"><span class="lph">Colours</span><div class="pals" role="group" aria-label="Colour palette">' +
+        PALETTES.map(function (pal) {
+          return '<button class="pal" type="button" data-palette-pick="' + pal.id + '" aria-pressed="false">' +
+            '<span class="palsw" aria-hidden="true">' + pal.sw.map(function (c) { return '<span style="background:' + c + '"></span>'; }).join('') + '</span>' +
+            pal.label + '</button>';
+        }).join('') + '</div></div>';
     if (global) lp.classList.add('global');
-    lp.insertAdjacentHTML('beforeend', '<div class="lpfoot">' +
-      '<button class="lpreset" type="button" data-act="layoutreset" title="Undo changes since you opened Edit layout">Reset</button>' +
-      '<button class="done" type="button" data-act="done">Done</button></div>');
     document.body.appendChild(lp);
     sec._lp = lp;
 
@@ -365,7 +385,9 @@
         state.mode = btn.dataset.open;
         state.selected = null;
         // Remember how the section was when Edit layout opened, so Reset can put it back.
-        if (state.mode === 'layout') sec._snap = { layout: layoutOf(sec), removedFrom: removed.length };
+        if (state.mode === 'layout') sec._snap = { layout: layoutOf(sec), palette: paletteOf(sec), removedFrom: removed.length };
+      } else if (btn.dataset.palettePick) {
+        state.palette[key] = btn.dataset.palettePick;
       } else if (btn.dataset.layoutPick) {
         state.layout[key] = btn.dataset.layoutPick;
       } else if (btn.dataset.act === 'done') {
@@ -459,7 +481,7 @@
   function layoutSessionChanged(sec) {
     var snap = sec._snap;
     if (!snap) return false;
-    if (layoutOf(sec) !== snap.layout) return true;
+    if (layoutOf(sec) !== snap.layout || paletteOf(sec) !== snap.palette) return true;
     for (var i = snap.removedFrom; i < removed.length; i++) if (removed[i].sec === sec) return true;
     return false;
   }
@@ -467,6 +489,7 @@
     var snap = sec._snap;
     if (!snap) return;
     state.layout[sec.dataset.section] = snap.layout;
+    state.palette[sec.dataset.section] = snap.palette;
     for (var i = removed.length - 1; i >= snap.removedFrom; i--) {
       if (removed[i].sec !== sec) continue;
       removed[i].ph.replaceWith(removed[i].el);
@@ -580,6 +603,7 @@
       sec.classList.toggle('on', on);
       sec.dataset.mode = mode || '';
       sec.dataset.layout = layoutOf(sec);
+      sec.dataset.palette = paletteOf(sec);
       // The cards under a featured card share one row: as many columns as there are cards (up to four).
       if (sec.dataset.type === 'features') sec.style.setProperty('--rest', Math.min(4, Math.max(1, count(sec, '.card') - 1)));
 
@@ -637,6 +661,7 @@
     var copy = document.createElement('div');
     copy.className = 'mini-sec ' + sec.dataset.type;
     copy.dataset.layout = layoutId;
+    copy.dataset.palette = paletteOf(sec);
     copy.style.setProperty('--rest', sec.style.getPropertyValue('--rest') || 2);
     copy.innerHTML = sec.innerHTML;
     copy.querySelectorAll(CHROME).forEach(function (n) { n.remove(); });
@@ -657,6 +682,9 @@
       lp.classList.toggle('show', sec.dataset.mode === 'layout');
       if (sec.dataset.mode !== 'layout') return;
       lp.querySelector('.lpreset').disabled = !layoutSessionChanged(sec);
+      lp.querySelectorAll('[data-palette-pick]').forEach(function (b) {
+        b.setAttribute('aria-pressed', String(b.dataset.palettePick === paletteOf(sec)));
+      });
       var current = layoutOf(sec);
       var options = LAYOUTS[sec.dataset.type].filter(function (l) { return !l.when || l.when(sec) || l.id === current; });
       var lpo = lp.querySelector('.lpo');
@@ -670,8 +698,8 @@
         rb.className = 'lprestore';
         rb.dataset.act = 'restore';
         rb.textContent = 'Restore removed (' + nRemoved + ')';
-        var foot = lp.querySelector('.lpfoot');
-        foot.insertBefore(rb, foot.firstChild);
+        var acts = lp.querySelector('.lpactions');
+        acts.insertBefore(rb, acts.firstChild);
       }
       options.forEach(function (l) {
         var b = document.createElement('button');
@@ -1058,6 +1086,7 @@
     });
     copy.querySelectorAll('[data-key]').forEach(function (n) { n.dataset.key = pre + n.dataset.key; });
     state.layout[id] = layoutOf(sec);
+    state.palette[id] = paletteOf(sec);
     copy.dataset.section = id;
     main.insertBefore(copy, sec.nextSibling);
     initSection(copy);

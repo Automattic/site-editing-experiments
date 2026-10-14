@@ -2,7 +2,7 @@
 
 A clickable mockup exploring three ways to edit a section of a page. Hover any section to get an overlay with three choices:
 
-- **Edit layout:** a floating panel at the top of the section offers preset arrangements, each with a small diagram, and the section changes underneath as you pick. The toolbar also adds new items suited to the section, such as a heading, paragraph, button or image in the hero, or a new card in features, and every item gets a × button to remove it. **Restore removed** brings back what you took out. New items work in the other modes too, so you can edit, move and resize them.
+- **Edit layout:** a floating panel at the top of the section offers preset arrangements, each with a small diagram, and the section changes underneath as you pick. The toolbar also adds new items suited to the section, such as a heading, paragraph, button or image in the hero, or a new card in features, and every item gets a bin button to remove it. **Restore removed** brings back what you took out. New items work in the other modes too, so you can edit, move and resize them.
 - **Edit content:** text becomes click-to-edit and each image gets a "Replace image" button. Nothing can be moved.
 - **Freeform:** every item can be dragged anywhere and resized, and text and images are locked. Click an item to select it: images and cards get handles on every side and corner, and text gets left and right handles so it reflows. While you move or resize:
   - A 12-column grid and centre line show behind the content.

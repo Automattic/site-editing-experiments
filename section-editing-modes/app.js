@@ -34,7 +34,7 @@
   };
 
   var MODES = {
-    layout: { label: 'Edit layout', desc: 'Pick a preset arrangement, and add or remove items', hint: 'Pick a preset \u00b7 Add items \u00b7 Click \u00d7 to remove an item' },
+    layout: { label: 'Edit layout', desc: 'Pick a preset arrangement, and add or remove items', hint: 'Pick a preset \u00b7 Add items \u00b7 Click the bin to remove an item' },
     content: { label: 'Edit content', desc: 'Change text and images; positions stay put', hint: 'Click text to edit · Replace images · Positions are locked' },
     free: { label: 'Freeform', desc: 'Move and resize items; text and images are locked', hint: 'Drag to move · Select an item and drag its handles to resize · Text and images are locked' }
   };
@@ -243,7 +243,7 @@
         var r = local(el.getBoundingClientRect(), sr);
         var name = (el.querySelector('h3') || el).textContent.trim().slice(0, 40) || 'item';
         html += '<button class="xbtn" data-remove="' + el.dataset.drag + '" style="left:' + (r.l + r.w) + 'px;top:' + r.t + 'px" aria-label="Remove ' + name.replace(/"/g, '&quot;') + '">' +
-          '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>';
+          '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16"></path><path d="M10 11v6M14 11v6"></path><path d="M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12"></path><path d="M9 7V4h6v3"></path></svg></button>';
       });
       layer.innerHTML = html;
       var restoreBtn = sec.querySelector('[data-act="restore"]');

@@ -209,10 +209,6 @@ a { color: var(--accent); }
 .sec[data-mode="free"] [data-drag].dragging { cursor: grabbing; }
 
 /* Add & remove (part of Edit layout) */
-.struct-tools { display: none; flex-wrap: wrap; align-items: center; gap: 6px; }
-.sec[data-mode="layout"] .struct-tools { display: flex; }
-.addl { color: #C7C7C7; font-size: 13px; padding: 0 4px 0 8px; }
-.addb { display: inline-flex; align-items: center; gap: 6px; }
 .tbb:disabled { opacity: 0.45; cursor: default; }
 .xlayer { position: absolute; inset: 0; z-index: 9; pointer-events: none; }
 .xbtn {
@@ -465,3 +461,11 @@ body.editing .ins { display: none; }
   .gallery[data-layout="grid4"] .gal-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .text[data-layout="cols2"] .text-body { column-count: 1; }
 }
+
+/* In Edit layout the layouts panel stands alone: no black toolbar. */
+.sec[data-mode="layout"] .tb { display: none; }
+.lprestore {
+  min-height: 32px; padding: 0 12px; background: transparent; color: #9DB2FF; border: 1px solid #4A4A4A; border-radius: 6px;
+  font: 600 12px 'Instrument Sans', sans-serif; cursor: pointer;
+}
+.lprestore:hover, .lprestore:focus-visible { border-color: #9DB2FF; outline: none; }

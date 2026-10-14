@@ -65,7 +65,7 @@
   };
 
   var MODES = {
-    layout: { label: 'Edit layout', desc: 'Pick a preset arrangement, and add or remove items', hint: 'Pick a preset \u00b7 Add items \u00b7 Click the bin to remove an item' },
+    layout: { label: 'Edit layout', desc: 'Pick a preset arrangement, and remove items', hint: '' },
     content: { label: 'Edit content', desc: 'Change text and images; positions stay put', hint: 'Click text to edit · Replace images · Positions are locked' },
     free: { label: 'Freeform', desc: 'Move and resize items; text and images are locked', hint: 'Drag to move · Select an item and drag its handles to resize · Text and images are locked' }
   };
@@ -233,12 +233,7 @@
           '<button class="tbb" data-act="snap">Snap to guides</button>' +
           '<button class="tbb" data-act="resetpos">Reset positions and sizes</button>' +
         '</div>' +
-        '<div class="struct-tools"><span class="addl">Add</span>' +
-          ADDABLE[type].map(function (a, i) {
-            return '<button class="tbb addb" data-add="' + i + '"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>' + a.label + '</button>';
-          }).join('') +
-          '<button class="tbb" data-act="restore">Restore removed</button>' +
-        '</div><span class="spacer"></span><button class="done" data-act="done">Done</button></div>' +
+        '<span class="spacer"></span><button class="done" data-act="done">Done</button></div>' +
       '<div class="xlayer"></div>'
     );
 
@@ -374,10 +369,7 @@
           '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16"></path><path d="M10 11v6M14 11v6"></path><path d="M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12"></path><path d="M9 7V4h6v3"></path></svg></button>';
       });
       layer.innerHTML = html;
-      var restoreBtn = sec.querySelector('[data-act="restore"]');
-      var n = removed.filter(function (r) { return r.sec === sec; }).length;
-      restoreBtn.disabled = n === 0;
-      restoreBtn.textContent = n ? 'Restore removed (' + n + ')' : 'Restore removed';
+
     });
   }
   window.addEventListener('resize', function () { renderLayoutPanels(); positionRemoveButtons(); });
@@ -482,11 +474,22 @@
       if (sec.dataset.mode !== 'layout') return;
       var sr = sec.getBoundingClientRect();
       lp.style.left = sr.left + window.scrollX + sr.width / 2 + 'px';
-      lp.style.top = sr.top + window.scrollY + 76 + 'px';
+      lp.style.top = sr.top + window.scrollY + 16 + 'px';
       var current = layoutOf(sec);
       var options = LAYOUTS[sec.dataset.type].filter(function (l) { return !l.when || l.when(sec) || l.id === current; });
       var lpo = lp.querySelector('.lpo');
       lpo.innerHTML = '';
+      // Restore removed lives in the panel, and only shows when something has been removed.
+      var old = lp.querySelector('.lprestore');
+      if (old) old.remove();
+      var nRemoved = removed.filter(function (r) { return r.sec === sec; }).length;
+      if (nRemoved) {
+        var rb = document.createElement('button');
+        rb.className = 'lprestore';
+        rb.dataset.act = 'restore';
+        rb.textContent = 'Restore removed (' + nRemoved + ')';
+        lp.appendChild(rb);
+      }
       options.forEach(function (l) {
         var b = document.createElement('button');
         b.className = 'lo';

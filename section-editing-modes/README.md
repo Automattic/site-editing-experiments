@@ -1,6 +1,6 @@
 # Section editing modes
 
-A clickable mockup exploring three ways to edit a section of a page. Hover any section to get an overlay with three choices:
+A clickable mockup exploring three ways to edit a section of a page. Hover any section to get an overlay with three choices in a bar at the top of the section:
 
 - **Edit layout:** a floating panel at the top of the section offers preset arrangements, each previewed with a live miniature of the section's current content, and the section changes underneath as you pick. As you add content, the layouts adapt to fit it, and extra layouts appear when there's enough content for them (marked with a blue dot): Image row once the hero has two images, Four columns once Features has four cards, Two text columns once a Text section has three paragraphs, and Four across once a gallery has eight photos. Every item gets a bin button to remove it, and **Restore removed** appears in the panel once you've taken something out. Clicking anywhere other than the layouts panel or the bins closes Edit layout and returns to the normal overlay.
 - **Edit content:** text becomes click-to-edit and each image gets a "Replace image" button. Nothing can be moved.

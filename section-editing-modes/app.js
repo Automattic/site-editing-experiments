@@ -71,9 +71,9 @@
   };
 
   var ICONS = {
-    layout: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3858E9" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"></rect><path d="M3 9h18M9 9v12"></path></svg>',
-    content: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3858E9" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4z"></path><path d="M13 7l4 4"></path></svg>',
-    free: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3858E9" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v18M3 12h18M9 6l3-3 3 3M9 18l3 3 3-3M6 9l-3 3 3 3M18 9l3 3-3 3"></path></svg>'
+    layout: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3858E9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"></rect><path d="M3 9h18M9 9v12"></path></svg>',
+    content: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3858E9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4z"></path><path d="M13 7l4 4"></path></svg>',
+    free: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3858E9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v18M3 12h18M9 6l3-3 3 3M9 18l3 3 3-3M6 9l-3 3 3 3M18 9l3 3-3 3"></path></svg>'
   };
 
   // What each section can add, and where new items go.
@@ -202,11 +202,11 @@
     var title = TITLES[type];
     sec.dataset.title = title;
 
-    var overlayButtons = ['layout', 'content', 'free'].map(function (m) {
-      return '<button class="ob" data-open="' + m + '">' + ICONS[m] +
-        '<span class="obt">' + MODES[m].label + '</span>' +
-        '<span class="obd">' + MODES[m].desc + '</span></button>';
-    }).join('');
+    var overlayButtons = '<div class="modebar" role="group" aria-label="Edit this section">' +
+      ['layout', 'content', 'free'].map(function (m) {
+        return '<button class="ob" data-open="' + m + '" title="' + MODES[m].desc + '">' + ICONS[m] +
+          '<span class="obt">' + MODES[m].label + '</span></button>';
+      }).join('') + '</div>';
 
 
     sec.insertAdjacentHTML('afterbegin',

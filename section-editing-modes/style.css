@@ -479,3 +479,29 @@ body.editing .ins { display: none; }
 
 /* On narrower screens the mode bar drops below the name and section toolbar. */
 @media (max-width: 1000px) { .ov { padding-top: 84px; } }
+
+/* ---------- Site footer ---------- */
+.site-footer { background: var(--ink); color: #D9D6D0; font-size: 15px; }
+.footer-inner {
+  max-width: 1240px; margin: 0 auto; padding: 64px 48px 48px; display: grid;
+  grid-template-columns: minmax(0, 2fr) repeat(3, minmax(0, 1fr)); gap: 40px;
+}
+.footer-brand .logo { color: var(--ground); }
+.footer-brand p { margin-top: 12px; max-width: 320px; line-height: 1.55; color: #B9B5AE; }
+.footer-col { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
+.footer-col h2 {
+  font-family: 'Instrument Sans', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 0.08em;
+  text-transform: uppercase; color: #9FC5B7; margin-bottom: 4px;
+}
+.footer-col p { line-height: 1.55; }
+.footer-col a { color: #D9D6D0; text-decoration: none; }
+.footer-col a:hover, .footer-col a:focus-visible { color: #fff; text-decoration: underline; }
+.footer-base {
+  width: calc(100% - 96px); max-width: 1144px; margin: 0 auto; padding: 20px 0 32px; display: flex; flex-wrap: wrap; justify-content: space-between;
+  gap: 12px; border-top: 1px solid #3A3A3A; font-size: 13px; color: #9C9890;
+}
+@media (max-width: 800px) {
+  .footer-inner { grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 48px 20px 32px; }
+  .footer-brand { grid-column: 1 / -1; }
+  .footer-base { width: calc(100% - 40px); }
+}

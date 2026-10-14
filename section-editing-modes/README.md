@@ -17,6 +17,8 @@ A clickable mockup exploring three ways to edit a section of a page. Hover any s
 - **Duplicate a section:** use the copy button in the same toolbar. The copy appears below the original with the same text, photos, layout, positions and sizes.
 - **Delete a section:** use the bin at the end of the toolbar. A message at the bottom of the page lets you undo it.
 
+The page ends with a site footer (brand, links, and placeholder visit and contact details); it isn't one of the editable sections.
+
 Only one section is in a mode at a time. **Done** leaves the mode, and **Reset everything** in the top bar reloads the original page.
 
 ## Sections and layouts

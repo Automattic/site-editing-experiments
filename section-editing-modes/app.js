@@ -34,17 +34,15 @@
   };
 
   var MODES = {
-    layout: { label: 'Edit layout', desc: 'Pick from preset arrangements for this section', hint: 'Pick a preset and watch the section change' },
+    layout: { label: 'Edit layout', desc: 'Pick a preset arrangement, and add or remove items', hint: 'Pick a preset \u00b7 Add items \u00b7 Click \u00d7 to remove an item' },
     content: { label: 'Edit content', desc: 'Change text and images; positions stay put', hint: 'Click text to edit · Replace images · Positions are locked' },
-    structure: { label: 'Add & remove', desc: 'Add new items or remove ones you don\u2019t need', hint: 'Add items from the toolbar \u00b7 Click \u00d7 to remove an item' },
     free: { label: 'Freeform', desc: 'Move and resize items; text and images are locked', hint: 'Drag to move · Select an item and drag its handles to resize · Text and images are locked' }
   };
 
   var ICONS = {
     layout: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3858E9" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"></rect><path d="M3 9h18M9 9v12"></path></svg>',
     content: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3858E9" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4z"></path><path d="M13 7l4 4"></path></svg>',
-    free: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3858E9" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v18M3 12h18M9 6l3-3 3 3M9 18l3 3 3-3M6 9l-3 3 3 3M18 9l3 3-3 3"></path></svg>',
-    structure: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3858E9" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="11" height="11" rx="2"></rect><path d="M8.5 6v5M6 8.5h5"></path><rect x="10" y="10" width="11" height="11" rx="2"></rect><path d="M13 15.5h5"></path></svg>'
+    free: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3858E9" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v18M3 12h18M9 6l3-3 3 3M9 18l3 3 3-3M6 9l-3 3 3 3M18 9l3 3-3 3"></path></svg>'
   };
 
   // What each section can add, and where new items go.
@@ -120,7 +118,7 @@
     var key = sec.dataset.section;
     var title = sec.dataset.title;
 
-    var overlayButtons = ['layout', 'content', 'structure', 'free'].map(function (m) {
+    var overlayButtons = ['layout', 'content', 'free'].map(function (m) {
       return '<button class="ob" data-open="' + m + '">' + ICONS[m] +
         '<span class="obt">' + MODES[m].label + '</span>' +
         '<span class="obd">' + MODES[m].desc + '</span></button>';
@@ -238,7 +236,7 @@
   function positionRemoveButtons() {
     sections.forEach(function (sec) {
       var layer = sec.querySelector('.xlayer');
-      if (sec.dataset.mode !== 'structure') { layer.innerHTML = ''; return; }
+      if (sec.dataset.mode !== 'layout') { layer.innerHTML = ''; return; }
       var sr = sec.getBoundingClientRect();
       var html = '';
       sec.querySelectorAll('[data-drag]').forEach(function (el) {

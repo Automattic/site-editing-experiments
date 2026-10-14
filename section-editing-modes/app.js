@@ -229,9 +229,9 @@
         '</div>' + overlayButtons + '</div>' +
       '<div class="tb"><span class="tbl"></span><span class="tbh"></span>' +
         '<div class="free-tools">' +
-          '<button class="tbb" data-act="grid">Grid</button>' +
-          '<button class="tbb" data-act="snap">Snap to guides</button>' +
-          '<button class="tbb" data-act="resetpos">Reset positions and sizes</button>' +
+          '<button class="tbb" data-act="grid" title="Show the column grid">Grid</button>' +
+          '<button class="tbb" data-act="snap" title="Snap to guides">Snap</button>' +
+          '<button class="tbb" data-act="resetpos" title="Reset positions and sizes">Reset</button>' +
         '</div>' +
         '<span class="spacer"></span><button class="done" data-act="done">Done</button></div>' +
       '<div class="xlayer"></div>'
@@ -403,6 +403,7 @@
 
       sec.querySelector('.tbl').textContent = mode ? MODES[mode].label : '';
       sec.querySelector('.tbh').textContent = mode ? MODES[mode].hint : '';
+      sec.querySelector('.tbl').title = mode ? MODES[mode].hint : '';
 
       sec.querySelectorAll('[data-text]').forEach(function (el) {
         el.contentEditable = mode === 'content' ? 'true' : 'false';

@@ -7,7 +7,7 @@ A clickable mockup exploring three ways to edit a section of a page. Hover any s
 - **Freeform:** every item can be dragged anywhere and resized, and text and images are locked. Click an item to select it: images and cards get handles on every side and corner, and text gets left and right handles so it reflows. While you move or resize:
   - A 12-column grid and centre line show behind the content.
   - Pink snap lines appear when an item's edge or centre lines up with another item, the section centre or the content edges.
-  - The **Grid** and **Snap to guides** buttons turn each of these off, and **Reset positions and sizes** puts the section back.
+  - The **Grid** and **Snap** buttons in the small bar at the top of the section turn each of these off, and **Reset** puts the section's positions and sizes back.
 
 ## Adding and arranging sections
 

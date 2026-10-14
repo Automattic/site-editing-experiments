@@ -160,13 +160,16 @@ a { color: var(--accent); }
 
 /* Mode toolbar */
 .tb {
-  position: absolute; top: 12px; left: 12px; right: 12px; z-index: 13; display: none; flex-wrap: wrap;
-  align-items: center; gap: 8px; padding: 8px; background: var(--editor); color: #fff; border-radius: 10px;
-  font-size: 14px; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+  position: absolute; top: 16px; left: 50%; transform: translateX(-50%); z-index: 13; display: none;
+  align-items: center; gap: 4px; padding: 4px; background: var(--editor); color: #fff; border-radius: 9px;
+  font-size: 13px; white-space: nowrap; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
 }
 .sec.on .tb { display: flex; }
-.tbl { font-weight: 600; padding: 0 8px; }
-.tbh { color: #C7C7C7; padding-right: 8px; }
+.tbl { font-weight: 600; padding: 0 8px; cursor: default; }
+/* The mode hint shows as a tooltip on the label instead. */
+.tbh, .tb .spacer { display: none; }
+.tb .tbb { min-height: 32px; padding: 0 10px; font-size: 12px; }
+.tb .done { min-height: 32px; padding: 0 14px; font-size: 13px; }
 .free-tools { display: none; flex-wrap: wrap; gap: 6px; }
 .sec[data-mode="free"] .free-tools { display: flex; }
 .done {

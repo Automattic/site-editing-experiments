@@ -29,7 +29,11 @@ import {
 
 import { STORE_NAME } from './store';
 import { heart } from '../shared/icons';
-import { getThemeFromClassName } from './settings';
+import {
+	getSectionThemes,
+	getThemeFromClassName,
+	useSitePalette,
+} from './settings';
 import { EditSectionPanel, LayoutsPanel } from './section-panel';
 import { categoryForSection, useSectionPatterns } from './section-patterns';
 
@@ -389,10 +393,33 @@ function SectionMenu( { clientId, info } ) {
 	);
 }
 
+function ThemeTag( { slug } ) {
+	const palette = useSitePalette();
+	const theme = getSectionThemes().find( ( t ) => t.slug === slug );
+	if ( ! theme ) {
+		return null;
+	}
+	return (
+		<div
+			className="sse-theme-tag"
+			style={ {
+				background: palette[ theme.background ],
+				color: palette[ theme.text ],
+			} }
+		>
+			<span style={ { color: palette[ theme.heading ] } }>Aa</span>
+			{ theme.label }
+		</div>
+	);
+}
+
 function SectionAnchor( { clientId, info } ) {
-	const isPanelOpen = useSelect(
-		( select ) =>
-			select( STORE_NAME ).getSectionPanel()?.clientId === clientId,
+	const { isPanelOpen, showThemeTag } = useSelect(
+		( select ) => ( {
+			isPanelOpen:
+				select( STORE_NAME ).getSectionPanel()?.clientId === clientId,
+			showThemeTag: select( STORE_NAME ).getShowThemeTags(),
+		} ),
 		[ clientId ]
 	);
 	return (
@@ -417,6 +444,7 @@ function SectionAnchor( { clientId, info } ) {
 				{ info.label }
 			</div>
 			<SectionMenu clientId={ clientId } info={ info } />
+			{ showThemeTag && info.theme && <ThemeTag slug={ info.theme } /> }
 		</div>
 	);
 }

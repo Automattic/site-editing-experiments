@@ -8,6 +8,9 @@ const DEFAULT_STATE = {
 	// The section panel that's open: { clientId, panel } where panel is
 	// 'edit' or 'layouts'.
 	sectionPanel: null,
+	// Whether sections show their colour theme in the canvas (while Site
+	// Styles → Colours is open).
+	showThemeTags: false,
 };
 
 const actions = {
@@ -22,6 +25,9 @@ const actions = {
 	},
 	closeSectionPanel() {
 		return { type: 'CLOSE_SECTION_PANEL' };
+	},
+	setShowThemeTags( show ) {
+		return { type: 'SET_SHOW_THEME_TAGS', show };
 	},
 };
 
@@ -48,6 +54,8 @@ function reducer( state = DEFAULT_STATE, action ) {
 			};
 		case 'CLOSE_SECTION_PANEL':
 			return { ...state, sectionPanel: null };
+		case 'SET_SHOW_THEME_TAGS':
+			return { ...state, showThemeTags: !! action.show };
 	}
 	return state;
 }
@@ -58,6 +66,9 @@ const selectors = {
 	},
 	getSectionPanel( state ) {
 		return state.sectionPanel;
+	},
+	getShowThemeTags( state ) {
+		return state.showThemeTags;
 	},
 };
 

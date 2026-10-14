@@ -662,83 +662,67 @@ $sse-font: -apple-system, blinkmacsystemfont, "Segoe UI", roboto, "Helvetica Neu
 /* ---------------------------------------------------------- Site Styles */
 
 .sse-styles {
+	padding: 4px 16px 24px;
 	font-family: $sse-font;
 	color: $sse-ink;
 }
 
-.sse-styles__menu {
-	display: flex;
-	flex-direction: column;
-	padding: 8px;
+.sse-styles .sse-styles__heading {
+	margin: 12px 0 16px;
+	font-size: 20px;
+	line-height: 1.2;
+	font-weight: 600;
+	letter-spacing: -0.01em;
 }
 
-.sse-styles__menu-item {
-	display: flex;
+.sse-styles__back {
+	display: inline-flex;
 	align-items: center;
-	gap: 12px;
-	padding: 14px 12px;
+	gap: 2px;
+	margin: 8px 0 0 -6px;
+	padding: 4px 6px;
 	border: 0;
-	border-radius: 8px;
 	background: none;
 	color: $sse-ink;
-	font: 500 15px/1 $sse-font;
-	text-align: left;
+	font: 500 13px/1 $sse-font;
 	cursor: pointer;
-
-	span {
-		flex: 1;
-	}
 
 	svg {
 		fill: currentcolor;
 	}
 
 	&:hover {
-		background: $sse-hover;
-	}
-
-	&:focus-visible {
-		outline: 2px solid $sse-blue;
-	}
-
-	.sse-styles__chevron {
-		fill: $sse-muted;
+		text-decoration: underline;
 	}
 }
 
-.sse-styles__footer {
-	padding: 8px 16px 16px;
-	border-top: 1px solid $sse-line;
-	margin-top: 8px;
-}
-
-.sse-styles__header {
+.sse-styles__cards {
+	margin-top: 12px;
 	display: flex;
-	align-items: center;
-	gap: 4px;
-	padding: 12px 8px;
-	border-bottom: 1px solid $sse-line;
-
-	h2 {
-		margin: 0;
-		font-size: 15px;
-		font-weight: 600;
-	}
+	flex-direction: column;
+	gap: 10px;
 }
 
 .sse-styles__screen {
 	display: flex;
 	flex-direction: column;
-	gap: 20px;
-	padding: 16px;
+	gap: 16px;
 }
 
-.sse-styles__subhead {
-	margin: 4px 0 -12px;
-	font-size: 11px;
+.sse-styles .sse-styles__subhead {
+	margin: 8px 0 -6px;
+	font-size: 13px;
 	font-weight: 600;
+	text-transform: none;
+	letter-spacing: 0;
+}
+
+.sse-styles__label {
+	margin: 0 0 -8px;
+	font-size: 10px;
+	font-weight: 600;
+	letter-spacing: 0.08em;
 	text-transform: uppercase;
-	letter-spacing: 0.06em;
 	color: $sse-muted;
 }
 
@@ -749,13 +733,141 @@ $sse-font: -apple-system, blinkmacsystemfont, "Segoe UI", roboto, "Helvetica Neu
 	line-height: 1.5;
 }
 
+.sse-styles__footer {
+	margin-top: 20px;
+	padding-top: 12px;
+	border-top: 1px solid $sse-line;
+}
+
+// Preview cards: a grey card with a white preview, and a chevron column.
+.sse-card {
+	display: flex;
+	gap: 4px;
+
+	&.is-static {
+		display: block;
+		padding: 10px;
+		background: #f3f3f3;
+	}
+}
+
+.sse-card__main {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	min-width: 0;
+	padding: 10px;
+	border: 0;
+	background: #f3f3f3;
+	color: $sse-ink;
+	text-align: left;
+	cursor: pointer;
+
+	&:hover {
+		background: #ebebeb;
+	}
+
+	&:focus-visible {
+		outline: 2px solid $sse-blue;
+	}
+}
+
+.sse-card__title {
+	font-size: 11px;
+	color: #555;
+}
+
+.sse-card__preview {
+	display: block;
+	padding: 12px;
+	background: #fff;
+	box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.04);
+}
+
+.sse-card__center {
+	display: flex;
+	justify-content: center;
+}
+
+.sse-card__chevron {
+	width: 36px;
+	border: 0;
+	background: #f3f3f3;
+	color: $sse-ink;
+	cursor: pointer;
+
+	svg {
+		fill: currentcolor;
+	}
+
+	&:hover {
+		background: #ebebeb;
+	}
+}
+
+.sse-strip {
+	display: flex;
+	flex: 1;
+	height: 28px;
+	overflow: hidden;
+	box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.06);
+
+	&.is-large {
+		height: 44px;
+	}
+
+	span {
+		flex: 1;
+	}
+}
+
+.sse-theme-preview {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+
+.sse-theme-preview__aa {
+	font-size: 30px;
+	line-height: 1;
+}
+
+.sse-button-sample {
+	display: inline-block;
+	padding: 0.85em 1.7em;
+	font: 600 12px/1 $sse-font;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+	white-space: nowrap;
+
+	&.is-small {
+		padding: 6px 10px;
+		font-size: 8px;
+	}
+}
+
+.sse-font-sample {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.sse-font-sample__heading {
+	font-size: 22px;
+	line-height: 1.15;
+}
+
+.sse-font-sample__body {
+	font-size: 12px;
+}
+
 .sse-font-preview {
 	display: flex;
 	flex-direction: column;
-	gap: 6px;
+	gap: 4px;
 	padding: 20px 16px;
-	border-radius: 8px;
-	background: $sse-backdrop;
+	background: #f3f3f3;
 }
 
 .sse-font-preview__heading {
@@ -764,8 +876,68 @@ $sse-font: -apple-system, blinkmacsystemfont, "Segoe UI", roboto, "Helvetica Neu
 }
 
 .sse-font-preview__body {
-	font-size: 15px;
-	line-height: 1.5;
+	font-size: 14px;
+}
+
+.sse-font-preview__names {
+	margin-top: 8px;
+	font-size: 10px;
+	font-weight: 600;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: $sse-muted;
+}
+
+// List rows, with a value and a chevron when they open something.
+.sse-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	min-height: 40px;
+	padding: 0;
+	border: 0;
+	border-bottom: 1px solid $sse-line;
+	background: none;
+	color: $sse-ink;
+	font: 400 13px/1.3 $sse-font;
+	text-align: left;
+
+	&.is-link {
+		cursor: pointer;
+
+		&:hover {
+			text-decoration: underline;
+		}
+	}
+}
+
+.sse-row__value {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	color: $sse-muted;
+
+	svg {
+		fill: currentcolor;
+	}
+}
+
+.sse-stepper {
+	display: inline-flex;
+	align-items: center;
+	gap: 2px;
+	padding: 2px;
+	border-radius: 4px;
+	background: #f3f3f3;
+	color: $sse-ink;
+}
+
+.sse-stepper__value {
+	min-width: 44px;
+	text-align: center;
+	font-variant-numeric: tabular-nums;
+	font-size: 12px;
 }
 
 .sse-palette-editor {
@@ -795,7 +967,6 @@ $sse-font: -apple-system, blinkmacsystemfont, "Segoe UI", roboto, "Helvetica Neu
 		display: block;
 		width: 100%;
 		aspect-ratio: 1;
-		border-radius: 8px;
 		box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
 	}
 
@@ -811,56 +982,115 @@ $sse-font: -apple-system, blinkmacsystemfont, "Segoe UI", roboto, "Helvetica Neu
 .sse-palette-presets {
 	display: grid;
 	grid-template-columns: repeat(2, 1fr);
-	gap: 10px;
+	gap: 8px;
 }
 
 .sse-palette-preset {
 	display: flex;
+	padding: 12px;
+	border: 0;
+	background: #f3f3f3;
+	cursor: pointer;
+
+	&:hover {
+		background: #ebebeb;
+	}
+
+	&.is-selected {
+		box-shadow: inset 0 0 0 2px $sse-ink;
+	}
+
+	&:focus-visible {
+		outline: 2px solid $sse-blue;
+	}
+}
+
+.sse-theme-list.is-static {
+	pointer-events: none;
+}
+
+.sse-site-themes {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+
+.sse-site-theme {
+	display: flex;
 	flex-direction: column;
 	gap: 6px;
-	padding: 6px;
+	padding: 0;
 	border: 0;
-	border-radius: 8px;
 	background: none;
+	text-align: left;
+	cursor: pointer;
+
+	&:hover .sse-site-theme__preview {
+		box-shadow: 0 0 0 2px #c9c6c0;
+	}
+
+	&.is-selected .sse-site-theme__preview {
+		box-shadow: 0 0 0 2px $sse-ink;
+	}
+
+	&:focus-visible {
+		outline: 2px solid $sse-blue;
+		outline-offset: 2px;
+	}
+}
+
+.sse-site-theme__preview {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 14px;
+	box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08);
+}
+
+.sse-site-theme__aa {
+	font-size: 28px;
+	line-height: 1;
+}
+
+.sse-site-theme__name {
+	font-size: 12px;
+	color: $sse-muted;
+}
+
+.sse-font-packs {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.sse-font-pack {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	padding: 14px;
+	border: 0;
+	background: #f3f3f3;
 	color: $sse-ink;
-	font: 500 12px/1 $sse-font;
 	text-align: left;
 	cursor: pointer;
 
 	&:hover {
-		background: $sse-hover;
+		background: #ebebeb;
 	}
 
 	&.is-selected {
-		box-shadow: 0 0 0 2px $sse-blue;
+		box-shadow: inset 0 0 0 2px $sse-ink;
 	}
 }
 
-.sse-palette-preset__colors {
-	display: flex;
-	height: 28px;
-	overflow: hidden;
-	border-radius: 5px;
-	box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
-
-	span {
-		flex: 1;
-	}
+.sse-font-pack__heading {
+	font-size: 22px;
+	line-height: 1.15;
 }
 
-.sse-button-preview {
-	display: flex;
-	justify-content: center;
-	padding: 24px;
-	border-radius: 8px;
-	background: $sse-backdrop;
-
-	span {
-		padding: 0.85em 1.7em;
-		background: $sse-ink;
-		color: #fff;
-		font: 600 14px/1 $sse-font;
-	}
+.sse-font-pack__body {
+	font-size: 13px;
+	color: #555;
 }
 
 /* ------------------------------------------------------------ Add block */

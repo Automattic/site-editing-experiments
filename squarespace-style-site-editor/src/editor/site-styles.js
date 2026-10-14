@@ -1,16 +1,18 @@
 /**
- * Site Styles: one place for fonts, colours, buttons and spacing, laid out
- * like Squarespace's panel (a short menu that drills into each area). Every
- * control writes to the user's global styles.
+ * Site Styles, laid out like Squarespace's: a column of preview cards
+ * (Themes, Fonts, Colours, Buttons) and a couple of rows, each opening a
+ * screen of its own. Every control writes to the user's global styles, so
+ * changes show in the canvas straight away and save with the Save button.
  */
 import clsx from 'clsx';
 import { __, sprintf } from '@wordpress/i18n';
-import { useState } from '@wordpress/element';
+import { useEffect, useMemo, useState } from '@wordpress/element';
+import { useDispatch, useSelect } from '@wordpress/data';
+import { store as blockEditorStore } from '@wordpress/block-editor';
 import {
 	Button,
 	ColorPicker,
 	Dropdown,
-	RangeControl,
 	SelectControl,
 	// ToggleGroupControl is what core's own Styles panel uses for these choices.
 	// eslint-disable-next-line @wordpress/no-unsafe-wp-apis
@@ -19,16 +21,7 @@ import {
 	__experimentalToggleGroupControlOption as ToggleGroupControlOption,
 } from '@wordpress/components';
 import { PluginSidebar, PluginSidebarMoreMenuItem } from '@wordpress/editor';
-import {
-	brush,
-	button as buttonIcon,
-	chevronLeft,
-	chevronRight,
-	color as colorIcon,
-	Icon,
-	layout as layoutIcon,
-	typography,
-} from '@wordpress/icons';
+import { brush, chevronLeft, chevronRight, Icon, plus } from '@wordpress/icons';
 
 import {
 	presetList,
@@ -41,9 +34,12 @@ import {
 	PALETTE_ROLES,
 	getPalettePresets,
 	getSectionThemes,
+	getThemeFromClassName,
 	useSitePalette,
 } from './settings';
+import { STORE_NAME } from './store';
 import ThemeSwatches from './theme-swatches';
+import { minus } from '../shared/icons';
 
 const SIDEBAR = 'sse-site-styles';
 
@@ -69,14 +65,66 @@ const BUTTON_PADDING = {
 	large: { top: '1.1em', right: '2.4em', bottom: '1.1em', left: '2.4em' },
 };
 
+// Site themes: a palette, a button shape and a heading weight together.
+const SITE_THEMES = [
+	{
+		name: __( 'Paper', 'squarespace-style-site-editor' ),
+		palette: 0,
+		button: 'pill',
+		weight: '500',
+	},
+	{
+		name: __( 'Studio', 'squarespace-style-site-editor' ),
+		palette: 1,
+		button: 'rounded',
+		weight: '400',
+	},
+	{
+		name: __( 'Garden', 'squarespace-style-site-editor' ),
+		palette: 2,
+		button: 'square',
+		weight: '600',
+	},
+	{
+		name: __( 'Coast', 'squarespace-style-site-editor' ),
+		palette: 3,
+		button: 'pill',
+		weight: '500',
+	},
+	{
+		name: __( 'Kiln', 'squarespace-style-site-editor' ),
+		palette: 4,
+		button: 'square',
+		weight: '700',
+	},
+	{
+		name: __( 'Citrus', 'squarespace-style-site-editor' ),
+		palette: 5,
+		button: 'pill',
+		weight: '800',
+	},
+	{
+		name: __( 'Mono', 'squarespace-style-site-editor' ),
+		palette: 6,
+		button: 'square',
+		weight: '700',
+	},
+	{
+		name: __( 'Night', 'squarespace-style-site-editor' ),
+		palette: 7,
+		button: 'rounded',
+		weight: '600',
+	},
+];
+
 const keyFor = ( map, value ) =>
 	Object.keys( map ).find(
 		( key ) => JSON.stringify( map[ key ] ) === JSON.stringify( value )
 	);
 
-/* ---------------------------------------------------------------- Fonts */
+/* ------------------------------------------------------------- Helpers */
 
-function FontsScreen( { gs } ) {
+function useFonts( gs ) {
 	const families = [
 		...presetList( gs.base?.settings?.typography?.fontFamilies, [
 			'theme',
@@ -90,7 +138,6 @@ function FontsScreen( { gs } ) {
 			all.findIndex( ( f ) => f.slug === family.slug ) === i
 	);
 	const bySlug = Object.fromEntries( families.map( ( f ) => [ f.slug, f ] ) );
-
 	const body = presetSlug(
 		gs.get( 'styles.typography.fontFamily' ),
 		'font-family'
@@ -100,171 +147,10 @@ function FontsScreen( { gs } ) {
 			gs.get( 'styles.elements.heading.typography.fontFamily' ),
 			'font-family'
 		) || body;
-
-	const options = [
-		{
-			value: '',
-			label: __( 'Theme default', 'squarespace-style-site-editor' ),
-		},
-		...families.map( ( f ) => ( {
-			value: f.slug,
-			label: f.name || f.slug,
-		} ) ),
-	];
-
-	const setFont = ( path ) => ( slug ) =>
-		gs.edit( ( { styles } ) =>
-			setPath(
-				styles,
-				path,
-				slug ? presetRef( 'font-family', slug ) : undefined
-			)
-		);
-
-	const fontSize = parseFloat( gs.get( 'styles.typography.fontSize' ) ) || 18;
-	const isPx = /px$/.test( gs.get( 'styles.typography.fontSize' ) || '' );
 	const weight =
 		gs.get( 'styles.elements.heading.typography.fontWeight' ) || '';
-
-	return (
-		<div className="sse-styles__screen">
-			{ families.length === 0 && (
-				<p className="sse-styles__help">
-					{ __(
-						"Your theme doesn't define any fonts. Add some in the Font Library.",
-						'squarespace-style-site-editor'
-					) }
-				</p>
-			) }
-			<div className="sse-font-preview">
-				<span
-					className="sse-font-preview__heading"
-					style={ {
-						fontFamily: bySlug[ headings ]?.fontFamily,
-						fontWeight: weight || undefined,
-					} }
-				>
-					{ __( 'Heading', 'squarespace-style-site-editor' ) }
-				</span>
-				<span
-					className="sse-font-preview__body"
-					style={ { fontFamily: bySlug[ body ]?.fontFamily } }
-				>
-					{ __(
-						'Paragraph text looks like this.',
-						'squarespace-style-site-editor'
-					) }
-				</span>
-			</div>
-			<SelectControl
-				__next40pxDefaultSize
-				__nextHasNoMarginBottom
-				label={ __( 'Headings', 'squarespace-style-site-editor' ) }
-				value={ headings || '' }
-				options={ options }
-				onChange={ setFont( 'elements.heading.typography.fontFamily' ) }
-			/>
-			<SelectControl
-				__next40pxDefaultSize
-				__nextHasNoMarginBottom
-				label={ __( 'Paragraphs', 'squarespace-style-site-editor' ) }
-				value={ body || '' }
-				options={ options }
-				onChange={ setFont( 'typography.fontFamily' ) }
-			/>
-			<SelectControl
-				__next40pxDefaultSize
-				__nextHasNoMarginBottom
-				label={ __(
-					'Heading weight',
-					'squarespace-style-site-editor'
-				) }
-				value={ String( weight ) }
-				options={ [
-					{
-						value: '',
-						label: __(
-							'Theme default',
-							'squarespace-style-site-editor'
-						),
-					},
-					{
-						value: '300',
-						label: __( 'Light', 'squarespace-style-site-editor' ),
-					},
-					{
-						value: '400',
-						label: __( 'Regular', 'squarespace-style-site-editor' ),
-					},
-					{
-						value: '500',
-						label: __( 'Medium', 'squarespace-style-site-editor' ),
-					},
-					{
-						value: '600',
-						label: __(
-							'Semibold',
-							'squarespace-style-site-editor'
-						),
-					},
-					{
-						value: '700',
-						label: __( 'Bold', 'squarespace-style-site-editor' ),
-					},
-					{
-						value: '800',
-						label: __(
-							'Extra bold',
-							'squarespace-style-site-editor'
-						),
-					},
-				] }
-				onChange={ ( value ) =>
-					gs.edit( ( { styles } ) =>
-						setPath(
-							styles,
-							'elements.heading.typography.fontWeight',
-							value || undefined
-						)
-					)
-				}
-			/>
-			<RangeControl
-				__next40pxDefaultSize
-				__nextHasNoMarginBottom
-				label={ __(
-					'Paragraph size (px)',
-					'squarespace-style-site-editor'
-				) }
-				help={
-					isPx
-						? undefined
-						: __(
-								'Using the theme size until you change it.',
-								'squarespace-style-site-editor'
-							)
-				}
-				min={ 13 }
-				max={ 24 }
-				value={ isPx ? fontSize : undefined }
-				initialPosition={ 18 }
-				allowReset
-				resetFallbackValue={ undefined }
-				onChange={ ( value ) =>
-					gs.edit( ( { styles } ) =>
-						setPath(
-							styles,
-							'typography.fontSize',
-							value ? `${ value }px` : undefined
-						)
-					)
-				}
-			/>
-		</div>
-	);
+	return { families, bySlug, body, headings, weight };
 }
-
-/* --------------------------------------------------------------- Colours */
 
 function themePalette( gs ) {
 	const user = gs.user?.settings?.color?.palette?.theme;
@@ -274,28 +160,26 @@ function themePalette( gs ) {
 	return presetList( gs.base?.settings?.color?.palette, [ 'theme' ] );
 }
 
-function writePalette( gs, colors ) {
-	gs.edit( ( { settings } ) => {
-		const next = themePalette( gs ).map( ( entry ) => ( { ...entry } ) );
-		PALETTE_ROLES.forEach( ( role, i ) => {
-			const slug = `sse-${ role }`;
-			const existing = next.find( ( e ) => e.slug === slug );
-			if ( existing ) {
-				existing.color = colors[ i ];
-			} else {
-				next.push( {
-					slug,
-					name: sprintf(
-						/* translators: %s: palette role. */
-						__( 'Site %s', 'squarespace-style-site-editor' ),
-						ROLE_LABELS[ role ]
-					),
-					color: colors[ i ],
-				} );
-			}
-		} );
-		setPath( settings, 'color.palette.theme', next );
+function writePalette( settings, gs, colors ) {
+	const next = themePalette( gs ).map( ( entry ) => ( { ...entry } ) );
+	PALETTE_ROLES.forEach( ( role, i ) => {
+		const slug = `sse-${ role }`;
+		const existing = next.find( ( e ) => e.slug === slug );
+		if ( existing ) {
+			existing.color = colors[ i ];
+		} else {
+			next.push( {
+				slug,
+				name: sprintf(
+					/* translators: %s: palette role. */
+					__( 'Site %s', 'squarespace-style-site-editor' ),
+					ROLE_LABELS[ role ]
+				),
+				color: colors[ i ],
+			} );
+		}
 	} );
+	setPath( settings, 'color.palette.theme', next );
 }
 
 const SITE_THEME_PATHS = {
@@ -323,10 +207,529 @@ function applySiteTheme( gs, slug ) {
 	} );
 }
 
+/**
+ * Section colour themes used by blocks in the canvas, in page order, with the
+ * first block using each.
+ *
+ * @return {{ used: string[], byTheme: Object }} Themes and blocks.
+ */
+function useThemesOnPage() {
+	const pairs = useSelect( ( select ) => {
+		const be = select( blockEditorStore );
+		const seen = new Set();
+		const out = [];
+		be.getClientIdsWithDescendants().forEach( ( id ) => {
+			const slug = getThemeFromClassName(
+				be.getBlockAttributes( id )?.className
+			);
+			if ( slug && ! seen.has( slug ) ) {
+				seen.add( slug );
+				out.push( `${ slug }=${ id }` );
+			}
+		} );
+		return out.join( ' ' );
+	}, [] );
+	return useMemo( () => {
+		const byTheme = {};
+		const used = [];
+		pairs
+			.split( ' ' )
+			.filter( Boolean )
+			.forEach( ( pair ) => {
+				const [ slug, id ] = pair.split( '=' );
+				used.push( slug );
+				byTheme[ slug ] = id;
+			} );
+		return { used, byTheme };
+	}, [ pairs ] );
+}
+
+/* --------------------------------------------------------- Pieces of UI */
+
+function PaletteStrip( { colors, large } ) {
+	return (
+		<span className={ clsx( 'sse-strip', { 'is-large': large } ) }>
+			{ colors.map( ( c, i ) => (
+				<span key={ i } style={ { background: c } } />
+			) ) }
+		</span>
+	);
+}
+
+function Card( { title, onOpen, children } ) {
+	return (
+		<div className="sse-card">
+			<button type="button" className="sse-card__main" onClick={ onOpen }>
+				<span className="sse-card__title">{ title }</span>
+				<span className="sse-card__preview">{ children }</span>
+			</button>
+			<button
+				type="button"
+				className="sse-card__chevron"
+				onClick={ onOpen }
+				aria-label={ title }
+			>
+				<Icon icon={ chevronRight } />
+			</button>
+		</div>
+	);
+}
+
+function Row( { label, value, onClick, children } ) {
+	if ( onClick ) {
+		return (
+			<button
+				type="button"
+				className="sse-row is-link"
+				onClick={ onClick }
+			>
+				<span>{ label }</span>
+				<span className="sse-row__value">
+					{ value }
+					<Icon icon={ chevronRight } size={ 20 } />
+				</span>
+			</button>
+		);
+	}
+	return (
+		<div className="sse-row">
+			<span>{ label }</span>
+			<span className="sse-row__value">{ children }</span>
+		</div>
+	);
+}
+
+function ButtonSample( { gs, small } ) {
+	const radius = gs.get( 'styles.elements.button.border.radius' );
+	const padding = gs.user?.styles?.elements?.button?.spacing?.padding;
+	const palette = useSitePalette();
+	return (
+		<span
+			className={ clsx( 'sse-button-sample', { 'is-small': small } ) }
+			style={ {
+				borderRadius: radius || undefined,
+				padding:
+					padding && ! small
+						? `${ padding.top } ${ padding.right }`
+						: undefined,
+				background: palette.darkest,
+				color: palette.lightest,
+			} }
+		>
+			{ __( 'Button', 'squarespace-style-site-editor' ) }
+		</span>
+	);
+}
+
+/* ------------------------------------------------------------- Screens */
+
+function MainScreen( { gs, go } ) {
+	const palette = useSitePalette();
+	const colors = PALETTE_ROLES.map( ( role ) => palette[ role ] );
+	const { bySlug, body, headings, weight } = useFonts( gs );
+
+	return (
+		<div className="sse-styles__cards">
+			<Card
+				title={ __( 'Themes', 'squarespace-style-site-editor' ) }
+				onOpen={ () => go( 'themes' ) }
+			>
+				<span className="sse-theme-preview">
+					<span
+						className="sse-theme-preview__aa"
+						style={ { fontFamily: bySlug[ headings ]?.fontFamily } }
+					>
+						Aa
+					</span>
+					<PaletteStrip colors={ colors } />
+					<ButtonSample gs={ gs } small />
+				</span>
+			</Card>
+			<Card
+				title={ __( 'Fonts', 'squarespace-style-site-editor' ) }
+				onOpen={ () => go( 'fonts' ) }
+			>
+				<span className="sse-font-sample">
+					<span
+						className="sse-font-sample__heading"
+						style={ {
+							fontFamily: bySlug[ headings ]?.fontFamily,
+							fontWeight: weight || undefined,
+						} }
+					>
+						{ __( 'Heading', 'squarespace-style-site-editor' ) }
+					</span>
+					<span
+						className="sse-font-sample__body"
+						style={ { fontFamily: bySlug[ body ]?.fontFamily } }
+					>
+						{ __(
+							'This is your paragraph.',
+							'squarespace-style-site-editor'
+						) }
+					</span>
+				</span>
+			</Card>
+			<Card
+				title={ __( 'Colours', 'squarespace-style-site-editor' ) }
+				onOpen={ () => go( 'colours' ) }
+			>
+				<PaletteStrip colors={ colors } large />
+			</Card>
+			<Card
+				title={ __( 'Buttons', 'squarespace-style-site-editor' ) }
+				onOpen={ () => go( 'buttons' ) }
+			>
+				<span className="sse-card__center">
+					<ButtonSample gs={ gs } />
+				</span>
+			</Card>
+			<Row
+				label={ __( 'Spacing', 'squarespace-style-site-editor' ) }
+				onClick={ () => go( 'spacing' ) }
+			/>
+		</div>
+	);
+}
+
+function ThemesScreen( { gs } ) {
+	const presets = getPalettePresets();
+	const palette = useSitePalette();
+	const radius = gs.get( 'styles.elements.button.border.radius' );
+	const current = SITE_THEMES.find(
+		( t ) =>
+			presets[ t.palette ]?.colors.every(
+				( c, i ) =>
+					c.toLowerCase() ===
+					( palette[ PALETTE_ROLES[ i ] ] || '' ).toLowerCase()
+			) && BUTTON_RADIUS[ t.button ] === radius
+	);
+
+	const apply = ( theme ) =>
+		gs.edit( ( { settings, styles } ) => {
+			writePalette( settings, gs, presets[ theme.palette ].colors );
+			setPath(
+				styles,
+				'elements.button.border.radius',
+				BUTTON_RADIUS[ theme.button ]
+			);
+			setPath(
+				styles,
+				'elements.heading.typography.fontWeight',
+				theme.weight
+			);
+		} );
+
+	return (
+		<div className="sse-styles__screen">
+			<p className="sse-styles__help">
+				{ __(
+					'A theme sets the palette, button shape and heading weight together. Fine-tune each afterwards.',
+					'squarespace-style-site-editor'
+				) }
+			</p>
+			<div className="sse-site-themes">
+				{ SITE_THEMES.map( ( theme ) => {
+					const colors = presets[ theme.palette ]?.colors || [];
+					return (
+						<button
+							key={ theme.name }
+							type="button"
+							className={ clsx( 'sse-site-theme', {
+								'is-selected': current === theme,
+							} ) }
+							onClick={ () => apply( theme ) }
+						>
+							<span
+								className="sse-site-theme__preview"
+								style={ { background: colors[ 0 ] } }
+							>
+								<span
+									className="sse-site-theme__aa"
+									style={ {
+										color: colors[ 4 ],
+										fontWeight: theme.weight,
+									} }
+								>
+									Aa
+								</span>
+								<PaletteStrip colors={ colors } />
+								<span
+									className="sse-button-sample is-small"
+									style={ {
+										borderRadius:
+											BUTTON_RADIUS[ theme.button ],
+										background: colors[ 2 ],
+										color: colors[ 0 ],
+									} }
+								>
+									{ __(
+										'Button',
+										'squarespace-style-site-editor'
+									) }
+								</span>
+							</span>
+							<span className="sse-site-theme__name">
+								{ theme.name }
+							</span>
+						</button>
+					);
+				} ) }
+			</div>
+		</div>
+	);
+}
+
+function FontsScreen( { gs, go } ) {
+	const { families, bySlug, body, headings, weight } = useFonts( gs );
+	const options = [
+		{
+			value: '',
+			label: __( 'Theme default', 'squarespace-style-site-editor' ),
+		},
+		...families.map( ( f ) => ( {
+			value: f.slug,
+			label: f.name || f.slug,
+		} ) ),
+	];
+	const setFont = ( path ) => ( slug ) =>
+		gs.edit( ( { styles } ) =>
+			setPath(
+				styles,
+				path,
+				slug ? presetRef( 'font-family', slug ) : undefined
+			)
+		);
+	const sizeValue = gs.get( 'styles.typography.fontSize' ) || '';
+	const isPx = /px$/.test( sizeValue );
+	const size = isPx ? parseFloat( sizeValue ) : null;
+	const setSize = ( value ) =>
+		gs.edit( ( { styles } ) =>
+			setPath(
+				styles,
+				'typography.fontSize',
+				value ? `${ value }px` : undefined
+			)
+		);
+	const names = [ bySlug[ headings ]?.name, bySlug[ body ]?.name ]
+		.filter( Boolean )
+		.filter( ( n, i, all ) => all.indexOf( n ) === i )
+		.join( ' · ' );
+
+	return (
+		<div className="sse-styles__screen">
+			<div className="sse-font-preview">
+				<span
+					className="sse-font-preview__heading"
+					style={ {
+						fontFamily: bySlug[ headings ]?.fontFamily,
+						fontWeight: weight || undefined,
+					} }
+				>
+					{ __( 'Heading', 'squarespace-style-site-editor' ) }
+				</span>
+				<span
+					className="sse-font-preview__body"
+					style={ { fontFamily: bySlug[ body ]?.fontFamily } }
+				>
+					{ __(
+						'This is your paragraph.',
+						'squarespace-style-site-editor'
+					) }
+				</span>
+				<span className="sse-font-preview__names">
+					{ names ||
+						__( 'Theme fonts', 'squarespace-style-site-editor' ) }
+				</span>
+			</div>
+			{ families.length > 1 && (
+				<Row
+					label={ __(
+						'All font packs',
+						'squarespace-style-site-editor'
+					) }
+					onClick={ () => go( 'font-packs' ) }
+				/>
+			) }
+			<Row label={ __( 'Base size', 'squarespace-style-site-editor' ) }>
+				<span className="sse-stepper">
+					<Button
+						size="small"
+						icon={ minus }
+						label={ __(
+							'Smaller',
+							'squarespace-style-site-editor'
+						) }
+						onClick={ () =>
+							setSize( Math.max( 12, ( size || 16 ) - 1 ) )
+						}
+					/>
+					<span className="sse-stepper__value">
+						{ size
+							? sprintf(
+									/* translators: %d: font size in pixels. */
+									__(
+										'%d px',
+										'squarespace-style-site-editor'
+									),
+									size
+								)
+							: __( 'Theme', 'squarespace-style-site-editor' ) }
+					</span>
+					<Button
+						size="small"
+						icon={ plus }
+						label={ __(
+							'Larger',
+							'squarespace-style-site-editor'
+						) }
+						onClick={ () =>
+							setSize( Math.min( 26, ( size || 16 ) + 1 ) )
+						}
+					/>
+				</span>
+			</Row>
+			<SelectControl
+				__next40pxDefaultSize
+				__nextHasNoMarginBottom
+				label={ __( 'Headings', 'squarespace-style-site-editor' ) }
+				value={ headings || '' }
+				options={ options }
+				onChange={ setFont( 'elements.heading.typography.fontFamily' ) }
+			/>
+			<SelectControl
+				__next40pxDefaultSize
+				__nextHasNoMarginBottom
+				label={ __( 'Paragraphs', 'squarespace-style-site-editor' ) }
+				value={ body || '' }
+				options={ options }
+				onChange={ setFont( 'typography.fontFamily' ) }
+			/>
+			<SelectControl
+				__next40pxDefaultSize
+				__nextHasNoMarginBottom
+				label={ __(
+					'Heading weight',
+					'squarespace-style-site-editor'
+				) }
+				value={ String( weight ) }
+				options={ [
+					[
+						'',
+						__( 'Theme default', 'squarespace-style-site-editor' ),
+					],
+					[ '300', __( 'Light', 'squarespace-style-site-editor' ) ],
+					[ '400', __( 'Regular', 'squarespace-style-site-editor' ) ],
+					[ '500', __( 'Medium', 'squarespace-style-site-editor' ) ],
+					[
+						'600',
+						__( 'Semibold', 'squarespace-style-site-editor' ),
+					],
+					[ '700', __( 'Bold', 'squarespace-style-site-editor' ) ],
+					[
+						'800',
+						__( 'Extra bold', 'squarespace-style-site-editor' ),
+					],
+				].map( ( [ value, label ] ) => ( { value, label } ) ) }
+				onChange={ ( value ) =>
+					gs.edit( ( { styles } ) =>
+						setPath(
+							styles,
+							'elements.heading.typography.fontWeight',
+							value || undefined
+						)
+					)
+				}
+			/>
+		</div>
+	);
+}
+
+function FontPacksScreen( { gs } ) {
+	const { families, headings, body } = useFonts( gs );
+	// Every heading/paragraph pairing from the fonts available, starting
+	// with each font on its own.
+	const packs = useMemo( () => {
+		const list = families.slice( 0, 6 );
+		const out = [];
+		list.forEach( ( h ) => out.push( [ h, h ] ) );
+		list.forEach( ( h ) =>
+			list.forEach( ( b ) => {
+				if ( h !== b ) {
+					out.push( [ h, b ] );
+				}
+			} )
+		);
+		return out.slice( 0, 16 );
+	}, [ families ] );
+
+	return (
+		<div className="sse-styles__screen">
+			<div className="sse-font-packs">
+				{ packs.map( ( [ h, b ] ) => (
+					<button
+						key={ `${ h.slug }/${ b.slug }` }
+						type="button"
+						className={ clsx( 'sse-font-pack', {
+							'is-selected':
+								headings === h.slug && body === b.slug,
+						} ) }
+						onClick={ () =>
+							gs.edit( ( { styles } ) => {
+								setPath(
+									styles,
+									'elements.heading.typography.fontFamily',
+									presetRef( 'font-family', h.slug )
+								);
+								setPath(
+									styles,
+									'typography.fontFamily',
+									presetRef( 'font-family', b.slug )
+								);
+							} )
+						}
+					>
+						<span
+							className="sse-font-pack__heading"
+							style={ { fontFamily: h.fontFamily } }
+						>
+							{ h.name }
+						</span>
+						<span
+							className="sse-font-pack__body"
+							style={ { fontFamily: b.fontFamily } }
+						>
+							{ h === b
+								? __(
+										'Headings and paragraphs',
+										'squarespace-style-site-editor'
+									)
+								: b.name }
+						</span>
+					</button>
+				) ) }
+			</div>
+		</div>
+	);
+}
+
 function ColoursScreen( { gs } ) {
 	const palette = useSitePalette();
 	const colors = PALETTE_ROLES.map( ( role ) => palette[ role ] );
+	const [ editing, setEditing ] = useState( false );
 	const siteTheme = gs.user?.settings?.custom?.sse?.siteTheme || null;
+	const { used, byTheme } = useThemesOnPage();
+	const others = getSectionThemes()
+		.map( ( t ) => t.slug )
+		.filter( ( slug ) => ! used.includes( slug ) );
+	const { selectBlock } = useDispatch( blockEditorStore );
+	const { setShowThemeTags } = useDispatch( STORE_NAME );
+
+	// Tag each section in the canvas with its theme while this is open.
+	useEffect( () => {
+		setShowThemeTags( true );
+		return () => setShowThemeTags( false );
+	}, [ setShowThemeTags ] );
 
 	const isCurrent = ( preset ) =>
 		preset.colors.every(
@@ -335,82 +738,160 @@ function ColoursScreen( { gs } ) {
 
 	return (
 		<div className="sse-styles__screen">
-			<h3 className="sse-styles__subhead">
-				{ __( 'Palette', 'squarespace-style-site-editor' ) }
-			</h3>
-			<div className="sse-palette-editor">
-				{ PALETTE_ROLES.map( ( role, i ) => (
-					<Dropdown
-						key={ role }
-						popoverProps={ {
-							placement: 'left-start',
-							className: 'sse-popover',
-						} }
-						renderToggle={ ( { isOpen, onToggle } ) => (
-							<button
-								type="button"
-								className="sse-palette-editor__swatch"
-								onClick={ onToggle }
-								aria-expanded={ isOpen }
-							>
-								<span style={ { background: colors[ i ] } } />
-								{ ROLE_LABELS[ role ] }
-							</button>
-						) }
-						renderContent={ () => (
-							<ColorPicker
-								color={ colors[ i ] }
-								enableAlpha={ false }
-								onChange={ ( value ) => {
-									const next = [ ...colors ];
-									next[ i ] = value;
-									writePalette( gs, next );
-								} }
-							/>
-						) }
-					/>
-				) ) }
+			<div className="sse-card is-static">
+				<span className="sse-card__preview">
+					<PaletteStrip colors={ colors } large />
+				</span>
 			</div>
+			<Row
+				label={ __( 'Edit palette', 'squarespace-style-site-editor' ) }
+				onClick={ () => setEditing( ! editing ) }
+			/>
+			{ editing && (
+				<div className="sse-palette-editor">
+					{ PALETTE_ROLES.map( ( role, i ) => (
+						<Dropdown
+							key={ role }
+							popoverProps={ {
+								placement: 'left-start',
+								className: 'sse-popover',
+							} }
+							renderToggle={ ( { isOpen, onToggle } ) => (
+								<button
+									type="button"
+									className="sse-palette-editor__swatch"
+									onClick={ onToggle }
+									aria-expanded={ isOpen }
+								>
+									<span
+										style={ { background: colors[ i ] } }
+									/>
+									{ ROLE_LABELS[ role ] }
+								</button>
+							) }
+							renderContent={ () => (
+								<ColorPicker
+									color={ colors[ i ] }
+									enableAlpha={ false }
+									onChange={ ( value ) => {
+										const next = [ ...colors ];
+										next[ i ] = value;
+										gs.edit( ( { settings } ) =>
+											writePalette( settings, gs, next )
+										);
+									} }
+								/>
+							) }
+						/>
+					) ) }
+				</div>
+			) }
 			<h3 className="sse-styles__subhead">
-				{ __( 'Palettes', 'squarespace-style-site-editor' ) }
+				{ __(
+					'Recommended palettes',
+					'squarespace-style-site-editor'
+				) }
 			</h3>
 			<div className="sse-palette-presets">
 				{ getPalettePresets().map( ( preset ) => (
 					<button
 						key={ preset.name }
 						type="button"
+						title={ preset.name }
+						aria-label={ preset.name }
 						className={ clsx( 'sse-palette-preset', {
 							'is-selected': isCurrent( preset ),
 						} ) }
-						onClick={ () => writePalette( gs, preset.colors ) }
+						onClick={ () =>
+							gs.edit( ( { settings } ) =>
+								writePalette( settings, gs, preset.colors )
+							)
+						}
 					>
-						<span className="sse-palette-preset__colors">
-							{ preset.colors.map( ( c, i ) => (
-								<span key={ i } style={ { background: c } } />
-							) ) }
-						</span>
-						{ preset.name }
+						<PaletteStrip colors={ preset.colors } />
 					</button>
 				) ) }
 			</div>
 			<h3 className="sse-styles__subhead">
-				{ __( 'Site background', 'squarespace-style-site-editor' ) }
+				{ __(
+					'Section colour themes',
+					'squarespace-style-site-editor'
+				) }
 			</h3>
 			<p className="sse-styles__help">
 				{ __(
-					'The colour theme for anything outside a coloured section. Sections pick their own from the Colours button on each section.',
+					'Each section uses one of these, coloured from the palette. Pick a section’s theme from Edit section → Colors.',
 					'squarespace-style-site-editor'
 				) }
 			</p>
-			<ThemeSwatches
-				value={ siteTheme }
-				onChange={ ( slug ) => applySiteTheme( gs, slug ) }
+			{ used.length > 0 && (
+				<>
+					<p className="sse-styles__label">
+						{ __(
+							'Colour themes on this page',
+							'squarespace-style-site-editor'
+						) }
+					</p>
+					<ThemeSwatches
+						allowNone={ false }
+						only={ used }
+						value={ null }
+						label={ __(
+							'Colour themes on this page',
+							'squarespace-style-site-editor'
+						) }
+						onChange={ ( slug ) => selectBlock( byTheme[ slug ] ) }
+					/>
+				</>
+			) }
+			{ others.length > 0 && (
+				<>
+					<p className="sse-styles__label">
+						{ __(
+							'Other colour themes',
+							'squarespace-style-site-editor'
+						) }
+					</p>
+					<div className="sse-theme-list is-static">
+						<ThemeSwatches
+							allowNone={ false }
+							only={ others }
+							value={ null }
+							onChange={ () => {} }
+						/>
+					</div>
+				</>
+			) }
+			<SelectControl
+				__next40pxDefaultSize
+				__nextHasNoMarginBottom
+				label={ __(
+					'Site background',
+					'squarespace-style-site-editor'
+				) }
+				help={ __(
+					'The colour theme for anything that isn’t in a coloured section.',
+					'squarespace-style-site-editor'
+				) }
+				value={ siteTheme || '' }
+				options={ [
+					{
+						value: '',
+						label: __(
+							'Theme default',
+							'squarespace-style-site-editor'
+						),
+					},
+					...getSectionThemes().map( ( t ) => ( {
+						value: t.slug,
+						label: t.label,
+					} ) ),
+				] }
+				onChange={ ( slug ) => applySiteTheme( gs, slug || null ) }
 			/>
 		</div>
 	);
 }
-
-/* --------------------------------------------------------------- Buttons */
 
 function ButtonsScreen( { gs } ) {
 	const radius = gs.get( 'styles.elements.button.border.radius' );
@@ -420,16 +901,9 @@ function ButtonsScreen( { gs } ) {
 
 	return (
 		<div className="sse-styles__screen">
-			<div className="sse-button-preview">
-				<span
-					style={ {
-						borderRadius: radius || undefined,
-						padding: padding
-							? `${ padding.top } ${ padding.right }`
-							: undefined,
-					} }
-				>
-					{ __( 'Book now', 'squarespace-style-site-editor' ) }
+			<div className="sse-card is-static">
+				<span className="sse-card__preview sse-card__center">
+					<ButtonSample gs={ gs } />
 				</span>
 			</div>
 			<ToggleGroupControl
@@ -494,13 +968,35 @@ function ButtonsScreen( { gs } ) {
 	);
 }
 
-/* --------------------------------------------------------------- Spacing */
-
 function SpacingScreen( { gs } ) {
 	const padding = gs.get( 'settings.custom.sse.sectionPadding' );
 	const paddingKey = keyFor( SECTION_PADDING, padding ) || '';
 	const contentSize = parseInt( gs.get( 'settings.layout.contentSize' ), 10 );
 	const wideSize = parseInt( gs.get( 'settings.layout.wideSize' ), 10 );
+
+	const stepper = ( value, min, max, step, onChange ) => (
+		<span className="sse-stepper">
+			<Button
+				size="small"
+				icon={ minus }
+				label={ __( 'Less', 'squarespace-style-site-editor' ) }
+				onClick={ () => onChange( Math.max( min, value - step ) ) }
+			/>
+			<span className="sse-stepper__value">
+				{ sprintf(
+					/* translators: %d: width in pixels. */
+					__( '%d px', 'squarespace-style-site-editor' ),
+					value
+				) }
+			</span>
+			<Button
+				size="small"
+				icon={ plus }
+				label={ __( 'More', 'squarespace-style-site-editor' ) }
+				onClick={ () => onChange( Math.min( max, value + step ) ) }
+			/>
+		</span>
+	);
 
 	return (
 		<div className="sse-styles__screen">
@@ -540,84 +1036,79 @@ function SpacingScreen( { gs } ) {
 					label={ __( 'Large', 'squarespace-style-site-editor' ) }
 				/>
 			</ToggleGroupControl>
-			<RangeControl
-				__next40pxDefaultSize
-				__nextHasNoMarginBottom
-				label={ __(
-					'Content width (px)',
-					'squarespace-style-site-editor'
-				) }
-				min={ 480 }
-				max={ 1200 }
-				step={ 10 }
-				value={ Number.isFinite( contentSize ) ? contentSize : 640 }
-				onChange={ ( value ) =>
-					gs.edit( ( { settings } ) =>
-						setPath(
-							settings,
-							'layout.contentSize',
-							value ? `${ value }px` : undefined
+			<Row
+				label={ __( 'Content width', 'squarespace-style-site-editor' ) }
+			>
+				{ stepper(
+					Number.isFinite( contentSize ) ? contentSize : 640,
+					480,
+					1200,
+					20,
+					( value ) =>
+						gs.edit( ( { settings } ) =>
+							setPath(
+								settings,
+								'layout.contentSize',
+								`${ value }px`
+							)
 						)
-					)
-				}
-			/>
-			<RangeControl
-				__next40pxDefaultSize
-				__nextHasNoMarginBottom
-				label={ __(
-					'Wide width (px)',
-					'squarespace-style-site-editor'
 				) }
-				help={ __(
-					'Also the width of freeform sections.',
-					'squarespace-style-site-editor'
-				) }
-				min={ 800 }
-				max={ 1800 }
-				step={ 10 }
-				value={ Number.isFinite( wideSize ) ? wideSize : 1200 }
-				onChange={ ( value ) =>
-					gs.edit( ( { settings } ) =>
-						setPath(
-							settings,
-							'layout.wideSize',
-							value ? `${ value }px` : undefined
+			</Row>
+			<Row label={ __( 'Wide width', 'squarespace-style-site-editor' ) }>
+				{ stepper(
+					Number.isFinite( wideSize ) ? wideSize : 1200,
+					800,
+					1800,
+					20,
+					( value ) =>
+						gs.edit( ( { settings } ) =>
+							setPath(
+								settings,
+								'layout.wideSize',
+								`${ value }px`
+							)
 						)
-					)
-				}
-			/>
+				) }
+			</Row>
+			<p className="sse-styles__help">
+				{ __(
+					'Wide width is also the width of freeform sections.',
+					'squarespace-style-site-editor'
+				) }
+			</p>
 		</div>
 	);
 }
 
-/* ------------------------------------------------------------------ Shell */
+/* ---------------------------------------------------------------- Shell */
 
-const SCREENS = [
-	{
-		key: 'fonts',
-		label: __( 'Fonts', 'squarespace-style-site-editor' ),
-		icon: typography,
+const SCREENS = {
+	themes: {
+		title: __( 'Themes', 'squarespace-style-site-editor' ),
+		Component: ThemesScreen,
+	},
+	fonts: {
+		title: __( 'Fonts', 'squarespace-style-site-editor' ),
 		Component: FontsScreen,
 	},
-	{
-		key: 'colours',
-		label: __( 'Colours', 'squarespace-style-site-editor' ),
-		icon: colorIcon,
+	'font-packs': {
+		title: __( 'Font packs', 'squarespace-style-site-editor' ),
+		Component: FontPacksScreen,
+		parent: 'fonts',
+	},
+	colours: {
+		title: __( 'Colours', 'squarespace-style-site-editor' ),
 		Component: ColoursScreen,
 	},
-	{
-		key: 'buttons',
-		label: __( 'Buttons', 'squarespace-style-site-editor' ),
-		icon: buttonIcon,
+	buttons: {
+		title: __( 'Buttons', 'squarespace-style-site-editor' ),
 		Component: ButtonsScreen,
 	},
-	{
-		key: 'spacing',
-		label: __( 'Spacing', 'squarespace-style-site-editor' ),
-		icon: layoutIcon,
+	spacing: {
+		title: __( 'Spacing', 'squarespace-style-site-editor' ),
 		Component: SpacingScreen,
 	},
-];
+};
 
 function resetAll( gs ) {
 	gs.edit( ( { settings, styles } ) => {
@@ -647,45 +1138,31 @@ function SiteStylesPanel() {
 		return null;
 	}
 
-	const current = SCREENS.find( ( s ) => s.key === screen );
-
+	const current = screen ? SCREENS[ screen ] : null;
 	if ( current ) {
 		const { Component } = current;
+		const parent = current.parent ? SCREENS[ current.parent ] : null;
 		return (
 			<div className="sse-styles">
-				<div className="sse-styles__header">
-					<Button
-						icon={ chevronLeft }
-						label={ __( 'Back', 'squarespace-style-site-editor' ) }
-						onClick={ () => setScreen( null ) }
-						size="compact"
-					/>
-					<h2>{ current.label }</h2>
-				</div>
-				<Component gs={ gs } />
+				<button
+					type="button"
+					className="sse-styles__back"
+					onClick={ () => setScreen( current.parent || null ) }
+				>
+					<Icon icon={ chevronLeft } size={ 20 } />
+					{ parent
+						? parent.title
+						: __( 'Site Styles', 'squarespace-style-site-editor' ) }
+				</button>
+				<h2 className="sse-styles__heading">{ current.title }</h2>
+				<Component gs={ gs } go={ setScreen } />
 			</div>
 		);
 	}
 
 	return (
 		<div className="sse-styles">
-			<nav className="sse-styles__menu">
-				{ SCREENS.map( ( s ) => (
-					<button
-						key={ s.key }
-						type="button"
-						className="sse-styles__menu-item"
-						onClick={ () => setScreen( s.key ) }
-					>
-						<Icon icon={ s.icon } />
-						<span>{ s.label }</span>
-						<Icon
-							icon={ chevronRight }
-							className="sse-styles__chevron"
-						/>
-					</button>
-				) ) }
-			</nav>
+			<MainScreen gs={ gs } go={ setScreen } />
 			<div className="sse-styles__footer">
 				<Button
 					__next40pxDefaultSize

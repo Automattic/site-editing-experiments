@@ -271,3 +271,30 @@ $sse-font: -apple-system, blinkmacsystemfont, "Segoe UI", roboto, "Helvetica Neu
 		cursor: default;
 	}
 }
+
+// While Site Styles → Colours is open, each section shows its colour theme.
+.sse-theme-tag {
+	position: absolute;
+	top: 18px;
+	right: 18px;
+	z-index: 1;
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 8px 14px;
+	box-shadow: 0 2px 10px rgba(0, 0, 0, 0.14);
+	font: 600 10px/1 $sse-font;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	pointer-events: none;
+
+	span {
+		font: 400 15px/1 $sse-font;
+		letter-spacing: 0;
+		text-transform: none;
+	}
+}
+
+.sse-section-menu {
+	z-index: 2;
+}

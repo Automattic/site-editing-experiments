@@ -6,7 +6,7 @@
   "title": "Freeform item",
   "category": "design",
   "icon": "move",
-  "description": "A block placed on a freeform section's grid. Drag it by its handle and resize it from its edges.",
+  "description": "A block placed on a freeform section's grid. Click it and drag to move it, drag its edges to resize it, and click again to edit it.",
   "textdomain": "squarespace-style-site-editor",
   "parent": [
     "sse/fluid-section"

@@ -11,8 +11,6 @@ import { createBlock } from '@wordpress/blocks';
 import {
 	Button,
 	Dropdown,
-	MenuGroup,
-	MenuItem,
 	PanelBody,
 	RangeControl,
 	ToolbarDropdownMenu,
@@ -28,6 +26,8 @@ import {
 	normalizeLayout,
 } from '../shared/grid';
 import { findFreeSpot, getAddBlockItems } from '../shared/add-block-items';
+import AddBlockPanel from '../shared/add-block-panel';
+import { layers } from '../shared/icons';
 import { useIsMobilePreview } from '../shared/use-device';
 import { sectionStyle } from './save';
 
@@ -54,6 +54,7 @@ export default function Edit( {
 	const registry = useRegistry();
 	const { insertBlock, selectBlock, updateBlockAttributes } =
 		useDispatch( blockEditorStore );
+	const editorDispatch = useDispatch( 'core/editor' );
 
 	const { hasChildSelected, items } = useSelect(
 		( select ) => {
@@ -115,7 +116,8 @@ export default function Edit( {
 					: {} ),
 			} );
 		} );
-		selectBlock( inner.clientId );
+		// After the Add block popover has closed and handed focus back.
+		setTimeout( () => selectBlock( inner.clientId, -1 ), 50 );
 	};
 
 	const resetMobile = () => {
@@ -224,17 +226,35 @@ export default function Edit( {
 					) }
 					<div { ...innerBlocksProps } />
 				</div>
-				{ ( active || items.length === 0 ) && (
-					<div className="sse-fluid-bar">
+				{
+					<div
+						className={ clsx( 'sse-fluid-bar', {
+							'is-visible': active || items.length === 0,
+						} ) }
+					>
+						<Button
+							className="sse-fluid-bar__layers"
+							icon={ layers }
+							label={ __(
+								'Blocks in this section',
+								'squarespace-style-site-editor'
+							) }
+							onClick={ () => {
+								selectBlock( clientId );
+								editorDispatch?.setIsListViewOpened?.( true );
+							} }
+						/>
 						<Dropdown
-							popoverProps={ { placement: 'bottom-start' } }
+							popoverProps={ {
+								placement: 'bottom-start',
+								className: 'sse-add-block-popover',
+							} }
 							renderToggle={ ( { isOpen, onToggle } ) => (
 								<Button
 									className="sse-fluid-bar__add"
 									icon={ plus }
 									onClick={ onToggle }
 									aria-expanded={ isOpen }
-									size="compact"
 								>
 									{ __(
 										'Add block',
@@ -243,21 +263,12 @@ export default function Edit( {
 								</Button>
 							) }
 							renderContent={ ( { onClose } ) => (
-								<MenuGroup>
-									{ getAddBlockItems().map( ( item ) => (
-										<MenuItem
-											key={ item.key }
-											icon={ item.icon }
-											iconPosition="left"
-											onClick={ () => {
-												addItem( item );
-												onClose();
-											} }
-										>
-											{ item.label }
-										</MenuItem>
-									) ) }
-								</MenuGroup>
+								<AddBlockPanel
+									onAdd={ ( item ) => {
+										addItem( item );
+										onClose();
+									} }
+								/>
 							) }
 						/>
 						{ isMobile && (
@@ -274,7 +285,7 @@ export default function Edit( {
 							</span>
 						) }
 					</div>
-				) }
+				}
 			</div>
 		</>
 	);

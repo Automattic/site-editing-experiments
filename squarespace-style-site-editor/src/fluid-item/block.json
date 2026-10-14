@@ -6,13 +6,20 @@
 	"title": "Freeform item",
 	"category": "design",
 	"icon": "move",
-	"description": "A block placed on a freeform section's grid. Drag it by its handle and resize it from its edges.",
+	"description": "A block placed on a freeform section's grid. Click it and drag to move it, drag its edges to resize it, and click again to edit it.",
 	"textdomain": "squarespace-style-site-editor",
-	"parent": [ "sse/fluid-section" ],
+	"parent": [
+		"sse/fluid-section"
+	],
 	"attributes": {
 		"layout": {
 			"type": "object",
-			"default": { "c": 1, "r": 1, "w": 12, "h": 4 }
+			"default": {
+				"c": 1,
+				"r": 1,
+				"w": 12,
+				"h": 4
+			}
 		},
 		"mobileLayout": {
 			"type": "object"

@@ -1,4 +1,4 @@
-$sse-blue: #3858e9;
+$sse-blue: #1071e5;
 $sse-pink: #e93888;
 
 .wp-block-sse-fluid-item {
@@ -12,19 +12,44 @@ $sse-pink: #e93888;
 		position: static;
 	}
 
+	// Core's own selection outline is replaced by ours.
+	&::after {
+		display: none !important;
+	}
+
 	&:hover,
 	&.is-selected,
-	&.has-child-selected,
 	&.is-sse-gesture {
 		outline: 1px solid $sse-blue;
 		outline-offset: 0;
 	}
 
+	&.is-sse-editing {
+		outline: 1px dashed rgba(16, 113, 229, 0.6);
+	}
+
 	&.is-sse-gesture {
-		outline-color: $sse-pink;
-		cursor: grabbing;
 		user-select: none;
 		box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+	}
+}
+
+// Covers the block until you click into it: drag it to move it, click again
+// (or double-click, or Enter) to edit what's inside.
+.sse-fe-surface {
+	position: absolute;
+	inset: 0;
+	z-index: 1;
+	cursor: move;
+	touch-action: none;
+
+	&:focus-visible {
+		outline: 2px solid $sse-blue;
+		outline-offset: 2px;
+	}
+
+	.is-sse-gesture > & {
+		cursor: grabbing;
 	}
 }
 
@@ -32,122 +57,80 @@ $sse-pink: #e93888;
 	position: absolute;
 	inset: 0;
 	pointer-events: none;
-	opacity: 0;
-	transition: opacity 0.12s ease;
-
-	.wp-block-sse-fluid-item:hover > &,
-	.wp-block-sse-fluid-item.is-selected > &,
-	.wp-block-sse-fluid-item.has-child-selected > &,
-	.wp-block-sse-fluid-item.is-sse-gesture > & {
-		opacity: 1;
-	}
 }
 
-.sse-fe-move {
-	position: absolute;
-	top: -14px;
-	left: 50%;
-	transform: translateX(-50%);
-	width: 36px;
-	height: 22px;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	padding: 0;
-	border: 0;
-	border-radius: 11px;
-	background: $sse-blue;
-	color: #fff;
-	cursor: grab;
-	pointer-events: auto;
-	touch-action: none;
-	z-index: 2;
-
-	svg {
-		fill: currentcolor;
-		transform: rotate(90deg);
-	}
-
-	&:focus-visible {
-		outline: 2px solid #fff;
-		box-shadow: 0 0 0 4px $sse-blue;
-	}
-
-	.is-sse-gesture & {
-		background: $sse-pink;
-		cursor: grabbing;
-	}
-}
-
+// Small square handles on the corners and edges of the selected block.
 .sse-fe-resize {
 	position: absolute;
-	width: 10px;
-	height: 10px;
+	width: 8px;
+	height: 8px;
+	margin: -4px 0 0 -4px;
 	background: #fff;
-	border: 1.5px solid $sse-blue;
-	border-radius: 50%;
+	border: 1px solid $sse-blue;
 	box-sizing: border-box;
 	pointer-events: auto;
 	touch-action: none;
 	z-index: 2;
+	display: none;
 
-	.wp-block-sse-fluid-item:not(.is-selected):not(.has-child-selected):not(.is-sse-gesture) & {
-		display: none;
-	}
-
-	&.is-n,
-	&.is-s {
-		left: 50%;
-		margin-left: -5px;
-		cursor: ns-resize;
-	}
-
-	&.is-e,
-	&.is-w {
-		top: 50%;
-		margin-top: -5px;
-		cursor: ew-resize;
+	.wp-block-sse-fluid-item.is-selected > .sse-fe-controls > &,
+	.wp-block-sse-fluid-item.is-sse-gesture > .sse-fe-controls > & {
+		display: block;
 	}
 
 	&.is-n {
-		top: -5px;
-		display: none;
+		top: 0;
+		left: 50%;
+		cursor: ns-resize;
 	}
 
 	&.is-s {
-		bottom: -5px;
+		top: 100%;
+		left: 50%;
+		cursor: ns-resize;
 	}
 
 	&.is-e {
-		right: -5px;
+		top: 50%;
+		left: 100%;
+		cursor: ew-resize;
 	}
 
 	&.is-w {
-		left: -5px;
+		top: 50%;
+		left: 0;
+		cursor: ew-resize;
 	}
 
 	&.is-ne {
-		top: -5px;
-		right: -5px;
+		top: 0;
+		left: 100%;
 		cursor: nesw-resize;
 	}
 
 	&.is-nw {
-		top: -5px;
-		left: -5px;
+		top: 0;
+		left: 0;
 		cursor: nwse-resize;
 	}
 
 	&.is-se {
-		bottom: -5px;
-		right: -5px;
+		top: 100%;
+		left: 100%;
 		cursor: nwse-resize;
 	}
 
 	&.is-sw {
-		bottom: -5px;
-		left: -5px;
+		top: 100%;
+		left: 0;
 		cursor: nesw-resize;
+	}
+
+	// A bigger target than it looks.
+	&::before {
+		content: "";
+		position: absolute;
+		inset: -6px;
 	}
 }
 
@@ -156,10 +139,9 @@ $sse-pink: #e93888;
 	bottom: 8px;
 	right: 8px;
 	padding: 2px 8px;
-	border-radius: 4px;
-	background: $sse-pink;
+	border-radius: 3px;
+	background: $sse-blue;
 	color: #fff;
 	font: 600 11px/18px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 	pointer-events: none;
 }
-

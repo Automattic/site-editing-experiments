@@ -2,6 +2,7 @@ import { __ } from '@wordpress/i18n';
 import { createBlock } from '@wordpress/blocks';
 import {
 	button,
+	details,
 	heading,
 	image,
 	list,
@@ -88,6 +89,24 @@ export function getAddBlockItems() {
 			w: 12,
 			h: 8,
 			create: () => createBlock( 'core/video' ),
+		},
+		{
+			key: 'accordion',
+			label: __( 'Accordion', 'squarespace-style-site-editor' ),
+			icon: details,
+			w: 12,
+			h: 3,
+			create: () =>
+				createBlock(
+					'core/details',
+					{
+						summary: __(
+							'A question people ask',
+							'squarespace-style-site-editor'
+						),
+					},
+					[ createBlock( 'core/paragraph' ) ]
+				),
 		},
 		{
 			key: 'line',

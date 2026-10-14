@@ -18,7 +18,7 @@ import {
 } from '@wordpress/components';
 import { useDispatch, useRegistry, useSelect } from '@wordpress/data';
 import { useState } from '@wordpress/element';
-import { Icon, arrowDown, arrowUp, dragHandle } from '@wordpress/icons';
+import { arrowDown, arrowUp } from '@wordpress/icons';
 
 import {
 	DESKTOP_COLUMNS,
@@ -42,7 +42,12 @@ const ARROWS = {
 	ArrowDown: [ 0, 1 ],
 };
 
-export default function Edit( { attributes, setAttributes, clientId } ) {
+export default function Edit( {
+	attributes,
+	setAttributes,
+	clientId,
+	isSelected,
+} ) {
 	const { layout, mobileLayout, zIndex, verticalAlignment } = attributes;
 	const isMobile = useIsMobilePreview();
 	const registry = useRegistry();
@@ -51,15 +56,24 @@ export default function Edit( { attributes, setAttributes, clientId } ) {
 	const [ preview, setPreview ] = useState( null );
 	const [ gesture, setGesture ] = useState( null );
 
-	const { parentId, sectionHasMobileLayout, hasInnerBlocks } = useSelect(
+	const {
+		parentId,
+		sectionHasMobileLayout,
+		hasInnerBlocks,
+		firstInnerId,
+		isEditing,
+	} = useSelect(
 		( select ) => {
 			const be = select( blockEditorStore );
 			const rootId = be.getBlockRootClientId( clientId );
+			const order = be.getBlockOrder( clientId );
 			return {
 				parentId: rootId,
 				sectionHasMobileLayout:
 					( be.getBlockAttributes( rootId )?.mobileRows ?? 0 ) > 0,
-				hasInnerBlocks: be.getBlockCount( clientId ) > 0,
+				hasInnerBlocks: order.length > 0,
+				firstInnerId: order[ 0 ],
+				isEditing: be.hasSelectedInnerBlock( clientId, true ),
 			};
 		},
 		[ clientId ]
@@ -126,68 +140,116 @@ export default function Edit( { attributes, setAttributes, clientId } ) {
 		} );
 	};
 
-	const startGesture = ( mode ) => ( event ) => {
-		if ( event.button !== 0 ) {
-			return;
-		}
-		event.preventDefault();
-		event.stopPropagation();
+	/**
+	 * Starts a move or resize. With a threshold (moving by the block itself),
+	 * nothing happens until the pointer has moved that far, and a press that
+	 * doesn't move counts as a tap instead.
+	 *
+	 * @param {string}   mode              'move' or a resize direction.
+	 * @param {Object}   options
+	 * @param {number}   options.threshold Pixels before a drag starts.
+	 * @param {Function} options.onTap     Called for a press without a drag.
+	 */
+	const startGesture =
+		( mode, { threshold = 0, onTap } = {} ) =>
+		( event ) => {
+			if ( event.button !== 0 ) {
+				return;
+			}
+			event.preventDefault();
+			event.stopPropagation();
 
-		const handle = event.currentTarget;
-		const itemElement = handle.closest( '.wp-block-sse-fluid-item' );
-		const grid = itemElement?.parentElement;
-		if ( ! grid ) {
-			return;
-		}
+			const handle = event.currentTarget;
+			const itemElement = handle.closest( '.wp-block-sse-fluid-item' );
+			const grid = itemElement?.parentElement;
+			if ( ! grid ) {
+				return;
+			}
 
-		const start = getStartLayout();
-		const tracks = readTracks( grid );
-		const rect = itemElement.getBoundingClientRect();
-		const box = {
-			left: rect.left - tracks.left,
-			top: rect.top - tracks.top,
-			right: rect.right - tracks.left,
-			bottom: rect.bottom - tracks.top,
-		};
-		const x0 = event.clientX;
-		const y0 = event.clientY;
-		let latest = start;
+			const x0 = event.clientX;
+			const y0 = event.clientY;
+			let drag = null;
+			let latest = null;
 
-		const onMove = ( e ) => {
-			const next = applyGesture(
-				start,
-				mode,
-				tracks,
-				box,
-				e.clientX - x0,
-				e.clientY - y0
-			);
-			if ( ! sameLayout( next, latest ) ) {
-				latest = next;
-				setPreview( next );
+			const begin = () => {
+				const start = getStartLayout();
+				const tracks = readTracks( grid );
+				const rect = itemElement.getBoundingClientRect();
+				drag = {
+					start,
+					tracks,
+					box: {
+						left: rect.left - tracks.left,
+						top: rect.top - tracks.top,
+						right: rect.right - tracks.left,
+						bottom: rect.bottom - tracks.top,
+					},
+				};
+				latest = start;
+				setGesture( mode );
+				setPreview( start );
+				selectBlock( clientId );
+			};
+
+			const onMove = ( e ) => {
+				const dx = e.clientX - x0;
+				const dy = e.clientY - y0;
+				if ( ! drag ) {
+					if ( Math.hypot( dx, dy ) < threshold ) {
+						return;
+					}
+					begin();
+				}
+				const next = applyGesture(
+					drag.start,
+					mode,
+					drag.tracks,
+					drag.box,
+					dx,
+					dy
+				);
+				if ( ! sameLayout( next, latest ) ) {
+					latest = next;
+					setPreview( next );
+				}
+			};
+			const onUp = () => {
+				handle.removeEventListener( 'pointermove', onMove );
+				handle.removeEventListener( 'pointerup', onUp );
+				handle.removeEventListener( 'pointercancel', onUp );
+				if ( ! drag ) {
+					onTap?.();
+					return;
+				}
+				setPreview( null );
+				setGesture( null );
+				if ( ! sameLayout( latest, drag.start ) ) {
+					commit( latest );
+				}
+			};
+
+			handle.setPointerCapture?.( event.pointerId );
+			handle.addEventListener( 'pointermove', onMove );
+			handle.addEventListener( 'pointerup', onUp );
+			handle.addEventListener( 'pointercancel', onUp );
+			if ( threshold === 0 ) {
+				begin();
 			}
 		};
-		const onUp = () => {
-			handle.removeEventListener( 'pointermove', onMove );
-			handle.removeEventListener( 'pointerup', onUp );
-			handle.removeEventListener( 'pointercancel', onUp );
-			setPreview( null );
-			setGesture( null );
-			if ( ! sameLayout( latest, start ) ) {
-				commit( latest );
-			}
-		};
 
-		handle.setPointerCapture?.( event.pointerId );
-		handle.addEventListener( 'pointermove', onMove );
-		handle.addEventListener( 'pointerup', onUp );
-		handle.addEventListener( 'pointercancel', onUp );
-		setGesture( mode );
-		setPreview( start );
-		selectBlock( clientId );
+	// Second click (or Enter, or a double-click) edits what's inside.
+	const startEditing = () => {
+		if ( firstInnerId ) {
+			selectBlock( firstInnerId, -1 );
+		}
 	};
 
 	const onHandleKeyDown = ( event ) => {
+		if ( event.key === 'Enter' ) {
+			event.preventDefault();
+			startEditing();
+			return;
+		}
 		const delta = ARROWS[ event.key ];
 		if ( ! delta ) {
 			return;
@@ -231,6 +293,7 @@ export default function Edit( { attributes, setAttributes, clientId } ) {
 			[ `is-vertically-aligned-${ verticalAlignment }` ]:
 				verticalAlignment,
 			'is-sse-gesture': !! gesture,
+			'is-sse-editing': isEditing,
 		} ),
 		style: itemStyle( shownAttributes ),
 	} );
@@ -368,19 +431,27 @@ export default function Edit( { attributes, setAttributes, clientId } ) {
 			</InspectorControls>
 			<div { ...blockProps }>
 				<div { ...innerBlocksProps } />
-				<div className="sse-fe-controls">
-					<button
-						type="button"
-						className="sse-fe-move"
+				{ hasInnerBlocks && ! isEditing && (
+					<div
+						className="sse-fe-surface"
+						role="button"
+						tabIndex={ 0 }
 						aria-label={ __(
-							'Drag to move. Arrow keys move it, Shift and arrow keys resize it.',
+							'Freeform block. Drag to move it. Press Enter to edit it, arrow keys to move it, and Shift with arrow keys to resize it.',
 							'squarespace-style-site-editor'
 						) }
-						onPointerDown={ startGesture( 'move' ) }
+						onPointerDown={ startGesture( 'move', {
+							threshold: 4,
+							onTap: () =>
+								isSelected
+									? startEditing()
+									: selectBlock( clientId ),
+						} ) }
+						onDoubleClick={ startEditing }
 						onKeyDown={ onHandleKeyDown }
-					>
-						<Icon icon={ dragHandle } size={ 18 } />
-					</button>
+					/>
+				) }
+				<div className="sse-fe-controls">
 					{ RESIZE_HANDLES.map( ( dir ) => (
 						<span
 							key={ dir }

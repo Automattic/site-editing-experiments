@@ -862,3 +862,95 @@ $sse-font: -apple-system, blinkmacsystemfont, "Segoe UI", roboto, "Helvetica Neu
 		font: 600 14px/1 $sse-font;
 	}
 }
+
+/* ------------------------------------------------------------ Add block */
+
+.sse-add-block-popover .components-popover__content {
+	border: 0;
+	border-radius: 8px;
+	box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(0, 0, 0, 0.05);
+}
+
+.sse-add-block {
+	display: flex;
+	flex-direction: column;
+	width: 268px;
+	max-height: min(460px, 70vh);
+	padding: 8px;
+	font-family: $sse-font;
+
+	.components-search-control input[type="search"].components-search-control__input {
+		height: 40px;
+		border: 1.5px solid $sse-ink;
+		border-radius: 4px;
+		background: #f5f5f5;
+	}
+}
+
+.sse-add-block__scroll {
+	overflow-y: auto;
+	margin-top: 8px;
+}
+
+.sse-add-block__group + .sse-add-block__group {
+	margin-top: 8px;
+}
+
+.sse-add-block__title {
+	margin: 8px 2px;
+	font-size: 13px;
+	font-weight: 600;
+	color: $sse-ink;
+}
+
+.sse-add-block__tiles {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 4px;
+}
+
+.sse-add-block__tile {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	height: 38px;
+	padding: 0 10px;
+	border: 0;
+	border-radius: 3px;
+	background: #f5f5f5;
+	color: $sse-ink;
+	font: 400 12px/1.2 $sse-font;
+	text-align: left;
+	cursor: pointer;
+
+	.block-editor-block-icon {
+		width: 16px;
+		height: 16px;
+		flex: none;
+
+		svg {
+			width: 16px;
+			height: 16px;
+		}
+	}
+
+	span {
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	&:hover {
+		background: #ebebeb;
+	}
+
+	&:focus-visible {
+		outline: 2px solid $sse-blue;
+	}
+}
+
+.sse-add-block__empty {
+	margin: 16px 4px;
+	color: $sse-muted;
+	font-size: 13px;
+}

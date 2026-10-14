@@ -185,9 +185,10 @@ function SectionMenu( { clientId, info } ) {
 		moveBlocksUp,
 		moveBlocksDown,
 		duplicateBlocks,
+		insertBlock,
 		removeBlock,
 	} = useDispatch( blockEditorStore );
-	const { undo, saveEntityRecord } = useDispatch( coreStore );
+	const { saveEntityRecord } = useDispatch( coreStore );
 	const { createSuccessNotice, createErrorNotice } =
 		useDispatch( noticesStore );
 	const { openSectionPanel, closeSectionPanel } = useDispatch( STORE_NAME );
@@ -208,7 +209,12 @@ function SectionMenu( { clientId, info } ) {
 		category &&
 		sectionPatterns.categories[ category ]?.patterns.length > 1;
 
+	// Undo puts this section back, rather than undoing whatever was edited
+	// last.
 	const remove = () => {
+		const be = registry.select( blockEditorStore );
+		const block = be.getBlock( clientId );
+		const index = be.getBlockIndex( clientId );
 		closeSectionPanel();
 		removeBlock( clientId, false );
 		createSuccessNotice(
@@ -218,7 +224,12 @@ function SectionMenu( { clientId, info } ) {
 				actions: [
 					{
 						label: __( 'Undo', 'squarespace-style-site-editor' ),
-						onClick: () => undo(),
+						onClick: () =>
+							insertBlock(
+								block,
+								index,
+								info.rootClientId || undefined
+							),
 					},
 				],
 			}

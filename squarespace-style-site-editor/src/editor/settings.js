@@ -60,9 +60,12 @@ export function withTheme( className = '', slug ) {
 export function useSitePalette() {
 	const { user, base } = useGlobalStyles();
 	return useMemo( () => {
-		const userPalette = user?.settings?.color?.palette?.theme;
+		const list = ( value ) => ( Array.isArray( value ) ? value : [] );
+		const userPalette = user?.settings?.color?.palette || {};
+		// Custom first: that's where Site Styles writes, and it wins.
 		const colors = [
-			...( Array.isArray( userPalette ) ? userPalette : [] ),
+			...list( userPalette.custom ),
+			...list( userPalette.theme ),
 			...presetList( base?.settings?.color?.palette, [ 'theme' ] ),
 		];
 		const out = {};

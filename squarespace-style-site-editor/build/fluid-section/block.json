@@ -42,6 +42,9 @@
     },
     "spacing": {
       "padding": true
+    },
+    "dimensions": {
+      "minHeight": true
     }
   },
   "example": {

@@ -14,6 +14,8 @@ import {
 	ColorPicker,
 	Dropdown,
 	SelectControl,
+	// eslint-disable-next-line @wordpress/no-unsafe-wp-apis
+	__experimentalConfirmDialog as ConfirmDialog,
 	// ToggleGroupControl is what core's own Styles panel uses for these choices.
 	// eslint-disable-next-line @wordpress/no-unsafe-wp-apis
 	__experimentalToggleGroupControl as ToggleGroupControl,
@@ -152,34 +154,52 @@ function useFonts( gs ) {
 	return { families, bySlug, body, headings, weight };
 }
 
-function themePalette( gs ) {
-	const user = gs.user?.settings?.color?.palette?.theme;
-	if ( Array.isArray( user ) ) {
-		return user;
-	}
-	return presetList( gs.base?.settings?.color?.palette, [ 'theme' ] );
+/**
+ * Writes the five site colours to the user's custom palette, leaving every
+ * other colour (the theme's, and any the user added) alone. Custom colours
+ * come after theme colours, so these win over the defaults the plugin adds
+ * to the theme palette.
+ *
+ * @param {Object}   settings Global styles settings to change.
+ * @param {Object}   gs       From useGlobalStyles().
+ * @param {string[]} colors   Lightest to darkest.
+ */
+function writePalette( settings, gs, colors ) {
+	const current = gs.user?.settings?.color?.palette?.custom;
+	const others = ( Array.isArray( current ) ? current : [] ).filter(
+		( entry ) => ! entry.slug?.startsWith( 'sse-' )
+	);
+	const ours = PALETTE_ROLES.map( ( role, i ) => ( {
+		slug: `sse-${ role }`,
+		name: sprintf(
+			/* translators: %s: palette role. */
+			__( 'Site %s', 'squarespace-style-site-editor' ),
+			ROLE_LABELS[ role ]
+		),
+		color: colors[ i ],
+	} ) );
+	setPath( settings, 'color.palette.custom', [ ...others, ...ours ] );
 }
 
-function writePalette( settings, gs, colors ) {
-	const next = themePalette( gs ).map( ( entry ) => ( { ...entry } ) );
-	PALETTE_ROLES.forEach( ( role, i ) => {
-		const slug = `sse-${ role }`;
-		const existing = next.find( ( e ) => e.slug === slug );
-		if ( existing ) {
-			existing.color = colors[ i ];
-		} else {
-			next.push( {
-				slug,
-				name: sprintf(
-					/* translators: %s: palette role. */
-					__( 'Site %s', 'squarespace-style-site-editor' ),
-					ROLE_LABELS[ role ]
-				),
-				color: colors[ i ],
-			} );
-		}
-	} );
-	setPath( settings, 'color.palette.theme', next );
+/**
+ * Removes the plugin's colours from the user's palette.
+ *
+ * @param {Object} settings Global styles settings to change.
+ * @param {Object} gs       From useGlobalStyles().
+ */
+function clearPalette( settings, gs ) {
+	const current = gs.user?.settings?.color?.palette?.custom;
+	if ( ! Array.isArray( current ) ) {
+		return;
+	}
+	const others = current.filter(
+		( entry ) => ! entry.slug?.startsWith( 'sse-' )
+	);
+	setPath(
+		settings,
+		'color.palette.custom',
+		others.length ? others : undefined
+	);
 }
 
 const SITE_THEME_PATHS = {
@@ -1110,24 +1130,89 @@ const SCREENS = {
 	},
 };
 
+/**
+ * Clears what this panel sets: the site colours, fonts, button and spacing
+ * values. A value is only cleared if it's one this panel would set, so
+ * changes made in core's Styles panel survive.
+ *
+ * @param {Object} gs From useGlobalStyles().
+ */
 function resetAll( gs ) {
+	const fontRef = ( value ) =>
+		typeof value === 'string' &&
+		value.startsWith( 'var:preset|font-family|' );
+	const px = ( value ) =>
+		typeof value === 'string' && /^\d+px$/.test( value );
 	gs.edit( ( { settings, styles } ) => {
-		[
-			'typography.fontFamily',
-			'typography.fontSize',
-			'elements.heading.typography.fontFamily',
-			'elements.heading.typography.fontWeight',
-			'elements.button.border.radius',
-			'elements.button.spacing.padding',
-			...Object.keys( SITE_THEME_PATHS ),
-		].forEach( ( path ) => setPath( styles, path, undefined ) );
-		[
-			'custom.sse',
-			'layout.contentSize',
-			'layout.wideSize',
-			'color.palette.theme',
-		].forEach( ( path ) => setPath( settings, path, undefined ) );
+		clearPalette( settings, gs );
+		const clearIf = ( object, path, test ) => {
+			const value = path
+				.split( '.' )
+				.reduce( ( v, k ) => ( v ? v[ k ] : undefined ), object );
+			if ( value !== undefined && test( value ) ) {
+				setPath( object, path, undefined );
+			}
+		};
+		clearIf( styles, 'typography.fontFamily', fontRef );
+		clearIf( styles, 'elements.heading.typography.fontFamily', fontRef );
+		clearIf( styles, 'typography.fontSize', px );
+		clearIf( styles, 'elements.heading.typography.fontWeight', ( v ) =>
+			[ '300', '400', '500', '600', '700', '800' ].includes( String( v ) )
+		);
+		clearIf( styles, 'elements.button.border.radius', ( v ) =>
+			Object.values( BUTTON_RADIUS ).includes( v )
+		);
+		clearIf( styles, 'elements.button.spacing.padding', ( v ) =>
+			Object.values( BUTTON_PADDING ).some(
+				( p ) => JSON.stringify( p ) === JSON.stringify( v )
+			)
+		);
+		Object.keys( SITE_THEME_PATHS ).forEach( ( path ) =>
+			clearIf(
+				styles,
+				path,
+				( v ) =>
+					typeof v === 'string' &&
+					v.startsWith( 'var:preset|color|sse-' )
+			)
+		);
+		setPath( settings, 'custom.sse', undefined );
+		clearIf( settings, 'layout.contentSize', px );
+		clearIf( settings, 'layout.wideSize', px );
 	} );
+}
+
+function ResetButton( { gs } ) {
+	const [ confirming, setConfirming ] = useState( false );
+	return (
+		<>
+			<Button
+				__next40pxDefaultSize
+				variant="tertiary"
+				isDestructive
+				onClick={ () => setConfirming( true ) }
+			>
+				{ __( 'Reset site styles', 'squarespace-style-site-editor' ) }
+			</Button>
+			<ConfirmDialog
+				isOpen={ confirming }
+				confirmButtonText={ __(
+					'Reset',
+					'squarespace-style-site-editor'
+				) }
+				onConfirm={ () => {
+					resetAll( gs );
+					setConfirming( false );
+				} }
+				onCancel={ () => setConfirming( false ) }
+			>
+				{ __(
+					'Reset the colours, fonts, buttons and spacing set in Site Styles to the theme’s? You can undo this.',
+					'squarespace-style-site-editor'
+				) }
+			</ConfirmDialog>
+		</>
+	);
 }
 
 function SiteStylesPanel() {
@@ -1164,17 +1249,7 @@ function SiteStylesPanel() {
 		<div className="sse-styles">
 			<MainScreen gs={ gs } go={ setScreen } />
 			<div className="sse-styles__footer">
-				<Button
-					__next40pxDefaultSize
-					variant="tertiary"
-					isDestructive
-					onClick={ () => resetAll( gs ) }
-				>
-					{ __(
-						'Reset site styles',
-						'squarespace-style-site-editor'
-					) }
-				</Button>
+				<ResetButton gs={ gs } />
 			</div>
 		</div>
 	);

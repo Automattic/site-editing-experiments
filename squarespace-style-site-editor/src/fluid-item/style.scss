@@ -81,6 +81,7 @@
 
 	.wp-block-sse-fluid-section.has-mobile-layout .wp-block-sse-fluid-item {
 		grid-column: var(--sse-mc, 1) / span var(--sse-mw, 8);
-		grid-row: var(--sse-mr, auto) / span var(--sse-mh, 1);
+		// Items without a mobile placement get a few rows rather than one.
+		grid-row: var(--sse-mr, auto) / span var(--sse-mh, 4);
 	}
 }

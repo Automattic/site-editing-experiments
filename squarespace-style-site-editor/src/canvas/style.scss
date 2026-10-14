@@ -48,19 +48,17 @@ $sse-font: -apple-system, blinkmacsystemfont, "Segoe UI", roboto, "Helvetica Neu
 	outline-offset: -2px;
 }
 
-// Hidden until the section (or the chrome itself) is hovered or selected.
+// Hidden until the section (or the chrome itself) is hovered, selected or
+// focused. Only faded out, so keyboard users can still tab to it.
 .sse-add-section,
 .sse-section-tab,
 .sse-section-menu {
-	visibility: hidden;
 	opacity: 0;
-	transition: opacity 0.12s ease, visibility 0s linear 0.12s;
+	transition: opacity 0.12s ease;
 }
 
 @mixin sse-shown {
-	visibility: visible;
 	opacity: 1;
-	transition: opacity 0.12s ease;
 }
 
 .sse-section-anchor:has(+ .sse-section:hover),

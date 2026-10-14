@@ -219,8 +219,10 @@ $sse-font: -apple-system, blinkmacsystemfont, "Segoe UI", roboto, "Helvetica Neu
 		display: none !important;
 	}
 
-	// Still clicked by our Save button, so hidden rather than removed.
+	// Still clicked by our Save button, so hidden rather than removed;
+	// visibility keeps it out of the tab order.
 	.editor-header .editor-post-publish-button {
+		visibility: hidden;
 		position: absolute !important;
 		width: 1px !important;
 		height: 1px !important;

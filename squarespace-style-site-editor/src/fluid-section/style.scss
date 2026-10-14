@@ -45,3 +45,10 @@
 		grid-template-rows: repeat(var(--sse-mobile-rows, 10), minmax(var(--sse-row-h), auto));
 	}
 }
+
+// "Fill screen": the grid sits in the middle of the taller section.
+.wp-block-sse-fluid-section[style*="min-height"] {
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+}

@@ -47,22 +47,27 @@ export default function EmptyCanvas() {
 			setContainer( null );
 			return;
 		}
-		let node;
-		let timer;
+		// The canvas iframe can be recreated while the page stays empty, so
+		// keep checking that the button is still in it.
+		let node = null;
 		const attach = () => {
 			const root = findRootContainer();
-			if ( ! root ) {
-				timer = setTimeout( attach, 300 );
+			if ( ! root || ( node?.isConnected && root.contains( node ) ) ) {
 				return;
 			}
+			if ( node?.isConnected && node.previousElementSibling === root ) {
+				return;
+			}
+			node?.remove();
 			node = root.ownerDocument.createElement( 'div' );
 			node.className = 'sse-empty-canvas';
 			root.after( node );
 			setContainer( node );
 		};
 		attach();
+		const timer = setInterval( attach, 500 );
 		return () => {
-			clearTimeout( timer );
+			clearInterval( timer );
 			node?.remove();
 		};
 	}, [ show ] );

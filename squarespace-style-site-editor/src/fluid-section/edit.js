@@ -23,6 +23,7 @@ import { Icon, plus } from '@wordpress/icons';
 import {
 	DESKTOP_COLUMNS,
 	MOBILE_COLUMNS,
+	MAX_ROWS,
 	bottomRow,
 	normalizeLayout,
 	readTracks,
@@ -163,7 +164,7 @@ export default function Edit( {
 			const next = Math.max(
 				minRows,
 				Math.min(
-					200,
+					MAX_ROWS,
 					start + Math.round( ( e.clientY - y0 ) / rowStep )
 				)
 			);
@@ -197,6 +198,9 @@ export default function Edit( {
 		className: clsx( {
 			'has-mobile-layout': hasMobileLayout,
 			'is-sse-active': active,
+			// The editor follows the preview device, not the canvas width.
+			'is-sse-desktop': ! isMobile,
+			'is-sse-mobile': isMobile,
 		} ),
 		style: sectionStyle( shownAttributes ),
 	} );
@@ -235,7 +239,7 @@ export default function Edit( {
 						label={ __( 'Rows', 'squarespace-style-site-editor' ) }
 						value={ rows }
 						min={ Math.max( 1, desktopBottom ) }
-						max={ 80 }
+						max={ MAX_ROWS }
 						onChange={ ( value ) =>
 							setAttributes( { rows: value } )
 						}
@@ -251,7 +255,7 @@ export default function Edit( {
 								) }
 								value={ mobileRows }
 								min={ Math.max( 1, mobileBottom ) }
-								max={ 120 }
+								max={ MAX_ROWS }
 								onChange={ ( value ) =>
 									setAttributes( { mobileRows: value } )
 								}
@@ -305,10 +309,13 @@ export default function Edit( {
 								if ( delta ) {
 									event.preventDefault();
 									setAttributes( {
-										[ rowsKey ]: Math.max(
-											minRows,
-											( attributes[ rowsKey ] || 1 ) +
-												delta
+										[ rowsKey ]: Math.min(
+											MAX_ROWS,
+											Math.max(
+												minRows,
+												( attributes[ rowsKey ] || 1 ) +
+													delta
+											)
 										),
 									} );
 								}

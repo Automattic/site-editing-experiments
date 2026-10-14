@@ -144,3 +144,33 @@ $sse-blue: #1071e5;
 .wp-block-sse-fluid-section__stage:has(.sse-rows-handle.is-dragging) > .wp-block-sse-fluid-section__overlay {
 	opacity: 1;
 }
+
+// In the editor the grid follows the preview device, not the canvas width:
+// a narrow canvas in the Desktop preview (say, with both sidebars open)
+// still shows and edits the desktop layout.
+.wp-block-sse-fluid-section.is-sse-desktop.is-sse-desktop {
+	--sse-cols: 24;
+	--sse-row-h: clamp(1.5rem, 3vw, 2.75rem);
+
+	.wp-block-sse-fluid-section__grid,
+	.wp-block-sse-fluid-section__overlay {
+		grid-template-rows: repeat(var(--sse-rows, 10), minmax(var(--sse-row-h), auto));
+		row-gap: var(--sse-gap);
+	}
+}
+
+.wp-block-sse-fluid-section.is-sse-mobile.is-sse-mobile {
+	--sse-cols: 8;
+	--sse-row-h: 2.25rem;
+
+	&.has-mobile-layout .wp-block-sse-fluid-section__grid,
+	&.has-mobile-layout .wp-block-sse-fluid-section__overlay {
+		grid-template-rows: repeat(var(--sse-mobile-rows, 10), minmax(var(--sse-row-h), auto));
+	}
+
+	&:not(.has-mobile-layout) .wp-block-sse-fluid-section__grid {
+		grid-template-rows: none;
+		grid-auto-rows: auto;
+		row-gap: 1.25rem;
+	}
+}

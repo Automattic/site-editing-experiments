@@ -7,6 +7,8 @@
 
 export const DESKTOP_COLUMNS = 24;
 export const MOBILE_COLUMNS = 8;
+// The most rows a freeform section can have.
+export const MAX_ROWS = 200;
 
 const toInt = ( value, fallback ) => {
 	const n = parseInt( value, 10 );
@@ -18,8 +20,8 @@ const clamp = ( n, min, max ) => Math.min( Math.max( n, min ), max );
 export function normalizeLayout( layout = {}, columns = DESKTOP_COLUMNS ) {
 	const w = clamp( toInt( layout.w, columns ), 1, columns );
 	const c = clamp( toInt( layout.c, 1 ), 1, columns - w + 1 );
-	const r = Math.max( 1, toInt( layout.r, 1 ) );
-	const h = Math.max( 1, toInt( layout.h, 1 ) );
+	const h = clamp( toInt( layout.h, 1 ), 1, MAX_ROWS );
+	const r = clamp( toInt( layout.r, 1 ), 1, MAX_ROWS - h + 1 );
 	return { c, r, w, h };
 }
 
@@ -80,10 +82,12 @@ export function bottomRow( layouts ) {
  * This matches what the front end shows before a mobile layout exists, so
  * the first drag on mobile starts from what's on screen.
  *
- * @param {Object[]} items Blocks ({ clientId, attributes }).
+ * @param {Object[]} items   Blocks ({ clientId, attributes }).
+ * @param {Function} rowsFor Optional: rows an item takes up as shown, by
+ *                           clientId. Falls back to its desktop height.
  * @return {{ layouts: Object, rows: number }} Mobile layouts by clientId.
  */
-export function stackForMobile( items ) {
+export function stackForMobile( items, rowsFor ) {
 	const sorted = [ ...items ].sort( ( a, b ) => {
 		const la = normalizeLayout( a.attributes.layout );
 		const lb = normalizeLayout( b.attributes.layout );
@@ -93,11 +97,43 @@ export function stackForMobile( items ) {
 	let row = 1;
 	sorted.forEach( ( item ) => {
 		const d = normalizeLayout( item.attributes.layout );
-		const h = Math.max( 2, Math.min( d.h, 8 ) );
+		const measured = rowsFor?.( item.clientId );
+		const h =
+			measured > 0
+				? Math.min( measured, MAX_ROWS )
+				: Math.max( 2, Math.min( d.h, 8 ) );
 		layouts[ item.clientId ] = { c: 1, r: row, w: MOBILE_COLUMNS, h };
 		row += h;
 	} );
-	return { layouts, rows: Math.max( row - 1, 1 ) };
+	return { layouts, rows: Math.min( Math.max( row - 1, 1 ), MAX_ROWS ) };
+}
+
+/**
+ * How many rows of a stacked (not yet arranged) mobile grid each item takes
+ * up, from what's on screen. Row height and gap are what the mobile grid
+ * will use once it has rows.
+ *
+ * @param {HTMLElement} grid The section's grid element.
+ * @return {Function} clientId => rows, or 0 if it can't be measured.
+ */
+export function measureStackedRows( grid ) {
+	const doc = grid.ownerDocument;
+	const view = doc.defaultView;
+	const rootSize =
+		parseFloat( view.getComputedStyle( doc.documentElement ).fontSize ) ||
+		16;
+	const rowH = 2.25 * rootSize;
+	const gap = parseFloat( view.getComputedStyle( grid ).columnGap ) || 0;
+	const stackGap = parseFloat( view.getComputedStyle( grid ).rowGap ) || 0;
+	return ( clientId ) => {
+		const element = doc.getElementById( `block-${ clientId }` );
+		if ( ! element ) {
+			return 0;
+		}
+		// Each item's own height plus the gap below it, in whole rows.
+		const height = element.offsetHeight + stackGap - gap;
+		return Math.max( 1, Math.round( ( height + gap ) / ( rowH + gap ) ) );
+	};
 }
 
 /**
@@ -124,7 +160,7 @@ export function readTracks( grid ) {
 	const fallbackRow = rowSizes.length ? rowSizes[ rowSizes.length - 1 ] : 40;
 
 	// Allow dragging below the current rows: the section grows to fit.
-	while ( rowSizes.length < 200 ) {
+	while ( rowSizes.length < MAX_ROWS ) {
 		rowSizes.push( fallbackRow );
 	}
 

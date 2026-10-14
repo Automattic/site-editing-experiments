@@ -17,16 +17,18 @@ import {
 	TextControl,
 } from '@wordpress/components';
 import { useDispatch, useRegistry, useSelect } from '@wordpress/data';
-import { useState } from '@wordpress/element';
+import { useEffect, useState } from '@wordpress/element';
 import { arrowDown, arrowUp } from '@wordpress/icons';
 
 import {
 	DESKTOP_COLUMNS,
+	MAX_ROWS,
 	MOBILE_COLUMNS,
 	applyGesture,
 	bottomRow,
 	itemStyle,
 	normalizeLayout,
+	measureStackedRows,
 	readTracks,
 	sameLayout,
 	stackForMobile,
@@ -80,14 +82,24 @@ export default function Edit( {
 	);
 
 	const layoutKey = isMobile ? 'mobileLayout' : 'layout';
+
+	const findGrid = () =>
+		document
+			.querySelector( 'iframe[name="editor-canvas"]' )
+			?.contentDocument?.getElementById( `block-${ clientId }` )
+			?.parentElement ?? null;
 	const columns = isMobile ? MOBILE_COLUMNS : DESKTOP_COLUMNS;
 
 	/**
 	 * The layout being edited. The first time anything moves in the mobile
 	 * preview, every item in the section gets a mobile layout that matches
 	 * the stacked one on screen.
+	 *
+	 * @param {HTMLElement} [grid] The section's grid, to size stacked rows
+	 *                             from what's shown. Found if not given.
+	 * @return {Object} Layout.
 	 */
-	const getStartLayout = () => {
+	const getStartLayout = ( grid = findGrid() ) => {
 		if ( ! isMobile ) {
 			return normalizeLayout( layout, DESKTOP_COLUMNS );
 		}
@@ -96,7 +108,10 @@ export default function Edit( {
 			.getBlocks( parentId );
 
 		if ( ! sectionHasMobileLayout ) {
-			const stacked = stackForMobile( siblings );
+			const stacked = stackForMobile(
+				siblings,
+				grid ? measureStackedRows( grid ) : undefined
+			);
 			registry.batch( () => {
 				siblings.forEach( ( block ) =>
 					updateBlockAttributes( block.clientId, {
@@ -135,7 +150,9 @@ export default function Edit( {
 		registry.batch( () => {
 			setAttributes( { [ layoutKey ]: next } );
 			if ( bottom > ( sectionAttributes[ rowsKey ] || 0 ) ) {
-				updateBlockAttributes( parentId, { [ rowsKey ]: bottom } );
+				updateBlockAttributes( parentId, {
+					[ rowsKey ]: Math.min( MAX_ROWS, bottom ),
+				} );
 			}
 		} );
 	};
@@ -171,34 +188,66 @@ export default function Edit( {
 			let drag = null;
 			let latest = null;
 
+			let pending = false;
 			const begin = () => {
-				const start = getStartLayout();
-				const tracks = readTracks( grid );
-				const rect = itemElement.getBoundingClientRect();
-				drag = {
-					start,
-					tracks,
-					box: {
-						left: rect.left - tracks.left,
-						top: rect.top - tracks.top,
-						right: rect.right - tracks.left,
-						bottom: rect.bottom - tracks.top,
-					},
-				};
+				// The first move in the mobile preview writes the stacked
+				// layout; read the grid only once that has rendered.
+				const willStack = isMobile && ! sectionHasMobileLayout;
+				const start = getStartLayout( grid );
+				pending = true;
 				latest = start;
 				setGesture( mode );
 				setPreview( start );
 				selectBlock( clientId );
+				const view = grid.ownerDocument.defaultView;
+				const read = () => {
+					pending = false;
+					const tracks = readTracks( grid );
+					// The canvas is showing a different grid from the one
+					// being edited (say, a narrow canvas in the Desktop
+					// preview): moving would save nonsense, so don't.
+					if ( tracks.columns !== columns ) {
+						setGesture( null );
+						setPreview( null );
+						return;
+					}
+					const rect = itemElement.getBoundingClientRect();
+					drag = {
+						start,
+						tracks,
+						box: {
+							left: rect.left - tracks.left,
+							top: rect.top - tracks.top,
+							right: rect.right - tracks.left,
+							bottom: rect.bottom - tracks.top,
+						},
+					};
+				};
+				if ( willStack ) {
+					view.requestAnimationFrame( () =>
+						view.requestAnimationFrame( read )
+					);
+				} else {
+					read();
+				}
 			};
 
 			const onMove = ( e ) => {
 				const dx = e.clientX - x0;
 				const dy = e.clientY - y0;
 				if ( ! drag ) {
-					if ( Math.hypot( dx, dy ) < threshold ) {
+					if ( pending ) {
 						return;
 					}
-					begin();
+					if ( latest === null ) {
+						if ( Math.hypot( dx, dy ) < threshold ) {
+							return;
+						}
+						begin();
+					}
+					if ( ! drag ) {
+						return;
+					}
 				}
 				const next = applyGesture(
 					drag.start,
@@ -218,7 +267,12 @@ export default function Edit( {
 				handle.removeEventListener( 'pointerup', onUp );
 				handle.removeEventListener( 'pointercancel', onUp );
 				if ( ! drag ) {
-					onTap?.();
+					if ( latest === null ) {
+						onTap?.();
+					} else {
+						setPreview( null );
+						setGesture( null );
+					}
 					return;
 				}
 				setPreview( null );
@@ -237,6 +291,35 @@ export default function Edit( {
 			}
 		};
 
+	// Added (say, from List View or the inserter) to a section that already
+	// has a mobile layout: place it below everything on mobile too.
+	useEffect( () => {
+		if ( ! sectionHasMobileLayout || mobileLayout || ! parentId ) {
+			return;
+		}
+		const be = registry.select( blockEditorStore );
+		const siblings = be.getBlocks( parentId );
+		const bottom = bottomRow(
+			siblings.map( ( b ) => b.attributes.mobileLayout )
+		);
+		const d = normalizeLayout( layout );
+		const next = {
+			c: 1,
+			r: Math.min( MAX_ROWS - 3, bottom + 1 ),
+			w: MOBILE_COLUMNS,
+			h: Math.max( 2, Math.min( d.h, 8 ) ),
+		};
+		registry.batch( () => {
+			updateBlockAttributes( clientId, { mobileLayout: next } );
+			const rows = be.getBlockAttributes( parentId )?.mobileRows || 0;
+			const end = Math.min( MAX_ROWS, next.r + next.h - 1 );
+			if ( end > rows ) {
+				updateBlockAttributes( parentId, { mobileRows: end } );
+			}
+		} );
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [ sectionHasMobileLayout, mobileLayout, parentId ] );
+
 	// Second click (or Enter, or a double-click) edits what's inside.
 	const startEditing = () => {
 		if ( firstInnerId ) {
@@ -245,7 +328,7 @@ export default function Edit( {
 	};
 
 	const onHandleKeyDown = ( event ) => {
-		if ( event.key === 'Enter' ) {
+		if ( event.key === 'Enter' || event.key === ' ' ) {
 			event.preventDefault();
 			startEditing();
 			return;

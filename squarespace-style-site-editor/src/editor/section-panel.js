@@ -31,7 +31,7 @@ import {
 	categoryForSection,
 	useSectionPatterns,
 } from './section-patterns';
-import { bottomRow, normalizeLayout } from '../shared/grid';
+import { MAX_ROWS, bottomRow, normalizeLayout } from '../shared/grid';
 
 const FLUID = 'sse/fluid-section';
 
@@ -44,7 +44,7 @@ function PanelHeading( { children } ) {
 	return <p className="sse-panel__heading">{ children }</p>;
 }
 
-function Stepper( { label, value, min = 1, max = 200, onChange } ) {
+function Stepper( { label, value, min = 1, max = MAX_ROWS, onChange } ) {
 	return (
 		<div className="sse-panel__row">
 			<span>{ label }</span>
@@ -104,6 +104,8 @@ function DesignTab( { clientId, name, attributes } ) {
 		} );
 	};
 
+	const canFillScreen =
+		isCover || !! getBlockSupport( name, 'dimensions.minHeight' );
 	const supportsAlign = getBlockSupport( name, 'align' );
 	const canFullWidth =
 		supportsAlign === true ||
@@ -157,12 +159,17 @@ function DesignTab( { clientId, name, attributes } ) {
 			<PanelHeading>
 				{ __( 'Section', 'squarespace-style-site-editor' ) }
 			</PanelHeading>
-			<ToggleControl
-				__nextHasNoMarginBottom
-				label={ __( 'Fill screen', 'squarespace-style-site-editor' ) }
-				checked={ fillScreen }
-				onChange={ setFillScreen }
-			/>
+			{ canFillScreen && (
+				<ToggleControl
+					__nextHasNoMarginBottom
+					label={ __(
+						'Fill screen',
+						'squarespace-style-site-editor'
+					) }
+					checked={ fillScreen }
+					onChange={ setFillScreen }
+				/>
+			) }
 			{ canFullWidth && (
 				<ToggleControl
 					__nextHasNoMarginBottom

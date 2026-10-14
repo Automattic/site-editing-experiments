@@ -293,7 +293,16 @@ body.dragging-section .ins { display: none; }
 }
 
 /* ---------- Add section inserters ---------- */
-.ins { position: relative; height: 0; z-index: 20; }
+.ins {
+  position: relative; height: 0; z-index: 20; display: flex; align-items: center; justify-content: center;
+  transition: height 0.22s ease, background-color 0.22s ease;
+}
+/* When Add section is clicked, the gap opens up and the picker sits inside it. */
+.ins.open {
+  height: 220px; background: rgba(56, 88, 233, 0.06);
+  outline: 2px dashed rgba(56, 88, 233, 0.55); outline-offset: -14px;
+}
+.ins.open .insline, .ins.open .insbtn { display: none; }
 .insline {
   position: absolute; left: 48px; right: 48px; top: -1px; height: 2px; background: var(--editor-blue);
   opacity: 0; transition: opacity 0.12s ease; pointer-events: none;
@@ -312,10 +321,17 @@ body.dragging-section .ins { display: none; }
 body.editing .ins { display: none; }
 
 .picker {
-  position: absolute; z-index: 45; display: none; flex-direction: column; align-items: center; gap: 8px;
-  padding: 10px 10px 12px; background: rgba(30, 30, 30, 0.96); color: #fff; border-radius: 12px;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3); font-family: 'Instrument Sans', sans-serif;
+  display: none; flex-direction: column; align-items: center; gap: 8px;
+  padding: 12px 12px 10px; background: rgba(30, 30, 30, 0.96); color: #fff; border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25); font-family: 'Instrument Sans', sans-serif;
+  animation: pickin 0.2s ease-out;
 }
+@keyframes pickin { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.pickx {
+  min-height: 32px; padding: 0 12px; background: transparent; color: #C7C7C7; border: 0; border-radius: 6px;
+  font: 500 12px 'Instrument Sans', sans-serif; cursor: pointer;
+}
+.pickx:hover, .pickx:focus-visible { color: #fff; background: #2C2C2C; outline: none; }
 .picker.show { display: flex; }
 .pickh { font-size: 12px; color: #C7C7C7; }
 .picko { display: flex; gap: 8px; }

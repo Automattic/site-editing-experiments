@@ -661,6 +661,7 @@
 
   // "Add section" inserters sit in the gaps above, between and below sections.
   function renderInserters() {
+    closePicker();
     main.querySelectorAll('.ins').forEach(function (n) { n.remove(); });
     var secs = allSections();
     secs.concat([null]).forEach(function (sec) {
@@ -677,29 +678,32 @@
   picker.className = 'picker';
   picker.setAttribute('role', 'dialog');
   picker.setAttribute('aria-label', 'Add a section');
-  picker.innerHTML = '<span class="pickh">Add a section</span><div class="picko">' +
+  picker.innerHTML = '<span class="pickh">Choose a section to add here</span><div class="picko">' +
     ['hero', 'features', 'cta'].map(function (t) {
       var rects = LAYOUTS[t][0].rects.map(function (r) {
         return '<span style="left:' + r[0] + 'px;top:' + r[1] + 'px;width:' + r[2] + 'px;height:' + r[3] + 'px;background:' + r[4] + '"></span>';
       }).join('');
       return '<button class="lo" data-new="' + t + '"><span class="th" aria-hidden="true">' + rects + '</span><span>' + TITLES[t].replace(' section', '') + '</span></button>';
-    }).join('') + '</div>';
+    }).join('') + '</div><button type="button" class="pickx" data-pick-cancel>Cancel</button>';
   document.body.appendChild(picker);
   var pickerTarget = null;
 
+  // Opening the picker opens a space in the gap between the two sections and shows the picker in it.
   function openPicker(ins) {
+    if (pickerTarget === ins) return;
+    closePicker();
     pickerTarget = ins;
-    var r = ins.getBoundingClientRect();
+    ins.appendChild(picker);
     picker.classList.add('show');
-    var pw = picker.offsetWidth;
-    picker.style.left = Math.max(8, Math.min(window.innerWidth - pw - 8, r.left + r.width / 2 - pw / 2)) + window.scrollX + 'px';
-    picker.style.top = r.top + window.scrollY + 22 + 'px';
     ins.classList.add('open');
-    picker.querySelector('button').focus();
+    setTimeout(function () { ins.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }, 220);
+    picker.querySelector('[data-new]').focus({ preventScroll: true });
   }
   function closePicker() {
+    if (!pickerTarget) return;
     picker.classList.remove('show');
-    if (pickerTarget) pickerTarget.classList.remove('open');
+    pickerTarget.classList.remove('open');
+    document.body.appendChild(picker);
     pickerTarget = null;
   }
 
@@ -713,7 +717,7 @@
       addSection(choice.dataset.new, before);
       return;
     }
-    if (!e.target.closest('.picker')) closePicker();
+    if (e.target.closest('[data-pick-cancel]') || !e.target.closest('.picker')) closePicker();
   });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closePicker(); });
 

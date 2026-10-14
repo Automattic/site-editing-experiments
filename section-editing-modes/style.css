@@ -288,7 +288,7 @@ body.no-grid .grid { display: none !important; }
 }
 /* When Add section is clicked, the gap opens up and the picker sits inside it. */
 .ins.open {
-  height: 300px; background: rgba(56, 88, 233, 0.06);
+  height: 220px; background: rgba(56, 88, 233, 0.06);
   outline: 2px dashed rgba(56, 88, 233, 0.55); outline-offset: -14px;
 }
 .ins.open .insline, .ins.open .insbtn { display: none; }
@@ -323,8 +323,8 @@ body.editing .ins { display: none; }
 .pickx:hover, .pickx:focus-visible { color: #fff; background: #2C2C2C; outline: none; }
 .picker.show { display: flex; }
 .pickh { font-size: 12px; color: #C7C7C7; }
-.picko { display: grid; grid-template-columns: repeat(4, 86px); gap: 8px; }
-.picko .lo { width: 86px; }
+.picko { display: flex; gap: 8px; max-width: calc(100vw - 56px); overflow-x: auto; }
+.picko .lo { flex: 0 0 86px; width: 86px; }
 
 /* ---------- Toast ---------- */
 .toast {
@@ -406,5 +406,4 @@ body.editing .ins { display: none; }
   .gal-grid, .sec.gallery[data-layout="grid2"] .gal-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .banner-img, .image[data-layout="full"] .banner-img, .image[data-layout="side"] .banner-img { height: 300px; }
   .contact[data-layout="card"] .contact-text { position: static; transform: none; margin-top: -60px; margin-left: 16px; margin-right: 16px; }
-  .picko { grid-template-columns: repeat(2, 86px); }
 }

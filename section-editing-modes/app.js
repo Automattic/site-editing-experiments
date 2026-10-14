@@ -11,6 +11,8 @@
     { src: 'images/bowls-white.jpg', alt: 'White and brown ceramic bowls' }
   ];
 
+  function count(sec, sel) { return sec.querySelectorAll(sel).length; }
+
   // Thumbnail colours: text, secondary text, image, accent, panel
   var TX = '#ECECEC', SB = '#A8A8A8', IG = 'rgba(255,255,255,0.32)', AC = '#9DB2FF', PN = 'rgba(255,255,255,0.12)';
 
@@ -19,11 +21,13 @@
     hero: [
       { id: 'split', label: 'Split', rects: [[7, 12, 26, 5, TX], [7, 21, 22, 3, SB], [7, 26, 18, 3, SB], [7, 33, 12, 5, AC], [40, 8, 26, 32, IG]] },
       { id: 'centered', label: 'Centered', rects: [[18, 5, 36, 5, TX], [22, 13, 28, 3, SB], [30, 19, 12, 4, AC], [8, 27, 56, 16, IG]] },
+      { id: 'gallery', label: 'Image row', when: function (sec) { return count(sec, '.hero-media > .media') >= 2; } },
       { id: 'flip', label: 'Image left', rects: [[6, 8, 26, 32, IG], [39, 12, 26, 5, TX], [39, 21, 22, 3, SB], [39, 26, 18, 3, SB], [39, 33, 12, 5, AC]] }
     ],
     features: [
       { id: 'cols', label: 'Three columns', rects: [[6, 6, 30, 4, TX], [6, 15, 18, 14, IG], [27, 15, 18, 14, IG], [48, 15, 18, 14, IG], [6, 32, 14, 3, SB], [27, 32, 14, 3, SB], [48, 32, 14, 3, SB], [6, 37, 10, 3, SB], [27, 37, 10, 3, SB], [48, 37, 10, 3, SB]] },
       { id: 'list', label: 'Stacked list', rects: [[8, 5, 14, 10, IG], [26, 7, 30, 3, TX], [26, 11, 22, 2, SB], [8, 19, 14, 10, IG], [26, 21, 30, 3, TX], [26, 25, 22, 2, SB], [8, 33, 14, 10, IG], [26, 35, 30, 3, TX], [26, 39, 22, 2, SB]] },
+      { id: 'cols4', label: 'Four columns', when: function (sec) { return count(sec, '.card') >= 4; } },
       { id: 'feature', label: 'Featured + two', rects: [[6, 5, 30, 18, IG], [40, 9, 26, 4, TX], [40, 16, 20, 3, SB], [6, 27, 14, 16, IG], [22, 30, 12, 3, TX], [38, 27, 14, 16, IG], [54, 30, 12, 3, TX]] }
     ],
     cta: [
@@ -34,6 +38,7 @@
     text: [
       { id: 'left', label: 'Single column', rects: [[8, 7, 30, 5, TX], [8, 17, 44, 3, SB], [8, 22, 40, 3, SB], [8, 27, 44, 3, SB], [8, 35, 36, 3, SB]] },
       { id: 'center', label: 'Centered', rects: [[21, 7, 30, 5, TX], [14, 17, 44, 3, SB], [16, 22, 40, 3, SB], [14, 27, 44, 3, SB], [18, 35, 36, 3, SB]] },
+      { id: 'cols2', label: 'Two text columns', when: function (sec) { return count(sec, '.text-body > p') >= 3; } },
       { id: 'two', label: 'Two columns', rects: [[6, 9, 22, 5, TX], [6, 16, 16, 5, TX], [34, 9, 32, 3, SB], [34, 14, 30, 3, SB], [34, 19, 32, 3, SB], [34, 27, 28, 3, SB], [34, 32, 32, 3, SB]] }
     ],
     image: [
@@ -44,6 +49,7 @@
     gallery: [
       { id: 'grid3', label: 'Three across', rects: [[6, 5, 26, 4, TX], [6, 13, 18, 13, IG], [27, 13, 18, 13, IG], [48, 13, 18, 13, IG], [6, 29, 18, 13, IG], [27, 29, 18, 13, IG], [48, 29, 18, 13, IG]] },
       { id: 'grid2', label: 'Two across', rects: [[6, 5, 26, 4, TX], [6, 13, 29, 13, IG], [38, 13, 28, 13, IG], [6, 29, 29, 13, IG], [38, 29, 28, 13, IG]] },
+      { id: 'grid4', label: 'Four across', when: function (sec) { return count(sec, '.gal-img') >= 8; } },
       { id: 'mosaic', label: 'Mosaic', rects: [[6, 5, 26, 4, TX], [6, 13, 39, 29, IG], [48, 13, 18, 13, IG], [48, 29, 18, 13, IG]] }
     ],
     quote: [
@@ -76,7 +82,7 @@
       { type: 'heading', label: 'Heading', into: '.hero-text' },
       { type: 'paragraph', label: 'Paragraph', into: '.hero-text' },
       { type: 'button', label: 'Button', into: '.hero-text' },
-      { type: 'image', label: 'Image', into: '.hero-text' }
+      { type: 'image', label: 'Image', into: '.hero-media' }
     ],
     features: [
       { type: 'heading', label: 'Heading', before: '.cards' },
@@ -202,13 +208,6 @@
         '<span class="obd">' + MODES[m].desc + '</span></button>';
     }).join('');
 
-    var layoutButtons = LAYOUTS[type].map(function (l) {
-      var rects = l.rects.map(function (r) {
-        return '<span style="left:' + r[0] + 'px;top:' + r[1] + 'px;width:' + r[2] + 'px;height:' + r[3] + 'px;background:' + r[4] + '"></span>';
-      }).join('');
-      return '<button class="lo" data-layout-pick="' + l.id + '" aria-pressed="false">' +
-        '<span class="th" aria-hidden="true">' + rects + '</span><span>' + l.label + '</span></button>';
-    }).join('');
 
     sec.insertAdjacentHTML('afterbegin',
       '<div class="grid" aria-hidden="true"><div class="gridin">' + new Array(13).join('<span class="gcol"></span>') + '<span class="gmid"></span></div></div>' +
@@ -240,16 +239,25 @@
           }).join('') +
           '<button class="tbb" data-act="restore">Restore removed</button>' +
         '</div><span class="spacer"></span><button class="done" data-act="done">Done</button></div>' +
-      '<div class="xlayer"></div>' +
-      '<div class="lp" role="group" aria-label="' + title + ' layouts"><span class="lph">Layouts</span><div class="lpo">' + layoutButtons + '</div></div>'
+      '<div class="xlayer"></div>'
     );
 
-    sec.addEventListener('click', function (e) {
+    // The layouts panel lives outside the section, so its live previews don't pick up the
+    // section's own styles and the section's queries don't find the previews' copies.
+    var lp = document.createElement('div');
+    lp.className = 'lp';
+    lp.setAttribute('role', 'group');
+    lp.setAttribute('aria-label', title + ' layouts');
+    lp.innerHTML = '<span class="lph">Layouts</span><div class="lpo"></div>';
+    document.body.appendChild(lp);
+    sec._lp = lp;
+
+    function onClick(e) {
       // Links shouldn't navigate while a section is being edited.
       if (sec.dataset.mode && e.target.closest('a')) e.preventDefault();
 
       var btn = e.target.closest('button');
-      if (!btn || !sec.contains(btn)) return;
+      if (!btn || !(sec.contains(btn) || lp.contains(btn))) return;
 
       if (btn.dataset.secAct) {
         if (btn.dataset.secAct === 'up') moveSection(sec, -1);
@@ -298,7 +306,9 @@
         return;
       }
       render();
-    });
+    }
+    sec.addEventListener('click', onClick);
+    lp.addEventListener('click', onClick);
   }
 
   allSections().forEach(initSection);
@@ -345,7 +355,7 @@
       var layer = sec.querySelector('.xlayer');
       if (sec.dataset.mode !== 'layout') { layer.innerHTML = ''; return; }
       var sr = sec.getBoundingClientRect();
-      var panel = local(sec.querySelector('.lp').getBoundingClientRect(), sr);
+      var panel = local(sec._lp.getBoundingClientRect(), sr);
       var pad = 20; // button half-size plus a little breathing room
       function underPanel(x, y) {
         return x > panel.l - pad && x < panel.l + panel.w + pad && y > panel.t - pad && y < panel.t + panel.h + pad;
@@ -370,7 +380,7 @@
       restoreBtn.textContent = n ? 'Restore removed (' + n + ')' : 'Restore removed';
     });
   }
-  window.addEventListener('resize', positionRemoveButtons);
+  window.addEventListener('resize', function () { renderLayoutPanels(); positionRemoveButtons(); });
   document.addEventListener('load', function (e) { if (e.target.tagName === 'IMG') positionRemoveButtons(); }, true);
 
   // Highlight the item a remove button points at.
@@ -405,7 +415,7 @@
       sec.querySelectorAll('[data-text]').forEach(function (el) {
         el.contentEditable = mode === 'content' ? 'true' : 'false';
       });
-      sec.querySelectorAll('[data-layout-pick]').forEach(function (b) {
+      sec._lp.querySelectorAll('[data-layout-pick]').forEach(function (b) {
         b.setAttribute('aria-pressed', String(b.dataset.layoutPick === layoutOf(sec)));
       });
 
@@ -439,7 +449,61 @@
     });
 
     positionSelection();
+    renderLayoutPanels();
     positionRemoveButtons();
+  }
+
+  // ---------- Layout panel: live previews of this section's own content ----------
+  var MINI_W = 120, MINI_H = 76;
+  var CHROME = '.grid, .gv, .gh, .selbox, .ov, .tb, .xlayer, .lp, .rep';
+
+  // A miniature copy of the section's content, rendered in the given layout.
+  function miniPreview(sec, layoutId) {
+    var copy = document.createElement('div');
+    copy.className = 'mini-sec ' + sec.dataset.type;
+    copy.dataset.layout = layoutId;
+    copy.innerHTML = sec.innerHTML;
+    copy.querySelectorAll(CHROME).forEach(function (n) { n.remove(); });
+    copy.querySelectorAll('*').forEach(function (n) {
+      ['data-drag', 'data-img', 'data-text', 'data-key', 'data-added', 'data-resize', 'contenteditable'].forEach(function (a) { n.removeAttribute(a); });
+      n.classList.remove('doomed', 'dragging', 'fresh');
+    });
+    var stage = document.createElement('span');
+    stage.className = 'mini-stage';
+    stage.style.width = sec.offsetWidth + 'px';
+    stage.appendChild(copy);
+    return stage;
+  }
+
+  function renderLayoutPanels() {
+    allSections().forEach(function (sec) {
+      var lp = sec._lp;
+      lp.classList.toggle('show', sec.dataset.mode === 'layout');
+      if (sec.dataset.mode !== 'layout') return;
+      var sr = sec.getBoundingClientRect();
+      lp.style.left = sr.left + window.scrollX + sr.width / 2 + 'px';
+      lp.style.top = sr.top + window.scrollY + 76 + 'px';
+      var current = layoutOf(sec);
+      var options = LAYOUTS[sec.dataset.type].filter(function (l) { return !l.when || l.when(sec) || l.id === current; });
+      var lpo = lp.querySelector('.lpo');
+      lpo.innerHTML = '';
+      options.forEach(function (l) {
+        var b = document.createElement('button');
+        b.className = 'lo';
+        b.dataset.layoutPick = l.id;
+        b.setAttribute('aria-pressed', String(l.id === current));
+        b.setAttribute('aria-label', l.label);
+        b.innerHTML = '<span class="th mini" aria-hidden="true" inert></span><span>' + l.label + '</span>';
+        if (l.when) b.classList.add('lo-new');
+        lpo.appendChild(b);
+        var th = b.firstChild;
+        var stage = miniPreview(sec, l.id);
+        th.appendChild(stage);
+        var k = MINI_W / sec.offsetWidth;
+        var h = stage.offsetHeight * k;
+        stage.style.transform = 'translate(0, ' + Math.max(0, (MINI_H - h) / 2) + 'px) scale(' + k + ')';
+      });
+    });
   }
 
   function applyOffset(el) {
@@ -648,7 +712,7 @@
         '<h1' + drag('title', 'text') + ' data-text>A headline for this section</h1>' +
         '<p class="lead"' + drag('body', 'text') + ' data-text>A sentence or two that introduces what this part of the page is about.</p>' +
         '<a href="#" class="btn"' + drag('btn', 'text') + ' data-text>Learn more</a></div>' +
-        '<div class="media hero-img"' + drag('img', 'box') + '>' + img('img') + '</div></div></section>';
+        '<div class="hero-media"><div class="media hero-img"' + drag('img', 'box') + '>' + img('img') + '</div></div></div></section>';
     }
     if (type === 'features') {
       var card = function (n, t, d) {
@@ -768,6 +832,7 @@
   }
 
   function deleteSection(sec) {
+    sec._lp.classList.remove('show');
     var ph = document.createComment('deleted section');
     sec.replaceWith(ph);
     lastDeleted = { sec: sec, ph: ph };

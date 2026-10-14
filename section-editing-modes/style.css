@@ -184,6 +184,31 @@ a { color: var(--accent); }
 }
 .sec[data-mode="free"] [data-drag].dragging { cursor: grabbing; }
 
+/* Freeform selection and resize handles */
+.selbox {
+  position: absolute; z-index: 10; display: none; pointer-events: none;
+  outline: 2px solid var(--editor-blue); outline-offset: 0;
+}
+.selbox.show { display: block; }
+.hd {
+  position: absolute; width: 12px; height: 12px; margin: -6px 0 0 -6px; background: #fff;
+  border: 2px solid var(--editor-blue); border-radius: 2px; pointer-events: auto; touch-action: none;
+}
+.hd::before { content: ''; position: absolute; inset: -10px; } /* bigger hit area */
+.hd[data-h="nw"] { left: 0; top: 0; cursor: nwse-resize; }
+.hd[data-h="n"] { left: 50%; top: 0; cursor: ns-resize; }
+.hd[data-h="ne"] { left: 100%; top: 0; cursor: nesw-resize; }
+.hd[data-h="e"] { left: 100%; top: 50%; cursor: ew-resize; }
+.hd[data-h="se"] { left: 100%; top: 100%; cursor: nwse-resize; }
+.hd[data-h="s"] { left: 50%; top: 100%; cursor: ns-resize; }
+.hd[data-h="sw"] { left: 0; top: 100%; cursor: nesw-resize; }
+.hd[data-h="w"] { left: 0; top: 50%; cursor: ew-resize; }
+.selbox.text-only .hd:not([data-h="e"]):not([data-h="w"]) { display: none; }
+.dim {
+  position: absolute; left: 50%; top: 100%; transform: translate(-50%, 12px); white-space: nowrap;
+  background: var(--editor-blue); color: #fff; font-size: 11px; font-weight: 600; padding: 3px 7px; border-radius: 4px;
+}
+
 /* Freeform guides */
 .grid { position: absolute; inset: 0; z-index: 1; pointer-events: none; display: none; }
 .sec[data-mode="free"] .grid { display: block; }

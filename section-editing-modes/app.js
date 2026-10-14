@@ -36,7 +36,7 @@
   var MODES = {
     layout: { label: 'Edit layout', desc: 'Pick from preset arrangements for this section', hint: 'Pick a preset and watch the section change' },
     content: { label: 'Edit content', desc: 'Change text and images; positions stay put', hint: 'Click text to edit · Replace images · Positions are locked' },
-    free: { label: 'Freeform', desc: 'Drag items around; text and images are locked', hint: 'Drag items to move them · Text and images are locked' }
+    free: { label: 'Freeform', desc: 'Move and resize items; text and images are locked', hint: 'Drag to move · Select an item and drag its handles to resize · Text and images are locked' }
   };
 
   var ICONS = {
@@ -46,6 +46,8 @@
   };
 
   var SNAP_DISTANCE = 6;
+  var MIN_SIZE = 40;
+  var HANDLES = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'];
 
   function fresh() {
     return {
@@ -53,6 +55,8 @@
       mode: null,
       layout: { hero: 'split', features: 'cols', cta: 'center' },
       offsets: {},
+      sizes: {},
+      selected: null,
       images: { hImg: 0, f1i: 4, f2i: 2, f3i: 3 },
       grid: true,
       snap: true
@@ -89,12 +93,13 @@
     sec.insertAdjacentHTML('afterbegin',
       '<div class="grid" aria-hidden="true"><div class="gridin">' + new Array(13).join('<span class="gcol"></span>') + '<span class="gmid"></span></div></div>' +
       '<span class="gv" aria-hidden="true"></span><span class="gh" aria-hidden="true"></span>' +
+      '<div class="selbox" aria-hidden="true">' + HANDLES.map(function (h) { return '<span class="hd" data-h="' + h + '"></span>'; }).join('') + '<span class="dim"></span></div>' +
       '<div class="ov"><span class="ovl">' + title + '</span>' + overlayButtons + '</div>' +
       '<div class="tb"><span class="tbl"></span><span class="tbh"></span>' +
         '<div class="free-tools">' +
           '<button class="tbb" data-act="grid">Grid</button>' +
           '<button class="tbb" data-act="snap">Snap to guides</button>' +
-          '<button class="tbb" data-act="resetpos">Reset positions</button>' +
+          '<button class="tbb" data-act="resetpos">Reset positions and sizes</button>' +
         '</div><span class="spacer"></span><button class="done" data-act="done">Done</button></div>' +
       '<div class="lp" role="group" aria-label="' + title + ' layouts"><span class="lph">Layouts</span><div class="lpo">' + layoutButtons + '</div></div>'
     );
@@ -109,18 +114,23 @@
       if (btn.dataset.open) {
         state.active = key;
         state.mode = btn.dataset.open;
+        state.selected = null;
       } else if (btn.dataset.layoutPick) {
         state.layout[key] = btn.dataset.layoutPick;
       } else if (btn.dataset.act === 'done') {
         state.active = null;
         state.mode = null;
+        state.selected = null;
         if (document.activeElement) document.activeElement.blur();
       } else if (btn.dataset.act === 'grid') {
         state.grid = !state.grid;
       } else if (btn.dataset.act === 'snap') {
         state.snap = !state.snap;
       } else if (btn.dataset.act === 'resetpos') {
-        sec.querySelectorAll('[data-drag]').forEach(function (el) { delete state.offsets[el.dataset.drag]; });
+        sec.querySelectorAll('[data-drag]').forEach(function (el) {
+          delete state.offsets[el.dataset.drag];
+          delete state.sizes[el.dataset.drag];
+        });
       } else if (btn.dataset.act === 'replace') {
         var k = btn.dataset.key;
         state.images[k] = ((state.images[k] || 0) + 1) % IMAGES.length;
@@ -170,8 +180,8 @@
     document.body.classList.toggle('no-grid', !state.grid);
 
     document.querySelectorAll('[data-drag]').forEach(function (el) {
-      var o = state.offsets[el.dataset.drag] || { x: 0, y: 0 };
-      el.style.transform = 'translate(' + o.x + 'px, ' + o.y + 'px)';
+      applySize(el);
+      applyOffset(el);
     });
 
     document.querySelectorAll('img[data-img]').forEach(function (img) {
@@ -179,7 +189,44 @@
       if (img.getAttribute('src') !== pic.src) img.setAttribute('src', pic.src);
       img.alt = pic.alt;
     });
+
+    positionSelection();
   }
+
+  function applyOffset(el) {
+    var o = state.offsets[el.dataset.drag] || { x: 0, y: 0 };
+    el.style.transform = 'translate(' + o.x + 'px, ' + o.y + 'px)';
+  }
+
+  function applySize(el) {
+    var sz = state.sizes[el.dataset.drag];
+    if (sz) {
+      el.style.width = sz.w + 'px';
+      el.style.height = sz.h == null ? '' : sz.h + 'px';
+      el.style.maxWidth = 'none';
+      el.style.flex = '0 0 auto';
+    } else {
+      el.style.width = el.style.height = el.style.maxWidth = el.style.flex = '';
+    }
+  }
+
+  // Draw the selection box (with resize handles) over the selected item.
+  function positionSelection() {
+    sections.forEach(function (sec) {
+      var box = sec.querySelector('.selbox');
+      var el = state.selected && sec.dataset.mode === 'free' ? sec.querySelector('[data-drag="' + state.selected + '"]') : null;
+      box.classList.toggle('show', !!el);
+      if (!el) return;
+      var r = local(el.getBoundingClientRect(), sec.getBoundingClientRect());
+      box.style.left = r.l + 'px';
+      box.style.top = r.t + 'px';
+      box.style.width = r.w + 'px';
+      box.style.height = r.h + 'px';
+      box.classList.toggle('text-only', el.dataset.resize === 'text');
+      box.querySelector('.dim').textContent = Math.round(r.w) + ' × ' + Math.round(r.h);
+    });
+  }
+  window.addEventListener('resize', positionSelection);
 
   // ---------- Freeform dragging with snapping guides ----------
   function local(rect, secRect) {
@@ -202,22 +249,12 @@
     sec.querySelector('.gh').classList.remove('show');
   }
 
-  document.addEventListener('pointerdown', function (e) {
-    var el = e.target.closest('[data-drag]');
-    if (!el) return;
-    var sec = el.closest('.sec');
-    if (!sec || sec.dataset.mode !== 'free' || e.target.closest('button')) return;
-    e.preventDefault();
-
-    var sr = sec.getBoundingClientRect();
+  // Snap targets: content edges and centre, section middle, and every other item's edges and centre.
+  function snapTargets(sec, el, sr) {
     var inner = sec.querySelector('.inner');
     var ir = inner.getBoundingClientRect();
     var cs = getComputedStyle(inner);
-    var contentL = ir.left - sr.left + parseFloat(cs.paddingLeft);
-    var contentR = ir.right - sr.left - parseFloat(cs.paddingRight);
-
-    // Snap targets: content edges and centre, section middle, and every other item's edges and centre.
-    var xs = [contentL, sr.width / 2, contentR];
+    var xs = [ir.left - sr.left + parseFloat(cs.paddingLeft), sr.width / 2, ir.right - sr.left - parseFloat(cs.paddingRight)];
     var ys = [sr.height / 2];
     sec.querySelectorAll('[data-drag]').forEach(function (n) {
       if (n === el || el.contains(n) || n.contains(el)) return;
@@ -225,24 +262,103 @@
       xs.push(r.l, r.l + r.w / 2, r.l + r.w);
       ys.push(r.t, r.t + r.h / 2, r.t + r.h);
     });
+    return { xs: xs, ys: ys };
+  }
 
+  document.addEventListener('pointerdown', function (e) {
+    var sec = e.target.closest('.sec');
+    if (!sec || sec.dataset.mode !== 'free') return;
+
+    // Resize from a handle on the selection box.
+    var handle = e.target.closest('.hd');
+    if (handle && state.selected) {
+      e.preventDefault();
+      var target = sec.querySelector('[data-drag="' + state.selected + '"]');
+      var sr0 = sec.getBoundingClientRect();
+      var r0 = local(target.getBoundingClientRect(), sr0);
+      var t0 = snapTargets(sec, target, sr0);
+      drag = {
+        type: 'resize', h: handle.dataset.h, el: target, sec: sec, key: state.selected,
+        text: target.dataset.resize === 'text', sx: e.clientX, sy: e.clientY,
+        L0: r0.l, T0: r0.t, R0: r0.l + r0.w, B0: r0.t + r0.h, w0: target.offsetWidth, h0: target.offsetHeight,
+        xs: t0.xs, ys: t0.ys
+      };
+      try { handle.setPointerCapture(e.pointerId); } catch (err) { /* older browsers */ }
+      return;
+    }
+
+    if (e.target.closest('.tb, button')) return;
+    var el = e.target.closest('[data-drag]');
+
+    // Clicking empty space clears the selection.
+    if (!el) {
+      if (state.selected) { state.selected = null; positionSelection(); }
+      return;
+    }
+    e.preventDefault();
+    state.selected = el.dataset.drag;
+
+    var sr = sec.getBoundingClientRect();
+    var t = snapTargets(sec, el, sr);
     var o = state.offsets[el.dataset.drag] || { x: 0, y: 0 };
     drag = {
-      el: el, sec: sec, key: el.dataset.drag,
+      type: 'move', el: el, sec: sec, key: el.dataset.drag,
       sx: e.clientX, sy: e.clientY, ox: o.x, oy: o.y,
-      r0: local(el.getBoundingClientRect(), sr), xs: xs, ys: ys
+      r0: local(el.getBoundingClientRect(), sr), xs: t.xs, ys: t.ys
     };
     el.classList.add('dragging');
     try { el.setPointerCapture(e.pointerId); } catch (err) { /* older browsers */ }
+    positionSelection();
   });
+
+  function resizeMove(e) {
+    var d = drag;
+    var dx = e.clientX - d.sx;
+    var dy = e.clientY - d.sy;
+    var gv = d.sec.querySelector('.gv');
+    var gh = d.sec.querySelector('.gh');
+    var east = d.h.indexOf('e') > -1, west = d.h.indexOf('w') > -1;
+    var south = d.h.indexOf('s') > -1, north = d.h.indexOf('n') > -1;
+    var w = d.w0, h = d.h0, b;
+
+    if (east) w = d.w0 + dx;
+    if (west) w = d.w0 - dx;
+    if (!d.text) {
+      if (south) h = d.h0 + dy;
+      if (north) h = d.h0 - dy;
+    }
+
+    if (state.snap) {
+      if (east && (b = nearest([d.L0 + w], d.xs))) { w += b.d; gv.style.left = b.t + 'px'; gv.classList.add('show'); }
+      if (west && (b = nearest([d.R0 - w], d.xs))) { w -= b.d; gv.style.left = b.t + 'px'; gv.classList.add('show'); }
+      if (!d.text && south && (b = nearest([d.T0 + h], d.ys))) { h += b.d; gh.style.top = b.t + 'px'; gh.classList.add('show'); }
+      if (!d.text && north && (b = nearest([d.B0 - h], d.ys))) { h -= b.d; gh.style.top = b.t + 'px'; gh.classList.add('show'); }
+    }
+
+    w = Math.max(MIN_SIZE, Math.round(w));
+    h = Math.max(MIN_SIZE, Math.round(h));
+    state.sizes[d.key] = { w: w, h: d.text ? null : h };
+    applySize(d.el);
+
+    // Keep the edge opposite the handle where it was, whatever the surrounding layout does.
+    var cur = local(d.el.getBoundingClientRect(), d.sec.getBoundingClientRect());
+    var wantL = west ? d.R0 - cur.w : d.L0;
+    var wantT = (!d.text && north) ? d.B0 - cur.h : d.T0;
+    var o = state.offsets[d.key] || { x: 0, y: 0 };
+    state.offsets[d.key] = { x: o.x + wantL - cur.l, y: o.y + wantT - cur.t };
+    applyOffset(d.el);
+    positionSelection();
+  }
 
   document.addEventListener('pointermove', function (e) {
     if (!drag) return;
+    hideGuides(drag.sec);
+    if (drag.type === 'resize') { resizeMove(e); return; }
+
     var dx = e.clientX - drag.sx;
     var dy = e.clientY - drag.sy;
     var gv = drag.sec.querySelector('.gv');
     var gh = drag.sec.querySelector('.gh');
-    hideGuides(drag.sec);
 
     if (state.snap) {
       var L = drag.r0.l + dx, T = drag.r0.t + dy, W = drag.r0.w, H = drag.r0.h;
@@ -253,7 +369,8 @@
     }
 
     state.offsets[drag.key] = { x: drag.ox + dx, y: drag.oy + dy };
-    drag.el.style.transform = 'translate(' + state.offsets[drag.key].x + 'px, ' + state.offsets[drag.key].y + 'px)';
+    applyOffset(drag.el);
+    positionSelection();
   });
 
   function endDrag() {

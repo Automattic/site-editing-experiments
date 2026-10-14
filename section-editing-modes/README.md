@@ -11,7 +11,7 @@ A clickable mockup exploring three ways to edit a section of a page. Hover any s
 
 ## Adding and arranging sections
 
-- **Add a section:** hover the gap above, between or below sections and click **Add section**, then pick a Hero, Features or Call to action section. New sections start with placeholder copy and photos, and work with every editing mode.
+- **Add a section:** hover a section and click one of the **Add section** buttons on its top or bottom edge, then pick a Hero, Features or Call to action section. New sections start with placeholder copy and photos, and work with every editing mode.
 - **Move a section:** hover it and use the up and down arrows in its top-right corner, or drag it by the grip. A blue line shows where it will land.
 - **Delete a section:** use the bin in the same corner. A message at the bottom of the page lets you undo it.
 

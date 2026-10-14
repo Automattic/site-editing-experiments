@@ -294,7 +294,6 @@ body.dragging-section .ins { display: none; }
 
 /* ---------- Add section inserters ---------- */
 .ins { position: relative; height: 0; z-index: 20; }
-.ins::before { content: ''; position: absolute; left: 0; right: 0; top: -18px; height: 36px; } /* hover zone */
 .insline {
   position: absolute; left: 48px; right: 48px; top: -1px; height: 2px; background: var(--editor-blue);
   opacity: 0; transition: opacity 0.12s ease; pointer-events: none;
@@ -303,8 +302,11 @@ body.dragging-section .ins { display: none; }
   position: absolute; left: 50%; top: 0; transform: translate(-50%, -50%); display: inline-flex; align-items: center; gap: 6px;
   min-height: 36px; padding: 0 14px; background: var(--editor-blue); color: #fff; border: 0; border-radius: 999px;
   font: 600 13px 'Instrument Sans', sans-serif; cursor: pointer; opacity: 0; transition: opacity 0.12s ease;
-  box-shadow: 0 4px 14px rgba(56, 88, 233, 0.35);
+  box-shadow: 0 4px 14px rgba(56, 88, 233, 0.35); pointer-events: none;
 }
+.ins:has(+ .sec:hover) .insbtn, .sec:hover + .ins .insbtn, .ins:hover .insbtn, .ins.open .insbtn, .insbtn:focus-visible { pointer-events: auto; }
+/* The buttons above and below a section show while that section is hovered. */
+.ins:has(+ .sec:hover) .insbtn, .sec:hover + .ins .insbtn,
 .ins:hover .insline, .ins:hover .insbtn, .ins.open .insline, .ins.open .insbtn, .insbtn:focus-visible { opacity: 1; }
 .insbtn:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 body.editing .ins { display: none; }

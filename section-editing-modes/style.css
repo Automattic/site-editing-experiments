@@ -627,19 +627,13 @@ body.editing .ins { display: none; }
 .header .tb { margin-top: 8px; }
 .header .secctl, .footer .secctl { visibility: hidden; }
 
-/* ---------- Site-wide parts: header and footer ---------- */
-:root { --global: #7A00DF; }
-.global .ov { box-shadow: inset 0 0 0 2px var(--global); }
-.global.on { box-shadow: inset 0 0 0 2px var(--global); }
-.global > .sectab { display: none; align-items: center; gap: 6px; background: var(--global); }
+/* ---------- Site-wide parts: header and footer ----------
+   Same blue as every other section; plain wording says they're shared by every page. */
+.global > .sectab { display: none; align-items: center; gap: 6px; }
 .global:hover > .sectab, .global.on > .sectab { display: flex; }
-.tabnote { font-weight: 500; opacity: 0.85; padding-left: 6px; margin-left: 2px; border-left: 1px solid rgba(255, 255, 255, 0.4); }
+.tabnote { font-weight: 500; }
 /* The header's tab sits inside its top edge, since the editor bar is directly above it. */
 .header > .sectab { bottom: auto; top: 0; border-radius: 0 0 6px 0; }
-.sitewide {
-  display: inline-flex; align-items: center; gap: 5px; padding: 4px 8px; margin-right: 2px; border-radius: 6px;
-  background: var(--global); color: #fff; font-size: 12px; font-weight: 600;
-}
-.lp.global { box-shadow: 0 0 0 2px var(--global), 0 10px 30px rgba(0, 0, 0, 0.28); }
-.lp.global .lph { display: inline-flex; align-items: center; gap: 6px; color: #E2C6FF; }
-.global .modebar .ob:hover, .global .modebar .ob:focus-visible { color: var(--global); background: #F3E8FD; }
+.sitewide { display: inline-flex; align-items: center; gap: 6px; padding: 0 10px 0 8px; font-size: 13px; color: #fff; }
+.tb .sitewide + .free-tools, .tb .sitewide + .free-tools + [data-act="restore"] { margin-left: 4px; }
+.lpnote { display: inline-flex; align-items: center; gap: 6px; margin-top: -2px; font-size: 13px; font-weight: 600; color: #fff; }

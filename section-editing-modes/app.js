@@ -296,7 +296,7 @@
       '<span class="gv" aria-hidden="true"></span><span class="gh" aria-hidden="true"></span>' +
       '<div class="selbox" aria-hidden="true">' + HANDLES.map(function (h) { return '<span class="hd" data-h="' + h + '"></span>'; }).join('') + '<span class="dim"></span></div>' +
       (global
-        ? '<span class="sectab" aria-hidden="true">' + GLOBE_ICON + title + '<span class="tabnote">Used on every page</span></span>'
+        ? '<span class="sectab" aria-hidden="true">' + GLOBE_ICON + title + '<span class="tabnote">shown on every page</span></span>'
         : '<span class="sectab" aria-hidden="true">' + title + '</span>') +
       '<div class="ov"><div class="ovbar"><div class="ovtl">' +
         '<div class="addwrap"><button class="addtrig" data-sec-act="addmenu" aria-haspopup="menu" aria-expanded="false">' +
@@ -313,7 +313,7 @@
           '<button class="sbtn danger" data-sec-act="delete" aria-label="Delete section" title="Delete section">' + SEC_ICONS.bin + '</button>' +
         '</div>' + overlayButtons + '</div></div>' +
       '<div class="tbwrap"><div class="tb"><span class="tbl"></span><span class="tbh"></span>' +
-        (global ? '<span class="sitewide" title="Changes here apply to every page of the site">' + GLOBE_ICON + 'Every page</span>' : '') +
+        (global ? '<span class="sitewide">' + GLOBE_ICON + 'You\u2019re editing the ' + title.toLowerCase() + ' on every page of your site</span>' : '') +
         '<div class="free-tools">' +
           '<button class="tbb" data-act="grid" title="Show the column grid">Grid</button>' +
           '<button class="tbb" data-act="snap" title="Snap to guides">Snap</button>' +
@@ -331,7 +331,7 @@
     lp.setAttribute('role', 'group');
     lp.setAttribute('aria-label', title + ' layouts');
     lp.innerHTML = global
-      ? '<span class="lph">' + GLOBE_ICON + 'Layouts \u00b7 changes apply to every page</span><div class="lpo"></div>'
+      ? '<span class="lph">Layouts</span><span class="lpnote">' + GLOBE_ICON + 'You\u2019re editing the ' + title.toLowerCase() + ' on every page of your site</span><div class="lpo"></div>'
       : '<span class="lph">Layouts</span><div class="lpo"></div>';
     if (global) lp.classList.add('global');
     document.body.appendChild(lp);

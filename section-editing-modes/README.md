@@ -11,7 +11,7 @@ A clickable mockup exploring three ways to edit a section of a page. Hover any s
 
 ## The header and footer
 
-The site header and footer can be edited like any section: hover them for the Add menu and the three editing modes, each with its own layouts (header: Logo left, Centered, Links beside logo; footer: Columns, Centered, Compact). They're shared by every page of the site, so they're marked differently: a purple outline, a tab that says **Used on every page**, an **Every page** badge in the mode bar, and a note in the layouts panel that changes apply to every page. They stay at the top and bottom of the page, so they can't be moved, duplicated or deleted.
+The site header and footer can be edited like any section: hover them for the Add menu and the three editing modes, each with its own layouts (header: Logo left, Centered, Links beside logo; footer: Columns, Centered, Compact). They're shared by every page of the site, and the wording says so rather than a special colour: their tab reads **Header · shown on every page**, and while you edit one, the mode bar or layouts panel says **You're editing the header on every page of your site**. They stay at the top and bottom of the page, so they can't be moved, duplicated or deleted.
 
 ## Sticky tools
 

@@ -169,7 +169,6 @@
   }
 
   var SEC_ICONS = {
-    grip: '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="9" cy="6" r="1.6"></circle><circle cx="15" cy="6" r="1.6"></circle><circle cx="9" cy="12" r="1.6"></circle><circle cx="15" cy="12" r="1.6"></circle><circle cx="9" cy="18" r="1.6"></circle><circle cx="15" cy="18" r="1.6"></circle></svg>',
     up: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M6 11l6-6 6 6"></path></svg>',
     down: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6"></path></svg>',
     bin: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16"></path><path d="M10 11v6M14 11v6"></path><path d="M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12"></path><path d="M9 7V4h6v3"></path></svg>'
@@ -202,7 +201,6 @@
       '<div class="selbox" aria-hidden="true">' + HANDLES.map(function (h) { return '<span class="hd" data-h="' + h + '"></span>'; }).join('') + '<span class="dim"></span></div>' +
       '<div class="ov"><span class="ovl">' + title + '</span>' +
         '<div class="secctl" role="group" aria-label="Section">' +
-          '<button class="sbtn grip" data-sec-act="drag" aria-label="Drag to move section" title="Drag to move">' + SEC_ICONS.grip + '</button>' +
           '<button class="sbtn" data-sec-act="up" aria-label="Move section up" title="Move up">' + SEC_ICONS.up + '</button>' +
           '<button class="sbtn" data-sec-act="down" aria-label="Move section down" title="Move down">' + SEC_ICONS.down + '</button>' +
           '<button class="sbtn danger" data-sec-act="delete" aria-label="Delete section" title="Delete section">' + SEC_ICONS.bin + '</button>' +
@@ -485,9 +483,6 @@
   }
 
   document.addEventListener('pointerdown', function (e) {
-    var grip = e.target.closest('[data-sec-act="drag"]');
-    if (grip) { startSectionDrag(e, grip.closest('.sec')); return; }
-
     var sec = e.target.closest('.sec');
     if (!sec || sec.dataset.mode !== 'free') return;
 
@@ -574,7 +569,6 @@
 
   document.addEventListener('pointermove', function (e) {
     if (!drag) return;
-    if (drag.type === 'section') { sectionDragMove(e); return; }
     hideGuides(drag.sec);
     if (drag.type === 'resize') { resizeMove(e); return; }
 
@@ -598,7 +592,6 @@
 
   function endDrag() {
     if (!drag) return;
-    if (drag.type === 'section') { finishSectionDrag(); return; }
     drag.el.classList.remove('dragging');
     hideGuides(drag.sec);
     drag = null;
@@ -797,55 +790,6 @@
     if (e.target.closest('[data-pick-cancel]') || !e.target.closest('.picker')) closePicker();
   });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closePicker(); });
-
-  // Dragging a section by its grip: a line shows where it will drop.
-  var dropLine = document.createElement('div');
-  dropLine.className = 'dropline';
-  document.body.appendChild(dropLine);
-
-  function startSectionDrag(e, sec) {
-    e.preventDefault();
-    drag = { type: 'section', sec: sec, el: sec, target: null };
-    sec.classList.add('sec-dragging');
-    document.body.classList.add('dragging-section');
-    try { e.target.setPointerCapture(e.pointerId); } catch (err) { /* older browsers */ }
-  }
-
-  function sectionDragMove(e) {
-    // Scroll the page when dragging near the top or bottom edge.
-    if (e.clientY < 70) window.scrollBy(0, -18);
-    else if (e.clientY > window.innerHeight - 70) window.scrollBy(0, 18);
-    var secs = allSections().filter(function (s) { return s !== drag.sec; });
-    var before = null;
-    for (var i = 0; i < secs.length; i++) {
-      var r = secs[i].getBoundingClientRect();
-      if (e.clientY < r.top + r.height / 2) { before = secs[i]; break; }
-    }
-    drag.target = before;
-    var y;
-    if (before) y = before.getBoundingClientRect().top;
-    else { var last = secs[secs.length - 1]; y = last ? last.getBoundingClientRect().bottom : main.getBoundingClientRect().top; }
-    var mr = main.getBoundingClientRect();
-    dropLine.style.left = mr.left + 'px';
-    dropLine.style.width = mr.width + 'px';
-    dropLine.style.top = y + window.scrollY - 2 + 'px';
-    dropLine.classList.add('show');
-  }
-
-  function finishSectionDrag() {
-    var d = drag;
-    drag = null;
-    d.sec.classList.remove('sec-dragging');
-    document.body.classList.remove('dragging-section');
-    dropLine.classList.remove('show');
-    // Only move if the pointer actually moved (a plain click on the grip does nothing).
-    if (dropLine.style.top) {
-      main.insertBefore(d.sec, d.target || null);
-      flash(d.sec);
-    }
-    dropLine.style.top = '';
-    render();
-  }
 
   render();
 })();

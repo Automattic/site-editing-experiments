@@ -11,6 +11,7 @@ A clickable mockup exploring three ways to edit a section of a page. Hover any s
 
 ## Adding and arranging sections
 
+- **Add to a section:** hover it and click **Add** in its top-left corner, next to its name, for a menu of things that suit that section, such as a heading, paragraph, button, image or card.
 - **Add a section:** hover a section and click one of the **Add section** buttons on its top or bottom edge. A space opens between the sections with a picker of eight section types, all in one row: Hero, Features, Call to action, Text, Image, Gallery, Quote and Contact; **Cancel** closes it again. New sections start with placeholder copy and photos, and work with every editing mode.
 - **Move a section:** hover it and use the up and down arrows in its top-right corner.
 - **Duplicate a section:** use the copy button in the same corner. The copy appears below the original with the same text, photos, layout, positions and sizes.

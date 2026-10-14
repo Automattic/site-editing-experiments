@@ -79,8 +79,10 @@
       { type: 'image', label: 'Image', into: '.hero-text' }
     ],
     features: [
-      { type: 'card', label: 'Card', into: '.cards' },
-      { type: 'paragraph', label: 'Paragraph', before: '.cards' }
+      { type: 'heading', label: 'Heading', before: '.cards' },
+      { type: 'paragraph', label: 'Paragraph', before: '.cards' },
+      { type: 'button', label: 'Button', into: '.features-inner' },
+      { type: 'card', label: 'Card', into: '.cards' }
     ],
     cta: [
       { type: 'heading', label: 'Heading', into: '.cta-text' },
@@ -90,15 +92,18 @@
     text: [
       { type: 'heading', label: 'Heading', into: '.text-body' },
       { type: 'paragraph', label: 'Paragraph', into: '.text-body' },
-      { type: 'button', label: 'Button', into: '.text-body' }
+      { type: 'button', label: 'Button', into: '.text-body' },
+      { type: 'image', label: 'Image', into: '.text-body' }
     ],
     image: [
+      { type: 'heading', label: 'Heading', into: '.image-text' },
       { type: 'paragraph', label: 'Paragraph', into: '.image-text' },
       { type: 'button', label: 'Button', into: '.image-text' }
     ],
     gallery: [
-      { type: 'image', label: 'Image', into: '.gal-grid', imgClass: 'gal-img' },
-      { type: 'paragraph', label: 'Paragraph', before: '.gal-grid' }
+      { type: 'heading', label: 'Heading', before: '.gal-grid' },
+      { type: 'paragraph', label: 'Paragraph', before: '.gal-grid' },
+      { type: 'image', label: 'Image', into: '.gal-grid', imgClass: 'gal-img' }
     ],
     quote: [
       { type: 'paragraph', label: 'Paragraph', into: '.quote-fig' },
@@ -109,6 +114,15 @@
       { type: 'paragraph', label: 'Paragraph', into: '.contact-text' },
       { type: 'button', label: 'Button', into: '.contact-text' }
     ]
+  };
+
+  // Icons for the Add menu.
+  var ADD_ICONS = {
+    heading: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 4v16M18 4v16M6 12h12"></path></svg>',
+    paragraph: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 11h16M4 16h11"></path></svg>',
+    button: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="8" width="18" height="8" rx="4"></rect><path d="M9 12h6"></path></svg>',
+    image: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"></rect><circle cx="9" cy="10" r="2"></circle><path d="M21 17l-5-5-9 8"></path></svg>',
+    card: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"></rect><path d="M4 11h16M8 15h8"></path></svg>'
   };
 
   function newItemHTML(type, key, opts) {
@@ -200,7 +214,14 @@
       '<div class="grid" aria-hidden="true"><div class="gridin">' + new Array(13).join('<span class="gcol"></span>') + '<span class="gmid"></span></div></div>' +
       '<span class="gv" aria-hidden="true"></span><span class="gh" aria-hidden="true"></span>' +
       '<div class="selbox" aria-hidden="true">' + HANDLES.map(function (h) { return '<span class="hd" data-h="' + h + '"></span>'; }).join('') + '<span class="dim"></span></div>' +
-      '<div class="ov"><span class="ovl">' + title + '</span>' +
+      '<div class="ov"><div class="ovtl"><span class="ovl">' + title + '</span>' +
+        '<div class="addwrap"><button class="addtrig" data-sec-act="addmenu" aria-haspopup="menu" aria-expanded="false">' +
+          '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>Add</button>' +
+          '<div class="addmenu" role="menu" aria-label="Add to ' + title + '">' +
+            ADDABLE[type].map(function (a, i) {
+              return '<button role="menuitem" data-add="' + i + '">' + ADD_ICONS[a.type] + '<span>' + a.label + '</span></button>';
+            }).join('') +
+          '</div></div></div>' +
         '<div class="secctl" role="group" aria-label="Section">' +
           '<button class="sbtn" data-sec-act="up" aria-label="Move section up" title="Move up">' + SEC_ICONS.up + '</button>' +
           '<button class="sbtn" data-sec-act="down" aria-label="Move section down" title="Move down">' + SEC_ICONS.down + '</button>' +
@@ -235,6 +256,13 @@
         else if (btn.dataset.secAct === 'down') moveSection(sec, 1);
         else if (btn.dataset.secAct === 'duplicate') duplicateSection(sec);
         else if (btn.dataset.secAct === 'delete') deleteSection(sec);
+        else if (btn.dataset.secAct === 'addmenu') {
+          var wrapEl = btn.parentNode, opening = !wrapEl.classList.contains('open');
+          closeAddMenus();
+          wrapEl.classList.toggle('open', opening);
+          btn.setAttribute('aria-expanded', String(opening));
+          return;
+        }
         else return;
       } else if (btn.dataset.open) {
         state.active = key;
@@ -258,6 +286,7 @@
         });
       } else if (btn.dataset.add) {
         addItem(sec, ADDABLE[type][+btn.dataset.add]);
+        closeAddMenus();
       } else if (btn.dataset.remove) {
         removeItem(sec, btn.dataset.remove);
       } else if (btn.dataset.act === 'restore') {
@@ -816,7 +845,15 @@
     pickerTarget = null;
   }
 
+  function closeAddMenus() {
+    document.querySelectorAll('.addwrap.open').forEach(function (w) {
+      w.classList.remove('open');
+      w.querySelector('.addtrig').setAttribute('aria-expanded', 'false');
+    });
+  }
+
   document.addEventListener('click', function (e) {
+    if (!e.target.closest('.addwrap')) closeAddMenus();
     var insBtn = e.target.closest('.insbtn');
     if (insBtn) { openPicker(insBtn.parentNode); return; }
     var choice = e.target.closest('[data-new]');
@@ -828,7 +865,7 @@
     }
     if (e.target.closest('[data-pick-cancel]') || !e.target.closest('.picker')) closePicker();
   });
-  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closePicker(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { closePicker(); closeAddMenus(); } });
 
   render();
 })();

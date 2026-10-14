@@ -117,10 +117,30 @@ a { color: var(--accent); }
 }
 .sec:hover .ov, .sec:focus-within .ov { opacity: 1; pointer-events: auto; }
 .sec.on .ov { display: none; }
-.ovl {
-  position: absolute; top: 16px; left: 16px; font-size: 13px; font-weight: 600; color: #fff;
-  background: var(--editor); padding: 6px 10px; border-radius: 6px;
+.ovtl { position: absolute; top: 12px; left: 16px; display: flex; align-items: center; gap: 8px; z-index: 2; }
+.ovl { font-size: 13px; font-weight: 600; color: #fff; background: var(--editor); padding: 6px 10px; border-radius: 6px; }
+
+/* Add menu in the top-left of a section */
+.addwrap { position: relative; }
+.addtrig {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 14px; background: #fff; color: var(--ink);
+  border: 0; border-radius: 8px; font: 600 13px 'Instrument Sans', sans-serif; cursor: pointer; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
 }
+.addtrig:hover, .addtrig:focus-visible, .addwrap.open .addtrig { outline: 2px solid var(--editor-blue); outline-offset: 2px; }
+.addmenu {
+  position: absolute; top: calc(100% + 8px); left: 0; display: none; flex-direction: column; min-width: 180px; padding: 6px;
+  background: #fff; border-radius: 10px; box-shadow: 0 12px 32px rgba(0, 0, 0, 0.22);
+}
+.addwrap.open .addmenu { display: flex; }
+.addmenu button {
+  display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 0 10px; background: transparent; color: var(--ink);
+  border: 0; border-radius: 6px; font: 500 14px 'Instrument Sans', sans-serif; text-align: left; cursor: pointer;
+}
+.addmenu button svg { color: #5A5A5A; flex: 0 0 auto; }
+.addmenu button:hover, .addmenu button:focus-visible { background: #EEF1FD; color: var(--editor-blue); outline: none; }
+.addmenu button:hover svg, .addmenu button:focus-visible svg { color: var(--editor-blue); }
+/* Keep the overlay up while its Add menu is open. */
+.sec:has(.addwrap.open) .ov { opacity: 1; pointer-events: auto; }
 .ob {
   display: flex; flex-direction: column; align-items: flex-start; gap: 6px; width: 210px; min-height: 44px;
   padding: 16px; background: #fff; color: var(--ink); border: 0; border-radius: 10px; cursor: pointer;

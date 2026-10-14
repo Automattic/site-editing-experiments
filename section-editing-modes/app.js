@@ -95,7 +95,7 @@
     return {
       active: null,
       mode: null,
-      layout: { hero: 'split', features: 'cols', cta: 'center' },
+      layout: {},
       offsets: {},
       sizes: {},
       selected: null,
@@ -107,16 +107,32 @@
 
   var state = fresh();
   var drag = null;
-  var sections = Array.prototype.slice.call(document.querySelectorAll('.sec'));
+  var main = document.querySelector('main');
 
-  // Remember the original copy so "Reset everything" can restore it.
-  var originals = [];
-  document.querySelectorAll('[data-text]').forEach(function (el) { originals.push([el, el.innerHTML]); });
+  function allSections() {
+    return Array.prototype.slice.call(document.querySelectorAll('.sec'));
+  }
 
-  // ---------- Build the editing chrome for each section ----------
-  sections.forEach(function (sec) {
+  var DEFAULT_LAYOUT = { hero: 'split', features: 'cols', cta: 'center' };
+  var TITLES = { hero: 'Hero section', features: 'Features section', cta: 'Call to action' };
+
+  function layoutOf(sec) {
+    return state.layout[sec.dataset.section] || DEFAULT_LAYOUT[sec.dataset.type];
+  }
+
+  var SEC_ICONS = {
+    grip: '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="9" cy="6" r="1.6"></circle><circle cx="15" cy="6" r="1.6"></circle><circle cx="9" cy="12" r="1.6"></circle><circle cx="15" cy="12" r="1.6"></circle><circle cx="9" cy="18" r="1.6"></circle><circle cx="15" cy="18" r="1.6"></circle></svg>',
+    up: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M6 11l6-6 6 6"></path></svg>',
+    down: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6"></path></svg>',
+    bin: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16"></path><path d="M10 11v6M14 11v6"></path><path d="M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12"></path><path d="M9 7V4h6v3"></path></svg>'
+  };
+
+  // ---------- Build the editing chrome for a section ----------
+  function initSection(sec) {
     var key = sec.dataset.section;
-    var title = sec.dataset.title;
+    var type = sec.dataset.type;
+    var title = TITLES[type];
+    sec.dataset.title = title;
 
     var overlayButtons = ['layout', 'content', 'free'].map(function (m) {
       return '<button class="ob" data-open="' + m + '">' + ICONS[m] +
@@ -124,7 +140,7 @@
         '<span class="obd">' + MODES[m].desc + '</span></button>';
     }).join('');
 
-    var layoutButtons = LAYOUTS[key].map(function (l) {
+    var layoutButtons = LAYOUTS[type].map(function (l) {
       var rects = l.rects.map(function (r) {
         return '<span style="left:' + r[0] + 'px;top:' + r[1] + 'px;width:' + r[2] + 'px;height:' + r[3] + 'px;background:' + r[4] + '"></span>';
       }).join('');
@@ -136,7 +152,13 @@
       '<div class="grid" aria-hidden="true"><div class="gridin">' + new Array(13).join('<span class="gcol"></span>') + '<span class="gmid"></span></div></div>' +
       '<span class="gv" aria-hidden="true"></span><span class="gh" aria-hidden="true"></span>' +
       '<div class="selbox" aria-hidden="true">' + HANDLES.map(function (h) { return '<span class="hd" data-h="' + h + '"></span>'; }).join('') + '<span class="dim"></span></div>' +
-      '<div class="ov"><span class="ovl">' + title + '</span>' + overlayButtons + '</div>' +
+      '<div class="ov"><span class="ovl">' + title + '</span>' +
+        '<div class="secctl" role="group" aria-label="Section">' +
+          '<button class="sbtn grip" data-sec-act="drag" aria-label="Drag to move section" title="Drag to move">' + SEC_ICONS.grip + '</button>' +
+          '<button class="sbtn" data-sec-act="up" aria-label="Move section up" title="Move up">' + SEC_ICONS.up + '</button>' +
+          '<button class="sbtn" data-sec-act="down" aria-label="Move section down" title="Move down">' + SEC_ICONS.down + '</button>' +
+          '<button class="sbtn danger" data-sec-act="delete" aria-label="Delete section" title="Delete section">' + SEC_ICONS.bin + '</button>' +
+        '</div>' + overlayButtons + '</div>' +
       '<div class="tb"><span class="tbl"></span><span class="tbh"></span>' +
         '<div class="free-tools">' +
           '<button class="tbb" data-act="grid">Grid</button>' +
@@ -144,7 +166,7 @@
           '<button class="tbb" data-act="resetpos">Reset positions and sizes</button>' +
         '</div>' +
         '<div class="struct-tools"><span class="addl">Add</span>' +
-          ADDABLE[key].map(function (a, i) {
+          ADDABLE[type].map(function (a, i) {
             return '<button class="tbb addb" data-add="' + i + '"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>' + a.label + '</button>';
           }).join('') +
           '<button class="tbb" data-act="restore">Restore removed</button>' +
@@ -160,7 +182,12 @@
       var btn = e.target.closest('button');
       if (!btn || !sec.contains(btn)) return;
 
-      if (btn.dataset.open) {
+      if (btn.dataset.secAct) {
+        if (btn.dataset.secAct === 'up') moveSection(sec, -1);
+        else if (btn.dataset.secAct === 'down') moveSection(sec, 1);
+        else if (btn.dataset.secAct === 'delete') deleteSection(sec);
+        else return;
+      } else if (btn.dataset.open) {
         state.active = key;
         state.mode = btn.dataset.open;
         state.selected = null;
@@ -181,7 +208,7 @@
           delete state.sizes[el.dataset.drag];
         });
       } else if (btn.dataset.add) {
-        addItem(sec, ADDABLE[key][+btn.dataset.add]);
+        addItem(sec, ADDABLE[type][+btn.dataset.add]);
       } else if (btn.dataset.remove) {
         removeItem(sec, btn.dataset.remove);
       } else if (btn.dataset.act === 'restore') {
@@ -194,7 +221,9 @@
       }
       render();
     });
-  });
+  }
+
+  allSections().forEach(initSection);
 
   // ---------- Adding and removing items ----------
   function addItem(sec, spec) {
@@ -234,7 +263,7 @@
 
   // Remove buttons sit in a layer over the section, one at each item's top-right corner.
   function positionRemoveButtons() {
-    sections.forEach(function (sec) {
+    allSections().forEach(function (sec) {
       var layer = sec.querySelector('.xlayer');
       if (sec.dataset.mode !== 'layout') { layer.innerHTML = ''; return; }
       var sr = sec.getBoundingClientRect();
@@ -276,26 +305,21 @@
     }
   });
 
+  // Reloading is the simplest way to put every section, item and edit back.
   document.getElementById('reset-all').addEventListener('click', function () {
-    state = fresh();
-    drag = null;
-    restoreRemoved(null);
-    document.querySelectorAll('[data-added]').forEach(function (el) { el.remove(); });
-    addCount = 0;
-    originals.forEach(function (pair) { pair[0].innerHTML = pair[1]; });
-    render();
+    window.location.reload();
   });
 
   // ---------- Render state onto the page ----------
   function render() {
-    sections.forEach(function (sec) {
+    allSections().forEach(function (sec) {
       var key = sec.dataset.section;
       var on = state.active === key;
       var mode = on ? state.mode : '';
 
       sec.classList.toggle('on', on);
       sec.dataset.mode = mode || '';
-      sec.dataset.layout = state.layout[key];
+      sec.dataset.layout = layoutOf(sec);
 
       sec.querySelector('.tbl').textContent = mode ? MODES[mode].label : '';
       sec.querySelector('.tbh').textContent = mode ? MODES[mode].hint : '';
@@ -304,7 +328,7 @@
         el.contentEditable = mode === 'content' ? 'true' : 'false';
       });
       sec.querySelectorAll('[data-layout-pick]').forEach(function (b) {
-        b.setAttribute('aria-pressed', String(b.dataset.layoutPick === state.layout[key]));
+        b.setAttribute('aria-pressed', String(b.dataset.layoutPick === layoutOf(sec)));
       });
 
       var gridBtn = sec.querySelector('[data-act="grid"]');
@@ -314,6 +338,14 @@
       snapBtn.classList.toggle('act', state.snap);
       snapBtn.setAttribute('aria-pressed', String(state.snap));
     });
+
+    var secs = allSections();
+    secs.forEach(function (sec, i) {
+      sec.querySelector('[data-sec-act="up"]').disabled = i === 0;
+      sec.querySelector('[data-sec-act="down"]').disabled = i === secs.length - 1;
+    });
+    document.body.classList.toggle('editing', !!state.active);
+    renderInserters();
 
     document.body.classList.toggle('no-grid', !state.grid);
 
@@ -351,7 +383,7 @@
 
   // Draw the selection box (with resize handles) over the selected item.
   function positionSelection() {
-    sections.forEach(function (sec) {
+    allSections().forEach(function (sec) {
       var box = sec.querySelector('.selbox');
       var el = state.selected && sec.dataset.mode === 'free' ? sec.querySelector('[data-drag="' + state.selected + '"]') : null;
       box.classList.toggle('show', !!el);
@@ -405,6 +437,9 @@
   }
 
   document.addEventListener('pointerdown', function (e) {
+    var grip = e.target.closest('[data-sec-act="drag"]');
+    if (grip) { startSectionDrag(e, grip.closest('.sec')); return; }
+
     var sec = e.target.closest('.sec');
     if (!sec || sec.dataset.mode !== 'free') return;
 
@@ -491,6 +526,7 @@
 
   document.addEventListener('pointermove', function (e) {
     if (!drag) return;
+    if (drag.type === 'section') { sectionDragMove(e); return; }
     hideGuides(drag.sec);
     if (drag.type === 'resize') { resizeMove(e); return; }
 
@@ -514,12 +550,221 @@
 
   function endDrag() {
     if (!drag) return;
+    if (drag.type === 'section') { finishSectionDrag(); return; }
     drag.el.classList.remove('dragging');
     hideGuides(drag.sec);
     drag = null;
   }
   document.addEventListener('pointerup', endDrag);
   document.addEventListener('pointercancel', endDrag);
+
+  // ---------- Sections: add, move, delete ----------
+  var secCount = 0;
+  var lastDeleted = null;
+
+  function newSectionHTML(type, id) {
+    var p = id + '-';
+    var drag = function (k, resize) { return ' data-drag="' + p + k + '" data-resize="' + resize + '"'; };
+    var img = function (k) {
+      return '<img data-img="' + p + k + '" alt="" draggable="false"><button class="rep" data-act="replace" data-key="' + p + k + '">Replace image</button>';
+    };
+    var open = '<section class="sec ' + type + '" data-section="' + id + '" data-type="' + type + '" aria-label="' + TITLES[type] + '">';
+    if (type === 'hero') {
+      return open + '<div class="inner hero-inner"><div class="hero-text">' +
+        '<span class="eyebrow"' + drag('tag', 'text') + ' data-text>New section</span>' +
+        '<h1' + drag('title', 'text') + ' data-text>A headline for this section</h1>' +
+        '<p class="lead"' + drag('body', 'text') + ' data-text>A sentence or two that introduces what this part of the page is about.</p>' +
+        '<a href="#" class="btn"' + drag('btn', 'text') + ' data-text>Learn more</a></div>' +
+        '<div class="media hero-img"' + drag('img', 'box') + '>' + img('img') + '</div></div></section>';
+    }
+    if (type === 'features') {
+      var card = function (n, t, d) {
+        return '<article class="card"' + drag('c' + n, 'box') + '><div class="media card-img">' + img('c' + n + 'i') + '</div>' +
+          '<div class="card-text"><h3 data-text>' + t + '</h3><p data-text>' + d + '</p></div></article>';
+      };
+      return open + '<div class="inner features-inner"><h2' + drag('head', 'text') + ' data-text>A new set of features</h2><div class="cards">' +
+        card(1, 'First item', 'A short description of the first item.') +
+        card(2, 'Second item', 'A short description of the second item.') +
+        card(3, 'Third item', 'A short description of the third item.') +
+        '</div></div></section>';
+    }
+    return open + '<div class="inner cta-inner"><div class="cta-panel"><div class="cta-text">' +
+      '<h2' + drag('title', 'text') + ' data-text>A new call to action</h2>' +
+      '<p class="cta-sub"' + drag('body', 'text') + ' data-text>One line that tells people why they should act now.</p></div>' +
+      '<a href="#" class="btn cta-btn"' + drag('btn', 'text') + ' data-text>Get in touch</a></div></div></section>';
+  }
+
+  function flash(sec) {
+    sec.classList.remove('sec-flash');
+    void sec.offsetWidth; // restart the animation
+    sec.classList.add('sec-flash');
+    setTimeout(function () { sec.classList.remove('sec-flash'); }, 1100);
+  }
+
+  function addSection(type, before) {
+    secCount += 1;
+    var id = 's' + secCount;
+    var wrap = document.createElement('div');
+    wrap.innerHTML = newSectionHTML(type, id);
+    var sec = wrap.firstChild;
+    main.insertBefore(sec, before || null);
+    // Give the new images a spread of photos.
+    sec.querySelectorAll('img[data-img]').forEach(function (img, i) {
+      state.images[img.dataset.img] = (secCount + i) % IMAGES.length;
+    });
+    initSection(sec);
+    render();
+    sec.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    flash(sec);
+  }
+
+  function moveSection(sec, dir) {
+    var secs = allSections();
+    var i = secs.indexOf(sec);
+    var j = i + dir;
+    if (j < 0 || j >= secs.length) return;
+    if (dir < 0) main.insertBefore(sec, secs[j]);
+    else main.insertBefore(sec, secs[j].nextSibling);
+    sec.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    flash(sec);
+  }
+
+  function deleteSection(sec) {
+    var ph = document.createComment('deleted section');
+    sec.replaceWith(ph);
+    lastDeleted = { sec: sec, ph: ph };
+    showToast(sec.dataset.title + ' deleted', 'Undo', function () {
+      if (!lastDeleted) return;
+      lastDeleted.ph.replaceWith(lastDeleted.sec);
+      flash(lastDeleted.sec);
+      lastDeleted = null;
+      render();
+    });
+  }
+
+  // A small toast with one action, used for undoing a deleted section.
+  var toast = document.createElement('div');
+  toast.className = 'toast';
+  toast.setAttribute('role', 'status');
+  document.body.appendChild(toast);
+  var toastTimer = null;
+  function showToast(msg, actionLabel, action) {
+    toast.innerHTML = '<span></span><button type="button"></button>';
+    toast.firstChild.textContent = msg;
+    toast.lastChild.textContent = actionLabel;
+    toast.lastChild.onclick = function () { hideToast(); action(); };
+    toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(hideToast, 6000);
+  }
+  function hideToast() { toast.classList.remove('show'); }
+
+  // "Add section" inserters sit in the gaps above, between and below sections.
+  function renderInserters() {
+    main.querySelectorAll('.ins').forEach(function (n) { n.remove(); });
+    var secs = allSections();
+    secs.concat([null]).forEach(function (sec) {
+      var ins = document.createElement('div');
+      ins.className = 'ins';
+      ins.innerHTML = '<span class="insline" aria-hidden="true"></span><button class="insbtn" type="button" aria-haspopup="true">' +
+        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>Add section</button>';
+      main.insertBefore(ins, sec);
+    });
+  }
+
+  // The section picker, opened from an inserter.
+  var picker = document.createElement('div');
+  picker.className = 'picker';
+  picker.setAttribute('role', 'dialog');
+  picker.setAttribute('aria-label', 'Add a section');
+  picker.innerHTML = '<span class="pickh">Add a section</span><div class="picko">' +
+    ['hero', 'features', 'cta'].map(function (t) {
+      var rects = LAYOUTS[t][0].rects.map(function (r) {
+        return '<span style="left:' + r[0] + 'px;top:' + r[1] + 'px;width:' + r[2] + 'px;height:' + r[3] + 'px;background:' + r[4] + '"></span>';
+      }).join('');
+      return '<button class="lo" data-new="' + t + '"><span class="th" aria-hidden="true">' + rects + '</span><span>' + TITLES[t].replace(' section', '') + '</span></button>';
+    }).join('') + '</div>';
+  document.body.appendChild(picker);
+  var pickerTarget = null;
+
+  function openPicker(ins) {
+    pickerTarget = ins;
+    var r = ins.getBoundingClientRect();
+    picker.classList.add('show');
+    var pw = picker.offsetWidth;
+    picker.style.left = Math.max(8, Math.min(window.innerWidth - pw - 8, r.left + r.width / 2 - pw / 2)) + window.scrollX + 'px';
+    picker.style.top = r.top + window.scrollY + 22 + 'px';
+    ins.classList.add('open');
+    picker.querySelector('button').focus();
+  }
+  function closePicker() {
+    picker.classList.remove('show');
+    if (pickerTarget) pickerTarget.classList.remove('open');
+    pickerTarget = null;
+  }
+
+  document.addEventListener('click', function (e) {
+    var insBtn = e.target.closest('.insbtn');
+    if (insBtn) { openPicker(insBtn.parentNode); return; }
+    var choice = e.target.closest('[data-new]');
+    if (choice && pickerTarget) {
+      var before = pickerTarget.nextElementSibling && pickerTarget.nextElementSibling.classList.contains('sec') ? pickerTarget.nextElementSibling : null;
+      closePicker();
+      addSection(choice.dataset.new, before);
+      return;
+    }
+    if (!e.target.closest('.picker')) closePicker();
+  });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closePicker(); });
+
+  // Dragging a section by its grip: a line shows where it will drop.
+  var dropLine = document.createElement('div');
+  dropLine.className = 'dropline';
+  document.body.appendChild(dropLine);
+
+  function startSectionDrag(e, sec) {
+    e.preventDefault();
+    drag = { type: 'section', sec: sec, el: sec, target: null };
+    sec.classList.add('sec-dragging');
+    document.body.classList.add('dragging-section');
+    try { e.target.setPointerCapture(e.pointerId); } catch (err) { /* older browsers */ }
+  }
+
+  function sectionDragMove(e) {
+    // Scroll the page when dragging near the top or bottom edge.
+    if (e.clientY < 70) window.scrollBy(0, -18);
+    else if (e.clientY > window.innerHeight - 70) window.scrollBy(0, 18);
+    var secs = allSections().filter(function (s) { return s !== drag.sec; });
+    var before = null;
+    for (var i = 0; i < secs.length; i++) {
+      var r = secs[i].getBoundingClientRect();
+      if (e.clientY < r.top + r.height / 2) { before = secs[i]; break; }
+    }
+    drag.target = before;
+    var y;
+    if (before) y = before.getBoundingClientRect().top;
+    else { var last = secs[secs.length - 1]; y = last ? last.getBoundingClientRect().bottom : main.getBoundingClientRect().top; }
+    var mr = main.getBoundingClientRect();
+    dropLine.style.left = mr.left + 'px';
+    dropLine.style.width = mr.width + 'px';
+    dropLine.style.top = y + window.scrollY - 2 + 'px';
+    dropLine.classList.add('show');
+  }
+
+  function finishSectionDrag() {
+    var d = drag;
+    drag = null;
+    d.sec.classList.remove('sec-dragging');
+    document.body.classList.remove('dragging-section');
+    dropLine.classList.remove('show');
+    // Only move if the pointer actually moved (a plain click on the grip does nothing).
+    if (dropLine.style.top) {
+      main.insertBefore(d.sec, d.target || null);
+      flash(d.sec);
+    }
+    dropLine.style.top = '';
+    render();
+  }
 
   render();
 })();

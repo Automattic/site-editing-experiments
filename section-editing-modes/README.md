@@ -9,7 +9,13 @@ A clickable mockup exploring three ways to edit a section of a page. Hover any s
   - Pink snap lines appear when an item's edge or centre lines up with another item, the section centre or the content edges.
   - The **Grid** and **Snap to guides** buttons turn each of these off, and **Reset positions and sizes** puts the section back.
 
-Only one section is in a mode at a time. **Done** leaves the mode, and **Reset everything** in the top bar restores the original page.
+## Adding and arranging sections
+
+- **Add a section:** hover the gap above, between or below sections and click **Add section**, then pick a Hero, Features or Call to action section. New sections start with placeholder copy and photos, and work with every editing mode.
+- **Move a section:** hover it and use the up and down arrows in its top-right corner, or drag it by the grip. A blue line shows where it will land.
+- **Delete a section:** use the bin in the same corner. A message at the bottom of the page lets you undo it.
+
+Only one section is in a mode at a time. **Done** leaves the mode, and **Reset everything** in the top bar reloads the original page.
 
 ## Sections and layouts
 

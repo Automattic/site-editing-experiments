@@ -641,3 +641,9 @@ body.editing .ins { display: none; }
 /* Done (and Restore removed, when there is something to restore) along the bottom of the layouts panel. */
 .lpfoot { display: flex; align-items: center; justify-content: center; gap: 8px; }
 .lpfoot .done { min-height: 36px; padding: 0 18px; font-size: 13px; }
+.lpreset {
+  min-height: 36px; padding: 0 16px; background: transparent; color: #fff; border: 1px solid #5A5A5A; border-radius: 6px;
+  font: 600 13px 'Instrument Sans', sans-serif; cursor: pointer;
+}
+.lpreset:hover:not(:disabled), .lpreset:focus-visible { border-color: #C7C7C7; outline: none; }
+.lpreset:disabled { opacity: 0.4; cursor: default; }

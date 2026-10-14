@@ -334,7 +334,9 @@
       ? '<span class="lph">Layouts</span><span class="lpnote">' + GLOBE_ICON + 'You\u2019re editing the ' + title.toLowerCase() + ' on every page of your site</span><div class="lpo"></div>'
       : '<span class="lph">Layouts</span><div class="lpo"></div>';
     if (global) lp.classList.add('global');
-    lp.insertAdjacentHTML('beforeend', '<div class="lpfoot"><button class="done" type="button" data-act="done">Done</button></div>');
+    lp.insertAdjacentHTML('beforeend', '<div class="lpfoot">' +
+      '<button class="lpreset" type="button" data-act="layoutreset" title="Undo changes since you opened Edit layout">Reset</button>' +
+      '<button class="done" type="button" data-act="done">Done</button></div>');
     document.body.appendChild(lp);
     sec._lp = lp;
 
@@ -362,6 +364,8 @@
         state.active = key;
         state.mode = btn.dataset.open;
         state.selected = null;
+        // Remember how the section was when Edit layout opened, so Reset can put it back.
+        if (state.mode === 'layout') sec._snap = { layout: layoutOf(sec), removedFrom: removed.length };
       } else if (btn.dataset.layoutPick) {
         state.layout[key] = btn.dataset.layoutPick;
       } else if (btn.dataset.act === 'done') {
@@ -385,6 +389,8 @@
         removeItem(sec, btn.dataset.remove);
       } else if (btn.dataset.act === 'restore') {
         restoreRemoved(sec);
+      } else if (btn.dataset.act === 'layoutreset') {
+        resetLayoutSession(sec);
       } else if (btn.dataset.act === 'replace') {
         var k = btn.dataset.key;
         state.images[k] = ((state.images[k] || 0) + 1) % IMAGES.length;
@@ -425,6 +431,25 @@
     el.classList.remove('doomed');
     removed.push({ el: el, ph: ph, sec: sec });
     if (state.selected === key) state.selected = null;
+  }
+
+  // Undo everything changed since Edit layout opened: the layout, and any items removed meanwhile.
+  function layoutSessionChanged(sec) {
+    var snap = sec._snap;
+    if (!snap) return false;
+    if (layoutOf(sec) !== snap.layout) return true;
+    for (var i = snap.removedFrom; i < removed.length; i++) if (removed[i].sec === sec) return true;
+    return false;
+  }
+  function resetLayoutSession(sec) {
+    var snap = sec._snap;
+    if (!snap) return;
+    state.layout[sec.dataset.section] = snap.layout;
+    for (var i = removed.length - 1; i >= snap.removedFrom; i--) {
+      if (removed[i].sec !== sec) continue;
+      removed[i].ph.replaceWith(removed[i].el);
+      removed.splice(i, 1);
+    }
   }
 
   function restoreRemoved(sec) {
@@ -609,6 +634,7 @@
       var lp = sec._lp;
       lp.classList.toggle('show', sec.dataset.mode === 'layout');
       if (sec.dataset.mode !== 'layout') return;
+      lp.querySelector('.lpreset').disabled = !layoutSessionChanged(sec);
       var current = layoutOf(sec);
       var options = LAYOUTS[sec.dataset.type].filter(function (l) { return !l.when || l.when(sec) || l.id === current; });
       var lpo = lp.querySelector('.lpo');

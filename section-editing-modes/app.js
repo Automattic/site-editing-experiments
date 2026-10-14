@@ -28,7 +28,7 @@
       { id: 'cols', label: 'Three columns', rects: [[6, 6, 30, 4, TX], [6, 15, 18, 14, IG], [27, 15, 18, 14, IG], [48, 15, 18, 14, IG], [6, 32, 14, 3, SB], [27, 32, 14, 3, SB], [48, 32, 14, 3, SB], [6, 37, 10, 3, SB], [27, 37, 10, 3, SB], [48, 37, 10, 3, SB]] },
       { id: 'list', label: 'Stacked list', rects: [[8, 5, 14, 10, IG], [26, 7, 30, 3, TX], [26, 11, 22, 2, SB], [8, 19, 14, 10, IG], [26, 21, 30, 3, TX], [26, 25, 22, 2, SB], [8, 33, 14, 10, IG], [26, 35, 30, 3, TX], [26, 39, 22, 2, SB]] },
       { id: 'cols4', label: 'Four columns', when: function (sec) { return count(sec, '.card') >= 4; } },
-      { id: 'feature', label: 'Featured + two', rects: [[6, 5, 30, 18, IG], [40, 9, 26, 4, TX], [40, 16, 20, 3, SB], [6, 27, 14, 16, IG], [22, 30, 12, 3, TX], [38, 27, 14, 16, IG], [54, 30, 12, 3, TX]] }
+      { id: 'feature', label: function (sec) { var n = count(sec, '.card') - 1; return n > 0 ? 'Featured + ' + n : 'Featured'; }, rects: [[6, 5, 30, 18, IG], [40, 9, 26, 4, TX], [40, 16, 20, 3, SB], [6, 27, 14, 16, IG], [22, 30, 12, 3, TX], [38, 27, 14, 16, IG], [54, 30, 12, 3, TX]] }
     ],
     cta: [
       { id: 'center', label: 'Centered', rects: [[6, 8, 60, 32, PN], [20, 14, 32, 5, TX], [24, 22, 24, 3, SB], [30, 29, 12, 6, AC]] },
@@ -430,6 +430,8 @@
       sec.classList.toggle('on', on);
       sec.dataset.mode = mode || '';
       sec.dataset.layout = layoutOf(sec);
+      // The cards under a featured card share one row: as many columns as there are cards (up to four).
+      if (sec.dataset.type === 'features') sec.style.setProperty('--rest', Math.min(4, Math.max(1, count(sec, '.card') - 1)));
 
       sec.querySelector('.tbl').textContent = mode ? MODES[mode].label : '';
       sec.querySelector('.tbh').textContent = mode ? MODES[mode].hint : '';
@@ -485,6 +487,7 @@
     var copy = document.createElement('div');
     copy.className = 'mini-sec ' + sec.dataset.type;
     copy.dataset.layout = layoutId;
+    copy.style.setProperty('--rest', sec.style.getPropertyValue('--rest') || 2);
     copy.innerHTML = sec.innerHTML;
     copy.querySelectorAll(CHROME).forEach(function (n) { n.remove(); });
     copy.querySelectorAll('*').forEach(function (n) {
@@ -526,8 +529,9 @@
         b.className = 'lo';
         b.dataset.layoutPick = l.id;
         b.setAttribute('aria-pressed', String(l.id === current));
-        b.setAttribute('aria-label', l.label);
-        b.innerHTML = '<span class="th mini" aria-hidden="true" inert></span><span>' + l.label + '</span>';
+        var label = typeof l.label === 'function' ? l.label(sec) : l.label;
+        b.setAttribute('aria-label', label);
+        b.innerHTML = '<span class="th mini" aria-hidden="true" inert></span><span>' + label + '</span>';
         if (l.when) b.classList.add('lo-new');
         lpo.appendChild(b);
         var th = b.firstChild;

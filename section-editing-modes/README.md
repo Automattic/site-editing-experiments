@@ -28,7 +28,7 @@ Only one section is in a mode at a time. **Done** leaves the mode, and **Reset e
 | Section | Layouts |
 | --- | --- |
 | Hero | Split, Centered, Image left |
-| Features | Three columns, Stacked list, Featured + two |
+| Features | Three columns, Stacked list, Featured + 2 (the number follows how many other cards there are) |
 | Call to action | Centered, Split, Dark banner |
 | Text | Single column, Centered, Two columns |
 | Image | Contained, Full width, With caption |

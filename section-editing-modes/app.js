@@ -36,14 +36,58 @@
   var MODES = {
     layout: { label: 'Edit layout', desc: 'Pick from preset arrangements for this section', hint: 'Pick a preset and watch the section change' },
     content: { label: 'Edit content', desc: 'Change text and images; positions stay put', hint: 'Click text to edit · Replace images · Positions are locked' },
+    structure: { label: 'Add & remove', desc: 'Add new items or remove ones you don\u2019t need', hint: 'Add items from the toolbar \u00b7 Click \u00d7 to remove an item' },
     free: { label: 'Freeform', desc: 'Move and resize items; text and images are locked', hint: 'Drag to move · Select an item and drag its handles to resize · Text and images are locked' }
   };
 
   var ICONS = {
     layout: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3858E9" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"></rect><path d="M3 9h18M9 9v12"></path></svg>',
     content: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3858E9" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4z"></path><path d="M13 7l4 4"></path></svg>',
-    free: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3858E9" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v18M3 12h18M9 6l3-3 3 3M9 18l3 3 3-3M6 9l-3 3 3 3M18 9l3 3-3 3"></path></svg>'
+    free: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3858E9" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v18M3 12h18M9 6l3-3 3 3M9 18l3 3 3-3M6 9l-3 3 3 3M18 9l3 3-3 3"></path></svg>',
+    structure: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3858E9" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="11" height="11" rx="2"></rect><path d="M8.5 6v5M6 8.5h5"></path><rect x="10" y="10" width="11" height="11" rx="2"></rect><path d="M13 15.5h5"></path></svg>'
   };
+
+  // What each section can add, and where new items go.
+  var ADDABLE = {
+    hero: [
+      { type: 'heading', label: 'Heading', into: '.hero-text' },
+      { type: 'paragraph', label: 'Paragraph', into: '.hero-text' },
+      { type: 'button', label: 'Button', into: '.hero-text' },
+      { type: 'image', label: 'Image', into: '.hero-text' }
+    ],
+    features: [
+      { type: 'card', label: 'Card', into: '.cards' },
+      { type: 'paragraph', label: 'Paragraph', before: '.cards' }
+    ],
+    cta: [
+      { type: 'heading', label: 'Heading', into: '.cta-text' },
+      { type: 'paragraph', label: 'Paragraph', into: '.cta-text' },
+      { type: 'button', label: 'Button', into: '.cta-panel', btnClass: 'btn cta-btn' }
+    ]
+  };
+
+  function newItemHTML(type, key, opts) {
+    var d = ' data-drag="' + key + '" data-added';
+    switch (type) {
+      case 'heading':
+        return '<h2 class="added-h"' + d + ' data-resize="text" data-text>New heading</h2>';
+      case 'paragraph':
+        return '<p class="added-p"' + d + ' data-resize="text" data-text>A new paragraph. Switch to Edit content to change this text.</p>';
+      case 'button':
+        return '<a href="#" class="' + (opts.btnClass || 'btn') + '"' + d + ' data-resize="text" data-text>New button</a>';
+      case 'image':
+        return '<div class="media added-img"' + d + ' data-resize="box"><img data-img="' + key + 'i" alt="" draggable="false">' +
+          '<button class="rep" data-act="replace" data-key="' + key + 'i">Replace image</button></div>';
+      case 'card':
+        return '<article class="card"' + d + ' data-resize="box"><div class="media card-img"><img data-img="' + key + 'i" alt="" draggable="false">' +
+          '<button class="rep" data-act="replace" data-key="' + key + 'i">Replace image</button></div>' +
+          '<div class="card-text"><h3 data-text>New card</h3><p data-text>Describe this card. Switch to Edit content to change the text.</p></div></article>';
+    }
+    return '';
+  }
+
+  var addCount = 0;
+  var removed = []; // { el, ph } in removal order
 
   var SNAP_DISTANCE = 6;
   var MIN_SIZE = 40;
@@ -76,7 +120,7 @@
     var key = sec.dataset.section;
     var title = sec.dataset.title;
 
-    var overlayButtons = ['layout', 'content', 'free'].map(function (m) {
+    var overlayButtons = ['layout', 'content', 'structure', 'free'].map(function (m) {
       return '<button class="ob" data-open="' + m + '">' + ICONS[m] +
         '<span class="obt">' + MODES[m].label + '</span>' +
         '<span class="obd">' + MODES[m].desc + '</span></button>';
@@ -100,7 +144,14 @@
           '<button class="tbb" data-act="grid">Grid</button>' +
           '<button class="tbb" data-act="snap">Snap to guides</button>' +
           '<button class="tbb" data-act="resetpos">Reset positions and sizes</button>' +
+        '</div>' +
+        '<div class="struct-tools"><span class="addl">Add</span>' +
+          ADDABLE[key].map(function (a, i) {
+            return '<button class="tbb addb" data-add="' + i + '"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>' + a.label + '</button>';
+          }).join('') +
+          '<button class="tbb" data-act="restore">Restore removed</button>' +
         '</div><span class="spacer"></span><button class="done" data-act="done">Done</button></div>' +
+      '<div class="xlayer"></div>' +
       '<div class="lp" role="group" aria-label="' + title + ' layouts"><span class="lph">Layouts</span><div class="lpo">' + layoutButtons + '</div></div>'
     );
 
@@ -131,6 +182,12 @@
           delete state.offsets[el.dataset.drag];
           delete state.sizes[el.dataset.drag];
         });
+      } else if (btn.dataset.add) {
+        addItem(sec, ADDABLE[key][+btn.dataset.add]);
+      } else if (btn.dataset.remove) {
+        removeItem(sec, btn.dataset.remove);
+      } else if (btn.dataset.act === 'restore') {
+        restoreRemoved(sec);
       } else if (btn.dataset.act === 'replace') {
         var k = btn.dataset.key;
         state.images[k] = ((state.images[k] || 0) + 1) % IMAGES.length;
@@ -141,9 +198,81 @@
     });
   });
 
+  // ---------- Adding and removing items ----------
+  function addItem(sec, spec) {
+    addCount += 1;
+    var key = 'n' + addCount;
+    var wrap = document.createElement('div');
+    wrap.innerHTML = newItemHTML(spec.type, key, spec);
+    var el = wrap.firstChild;
+    if (spec.before) {
+      var ref = sec.querySelector(spec.before);
+      ref.parentNode.insertBefore(el, ref);
+    } else {
+      sec.querySelector(spec.into).appendChild(el);
+    }
+    if (spec.type === 'image' || spec.type === 'card') state.images[key + 'i'] = addCount % IMAGES.length;
+    el.classList.add('fresh');
+    setTimeout(function () { el.classList.remove('fresh'); }, 900);
+  }
+
+  function removeItem(sec, key) {
+    var el = sec.querySelector('[data-drag="' + key + '"]');
+    if (!el) return;
+    var ph = document.createComment('removed ' + key);
+    el.replaceWith(ph);
+    el.classList.remove('doomed');
+    removed.push({ el: el, ph: ph, sec: sec });
+    if (state.selected === key) state.selected = null;
+  }
+
+  function restoreRemoved(sec) {
+    for (var i = removed.length - 1; i >= 0; i--) {
+      if (sec && removed[i].sec !== sec) continue;
+      removed[i].ph.replaceWith(removed[i].el);
+      removed.splice(i, 1);
+    }
+  }
+
+  // Remove buttons sit in a layer over the section, one at each item's top-right corner.
+  function positionRemoveButtons() {
+    sections.forEach(function (sec) {
+      var layer = sec.querySelector('.xlayer');
+      if (sec.dataset.mode !== 'structure') { layer.innerHTML = ''; return; }
+      var sr = sec.getBoundingClientRect();
+      var html = '';
+      sec.querySelectorAll('[data-drag]').forEach(function (el) {
+        var r = local(el.getBoundingClientRect(), sr);
+        var name = (el.querySelector('h3') || el).textContent.trim().slice(0, 40) || 'item';
+        html += '<button class="xbtn" data-remove="' + el.dataset.drag + '" style="left:' + (r.l + r.w) + 'px;top:' + r.t + 'px" aria-label="Remove ' + name.replace(/"/g, '&quot;') + '">' +
+          '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>';
+      });
+      layer.innerHTML = html;
+      var restoreBtn = sec.querySelector('[data-act="restore"]');
+      var n = removed.filter(function (r) { return r.sec === sec; }).length;
+      restoreBtn.disabled = n === 0;
+      restoreBtn.textContent = n ? 'Restore removed (' + n + ')' : 'Restore removed';
+    });
+  }
+  window.addEventListener('resize', positionRemoveButtons);
+  document.addEventListener('load', function (e) { if (e.target.tagName === 'IMG') positionRemoveButtons(); }, true);
+
+  // Highlight the item a remove button points at.
+  document.addEventListener('mouseover', function (e) {
+    var x = e.target.closest && e.target.closest('.xbtn');
+    document.querySelectorAll('.doomed').forEach(function (d) { d.classList.remove('doomed'); });
+    if (x) {
+      var item = x.closest('.sec').querySelector('[data-drag="' + x.dataset.remove + '"]');
+      if (item) item.classList.add('doomed');
+    }
+  });
+
   document.getElementById('reset-all').addEventListener('click', function () {
     state = fresh();
     drag = null;
+    restoreRemoved(null);
+    document.querySelectorAll('[data-added]').forEach(function (el) { el.remove(); });
+    addCount = 0;
     originals.forEach(function (pair) { pair[0].innerHTML = pair[1]; });
     render();
   });
@@ -191,6 +320,7 @@
     });
 
     positionSelection();
+    positionRemoveButtons();
   }
 
   function applyOffset(el) {

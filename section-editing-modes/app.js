@@ -233,6 +233,7 @@
           '<button class="tbb" data-act="snap" title="Snap to guides">Snap</button>' +
           '<button class="tbb" data-act="resetpos" title="Reset positions and sizes">Reset</button>' +
         '</div>' +
+        '<button class="tbb" data-act="restore" title="Bring back removed items" hidden>Restore</button>' +
         '<span class="spacer"></span><button class="done" data-act="done">Done</button></div>' +
       '<div class="xlayer"></div>'
     );
@@ -348,31 +349,59 @@
   function positionRemoveButtons() {
     allSections().forEach(function (sec) {
       var layer = sec.querySelector('.xlayer');
-      if (sec.dataset.mode !== 'layout') { layer.innerHTML = ''; return; }
+      var mode = sec.dataset.mode;
+      updateRestoreButton(sec);
+      if (mode !== 'layout' && mode !== 'content' && mode !== 'free') { layer.innerHTML = ''; return; }
       var sr = sec.getBoundingClientRect();
-      var panel = local(sec._lp.getBoundingClientRect(), sr);
+      // Keep bins clear of whatever floats at the top: the layouts panel, or the small mode bar.
+      var panel = local((mode === 'layout' ? sec._lp : sec.querySelector('.tb')).getBoundingClientRect(), sr);
       var pad = 20; // button half-size plus a little breathing room
       function underPanel(x, y) {
         return x > panel.l - pad && x < panel.l + panel.w + pad && y > panel.t - pad && y < panel.t + panel.h + pad;
       }
       var html = '';
-      sec.querySelectorAll('[data-drag]').forEach(function (el) {
+      // In Freeform only the selected item has a bin, so it doesn't crowd the resize handles.
+      var items = Array.prototype.slice.call(sec.querySelectorAll('[data-drag]'));
+      if (mode === 'free') items = items.filter(function (el) { return el.dataset.drag === state.selected; });
+      items.forEach(function (el) {
         var r = local(el.getBoundingClientRect(), sr);
         // Use the top-right corner unless the layouts panel covers it, then try the other corners.
         // If the item is completely covered, sit the bin just beside the panel, level with the item.
         var midY = r.t + r.h / 2;
-        var corners = [[r.l + r.w, r.t], [r.l, r.t], [r.l + r.w, r.t + r.h], [r.l, r.t + r.h],
-          [panel.l + panel.w + pad + 2, midY], [panel.l - pad - 2, midY]];
+        var corners = mode === 'free'
+          ? [[r.l + r.w + 26, r.t + 4], [r.l - 26, r.t + 4], [r.l + r.w + 26, r.t + r.h - 4]]
+          : [[r.l + r.w, r.t], [r.l, r.t], [r.l + r.w, r.t + r.h], [r.l, r.t + r.h],
+            [panel.l + panel.w + pad + 2, midY], [panel.l - pad - 2, midY]];
         var spot = corners.filter(function (c) { return !underPanel(c[0], c[1]); })[0] || corners[0];
         var name = (el.querySelector('h3') || el).textContent.trim().slice(0, 40) || 'item';
         html += '<button class="xbtn" data-remove="' + el.dataset.drag + '" style="left:' + spot[0] + 'px;top:' + spot[1] + 'px" aria-label="Remove ' + name.replace(/"/g, '&quot;') + '">' +
           '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16"></path><path d="M10 11v6M14 11v6"></path><path d="M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12"></path><path d="M9 7V4h6v3"></path></svg></button>';
       });
       layer.innerHTML = html;
+      layer.classList.toggle('hide', !!(drag && drag.sec === sec));
 
     });
   }
   window.addEventListener('resize', function () { renderLayoutPanels(); positionRemoveButtons(); });
+
+  // In Edit content and Freeform, Restore sits in the small mode bar and shows only when there's something to restore.
+  function updateRestoreButton(sec) {
+    var rb = sec.querySelector('.tb [data-act="restore"]');
+    var n = removed.filter(function (r) { return r.sec === sec; }).length;
+    rb.hidden = !n || sec.dataset.mode === 'layout';
+    rb.textContent = 'Restore (' + n + ')';
+  }
+
+  // Delete or Backspace removes the selected item in Freeform.
+  document.addEventListener('keydown', function (e) {
+    if ((e.key !== 'Delete' && e.key !== 'Backspace') || state.mode !== 'free' || !state.selected) return;
+    if (e.target.closest && e.target.closest('input, textarea, [contenteditable="true"]')) return;
+    var sec = document.querySelector('.sec[data-section="' + state.active + '"]');
+    if (!sec) return;
+    e.preventDefault();
+    removeItem(sec, state.selected);
+    render();
+  });
   document.addEventListener('load', function (e) { if (e.target.tagName === 'IMG') positionRemoveButtons(); }, true);
 
   // Highlight the item a remove button points at.
@@ -542,7 +571,9 @@
       box.classList.toggle('text-only', el.dataset.resize === 'text');
       box.querySelector('.dim').textContent = Math.round(r.w) + ' × ' + Math.round(r.h);
     });
+      if (state.mode === 'free') positionRemoveButtons();
   }
+
   window.addEventListener('resize', positionSelection);
 
   // ---------- Freeform dragging with snapping guides ----------
@@ -692,6 +723,8 @@
 
   function endDrag() {
     if (!drag) return;
+    var endedSec = drag.sec;
+    setTimeout(function () { if (endedSec.dataset.mode === 'free') positionRemoveButtons(); }, 0);
     drag.el.classList.remove('dragging');
     hideGuides(drag.sec);
     drag = null;

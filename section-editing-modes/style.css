@@ -199,7 +199,7 @@ a { color: var(--accent); }
 
 /* Edit content */
 .rep {
-  position: absolute; top: 12px; right: 12px; display: none; background: #fff; color: var(--ink);
+  position: absolute; top: 22px; right: 22px; display: none; background: #fff; color: var(--ink);
   border: 1px solid var(--editor-blue); border-radius: 6px; padding: 0 14px; min-height: 44px;
   font: 600 13px 'Instrument Sans', sans-serif; cursor: pointer; z-index: 2;
 }
@@ -505,3 +505,7 @@ body.editing .ins { display: none; }
   .footer-brand { grid-column: 1 / -1; }
   .footer-base { width: calc(100% - 40px); }
 }
+
+/* Bins hide while an item is being dragged or resized, and reappear when you let go. */
+.xlayer.hide { display: none; }
+.tb [data-act="restore"][hidden] { display: none; }

@@ -13,7 +13,7 @@ return array(
 	'categories'    => array( 'sse-faq' ),
 	'viewportWidth' => 1400,
 	'content'       => <<<'HTML'
-<!-- wp:group {"metadata":{"name":"FAQ"},"align":"full","className":"is-style-sse-lightest-1","layout":{"type":"constrained"}} -->
+<!-- wp:group {"metadata":{"name":"FAQs"},"align":"full","className":"is-style-sse-lightest-1","layout":{"type":"constrained"}} -->
 <div class="wp-block-group alignfull is-style-sse-lightest-1"><!-- wp:heading -->
 <h2 class="wp-block-heading">Questions</h2>
 <!-- /wp:heading -->

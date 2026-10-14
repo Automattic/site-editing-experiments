@@ -4,73 +4,73 @@ import { __ } from '@wordpress/i18n';
 import { getSectionThemes, useSitePalette } from './settings';
 
 /**
- * A grid of the ten section colour themes, each drawn in the site palette:
- * background, a heading in the heading colour, a line of text and a button.
+ * The section colour themes as a list of rows, Squarespace style: each row is
+ * drawn in its theme, with "Aa" in the heading colour and the theme's name.
  *
- * @param {Object}   props
- * @param {string}   props.value     Selected theme slug.
- * @param {Function} props.onChange  Called with a slug, or null for none.
- * @param {boolean}  props.allowNone Whether to offer "None".
+ * @param {Object}                      props
+ * @param {string}                      props.value     Selected theme slug.
+ * @param {(slug: string|null) => void} props.onChange  Called with a slug, or null for none.
+ * @param {boolean}                     props.allowNone Whether to offer "None".
+ * @param {string[]}                    props.only      Limit to these slugs.
+ * @param {string}                      props.label     Accessible name for the list.
  */
-export default function ThemeSwatches( { value, onChange, allowNone = true } ) {
+export default function ThemeSwatches( {
+	value,
+	onChange,
+	allowNone = true,
+	only,
+	label = __( 'Section colour themes', 'squarespace-style-site-editor' ),
+} ) {
 	const palette = useSitePalette();
+	const themes = getSectionThemes().filter(
+		( theme ) => ! only || only.includes( theme.slug )
+	);
 
 	return (
-		<div
-			className="sse-theme-swatches"
-			role="listbox"
-			aria-label={ __(
-				'Section colours',
-				'squarespace-style-site-editor'
-			) }
-		>
+		<div className="sse-theme-list" role="listbox" aria-label={ label }>
 			{ allowNone && (
 				<button
 					type="button"
 					role="option"
 					aria-selected={ ! value }
-					className={ clsx( 'sse-theme-swatch is-none', {
+					className={ clsx( 'sse-theme-row is-none', {
 						'is-selected': ! value,
 					} ) }
 					onClick={ () => onChange( null ) }
 				>
-					<span className="sse-theme-swatch__label">
-						{ __( 'None', 'squarespace-style-site-editor' ) }
+					<span className="sse-theme-row__aa">Aa</span>
+					<span className="sse-theme-row__name">
+						{ __( 'No theme', 'squarespace-style-site-editor' ) }
 					</span>
 				</button>
 			) }
-			{ getSectionThemes().map( ( theme ) => (
+			{ themes.map( ( theme ) => (
 				<button
 					key={ theme.slug }
 					type="button"
 					role="option"
 					aria-selected={ value === theme.slug }
-					className={ clsx( 'sse-theme-swatch', {
+					className={ clsx( 'sse-theme-row', {
 						'is-selected': value === theme.slug,
 					} ) }
-					style={ { background: palette[ theme.background ] } }
+					style={ {
+						background: palette[ theme.background ],
+						color: palette[ theme.text ],
+					} }
 					onClick={ () => onChange( theme.slug ) }
 				>
 					<span
-						className="sse-theme-swatch__heading"
+						className="sse-theme-row__aa"
 						style={ { color: palette[ theme.heading ] } }
 					>
 						Aa
 					</span>
+					<span className="sse-theme-row__name">{ theme.label }</span>
 					<span
-						className="sse-theme-swatch__text"
-						style={ { background: palette[ theme.text ] } }
-					/>
-					<span
-						className="sse-theme-swatch__button"
+						className="sse-theme-row__button"
 						style={ { background: palette[ theme.buttonBg ] } }
+						aria-hidden="true"
 					/>
-					<span
-						className="sse-theme-swatch__name"
-						style={ { color: palette[ theme.text ] } }
-					>
-						{ theme.label }
-					</span>
 				</button>
 			) ) }
 		</div>

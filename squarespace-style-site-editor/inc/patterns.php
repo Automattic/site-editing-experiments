@@ -18,15 +18,15 @@ defined( 'ABSPATH' ) || exit;
  */
 function sse_section_categories() {
 	return array(
-		'sse-hero'       => __( 'Hero', 'squarespace-style-site-editor' ),
+		'sse-hero'       => __( 'Intro', 'squarespace-style-site-editor' ),
 		'sse-features'   => __( 'Features', 'squarespace-style-site-editor' ),
 		'sse-cta'        => __( 'Call to action', 'squarespace-style-site-editor' ),
-		'sse-text'       => __( 'Text', 'squarespace-style-site-editor' ),
-		'sse-image'      => __( 'Image', 'squarespace-style-site-editor' ),
+		'sse-text'       => __( 'About', 'squarespace-style-site-editor' ),
+		'sse-image'      => __( 'Images', 'squarespace-style-site-editor' ),
 		'sse-gallery'    => __( 'Gallery', 'squarespace-style-site-editor' ),
-		'sse-quote'      => __( 'Quote', 'squarespace-style-site-editor' ),
+		'sse-quote'      => __( 'Testimonials', 'squarespace-style-site-editor' ),
 		'sse-contact'    => __( 'Contact', 'squarespace-style-site-editor' ),
-		'sse-faq'        => __( 'FAQ', 'squarespace-style-site-editor' ),
+		'sse-faq'        => __( 'FAQs', 'squarespace-style-site-editor' ),
 		'sse-team'       => __( 'Team', 'squarespace-style-site-editor' ),
 		'sse-newsletter' => __( 'Newsletter', 'squarespace-style-site-editor' ),
 		'sse-pricing'    => __( 'Pricing', 'squarespace-style-site-editor' ),

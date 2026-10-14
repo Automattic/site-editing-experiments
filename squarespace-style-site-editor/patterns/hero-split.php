@@ -13,7 +13,7 @@ return array(
 	'categories'    => array( 'sse-hero' ),
 	'viewportWidth' => 1400,
 	'content'       => <<<'HTML'
-<!-- wp:group {"metadata":{"name":"Hero"},"align":"full","className":"is-style-sse-lightest-1","layout":{"type":"constrained"}} -->
+<!-- wp:group {"metadata":{"name":"Intro"},"align":"full","className":"is-style-sse-lightest-1","layout":{"type":"constrained"}} -->
 <div class="wp-block-group alignfull is-style-sse-lightest-1"><!-- wp:columns {"verticalAlignment":"center","align":"wide"} -->
 <div class="wp-block-columns alignwide are-vertically-aligned-center"><!-- wp:column {"verticalAlignment":"center"} -->
 <div class="wp-block-column is-vertically-aligned-center"><!-- wp:heading {"level":1} -->

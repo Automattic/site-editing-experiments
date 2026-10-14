@@ -13,7 +13,7 @@ return array(
 	'categories'    => array( 'sse-hero' ),
 	'viewportWidth' => 1400,
 	'content'       => <<<'HTML'
-<!-- wp:group {"metadata":{"name":"Hero"},"align":"full","className":"is-style-sse-darkest-1","layout":{"type":"constrained"}} -->
+<!-- wp:group {"metadata":{"name":"Intro"},"align":"full","className":"is-style-sse-darkest-1","layout":{"type":"constrained"}} -->
 <div class="wp-block-group alignfull is-style-sse-darkest-1"><!-- wp:heading {"textAlign":"center","level":1} -->
 <h1 class="wp-block-heading has-text-align-center">Made slowly, made to be used</h1>
 <!-- /wp:heading -->

@@ -238,11 +238,22 @@
       var layer = sec.querySelector('.xlayer');
       if (sec.dataset.mode !== 'layout') { layer.innerHTML = ''; return; }
       var sr = sec.getBoundingClientRect();
+      var panel = local(sec.querySelector('.lp').getBoundingClientRect(), sr);
+      var pad = 20; // button half-size plus a little breathing room
+      function underPanel(x, y) {
+        return x > panel.l - pad && x < panel.l + panel.w + pad && y > panel.t - pad && y < panel.t + panel.h + pad;
+      }
       var html = '';
       sec.querySelectorAll('[data-drag]').forEach(function (el) {
         var r = local(el.getBoundingClientRect(), sr);
+        // Use the top-right corner unless the layouts panel covers it, then try the other corners.
+        // If the item is completely covered, sit the bin just beside the panel, level with the item.
+        var midY = r.t + r.h / 2;
+        var corners = [[r.l + r.w, r.t], [r.l, r.t], [r.l + r.w, r.t + r.h], [r.l, r.t + r.h],
+          [panel.l + panel.w + pad + 2, midY], [panel.l - pad - 2, midY]];
+        var spot = corners.filter(function (c) { return !underPanel(c[0], c[1]); })[0] || corners[0];
         var name = (el.querySelector('h3') || el).textContent.trim().slice(0, 40) || 'item';
-        html += '<button class="xbtn" data-remove="' + el.dataset.drag + '" style="left:' + (r.l + r.w) + 'px;top:' + r.t + 'px" aria-label="Remove ' + name.replace(/"/g, '&quot;') + '">' +
+        html += '<button class="xbtn" data-remove="' + el.dataset.drag + '" style="left:' + spot[0] + 'px;top:' + spot[1] + 'px" aria-label="Remove ' + name.replace(/"/g, '&quot;') + '">' +
           '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16"></path><path d="M10 11v6M14 11v6"></path><path d="M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12"></path><path d="M9 7V4h6v3"></path></svg></button>';
       });
       layer.innerHTML = html;

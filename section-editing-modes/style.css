@@ -285,15 +285,21 @@ body.no-grid .grid { display: none !important; }
 }
 
 /* ---------- Section controls: move and delete ---------- */
-.secctl { position: absolute; top: 12px; right: 16px; display: flex; gap: 6px; }
-.sbtn {
-  display: grid; place-items: center; width: 40px; height: 40px; padding: 0; background: #fff; color: var(--ink);
-  border: 0; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+.secctl {
+  position: absolute; top: 12px; right: 16px; display: flex; align-items: center; gap: 2px; padding: 4px;
+  background: #fff; border-radius: 10px; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
 }
-.sbtn:hover, .sbtn:focus-visible { outline: 2px solid var(--editor-blue); outline-offset: 2px; }
-.sbtn:disabled { opacity: 0.4; cursor: default; outline: none; }
-.sbtn.danger:hover, .sbtn.danger:focus-visible { background: #B3123F; color: #fff; outline-color: #B3123F; }
-
+.sbtn {
+  display: grid; place-items: center; width: 36px; height: 36px; padding: 0; background: transparent; color: var(--ink);
+  border: 0; border-radius: 6px; cursor: pointer;
+}
+.sbtn:hover, .sbtn:focus-visible { background: #EEF1FD; color: var(--editor-blue); outline: none; }
+.sbtn:focus-visible { box-shadow: inset 0 0 0 2px var(--editor-blue); }
+.sbtn:disabled { opacity: 0.35; cursor: default; background: transparent; color: var(--ink); }
+/* A thin divider sets the destructive action apart. */
+.sbtn.danger { margin-left: 5px; position: relative; }
+.sbtn.danger::before { content: ''; position: absolute; left: -4px; top: 8px; bottom: 8px; width: 1px; background: #E2E2E2; }
+.sbtn.danger:hover, .sbtn.danger:focus-visible { background: #FBE9EE; color: #B3123F; }
 
 .sec-flash { animation: secflash 1.1s ease-out; }
 @keyframes secflash {

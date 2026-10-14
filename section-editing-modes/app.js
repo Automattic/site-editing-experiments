@@ -171,6 +171,7 @@
   var SEC_ICONS = {
     up: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M6 11l6-6 6 6"></path></svg>',
     down: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6"></path></svg>',
+    copy: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"></rect><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"></path></svg>',
     bin: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16"></path><path d="M10 11v6M14 11v6"></path><path d="M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12"></path><path d="M9 7V4h6v3"></path></svg>'
   };
 
@@ -203,6 +204,7 @@
         '<div class="secctl" role="group" aria-label="Section">' +
           '<button class="sbtn" data-sec-act="up" aria-label="Move section up" title="Move up">' + SEC_ICONS.up + '</button>' +
           '<button class="sbtn" data-sec-act="down" aria-label="Move section down" title="Move down">' + SEC_ICONS.down + '</button>' +
+          '<button class="sbtn" data-sec-act="duplicate" aria-label="Duplicate section" title="Duplicate">' + SEC_ICONS.copy + '</button>' +
           '<button class="sbtn danger" data-sec-act="delete" aria-label="Delete section" title="Delete section">' + SEC_ICONS.bin + '</button>' +
         '</div>' + overlayButtons + '</div>' +
       '<div class="tb"><span class="tbl"></span><span class="tbh"></span>' +
@@ -231,6 +233,7 @@
       if (btn.dataset.secAct) {
         if (btn.dataset.secAct === 'up') moveSection(sec, -1);
         else if (btn.dataset.secAct === 'down') moveSection(sec, 1);
+        else if (btn.dataset.secAct === 'duplicate') duplicateSection(sec);
         else if (btn.dataset.secAct === 'delete') deleteSection(sec);
         else return;
       } else if (btn.dataset.open) {
@@ -686,6 +689,42 @@
     render();
     sec.scrollIntoView({ behavior: 'smooth', block: 'center' });
     flash(sec);
+  }
+
+  // Copy a section with its current text, images, layout, positions and sizes, and place the copy below it.
+  var dupCount = 0;
+  function duplicateSection(sec) {
+    dupCount += 1;
+    secCount += 1;
+    var id = 's' + secCount;
+    var pre = 'd' + dupCount + '-';
+    var copy = sec.cloneNode(true);
+    // Strip the editing chrome; initSection adds fresh chrome to the copy.
+    copy.querySelectorAll('.grid, .gv, .gh, .selbox, .ov, .tb, .xlayer, .lp').forEach(function (n) { n.remove(); });
+    copy.classList.remove('on', 'sec-flash');
+    copy.removeAttribute('data-mode');
+    copy.querySelectorAll('.doomed, .dragging, .fresh').forEach(function (n) { n.classList.remove('doomed', 'dragging', 'fresh'); });
+    copy.querySelectorAll('[contenteditable]').forEach(function (n) { n.removeAttribute('contenteditable'); });
+    // Give every item and image in the copy its own key, carrying over its position, size and photo.
+    copy.querySelectorAll('[data-drag]').forEach(function (n) {
+      var k = n.dataset.drag, nk = pre + k;
+      if (state.offsets[k]) state.offsets[nk] = { x: state.offsets[k].x, y: state.offsets[k].y };
+      if (state.sizes[k]) state.sizes[nk] = { w: state.sizes[k].w, h: state.sizes[k].h };
+      n.dataset.drag = nk;
+    });
+    copy.querySelectorAll('[data-img]').forEach(function (n) {
+      var k = n.dataset.img;
+      state.images[pre + k] = state.images[k] || 0;
+      n.dataset.img = pre + k;
+    });
+    copy.querySelectorAll('[data-key]').forEach(function (n) { n.dataset.key = pre + n.dataset.key; });
+    state.layout[id] = layoutOf(sec);
+    copy.dataset.section = id;
+    main.insertBefore(copy, sec.nextSibling);
+    initSection(copy);
+    render();
+    copy.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    flash(copy);
   }
 
   function moveSection(sec, dir) {

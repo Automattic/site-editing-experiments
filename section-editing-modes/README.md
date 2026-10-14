@@ -9,17 +9,23 @@ A clickable mockup exploring three ways to edit a section of a page. Hover any s
   - Pink snap lines appear when an item's edge or centre lines up with another item, the section centre or the content edges.
   - The **Grid** and **Snap** buttons in the small bar at the top of the section turn each of these off, and **Reset** puts the section's positions and sizes back.
 
+## The header and footer
+
+The site header and footer can be edited like any section: hover them for the Add menu and the three editing modes, each with its own layouts (header: Logo left, Centered, Links beside logo; footer: Columns, Centered, Compact). They're shared by every page of the site, so they're marked differently: a purple outline, a tab that says **Used on every page**, an **Every page** badge in the mode bar, and a note in the layouts panel that changes apply to every page. They stay at the top and bottom of the page, so they can't be moved, duplicated or deleted.
+
+## Sticky tools
+
+In a tall section, the editing tools stay in view as you scroll: the hover toolbar row, the small mode bar in Edit content and Freeform, and the layouts panel all stick to the top of the window until you reach the end of the section.
+
 ## Adding and arranging sections
 
 Hovering a section outlines it in blue, with its name in a tab above its top edge. The tab stays while you edit the section.
 
 - **Add to a section:** hover it and click **Add** in its top-left corner for a menu of things that suit that section, such as a heading, paragraph, button, image or card.
-- **Add a section:** hover a section and click one of the **Add section** buttons on its top or bottom edge. A space opens between the sections with a picker of eight section types, all in one row: Hero, Features, Call to action, Text, Image, Gallery, Quote and Contact; **Cancel** closes it again. New sections start with placeholder copy and photos, and work with every editing mode.
+- **Add a section:** hover a section and click one of the **Add section** buttons on its top or bottom edge. A space opens between the sections with a picker of twelve section types, all in one row: Hero, Features, Call to action, Text, Image, Gallery, Quote, Contact, FAQ, Team, Newsletter and Pricing; **Cancel** closes it again. New sections start with placeholder copy and photos, and work with every editing mode.
 - **Move a section:** hover it and use the up and down arrows in the toolbar in its top-right corner.
 - **Duplicate a section:** use the copy button in the same toolbar. The copy appears below the original with the same text, photos, layout, positions and sizes.
 - **Delete a section:** use the bin at the end of the toolbar. A message at the bottom of the page lets you undo it.
-
-The page ends with a site footer (brand, links, and placeholder visit and contact details); it isn't one of the editable sections.
 
 Only one section is in a mode at a time. **Done** leaves the mode, and **Reset everything** in the top bar reloads the original page.
 
@@ -35,6 +41,10 @@ Only one section is in a mode at a time. **Done** leaves the mode, and **Reset e
 | Gallery | Three across, Two across, Mosaic |
 | Quote | Centered, Left aligned, Dark band |
 | Contact | Split, Stacked, Card |
+| FAQ | Single column, Two columns, Heading beside |
+| Team | Three across, List, plus Four across once there are four people |
+| Newsletter | Centered, Split, Dark band |
+| Pricing | Side by side, Middle highlighted, Rows |
 
 ## Running it
 
@@ -42,7 +52,7 @@ It's plain HTML, CSS and JavaScript with no build step. Open `index.html` in a b
 
 ## Credits
 
-The studio name and copy are invented placeholders. The photos are from [Unsplash](https://unsplash.com) and used under the [Unsplash License](https://unsplash.com/license):
+The studio name and copy are invented placeholders, and names, roles, prices and contact details are left as bracketed placeholders. The photos are from [Unsplash](https://unsplash.com) and used under the [Unsplash License](https://unsplash.com/license):
 
 | File | Unsplash photo ID |
 | --- | --- |

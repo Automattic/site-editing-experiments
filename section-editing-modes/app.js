@@ -61,6 +61,36 @@
       { id: 'split', label: 'Split', rects: [[7, 9, 24, 5, TX], [7, 18, 22, 3, SB], [7, 23, 18, 3, SB], [7, 31, 14, 5, AC], [38, 8, 28, 32, IG]] },
       { id: 'stacked', label: 'Stacked', rects: [[22, 4, 28, 5, TX], [20, 12, 32, 3, SB], [30, 17, 12, 4, AC], [8, 25, 56, 18, IG]] },
       { id: 'card', label: 'Card', rects: [[0, 0, 72, 48, IG], [8, 10, 30, 28, '#2A2A2A'], [12, 15, 20, 4, TX], [12, 22, 18, 3, SB], [12, 29, 12, 4, AC]] }
+    ],
+    header: [
+      { id: 'split', label: 'Logo left' },
+      { id: 'centered', label: 'Centered' },
+      { id: 'together', label: 'Links beside logo' }
+    ],
+    footer: [
+      { id: 'columns', label: 'Columns' },
+      { id: 'centered', label: 'Centered' },
+      { id: 'compact', label: 'Compact' }
+    ],
+    faq: [
+      { id: 'list', label: 'Single column', rects: [[8, 5, 26, 5, TX], [8, 14, 56, 9, PN], [8, 25, 56, 9, PN], [8, 36, 56, 9, PN]] },
+      { id: 'two', label: 'Two columns' },
+      { id: 'side', label: 'Heading beside' }
+    ],
+    team: [
+      { id: 'grid3', label: 'Three across', rects: [[6, 5, 26, 4, TX], [9, 14, 14, 14, IG], [29, 14, 14, 14, IG], [49, 14, 14, 14, IG], [8, 32, 16, 3, TX], [28, 32, 16, 3, TX], [48, 32, 16, 3, TX], [10, 37, 12, 2, SB], [30, 37, 12, 2, SB], [50, 37, 12, 2, SB]] },
+      { id: 'grid4', label: 'Four across', when: function (sec) { return count(sec, '.person') >= 4; } },
+      { id: 'list', label: 'List' }
+    ],
+    newsletter: [
+      { id: 'center', label: 'Centered', rects: [[18, 8, 36, 5, TX], [14, 17, 44, 3, SB], [14, 27, 30, 8, PN], [46, 27, 12, 8, AC]] },
+      { id: 'split', label: 'Split' },
+      { id: 'banner', label: 'Dark band' }
+    ],
+    pricing: [
+      { id: 'cols', label: 'Side by side', rects: [[6, 4, 26, 4, TX], [6, 12, 18, 30, PN], [27, 12, 18, 30, PN], [48, 12, 18, 30, PN], [9, 16, 10, 3, TX], [30, 16, 10, 3, TX], [51, 16, 10, 3, TX], [9, 34, 12, 4, AC], [30, 34, 12, 4, AC], [51, 34, 12, 4, AC]] },
+      { id: 'highlight', label: 'Middle highlighted' },
+      { id: 'list', label: 'Rows' }
     ]
   };
 
@@ -119,6 +149,33 @@
       { type: 'heading', label: 'Heading', into: '.contact-text' },
       { type: 'paragraph', label: 'Paragraph', into: '.contact-text' },
       { type: 'button', label: 'Button', into: '.contact-text' }
+    ],
+    header: [
+      { type: 'link', label: 'Link', into: '.hnav' },
+      { type: 'button', label: 'Button', into: '.hnav', btnClass: 'btn btn-sm' }
+    ],
+    footer: [
+      { type: 'fcol', label: 'Column', into: '.footer-inner' },
+      { type: 'paragraph', label: 'Paragraph', into: '.footer-base' }
+    ],
+    faq: [
+      { type: 'qa', label: 'Question', into: '.faq-list' },
+      { type: 'heading', label: 'Heading', before: '.faq-list' },
+      { type: 'paragraph', label: 'Paragraph', before: '.faq-list' }
+    ],
+    team: [
+      { type: 'person', label: 'Person', into: '.team-grid' },
+      { type: 'heading', label: 'Heading', before: '.team-grid' },
+      { type: 'paragraph', label: 'Paragraph', before: '.team-grid' }
+    ],
+    newsletter: [
+      { type: 'heading', label: 'Heading', into: '.nl-text' },
+      { type: 'paragraph', label: 'Paragraph', into: '.nl-text' }
+    ],
+    pricing: [
+      { type: 'plan', label: 'Plan', into: '.plans' },
+      { type: 'heading', label: 'Heading', before: '.plans' },
+      { type: 'paragraph', label: 'Paragraph', before: '.plans' }
     ]
   };
 
@@ -128,6 +185,11 @@
     paragraph: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 11h16M4 16h11"></path></svg>',
     button: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="8" width="18" height="8" rx="4"></rect><path d="M9 12h6"></path></svg>',
     image: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"></rect><circle cx="9" cy="10" r="2"></circle><path d="M21 17l-5-5-9 8"></path></svg>',
+    link: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"></path><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"></path></svg>',
+    fcol: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 5h5M5 10h4M5 14h5M14 5h5M14 10h4M14 14h5"></path></svg>',
+    qa: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6M12 17h.01"></path></svg>',
+    person: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 21a8 8 0 0 1 16 0"></path></svg>',
+    plan: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12l-8 8-9-9V3h8z"></path><circle cx="7.5" cy="7.5" r="1.5"></circle></svg>',
     card: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"></rect><path d="M4 11h16M8 15h8"></path></svg>'
   };
 
@@ -143,6 +205,17 @@
       case 'image':
         return '<div class="media ' + (opts.imgClass || 'added-img') + '"' + d + ' data-resize="box"><img data-img="' + key + 'i" alt="" draggable="false">' +
           '<button class="rep" data-act="replace" data-key="' + key + 'i">Replace image</button></div>';
+      case 'link':
+        return '<a href="#" class="hlink"' + d + ' data-resize="text" data-text>New link</a>';
+      case 'fcol':
+        return '<div class="footer-col"' + d + ' data-resize="box"><h2 data-text>New column</h2><a href="#" data-text>First link</a><a href="#" data-text>Second link</a></div>';
+      case 'qa':
+        return '<div class="qa"' + d + ' data-resize="box"><h3 data-text>A new question?</h3><p data-text>The answer goes here. Switch to Edit content to change it.</p></div>';
+      case 'person':
+        return '<div class="person"' + d + ' data-resize="box"><span class="avatar" aria-hidden="true">NP</span><h3 data-text>[Name]</h3><p data-text>[Role]</p></div>';
+      case 'plan':
+        return '<div class="plan"' + d + ' data-resize="box"><h3 data-text>New plan</h3><p class="price" data-text>[£00]<span> / month</span></p>' +
+          '<p data-text>What\u2019s included in this plan.</p><a href="#" class="btn" data-text>Choose plan</a></div>';
       case 'card':
         return '<article class="card"' + d + ' data-resize="box"><div class="media card-img"><img data-img="' + key + 'i" alt="" draggable="false">' +
           '<button class="rep" data-act="replace" data-key="' + key + 'i">Replace image</button></div>' +
@@ -176,13 +249,19 @@
   var drag = null;
   var main = document.querySelector('main');
 
+  // Every editable region, including the site header and footer.
   function allSections() {
     return Array.prototype.slice.call(document.querySelectorAll('.sec'));
   }
+  // Just the page's sections: the ones that can be added, moved, duplicated and deleted.
+  function mainSections() {
+    return Array.prototype.slice.call(main.querySelectorAll(':scope > .sec'));
+  }
 
-  var DEFAULT_LAYOUT = { hero: 'split', features: 'cols', cta: 'center', text: 'left', image: 'wide', gallery: 'grid3', quote: 'center', contact: 'split' };
-  var TITLES = { hero: 'Hero section', features: 'Features section', cta: 'Call to action', text: 'Text section', image: 'Image section', gallery: 'Gallery section', quote: 'Quote section', contact: 'Contact section' };
-  var SECTION_TYPES = ['hero', 'features', 'cta', 'text', 'image', 'gallery', 'quote', 'contact'];
+  var DEFAULT_LAYOUT = { header: 'split', footer: 'columns', faq: 'list', team: 'grid3', newsletter: 'center', pricing: 'cols', hero: 'split', features: 'cols', cta: 'center', text: 'left', image: 'wide', gallery: 'grid3', quote: 'center', contact: 'split' };
+  var TITLES = { header: 'Header', footer: 'Footer', faq: 'FAQ section', team: 'Team section', newsletter: 'Newsletter section', pricing: 'Pricing section', hero: 'Hero section', features: 'Features section', cta: 'Call to action', text: 'Text section', image: 'Image section', gallery: 'Gallery section', quote: 'Quote section', contact: 'Contact section' };
+  var GLOBE_ICON = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"></path></svg>';
+  var SECTION_TYPES = ['hero', 'features', 'cta', 'text', 'image', 'gallery', 'quote', 'contact', 'faq', 'team', 'newsletter', 'pricing'];
 
   function layoutOf(sec) {
     return state.layout[sec.dataset.section] || DEFAULT_LAYOUT[sec.dataset.type];
@@ -201,6 +280,9 @@
     var type = sec.dataset.type;
     var title = TITLES[type];
     sec.dataset.title = title;
+    // The header and footer are shared by every page of the site.
+    var global = type === 'header' || type === 'footer';
+    sec.classList.toggle('global', global);
 
     var overlayButtons = '<div class="modebar" role="group" aria-label="Edit this section">' +
       ['layout', 'content', 'free'].map(function (m) {
@@ -213,8 +295,10 @@
       '<div class="grid" aria-hidden="true"><div class="gridin">' + new Array(13).join('<span class="gcol"></span>') + '<span class="gmid"></span></div></div>' +
       '<span class="gv" aria-hidden="true"></span><span class="gh" aria-hidden="true"></span>' +
       '<div class="selbox" aria-hidden="true">' + HANDLES.map(function (h) { return '<span class="hd" data-h="' + h + '"></span>'; }).join('') + '<span class="dim"></span></div>' +
-      '<span class="sectab" aria-hidden="true">' + title + '</span>' +
-      '<div class="ov"><div class="ovtl">' +
+      (global
+        ? '<span class="sectab" aria-hidden="true">' + GLOBE_ICON + title + '<span class="tabnote">Used on every page</span></span>'
+        : '<span class="sectab" aria-hidden="true">' + title + '</span>') +
+      '<div class="ov"><div class="ovbar"><div class="ovtl">' +
         '<div class="addwrap"><button class="addtrig" data-sec-act="addmenu" aria-haspopup="menu" aria-expanded="false">' +
           '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>Add</button>' +
           '<div class="addmenu" role="menu" aria-label="Add to ' + title + '">' +
@@ -227,15 +311,16 @@
           '<button class="sbtn" data-sec-act="down" aria-label="Move section down" title="Move down">' + SEC_ICONS.down + '</button>' +
           '<button class="sbtn" data-sec-act="duplicate" aria-label="Duplicate section" title="Duplicate">' + SEC_ICONS.copy + '</button>' +
           '<button class="sbtn danger" data-sec-act="delete" aria-label="Delete section" title="Delete section">' + SEC_ICONS.bin + '</button>' +
-        '</div>' + overlayButtons + '</div>' +
-      '<div class="tb"><span class="tbl"></span><span class="tbh"></span>' +
+        '</div>' + overlayButtons + '</div></div>' +
+      '<div class="tbwrap"><div class="tb"><span class="tbl"></span><span class="tbh"></span>' +
+        (global ? '<span class="sitewide" title="Changes here apply to every page of the site">' + GLOBE_ICON + 'Every page</span>' : '') +
         '<div class="free-tools">' +
           '<button class="tbb" data-act="grid" title="Show the column grid">Grid</button>' +
           '<button class="tbb" data-act="snap" title="Snap to guides">Snap</button>' +
           '<button class="tbb" data-act="resetpos" title="Reset positions and sizes">Reset</button>' +
         '</div>' +
         '<button class="tbb" data-act="restore" title="Bring back removed items" hidden>Restore</button>' +
-        '<span class="spacer"></span><button class="done" data-act="done">Done</button></div>' +
+        '<span class="spacer"></span><button class="done" data-act="done">Done</button></div></div>' +
       '<div class="xlayer"></div>'
     );
 
@@ -245,7 +330,10 @@
     lp.className = 'lp';
     lp.setAttribute('role', 'group');
     lp.setAttribute('aria-label', title + ' layouts');
-    lp.innerHTML = '<span class="lph">Layouts</span><div class="lpo"></div>';
+    lp.innerHTML = global
+      ? '<span class="lph">' + GLOBE_ICON + 'Layouts \u00b7 changes apply to every page</span><div class="lpo"></div>'
+      : '<span class="lph">Layouts</span><div class="lpo"></div>';
+    if (global) lp.classList.add('global');
     document.body.appendChild(lp);
     sec._lp = lp;
 
@@ -385,6 +473,20 @@
   }
   window.addEventListener('resize', function () { renderLayoutPanels(); positionRemoveButtons(); });
 
+  // Keep the floating layouts panel, and the bins that steer around the sticky bars, in step while scrolling.
+  var scrollQueued = false;
+  window.addEventListener('scroll', function () {
+    if (scrollQueued || !state.mode) return;
+    scrollQueued = true;
+    requestAnimationFrame(function () {
+      scrollQueued = false;
+      var sec = document.querySelector('.sec[data-section="' + state.active + '"]');
+      if (!sec) return;
+      if (sec.dataset.mode === 'layout') placeLayoutPanel(sec);
+      positionRemoveButtons();
+    });
+  }, { passive: true });
+
   // In Edit content and Freeform, Restore sits in the small mode bar and shows only when there's something to restore.
   function updateRestoreButton(sec) {
     var rb = sec.querySelector('.tb [data-act="restore"]');
@@ -452,7 +554,7 @@
       snapBtn.setAttribute('aria-pressed', String(state.snap));
     });
 
-    var secs = allSections();
+    var secs = mainSections();
     secs.forEach(function (sec, i) {
       sec.querySelector('[data-sec-act="up"]').disabled = i === 0;
       sec.querySelector('[data-sec-act="down"]').disabled = i === secs.length - 1;
@@ -480,7 +582,7 @@
 
   // ---------- Layout panel: live previews of this section's own content ----------
   var MINI_W = 120, MINI_H = 76;
-  var CHROME = '.grid, .gv, .gh, .selbox, .sectab, .ov, .tb, .xlayer, .lp, .rep';
+  var CHROME = '.grid, .gv, .gh, .selbox, .sectab, .ov, .tbwrap, .xlayer, .lp, .rep';
 
   // A miniature copy of the section's content, rendered in the given layout.
   function miniPreview(sec, layoutId) {
@@ -506,9 +608,6 @@
       var lp = sec._lp;
       lp.classList.toggle('show', sec.dataset.mode === 'layout');
       if (sec.dataset.mode !== 'layout') return;
-      var sr = sec.getBoundingClientRect();
-      lp.style.left = sr.left + window.scrollX + sr.width / 2 + 'px';
-      lp.style.top = sr.top + window.scrollY + 16 + 'px';
       var current = layoutOf(sec);
       var options = LAYOUTS[sec.dataset.type].filter(function (l) { return !l.when || l.when(sec) || l.id === current; });
       var lpo = lp.querySelector('.lpo');
@@ -541,7 +640,24 @@
         var h = stage.offsetHeight * k;
         stage.style.transform = 'translate(0, ' + Math.max(0, (MINI_H - h) / 2) + 'px) scale(' + k + ')';
       });
+      placeLayoutPanel(sec);
     });
+  }
+
+  // The layouts panel sticks to the top of the window while you scroll through its section.
+  function placeLayoutPanel(sec) {
+    var lp = sec._lp;
+    var sr = sec.getBoundingClientRect();
+    lp.style.left = sr.left + window.scrollX + sr.width / 2 + 'px';
+    var top;
+    if (sec.dataset.type === 'header') {
+      top = sr.bottom + 8;
+    } else {
+      top = Math.max(sr.top + 16, 12);
+      top = Math.min(top, sr.bottom - lp.offsetHeight - 16);
+      top = Math.max(top, sr.top + 16);
+    }
+    lp.style.top = top + window.scrollY + 'px';
   }
 
   function applyOffset(el) {
@@ -604,7 +720,7 @@
 
   // Snap targets: content edges and centre, section middle, and every other item's edges and centre.
   function snapTargets(sec, el, sr) {
-    var inner = sec.querySelector('.inner');
+    var inner = sec.querySelector('.inner, .snap-inner');
     var ir = inner.getBoundingClientRect();
     var cs = getComputedStyle(inner);
     var xs = [ir.left - sr.left + parseFloat(cs.paddingLeft), sr.width / 2, ir.right - sr.left - parseFloat(cs.paddingRight)];
@@ -788,6 +904,44 @@
         '<blockquote' + drag('q', 'text') + ' data-text>\u201cA sentence someone said about the work goes here. Replace it with a real quote.\u201d</blockquote>' +
         '<figcaption' + drag('who', 'text') + ' data-text>[Name], [where they\u2019re from]</figcaption></figure></div></section>';
     }
+    if (type === 'faq') {
+      var qa = function (n, q, a) {
+        return '<div class="qa"' + drag('q' + n, 'box') + '><h3 data-text>' + q + '</h3><p data-text>' + a + '</p></div>';
+      };
+      return open + '<div class="inner faq-inner"><h2' + drag('head', 'text') + ' data-text>Questions</h2><div class="faq-list">' +
+        qa(1, 'Do you ship your pottery?', 'Answer this question here. Switch to Edit content to change it.') +
+        qa(2, 'Can I book a private class?', 'Answer this question here. Switch to Edit content to change it.') +
+        qa(3, 'Is your stoneware dishwasher safe?', 'Answer this question here. Switch to Edit content to change it.') +
+        qa(4, 'Do you take commissions?', 'Answer this question here. Switch to Edit content to change it.') +
+        '</div></div></section>';
+    }
+    if (type === 'team') {
+      var person = function (n, initials) {
+        return '<div class="person"' + drag('p' + n, 'box') + '><span class="avatar" aria-hidden="true">' + initials + '</span>' +
+          '<h3 data-text>[Name]</h3><p data-text>[Role]</p></div>';
+      };
+      return open + '<div class="inner team-inner"><h2' + drag('head', 'text') + ' data-text>The people behind the work</h2><div class="team-grid">' +
+        person(1, 'A') + person(2, 'B') + person(3, 'C') + '</div></div></section>';
+    }
+    if (type === 'newsletter') {
+      return open + '<div class="inner nl-inner"><div class="nl-panel"><div class="nl-text">' +
+        '<h2' + drag('head', 'text') + ' data-text>Hear about new work first</h2>' +
+        '<p' + drag('body', 'text') + ' data-text>An occasional email when new pieces and class dates go up.</p></div>' +
+        '<div class="nl-form"' + drag('form', 'box') + '><label class="sr-only" for="' + p + 'email">Email address</label>' +
+        '<input id="' + p + 'email" type="email" placeholder="Email address" autocomplete="off">' +
+        '<button type="button" class="btn">Sign up</button></div></div></div></section>';
+    }
+    if (type === 'pricing') {
+      var plan = function (n, name, desc) {
+        return '<div class="plan"' + drag('pl' + n, 'box') + '><h3 data-text>' + name + '</h3><p class="price" data-text>[£00]<span> / month</span></p>' +
+          '<p data-text>' + desc + '</p><a href="#" class="btn" data-text>Choose plan</a></div>';
+      };
+      return open + '<div class="inner pricing-inner"><h2' + drag('head', 'text') + ' data-text>Classes and memberships</h2><div class="plans">' +
+        plan(1, 'Taster', 'A single evening on the wheel.') +
+        plan(2, 'Course', 'Four weekly sessions with clay and firing included.') +
+        plan(3, 'Studio member', 'Open studio time each month.') +
+        '</div></div></section>';
+    }
     if (type === 'contact') {
       return open + '<div class="inner contact-inner"><div class="contact-text">' +
         '<h2' + drag('head', 'text') + ' data-text>Find the studio</h2>' +
@@ -835,7 +989,7 @@
     var pre = 'd' + dupCount + '-';
     var copy = sec.cloneNode(true);
     // Strip the editing chrome; initSection adds fresh chrome to the copy.
-    copy.querySelectorAll('.grid, .gv, .gh, .selbox, .sectab, .ov, .tb, .xlayer, .lp').forEach(function (n) { n.remove(); });
+    copy.querySelectorAll('.grid, .gv, .gh, .selbox, .sectab, .ov, .tbwrap, .xlayer, .lp').forEach(function (n) { n.remove(); });
     copy.classList.remove('on', 'sec-flash');
     copy.removeAttribute('data-mode');
     copy.querySelectorAll('.doomed, .dragging, .fresh').forEach(function (n) { n.classList.remove('doomed', 'dragging', 'fresh'); });
@@ -863,7 +1017,7 @@
   }
 
   function moveSection(sec, dir) {
-    var secs = allSections();
+    var secs = mainSections();
     var i = secs.indexOf(sec);
     var j = i + dir;
     if (j < 0 || j >= secs.length) return;
@@ -908,7 +1062,7 @@
   function renderInserters() {
     closePicker();
     main.querySelectorAll('.ins').forEach(function (n) { n.remove(); });
-    var secs = allSections();
+    var secs = mainSections();
     secs.concat([null]).forEach(function (sec) {
       var ins = document.createElement('div');
       ins.className = 'ins';

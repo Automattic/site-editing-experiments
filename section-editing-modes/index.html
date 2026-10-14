@@ -19,13 +19,16 @@
   <button class="reset" id="reset-all">Reset everything</button>
 </header>
 
-<nav class="site-nav">
-  <span class="logo">Northfield Ceramics</span>
-  <span class="spacer"></span>
-  <a href="#shop">Shop</a>
-  <a href="#classes">Classes</a>
-  <a href="#visit">Visit</a>
-</nav>
+<header class="sec header" data-section="header" data-type="header" aria-label="Site header">
+  <div class="hdr-inner snap-inner">
+    <span class="logo" data-drag="nLogo" data-resize="text" data-text>Northfield Ceramics</span>
+    <nav class="hnav" aria-label="Main">
+      <a href="#shop" data-drag="nl1" data-resize="text" data-text>Shop</a>
+      <a href="#classes" data-drag="nl2" data-resize="text" data-text>Classes</a>
+      <a href="#visit" data-drag="nl3" data-resize="text" data-text>Visit</a>
+    </nav>
+  </div>
+</header>
 
 <main>
   <section class="sec hero" data-section="hero" data-type="hero" data-title="Hero section" aria-label="Hero section">
@@ -96,32 +99,32 @@
   </section>
 </main>
 
-<footer class="site-footer">
-  <div class="footer-inner">
-    <div class="footer-brand">
-      <span class="logo">Northfield Ceramics</span>
-      <p>Stoneware for everyday tables, thrown and glazed by hand in our studio.</p>
+<footer class="sec footer" data-section="footer" data-type="footer" aria-label="Site footer">
+  <div class="footer-inner snap-inner">
+    <div class="footer-brand" data-drag="ftBrand" data-resize="box">
+      <span class="logo" data-text>Northfield Ceramics</span>
+      <p data-text>Stoneware for everyday tables, thrown and glazed by hand in our studio.</p>
     </div>
-    <nav class="footer-col" aria-label="Footer">
-      <h2>Explore</h2>
-      <a href="#shop">Shop</a>
-      <a href="#classes">Classes</a>
-      <a href="#visit">Visit the studio</a>
+    <nav class="footer-col" data-drag="ftCol1" data-resize="box" aria-label="Footer">
+      <h2 data-text>Explore</h2>
+      <a href="#shop" data-text>Shop</a>
+      <a href="#classes" data-text>Classes</a>
+      <a href="#visit" data-text>Visit the studio</a>
     </nav>
-    <div class="footer-col">
-      <h2>Visit</h2>
-      <p>[Street address]<br>[Town], [Postcode]</p>
-      <p>Open [days], [opening hours]</p>
+    <div class="footer-col" data-drag="ftCol2" data-resize="box">
+      <h2 data-text>Visit</h2>
+      <p data-text>[Street address]<br>[Town], [Postcode]</p>
+      <p data-text>Open [days], [opening hours]</p>
     </div>
-    <div class="footer-col">
-      <h2>Contact</h2>
-      <a href="#">[email address]</a>
-      <a href="#">[phone number]</a>
+    <div class="footer-col" data-drag="ftCol3" data-resize="box">
+      <h2 data-text>Contact</h2>
+      <a href="#" data-text>[email address]</a>
+      <a href="#" data-text>[phone number]</a>
     </div>
   </div>
   <div class="footer-base">
-    <span>© Northfield Ceramics</span>
-    <span>Photos from Unsplash</span>
+    <span data-drag="ftCopy" data-resize="text" data-text>© Northfield Ceramics</span>
+    <span data-drag="ftCredit" data-resize="text" data-text>Photos from Unsplash</span>
   </div>
 </footer>
 

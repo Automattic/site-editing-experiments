@@ -17,17 +17,19 @@ import {
 	ToolbarGroup,
 } from '@wordpress/components';
 import { useDispatch, useRegistry, useSelect } from '@wordpress/data';
-import { plus } from '@wordpress/icons';
+import { useState } from '@wordpress/element';
+import { Icon, plus } from '@wordpress/icons';
 
 import {
 	DESKTOP_COLUMNS,
 	MOBILE_COLUMNS,
 	bottomRow,
 	normalizeLayout,
+	readTracks,
 } from '../shared/grid';
 import { findFreeSpot, getAddBlockItems } from '../shared/add-block-items';
 import AddBlockPanel from '../shared/add-block-panel';
-import { layers } from '../shared/icons';
+import { layers, rowsHandle } from '../shared/icons';
 import { useIsMobilePreview } from '../shared/use-device';
 import { sectionStyle } from './save';
 
@@ -135,12 +137,68 @@ export default function Edit( {
 		onClick: () => addItem( item ),
 	} ) );
 
+	// Dragging the handle on the bottom edge adds or removes rows.
+	const [ previewRows, setPreviewRows ] = useState( null );
+	const rowsKey = isMobile ? 'mobileRows' : 'rows';
+	const canResizeRows = ! isMobile || hasMobileLayout;
+	const minRows = Math.max( 1, isMobile ? mobileBottom : desktopBottom );
+	const startRowsDrag = ( event ) => {
+		if ( event.button !== 0 ) {
+			return;
+		}
+		event.preventDefault();
+		event.stopPropagation();
+		const handle = event.currentTarget;
+		const grid = handle
+			.closest( '.wp-block-sse-fluid-section__stage' )
+			?.querySelector( '.wp-block-sse-fluid-section__grid' );
+		if ( ! grid ) {
+			return;
+		}
+		const { rowStep } = readTracks( grid );
+		const start = attributes[ rowsKey ] || 1;
+		const y0 = event.clientY;
+		let latest = start;
+		const onMove = ( e ) => {
+			const next = Math.max(
+				minRows,
+				Math.min(
+					200,
+					start + Math.round( ( e.clientY - y0 ) / rowStep )
+				)
+			);
+			if ( next !== latest ) {
+				latest = next;
+				setPreviewRows( next );
+			}
+		};
+		const onUp = () => {
+			handle.removeEventListener( 'pointermove', onMove );
+			handle.removeEventListener( 'pointerup', onUp );
+			handle.removeEventListener( 'pointercancel', onUp );
+			setPreviewRows( null );
+			if ( latest !== start ) {
+				setAttributes( { [ rowsKey ]: latest } );
+			}
+		};
+		handle.setPointerCapture?.( event.pointerId );
+		handle.addEventListener( 'pointermove', onMove );
+		handle.addEventListener( 'pointerup', onUp );
+		handle.addEventListener( 'pointercancel', onUp );
+		setPreviewRows( start );
+	};
+
+	const shownAttributes =
+		previewRows === null
+			? attributes
+			: { ...attributes, [ rowsKey ]: previewRows };
+
 	const blockProps = useBlockProps( {
 		className: clsx( {
 			'has-mobile-layout': hasMobileLayout,
 			'is-sse-active': active,
 		} ),
-		style: sectionStyle( attributes ),
+		style: sectionStyle( shownAttributes ),
 	} );
 
 	const innerBlocksProps = useInnerBlocksProps(
@@ -148,9 +206,9 @@ export default function Edit( {
 		{ renderAppender: false, templateLock: false }
 	);
 
-	let overlayRows = rows;
+	let overlayRows = shownAttributes.rows;
 	if ( isMobile ) {
-		overlayRows = hasMobileLayout ? mobileRows : 0;
+		overlayRows = hasMobileLayout ? shownAttributes.mobileRows : 0;
 	}
 
 	return (
@@ -225,6 +283,40 @@ export default function Edit( {
 						<GridOverlay columns={ columns } rows={ overlayRows } />
 					) }
 					<div { ...innerBlocksProps } />
+					{ canResizeRows && (
+						<button
+							type="button"
+							className={ clsx( 'sse-rows-handle', {
+								'is-dragging': previewRows !== null,
+							} ) }
+							aria-label={ __(
+								'Drag to add or remove rows',
+								'squarespace-style-site-editor'
+							) }
+							title={ __(
+								'Drag to add or remove rows',
+								'squarespace-style-site-editor'
+							) }
+							onPointerDown={ startRowsDrag }
+							onKeyDown={ ( event ) => {
+								const delta = { ArrowUp: -1, ArrowDown: 1 }[
+									event.key
+								];
+								if ( delta ) {
+									event.preventDefault();
+									setAttributes( {
+										[ rowsKey ]: Math.max(
+											minRows,
+											( attributes[ rowsKey ] || 1 ) +
+												delta
+										),
+									} );
+								}
+							} }
+						>
+							<Icon icon={ rowsHandle } size={ 22 } />
+						</button>
+					) }
 				</div>
 				{
 					<div
@@ -244,33 +336,35 @@ export default function Edit( {
 								editorDispatch?.setIsListViewOpened?.( true );
 							} }
 						/>
-						<Dropdown
-							popoverProps={ {
-								placement: 'bottom-start',
-								className: 'sse-add-block-popover',
-							} }
-							renderToggle={ ( { isOpen, onToggle } ) => (
-								<Button
-									className="sse-fluid-bar__add"
-									icon={ plus }
-									onClick={ onToggle }
-									aria-expanded={ isOpen }
-								>
-									{ __(
-										'Add block',
-										'squarespace-style-site-editor'
-									) }
-								</Button>
-							) }
-							renderContent={ ( { onClose } ) => (
-								<AddBlockPanel
-									onAdd={ ( item ) => {
-										addItem( item );
-										onClose();
-									} }
-								/>
-							) }
-						/>
+						{ ! isMobile && (
+							<Dropdown
+								popoverProps={ {
+									placement: 'bottom-start',
+									className: 'sse-add-block-popover',
+								} }
+								renderToggle={ ( { isOpen, onToggle } ) => (
+									<Button
+										className="sse-fluid-bar__add"
+										icon={ plus }
+										onClick={ onToggle }
+										aria-expanded={ isOpen }
+									>
+										{ __(
+											'Add block',
+											'squarespace-style-site-editor'
+										) }
+									</Button>
+								) }
+								renderContent={ ( { onClose } ) => (
+									<AddBlockPanel
+										onAdd={ ( item ) => {
+											addItem( item );
+											onClose();
+										} }
+									/>
+								) }
+							/>
+						) }
 						{ isMobile && (
 							<span className="sse-fluid-bar__note">
 								{ hasMobileLayout

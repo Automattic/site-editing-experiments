@@ -19,3 +19,10 @@ export const minus = (
 		<Path d="M6 11.25h12v1.5H6z" />
 	</SVG>
 );
+
+// Up/down arrow with lines: drag to change a section's height in rows.
+export const rowsHandle = (
+	<SVG xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+		<Path d="M6 4.5 3 8h2.25v8H3l3 3.5L9 16H6.75V8H9L6 4.5ZM11 6h10v1.5H11V6Zm0 5.25h10v1.5H11v-1.5Zm0 5.25h10V18H11v-1.5Z" />
+	</SVG>
+);

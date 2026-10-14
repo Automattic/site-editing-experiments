@@ -28,7 +28,7 @@ return array(
 
 <!-- wp:sse/fluid-item {"layout":{"c":13,"r":6,"w":9,"h":4}} -->
 <div class="wp-block-sse-fluid-item" style="--sse-c:13;--sse-w:9;--sse-r:6;--sse-h:4;--sse-o:613"><div class="wp-block-sse-fluid-item__content"><!-- wp:paragraph -->
-<p>Drag any block by its handle, resize it from its edges, and let blocks overlap. Switch the preview to Mobile to arrange a separate mobile layout.</p>
+<p>Click a block and drag it anywhere, drag its edges to resize it, and click again to edit it. Blocks can overlap. Switch the preview to Mobile to arrange a separate mobile layout.</p>
 <!-- /wp:paragraph --></div></div>
 <!-- /wp:sse/fluid-item -->
 

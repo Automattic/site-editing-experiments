@@ -101,3 +101,46 @@ $sse-blue: #1071e5;
 .wp-block-sse-fluid-section:not(:has(.wp-block-sse-fluid-item)) .wp-block-sse-fluid-section__grid {
 	min-height: 240px;
 }
+
+// Bottom edge handle: drag to add or remove rows, as in Squarespace.
+.sse-rows-handle {
+	position: absolute;
+	right: 0;
+	bottom: -15px;
+	z-index: 6;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 36px;
+	height: 30px;
+	padding: 0;
+	border: 0;
+	border-radius: 3px;
+	background: $sse-blue;
+	color: #fff;
+	cursor: ns-resize;
+	touch-action: none;
+	visibility: hidden;
+	opacity: 0;
+
+	svg {
+		fill: currentcolor;
+	}
+
+	.wp-block-sse-fluid-section:hover &,
+	.wp-block-sse-fluid-section.is-sse-active &,
+	&.is-dragging,
+	&:focus-visible {
+		visibility: visible;
+		opacity: 1;
+	}
+
+	&:focus-visible {
+		outline: 2px solid #fff;
+		box-shadow: 0 0 0 4px $sse-blue;
+	}
+}
+
+.wp-block-sse-fluid-section__stage:has(.sse-rows-handle.is-dragging) > .wp-block-sse-fluid-section__overlay {
+	opacity: 1;
+}

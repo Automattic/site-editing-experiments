@@ -29,6 +29,7 @@ import {
 
 import { STORE_NAME } from './store';
 import { heart } from '../shared/icons';
+import { useIsMobilePreview } from '../shared/use-device';
 import {
 	getSectionThemes,
 	getThemeFromClassName,
@@ -198,7 +199,10 @@ function SectionMenu( { clientId, info } ) {
 	);
 	const sectionPatterns = useSectionPatterns();
 	const category = categoryForSection( info.attributes, sectionPatterns );
+	const isMobile = useIsMobilePreview();
+	// Layouts are a desktop decision; on mobile you arrange, not redesign.
 	const hasLayouts =
+		! isMobile &&
 		info.canEdit &&
 		category &&
 		sectionPatterns.categories[ category ]?.patterns.length > 1;

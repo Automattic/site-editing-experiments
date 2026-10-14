@@ -1,0 +1,245 @@
+// Section chrome inside the editor canvas: outline, name tab, toolbar and
+// "Add section" lines. Each section gets a zero-height anchor element just
+// before it, so none of this changes the page's layout.
+
+$sse-blue: #3858e9;
+$sse-ink: #1a1a1a;
+$sse-font: -apple-system, blinkmacsystemfont, "Segoe UI", roboto, "Helvetica Neue", sans-serif;
+
+.sse-section-anchor {
+	position: relative;
+	z-index: 30;
+	height: 0;
+	width: auto !important;
+	max-width: none !important;
+	margin: 0 !important;
+	padding: 0 !important;
+	pointer-events: none;
+	font-family: $sse-font;
+	font-size: 13px;
+	line-height: 1.4;
+	letter-spacing: normal;
+	text-transform: none;
+
+	> * {
+		pointer-events: auto;
+	}
+}
+
+// Line up with full-width sections inside padded containers.
+.has-global-padding > .sse-section-anchor {
+	margin-inline: calc(var(--wp--style--root--padding-left, 0px) * -1) calc(var(--wp--style--root--padding-right, 0px) * -1) !important;
+}
+
+// Coloured sections sit flush, with the anchor between them in the editor.
+[class*="is-style-sse-"] + .sse-section-anchor + [class*="is-style-sse-"] {
+	margin-block-start: 0 !important;
+}
+
+// The anchor is now the first child, so keep the first section flush.
+.sse-section-anchor:first-child + .sse-section {
+	margin-block-start: 0 !important;
+}
+
+.sse-section:hover {
+	outline: 2px solid $sse-blue;
+	outline-offset: -2px;
+}
+
+// Hidden until the section (or the chrome itself) is hovered or selected.
+.sse-add-section,
+.sse-section-tab,
+.sse-section-toolbar {
+	visibility: hidden;
+	opacity: 0;
+	transition: opacity 0.12s ease, visibility 0s linear 0.12s;
+}
+
+@mixin sse-shown {
+	visibility: visible;
+	opacity: 1;
+	transition: opacity 0.12s ease;
+}
+
+.sse-section-anchor:has(+ .sse-section:hover),
+.sse-section-anchor:has(+ .sse-section.is-selected),
+.sse-section-anchor:has(+ .sse-section.has-child-selected),
+.sse-section-anchor:has(.sse-section-toolbar:hover),
+.sse-section-anchor:has(.sse-section-toolbar:focus-within),
+.sse-section-anchor:has(.sse-section-tab:hover) {
+
+	.sse-section-tab,
+	.sse-section-toolbar,
+	.sse-add-section {
+
+		@include sse-shown;
+	}
+}
+
+// The bottom edge of a hovered section is the next anchor's top line.
+.sse-section:hover + .sse-section-anchor .sse-add-section,
+.sse-section-anchor .sse-add-section:hover,
+.sse-section-anchor .sse-add-section:focus-within,
+.sse-section-anchor.is-empty-page .sse-add-section {
+
+	@include sse-shown;
+}
+
+// "Add section": a blue line across the edge with a pill in the middle.
+.sse-add-section {
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: 0;
+	display: flex;
+	justify-content: center;
+	pointer-events: none;
+
+	&::before {
+		content: "";
+		position: absolute;
+		left: 0;
+		right: 0;
+		top: -1px;
+		height: 2px;
+		background: $sse-blue;
+	}
+}
+
+.sse-add-section__button {
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	height: 32px;
+	padding: 0 14px 0 10px;
+	transform: translateY(-50%);
+	border: 0;
+	border-radius: 16px;
+	background: $sse-blue;
+	color: #fff;
+	font: 600 13px/1 $sse-font;
+	cursor: pointer;
+	pointer-events: auto;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+
+	svg {
+		fill: currentcolor;
+	}
+
+	&:hover {
+		background: #2a47cc;
+	}
+
+	&:focus-visible {
+		outline: 2px solid #fff;
+		box-shadow: 0 0 0 4px $sse-blue;
+	}
+
+	.sse-section-anchor:first-child & {
+		transform: translateY(8px);
+	}
+}
+
+.sse-section-anchor.is-empty-page {
+	height: auto;
+	padding-block: 48px !important;
+
+	.sse-add-section {
+		position: static;
+		height: auto;
+
+		&::before {
+			display: none;
+		}
+	}
+
+	.sse-add-section__button {
+		transform: none;
+		height: 44px;
+		padding-inline: 16px 20px;
+		border-radius: 22px;
+		font-size: 15px;
+	}
+}
+
+// The section's name, in a tab at its top-left corner.
+.sse-section-tab {
+	position: absolute;
+	top: 0;
+	left: 0;
+	padding: 4px 10px;
+	border-radius: 0 0 6px 0;
+	background: $sse-blue;
+	color: #fff;
+	font-weight: 600;
+	font-size: 12px;
+	white-space: nowrap;
+	max-width: 60%;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+// Edit, Colours, up, down, duplicate, delete.
+.sse-section-toolbar {
+	position: absolute;
+	top: 12px;
+	right: 12px;
+	display: flex;
+	align-items: center;
+	gap: 2px;
+	padding: 4px;
+	border-radius: 10px;
+	background: #fff;
+	color: $sse-ink;
+	box-shadow: 0 2px 12px rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(0, 0, 0, 0.06);
+}
+
+.sse-section-toolbar__edit,
+.sse-section-toolbar__button {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	height: 32px;
+	border: 0;
+	border-radius: 7px;
+	background: transparent;
+	color: inherit;
+	font: 600 13px/1 $sse-font;
+	cursor: pointer;
+
+	svg {
+		fill: currentcolor;
+	}
+
+	&:hover:not(:disabled) {
+		background: #f0f0f0;
+	}
+
+	&:focus-visible {
+		outline: 2px solid $sse-blue;
+		outline-offset: -2px;
+	}
+
+	&:disabled {
+		opacity: 0.3;
+		cursor: default;
+	}
+}
+
+.sse-section-toolbar__edit {
+	gap: 6px;
+	padding: 0 12px 0 8px;
+	background: $sse-ink;
+	color: #fff;
+	margin-right: 4px;
+
+	&:hover:not(:disabled) {
+		background: #000;
+	}
+}
+
+.sse-section-toolbar__button {
+	width: 32px;
+}

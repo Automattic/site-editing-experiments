@@ -1,0 +1,40 @@
+{
+	"name": "squarespace-style-site-editor",
+	"version": "0.1.0",
+	"private": true,
+	"description": "An experiment that makes the WordPress site editor look and work like the Squarespace editor.",
+	"license": "GPL-2.0-or-later",
+	"scripts": {
+		"build": "wp-scripts build",
+		"start": "wp-scripts start",
+		"lint:js": "wp-scripts lint-js src test",
+		"lint:css": "wp-scripts lint-style \"src/**/*.scss\"",
+		"test": "wp-scripts test-unit-js",
+		"plugin-zip": "wp-scripts plugin-zip"
+	},
+	"files": [
+		"build",
+		"inc",
+		"patterns",
+		"assets",
+		"squarespace-style-site-editor.php",
+		"README.md"
+	],
+	"devDependencies": {
+		"@wordpress/block-editor": "^18.1.0",
+		"@wordpress/block-library": "^11.2.0",
+		"@wordpress/blocks": "^16.2.0",
+		"@wordpress/components": "^42.0.0",
+		"@wordpress/data": "^10.57.0",
+		"@wordpress/element": "^9.0.0",
+		"@wordpress/i18n": "^6.30.0",
+		"@wordpress/scripts": "^36.1.0",
+		"jsdom": "^29.1.1",
+		"vite": "^8.3.4",
+		"vitest": "^5.0.4"
+	},
+	"dependencies": {
+		"@wordpress/icons": "^18.0.0",
+		"clsx": "^2.1.1"
+	}
+}

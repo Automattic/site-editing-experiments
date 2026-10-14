@@ -1,0 +1,165 @@
+$sse-blue: #3858e9;
+$sse-pink: #e93888;
+
+.wp-block-sse-fluid-item {
+	// Empty items still need something to click.
+	&:has(> .wp-block-sse-fluid-item__content > .block-list-appender:only-child) {
+		outline: 1px dashed rgba(0, 0, 0, 0.25);
+	}
+
+	.wp-block-sse-fluid-item__content > .block-list-appender {
+		margin: auto;
+		position: static;
+	}
+
+	&:hover,
+	&.is-selected,
+	&.has-child-selected,
+	&.is-sse-gesture {
+		outline: 1px solid $sse-blue;
+		outline-offset: 0;
+	}
+
+	&.is-sse-gesture {
+		outline-color: $sse-pink;
+		cursor: grabbing;
+		user-select: none;
+		box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+	}
+}
+
+.sse-fe-controls {
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+	opacity: 0;
+	transition: opacity 0.12s ease;
+
+	.wp-block-sse-fluid-item:hover > &,
+	.wp-block-sse-fluid-item.is-selected > &,
+	.wp-block-sse-fluid-item.has-child-selected > &,
+	.wp-block-sse-fluid-item.is-sse-gesture > & {
+		opacity: 1;
+	}
+}
+
+.sse-fe-move {
+	position: absolute;
+	top: -14px;
+	left: 50%;
+	transform: translateX(-50%);
+	width: 36px;
+	height: 22px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 0;
+	border: 0;
+	border-radius: 11px;
+	background: $sse-blue;
+	color: #fff;
+	cursor: grab;
+	pointer-events: auto;
+	touch-action: none;
+	z-index: 2;
+
+	svg {
+		fill: currentcolor;
+		transform: rotate(90deg);
+	}
+
+	&:focus-visible {
+		outline: 2px solid #fff;
+		box-shadow: 0 0 0 4px $sse-blue;
+	}
+
+	.is-sse-gesture & {
+		background: $sse-pink;
+		cursor: grabbing;
+	}
+}
+
+.sse-fe-resize {
+	position: absolute;
+	width: 10px;
+	height: 10px;
+	background: #fff;
+	border: 1.5px solid $sse-blue;
+	border-radius: 50%;
+	box-sizing: border-box;
+	pointer-events: auto;
+	touch-action: none;
+	z-index: 2;
+
+	.wp-block-sse-fluid-item:not(.is-selected):not(.has-child-selected):not(.is-sse-gesture) & {
+		display: none;
+	}
+
+	&.is-n,
+	&.is-s {
+		left: 50%;
+		margin-left: -5px;
+		cursor: ns-resize;
+	}
+
+	&.is-e,
+	&.is-w {
+		top: 50%;
+		margin-top: -5px;
+		cursor: ew-resize;
+	}
+
+	&.is-n {
+		top: -5px;
+		display: none;
+	}
+
+	&.is-s {
+		bottom: -5px;
+	}
+
+	&.is-e {
+		right: -5px;
+	}
+
+	&.is-w {
+		left: -5px;
+	}
+
+	&.is-ne {
+		top: -5px;
+		right: -5px;
+		cursor: nesw-resize;
+	}
+
+	&.is-nw {
+		top: -5px;
+		left: -5px;
+		cursor: nwse-resize;
+	}
+
+	&.is-se {
+		bottom: -5px;
+		right: -5px;
+		cursor: nwse-resize;
+	}
+
+	&.is-sw {
+		bottom: -5px;
+		left: -5px;
+		cursor: nesw-resize;
+	}
+}
+
+.sse-fe-size {
+	position: absolute;
+	bottom: 8px;
+	right: 8px;
+	padding: 2px 8px;
+	border-radius: 4px;
+	background: $sse-pink;
+	color: #fff;
+	font: 600 11px/18px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+	pointer-events: none;
+}
+

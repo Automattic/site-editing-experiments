@@ -910,6 +910,22 @@
     pickerTarget = null;
   }
 
+  // In Edit layout, a click anywhere except the layouts panel and the layout tools leaves the mode,
+  // back to the normal hover overlay. That click does nothing else.
+  document.addEventListener('click', function (e) {
+    if (state.mode !== 'layout' || !state.active) return;
+    var sec = document.querySelector('.sec[data-section="' + state.active + '"]');
+    if (!sec) return;
+    var t = e.target;
+    if (sec._lp.contains(t) || t.closest('.tb') || t.closest('.xbtn') || t.closest('#reset-all') || t.closest('.toast')) return;
+    e.preventDefault();
+    e.stopPropagation();
+    state.active = null;
+    state.mode = null;
+    state.selected = null;
+    render();
+  }, true);
+
   function closeAddMenus() {
     document.querySelectorAll('.addwrap.open').forEach(function (w) {
       w.classList.remove('open');

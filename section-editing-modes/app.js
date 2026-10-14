@@ -30,6 +30,31 @@
       { id: 'center', label: 'Centered', rects: [[6, 8, 60, 32, PN], [20, 14, 32, 5, TX], [24, 22, 24, 3, SB], [30, 29, 12, 6, AC]] },
       { id: 'split', label: 'Split', rects: [[6, 8, 60, 32, PN], [12, 17, 28, 5, TX], [12, 25, 22, 3, SB], [46, 20, 14, 8, AC]] },
       { id: 'banner', label: 'Dark banner', rects: [[6, 8, 60, 32, '#0E0E0E'], [12, 17, 28, 5, TX], [12, 25, 22, 3, SB], [46, 20, 14, 8, '#F4F2EE']] }
+    ],
+    text: [
+      { id: 'left', label: 'Single column', rects: [[8, 7, 30, 5, TX], [8, 17, 44, 3, SB], [8, 22, 40, 3, SB], [8, 27, 44, 3, SB], [8, 35, 36, 3, SB]] },
+      { id: 'center', label: 'Centered', rects: [[21, 7, 30, 5, TX], [14, 17, 44, 3, SB], [16, 22, 40, 3, SB], [14, 27, 44, 3, SB], [18, 35, 36, 3, SB]] },
+      { id: 'two', label: 'Two columns', rects: [[6, 9, 22, 5, TX], [6, 16, 16, 5, TX], [34, 9, 32, 3, SB], [34, 14, 30, 3, SB], [34, 19, 32, 3, SB], [34, 27, 28, 3, SB], [34, 32, 32, 3, SB]] }
+    ],
+    image: [
+      { id: 'wide', label: 'Contained', rects: [[8, 6, 56, 28, IG], [8, 38, 26, 3, SB]] },
+      { id: 'full', label: 'Full width', rects: [[0, 6, 72, 30, IG], [8, 40, 26, 3, SB]] },
+      { id: 'side', label: 'With caption', rects: [[6, 8, 40, 32, IG], [50, 16, 16, 3, SB], [50, 21, 14, 3, SB], [50, 26, 16, 3, SB]] }
+    ],
+    gallery: [
+      { id: 'grid3', label: 'Three across', rects: [[6, 5, 26, 4, TX], [6, 13, 18, 13, IG], [27, 13, 18, 13, IG], [48, 13, 18, 13, IG], [6, 29, 18, 13, IG], [27, 29, 18, 13, IG], [48, 29, 18, 13, IG]] },
+      { id: 'grid2', label: 'Two across', rects: [[6, 5, 26, 4, TX], [6, 13, 29, 13, IG], [38, 13, 28, 13, IG], [6, 29, 29, 13, IG], [38, 29, 28, 13, IG]] },
+      { id: 'mosaic', label: 'Mosaic', rects: [[6, 5, 26, 4, TX], [6, 13, 39, 29, IG], [48, 13, 18, 13, IG], [48, 29, 18, 13, IG]] }
+    ],
+    quote: [
+      { id: 'center', label: 'Centered', rects: [[10, 10, 52, 5, TX], [14, 18, 44, 5, TX], [26, 30, 20, 3, SB]] },
+      { id: 'left', label: 'Left aligned', rects: [[8, 10, 52, 5, TX], [8, 18, 40, 5, TX], [8, 30, 20, 3, SB]] },
+      { id: 'dark', label: 'Dark band', rects: [[0, 4, 72, 40, '#0E0E0E'], [10, 13, 52, 5, TX], [14, 21, 44, 5, TX], [26, 32, 20, 3, SB]] }
+    ],
+    contact: [
+      { id: 'split', label: 'Split', rects: [[7, 9, 24, 5, TX], [7, 18, 22, 3, SB], [7, 23, 18, 3, SB], [7, 31, 14, 5, AC], [38, 8, 28, 32, IG]] },
+      { id: 'stacked', label: 'Stacked', rects: [[22, 4, 28, 5, TX], [20, 12, 32, 3, SB], [30, 17, 12, 4, AC], [8, 25, 56, 18, IG]] },
+      { id: 'card', label: 'Card', rects: [[0, 0, 72, 48, IG], [8, 10, 30, 28, '#2A2A2A'], [12, 15, 20, 4, TX], [12, 22, 18, 3, SB], [12, 29, 12, 4, AC]] }
     ]
   };
 
@@ -61,6 +86,28 @@
       { type: 'heading', label: 'Heading', into: '.cta-text' },
       { type: 'paragraph', label: 'Paragraph', into: '.cta-text' },
       { type: 'button', label: 'Button', into: '.cta-panel', btnClass: 'btn cta-btn' }
+    ],
+    text: [
+      { type: 'heading', label: 'Heading', into: '.text-body' },
+      { type: 'paragraph', label: 'Paragraph', into: '.text-body' },
+      { type: 'button', label: 'Button', into: '.text-body' }
+    ],
+    image: [
+      { type: 'paragraph', label: 'Paragraph', into: '.image-text' },
+      { type: 'button', label: 'Button', into: '.image-text' }
+    ],
+    gallery: [
+      { type: 'image', label: 'Image', into: '.gal-grid', imgClass: 'gal-img' },
+      { type: 'paragraph', label: 'Paragraph', before: '.gal-grid' }
+    ],
+    quote: [
+      { type: 'paragraph', label: 'Paragraph', into: '.quote-fig' },
+      { type: 'button', label: 'Button', into: '.quote-fig' }
+    ],
+    contact: [
+      { type: 'heading', label: 'Heading', into: '.contact-text' },
+      { type: 'paragraph', label: 'Paragraph', into: '.contact-text' },
+      { type: 'button', label: 'Button', into: '.contact-text' }
     ]
   };
 
@@ -74,7 +121,7 @@
       case 'button':
         return '<a href="#" class="' + (opts.btnClass || 'btn') + '"' + d + ' data-resize="text" data-text>New button</a>';
       case 'image':
-        return '<div class="media added-img"' + d + ' data-resize="box"><img data-img="' + key + 'i" alt="" draggable="false">' +
+        return '<div class="media ' + (opts.imgClass || 'added-img') + '"' + d + ' data-resize="box"><img data-img="' + key + 'i" alt="" draggable="false">' +
           '<button class="rep" data-act="replace" data-key="' + key + 'i">Replace image</button></div>';
       case 'card':
         return '<article class="card"' + d + ' data-resize="box"><div class="media card-img"><img data-img="' + key + 'i" alt="" draggable="false">' +
@@ -113,8 +160,9 @@
     return Array.prototype.slice.call(document.querySelectorAll('.sec'));
   }
 
-  var DEFAULT_LAYOUT = { hero: 'split', features: 'cols', cta: 'center' };
-  var TITLES = { hero: 'Hero section', features: 'Features section', cta: 'Call to action' };
+  var DEFAULT_LAYOUT = { hero: 'split', features: 'cols', cta: 'center', text: 'left', image: 'wide', gallery: 'grid3', quote: 'center', contact: 'split' };
+  var TITLES = { hero: 'Hero section', features: 'Features section', cta: 'Call to action', text: 'Text section', image: 'Image section', gallery: 'Gallery section', quote: 'Quote section', contact: 'Contact section' };
+  var SECTION_TYPES = ['hero', 'features', 'cta', 'text', 'image', 'gallery', 'quote', 'contact'];
 
   function layoutOf(sec) {
     return state.layout[sec.dataset.section] || DEFAULT_LAYOUT[sec.dataset.type];
@@ -588,6 +636,35 @@
         card(3, 'Third item', 'A short description of the third item.') +
         '</div></div></section>';
     }
+    if (type === 'text') {
+      return open + '<div class="inner text-inner"><h2' + drag('head', 'text') + ' data-text>Our story</h2><div class="text-body">' +
+        '<p' + drag('p1', 'text') + ' data-text>Use this section for a longer piece of writing: the story behind the studio, how the work is made, or anything that needs more than a line or two.</p>' +
+        '<p' + drag('p2', 'text') + ' data-text>Add more paragraphs, headings or a button from Edit layout, and change the words in Edit content.</p>' +
+        '</div></div></section>';
+    }
+    if (type === 'image') {
+      return open + '<div class="inner image-inner"><div class="media banner-img"' + drag('img', 'box') + '>' + img('img') + '</div>' +
+        '<div class="image-text"><p class="caption"' + drag('cap', 'text') + ' data-text>A short caption that describes the photo.</p></div></div></section>';
+    }
+    if (type === 'gallery') {
+      var tiles = '';
+      for (var g = 1; g <= 6; g++) tiles += '<div class="media gal-img"' + drag('g' + g, 'box') + '>' + img('g' + g + 'i') + '</div>';
+      return open + '<div class="inner gallery-inner"><h2' + drag('head', 'text') + ' data-text>From the studio</h2>' +
+        '<div class="gal-grid">' + tiles + '</div></div></section>';
+    }
+    if (type === 'quote') {
+      return open + '<div class="inner quote-inner"><figure class="quote-fig">' +
+        '<blockquote' + drag('q', 'text') + ' data-text>\u201cA sentence someone said about the work goes here. Replace it with a real quote.\u201d</blockquote>' +
+        '<figcaption' + drag('who', 'text') + ' data-text>[Name], [where they\u2019re from]</figcaption></figure></div></section>';
+    }
+    if (type === 'contact') {
+      return open + '<div class="inner contact-inner"><div class="contact-text">' +
+        '<h2' + drag('head', 'text') + ' data-text>Find the studio</h2>' +
+        '<p' + drag('addr', 'text') + ' data-text>[Street address], [Town], [Postcode]</p>' +
+        '<p' + drag('hours', 'text') + ' data-text>Open [days], [opening hours]</p>' +
+        '<a href="#" class="btn"' + drag('btn', 'text') + ' data-text>Get directions</a></div>' +
+        '<div class="media contact-img"' + drag('img', 'box') + '>' + img('img') + '</div></div></section>';
+    }
     return open + '<div class="inner cta-inner"><div class="cta-panel"><div class="cta-text">' +
       '<h2' + drag('title', 'text') + ' data-text>A new call to action</h2>' +
       '<p class="cta-sub"' + drag('body', 'text') + ' data-text>One line that tells people why they should act now.</p></div>' +
@@ -679,7 +756,7 @@
   picker.setAttribute('role', 'dialog');
   picker.setAttribute('aria-label', 'Add a section');
   picker.innerHTML = '<span class="pickh">Choose a section to add here</span><div class="picko">' +
-    ['hero', 'features', 'cta'].map(function (t) {
+    SECTION_TYPES.map(function (t) {
       var rects = LAYOUTS[t][0].rects.map(function (r) {
         return '<span style="left:' + r[0] + 'px;top:' + r[1] + 'px;width:' + r[2] + 'px;height:' + r[3] + 'px;background:' + r[4] + '"></span>';
       }).join('');

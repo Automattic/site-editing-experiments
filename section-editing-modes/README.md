@@ -11,7 +11,7 @@ A clickable mockup exploring three ways to edit a section of a page. Hover any s
 
 ## Adding and arranging sections
 
-- **Add a section:** hover a section and click one of the **Add section** buttons on its top or bottom edge. A space opens between the sections with a picker for a Hero, Features or Call to action section; **Cancel** closes it again. New sections start with placeholder copy and photos, and work with every editing mode.
+- **Add a section:** hover a section and click one of the **Add section** buttons on its top or bottom edge. A space opens between the sections with a picker of eight section types: Hero, Features, Call to action, Text, Image, Gallery, Quote and Contact; **Cancel** closes it again. New sections start with placeholder copy and photos, and work with every editing mode.
 - **Move a section:** hover it and use the up and down arrows in its top-right corner, or drag it by the grip. A blue line shows where it will land.
 - **Delete a section:** use the bin in the same corner. A message at the bottom of the page lets you undo it.
 
@@ -24,6 +24,11 @@ Only one section is in a mode at a time. **Done** leaves the mode, and **Reset e
 | Hero | Split, Centered, Image left |
 | Features | Three columns, Stacked list, Featured + two |
 | Call to action | Centered, Split, Dark banner |
+| Text | Single column, Centered, Two columns |
+| Image | Contained, Full width, With caption |
+| Gallery | Three across, Two across, Mosaic |
+| Quote | Centered, Left aligned, Dark band |
+| Contact | Split, Stacked, Card |
 
 ## Running it
 

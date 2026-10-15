@@ -237,22 +237,92 @@ function sse_divider_shapes() {
  * @return string
  */
 function sse_divider_css() {
-	$css = '[class*="sse-divider-"]{--sse-div-h:clamp(2.5rem,6vw,5rem);position:relative;z-index:1;margin-block-end:calc(-1 * var(--sse-div-h)) !important;padding-block-end:calc(var(--wp--custom--sse--section-padding,5rem) + var(--sse-div-h)) !important;-webkit-mask:linear-gradient(#000 0 0) top/100% calc(100% - var(--sse-div-h) + 1px) no-repeat,var(--sse-div-shape) bottom/100% var(--sse-div-h) no-repeat;mask:linear-gradient(#000 0 0) top/100% calc(100% - var(--sse-div-h) + 1px) no-repeat,var(--sse-div-shape) bottom/100% var(--sse-div-h) no-repeat;}';
+	// The shape is the second mask layer: centred, moved by the offset,
+	// sized by the width and repeated sideways, so widths under 100% make a
+	// row of shapes and wider ones show a gentler part of a single shape.
+	$shape_layer = 'var(--sse-div-shape) calc(50% + var(--sse-div-x,0vw)) 100%/var(--sse-div-w,100%) var(--sse-div-h) repeat-x';
+	$mask        = 'linear-gradient(#000 0 0) top/100% calc(100% - var(--sse-div-h) + 1px) no-repeat,' . $shape_layer;
+
+	$css  = '[class*="sse-divider-"]{--sse-div-h:clamp(2.5rem,6vw,5rem);position:relative;z-index:1;margin-block-end:calc(-1 * var(--sse-div-h)) !important;padding-block-end:calc(var(--wp--custom--sse--section-padding,5rem) + var(--sse-div-h)) !important;-webkit-mask:' . $mask . ';mask:' . $mask . ';}';
+	// A divider overlaps the next section, so it has to sit above it, even
+	// when the next section has a divider of its own: earlier sections
+	// stack higher.
+	for ( $n = 2; $n <= 40; $n++ ) {
+		$css .= sprintf( '[class*="sse-divider-"]:nth-last-child(%1$d){z-index:%1$d;}', $n );
+	}
 	$css .= '.sse-divider-s{--sse-div-h:clamp(1.25rem,3vw,2.5rem);}';
 	$css .= '.sse-divider-l{--sse-div-h:clamp(4rem,10vw,8rem);}';
+	foreach ( sse_divider_widths() as $width ) {
+		$css .= sprintf( '.sse-divider-w-%1$d{--sse-div-w:%1$d%%;}', $width );
+	}
+	foreach ( sse_divider_offsets() as $offset ) {
+		if ( 0 !== $offset ) {
+			$css .= sprintf( '.sse-divider-x-%1$s{--sse-div-x:%2$dvw;}', $offset < 0 ? 'm' . abs( $offset ) : $offset, $offset );
+		}
+	}
+	// The stroke: a line along the shape's edge, in the section's link
+	// colour, drawn as a mask over a pseudo-element so it can be any colour.
+	$edge_layer = 'var(--sse-div-edge) calc(50% + var(--sse-div-x,0vw)) 100%/var(--sse-div-w,100%) 100% repeat-x';
+	$css       .= '[class*="sse-divider-stroke-"]::before{content:"";position:absolute;inset:auto 0 0;height:var(--sse-div-h);background:var(--sse-link,currentColor);pointer-events:none;-webkit-mask:' . $edge_layer . ';mask:' . $edge_layer . ';}';
 	// The next section's content stays clear of the overlap.
 	$css .= '[class*="sse-divider-"]+*{padding-block-start:calc(var(--wp--custom--sse--section-padding,5rem) + var(--sse-div-h,0px));}';
+
+	$flips = array(
+		''                  => '',
+		'.sse-divider-flip' => '<g transform="translate(100 0) scale(-1 1)">',
+	);
 	foreach ( sse_divider_shapes() as $slug => $shape ) {
-		foreach ( array( '' => '', '.sse-divider-flip' => '<g transform="translate(100 0) scale(-1 1)">' ) as $selector => $group ) {
-			$svg  = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="none">';
-			$svg .= $group . '<path d="' . $shape[1] . '"/>' . ( $group ? '</g>' : '' ) . '</svg>';
-			$css .= sprintf(
+		foreach ( $flips as $selector => $group ) {
+			$open  = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="none">' . $group;
+			$close = ( $group ? '</g>' : '' ) . '</svg>';
+			$css  .= sprintf(
 				'.sse-divider-%1$s%2$s{--sse-div-shape:url("data:image/svg+xml,%3$s");}',
 				$slug,
 				$selector,
-				rawurlencode( $svg )
+				rawurlencode( $open . '<path d="' . $shape[1] . '"/>' . $close )
 			);
+			foreach ( array( 1 => 3, 2 => 7 ) as $stroke => $px ) {
+				$css .= sprintf(
+					'.sse-divider-%1$s%2$s.sse-divider-stroke-%3$d{--sse-div-edge:url("data:image/svg+xml,%4$s");}',
+					$slug,
+					$selector,
+					$stroke,
+					rawurlencode( $open . '<path d="' . sse_divider_edge( $shape[1] ) . '" fill="none" stroke="#000" stroke-width="' . $px . '" vector-effect="non-scaling-stroke"/>' . $close )
+				);
+			}
 		}
 	}
 	return $css;
+}
+
+/**
+ * The edge of a divider shape: its outline without the straight top and
+ * sides, which is where a stroke goes.
+ *
+ * @param string $path A shape path, as in sse_divider_shapes().
+ * @return string
+ */
+function sse_divider_edge( $path ) {
+	if ( preg_match( '/^M0 0H100V(-?[\d.]+)(.*)Z$/', $path, $m ) ) {
+		return 'M100 ' . $m[1] . $m[2];
+	}
+	return $path;
+}
+
+/**
+ * Divider widths offered, as a percentage of the section's width.
+ *
+ * @return int[]
+ */
+function sse_divider_widths() {
+	return array( 25, 50, 75, 100, 150, 200, 300 );
+}
+
+/**
+ * Divider offsets offered, in steps of the viewport width.
+ *
+ * @return int[]
+ */
+function sse_divider_offsets() {
+	return range( -50, 50, 10 );
 }

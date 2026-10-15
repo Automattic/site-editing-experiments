@@ -51,7 +51,7 @@ Inserted sections are named after their type, so their tag reads "Intro" rather 
 
 A panel beside the section's menu with three tabs:
 
-- **Design:** row count and gap (freeform sections), Fill screen, Full width, Inset (the background as a rounded panel in from the page edges), Section height (S, M, L), a **Divider** (seven shapes for the section's bottom edge, three heights, flip) and an anchor link name.
+- **Design:** row count and gap (freeform sections), Fill screen, Full width, Inset (the background as a rounded panel in from the page edges), Section height (S, M, L), a **Divider** (seven shapes for the section's bottom edge, three heights, a width that repeats the shape when narrow or stretches it when wide, a sideways offset, flip, and a thin or thick stroke along the edge in the section's link colour) and an anchor link name.
 - **Background:** **Image** (add, replace or remove a background image), **Video** (a looping background video under an overlay in the section's own colour, with an Overlay slider) or **Art**: six gradient backgrounds built from the section's colour theme, so they change with the palette. Core's Group can't play a video, so a section becomes a Cover block while it has one and goes back to a Group when the video is removed, keeping its colour theme, divider, anchor and spacing.
 - **Colors:** the section's colour theme, one row per theme, each drawn in its own colours.
 
@@ -150,7 +150,7 @@ Set the `sse_load_editor_ui` filter to true to load the editor UI on other scree
 ## Known gaps
 
 - The editor look is CSS over core class names, and Save, Exit and the device switch are placed into core's top bar markup, so they may need adjusting as the site editor changes.
-- Squarespace's "Edit section" also offers divider width, offset and stroke; this doesn't.
+- Divider strokes take the section's link colour; Squarespace also lets you pick the stroke's colour and dash.
 - When a page is shown in its template, core keeps the header's outer wrapper locked, so editing the header there edits what's inside it (title, navigation, buttons); its layout and colours are changed from Edit design.
 - Fonts in Site Styles preview in the editor's own font until the theme's font faces have loaded.
 - Freeform items grow taller than their rows if their text doesn't fit, rather than clipping.

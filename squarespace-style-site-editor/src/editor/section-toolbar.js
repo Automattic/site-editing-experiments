@@ -23,10 +23,12 @@ export default function SectionToolbarVisibility() {
 		}
 		const [ id ] = ids;
 		const name = be.getBlockName( id );
-		if ( name === 'sse/fluid-section' ) {
+		// Post Content gets selected by clicking around a page shown in its
+		// template; its toolbar has nothing for someone editing sections.
+		if ( name === 'sse/fluid-section' || name === 'core/post-content' ) {
 			return true;
 		}
-		if ( name === 'core/post-content' || name === 'core/template-part' ) {
+		if ( name === 'core/template-part' ) {
 			return false;
 		}
 		const root = be.getBlockRootClientId( id );

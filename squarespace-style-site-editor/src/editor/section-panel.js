@@ -48,6 +48,10 @@ import { hasVideoBackground, withVideo, withoutVideo } from './video-section';
 
 const FLUID = 'sse/fluid-section';
 
+// The divider widths the plugin's CSS has classes for (see
+// sse_divider_widths() in PHP).
+const DIVIDER_WIDTHS = [ 25, 50, 75, 100, 150, 200, 300 ];
+
 const SPACING = {
 	small: 'clamp(2rem, 4vw, 3rem)',
 	large: 'clamp(6rem, 12vw, 10rem)',
@@ -118,6 +122,17 @@ function Segmented( { label, value, options, onChange } ) {
 					</button>
 				) ) }
 			</div>
+		</div>
+	);
+}
+
+// A slider's name and value on one line above it, as Squarespace lays out
+// its sliders.
+function SliderRow( { label, value } ) {
+	return (
+		<div className="sse-panel__row is-slider" aria-hidden="true">
+			<span>{ label }</span>
+			<span className="sse-panel__value">{ value }</span>
 		</div>
 	);
 }
@@ -217,11 +232,84 @@ function DividerControls( { className, onChange } ) {
 						] }
 						onChange={ ( size ) => update( { size } ) }
 					/>
+					<SliderRow
+						label={ __( 'Width', 'squarespace-style-site-editor' ) }
+						value={ `${ divider.width }%` }
+					/>
+					<RangeControl
+						__nextHasNoMarginBottom
+						__next40pxDefaultSize
+						hideLabelFromVision
+						label={ __( 'Width', 'squarespace-style-site-editor' ) }
+						value={ Math.max(
+							0,
+							DIVIDER_WIDTHS.indexOf( divider.width )
+						) }
+						min={ 0 }
+						max={ DIVIDER_WIDTHS.length - 1 }
+						step={ 1 }
+						withInputField={ false }
+						renderTooltipContent={ ( index ) =>
+							`${ DIVIDER_WIDTHS[ index ] }%`
+						}
+						onChange={ ( index ) =>
+							update( {
+								width: DIVIDER_WIDTHS[ index ?? 3 ] ?? 100,
+							} )
+						}
+					/>
+					<SliderRow
+						label={ __(
+							'Offset',
+							'squarespace-style-site-editor'
+						) }
+						value={ `${ divider.offset }%` }
+					/>
+					<RangeControl
+						__nextHasNoMarginBottom
+						__next40pxDefaultSize
+						hideLabelFromVision
+						label={ __(
+							'Offset',
+							'squarespace-style-site-editor'
+						) }
+						value={ divider.offset }
+						min={ -50 }
+						max={ 50 }
+						step={ 10 }
+						withInputField={ false }
+						renderTooltipContent={ ( value ) => `${ value }%` }
+						onChange={ ( offset ) =>
+							update( { offset: offset ?? 0 } )
+						}
+					/>
 					<ToggleControl
 						__nextHasNoMarginBottom
 						label={ __( 'Flip', 'squarespace-style-site-editor' ) }
 						checked={ divider.flip }
 						onChange={ ( flip ) => update( { flip } ) }
+					/>
+					<Segmented
+						label={ __(
+							'Stroke',
+							'squarespace-style-site-editor'
+						) }
+						value={ divider.stroke }
+						options={ [
+							[
+								0,
+								__( 'None', 'squarespace-style-site-editor' ),
+							],
+							[
+								1,
+								__( 'Thin', 'squarespace-style-site-editor' ),
+							],
+							[
+								2,
+								__( 'Thick', 'squarespace-style-site-editor' ),
+							],
+						] }
+						onChange={ ( stroke ) => update( { stroke } ) }
 					/>
 				</>
 			) }

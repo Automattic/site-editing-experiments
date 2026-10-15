@@ -1552,3 +1552,19 @@ $sse-font: -apple-system, blinkmacsystemfont, "Segoe UI", roboto, "Helvetica Neu
 	margin-top: 4px;
 	padding-inline-end: 48px;
 }
+
+.sse-panel__row.is-slider {
+	min-height: 0;
+	margin-top: 12px;
+	padding-bottom: 0;
+	border-bottom: 0;
+}
+
+.sse-panel__value {
+	color: $sse-muted;
+	font-variant-numeric: tabular-nums;
+}
+
+.sse-panel .sse-panel__row.is-slider + .components-range-control {
+	margin-block: 0 4px;
+}

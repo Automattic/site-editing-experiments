@@ -327,6 +327,46 @@ await step(
 		await page.keyboard.press( 'Escape' );
 	}
 );
+await step(
+	'Edit section: a divider with width and stroke shapes the edge',
+	async () => {
+		const anchor = await hoverSection( 0 );
+		await anchor.getByRole( 'button', { name: 'Edit section' } ).click();
+		await page.getByLabel( 'Divider' ).click();
+		await page.locator( '.sse-shape-option[aria-label="Wave"]' ).click();
+		// Width: one step left of 100% on the slider is 75%.
+		const width = page.getByRole( 'slider', { name: 'Width' } );
+		await width.focus();
+		await page.keyboard.press( 'ArrowLeft' );
+		await page
+			.getByRole( 'radiogroup', { name: 'Stroke' } )
+			.getByRole( 'radio', { name: 'Thick' } )
+			.click();
+		const className = ( await topLevel() )[ 0 ].className;
+		for ( const expected of [
+			'sse-divider-wave',
+			'sse-divider-w-75',
+			'sse-divider-stroke-2',
+		] ) {
+			expect(
+				className.includes( expected ),
+				`${ expected } missing from "${ className }"`
+			);
+		}
+		const mask = await canvas
+			.locator( '.sse-section:not(.sse-section--shared)' )
+			.first()
+			.evaluate( ( e ) => getComputedStyle( e ).maskSize );
+		expect( mask.includes( '75%' ), `mask size is ${ mask }` );
+		await shot( 'divider' );
+		await page.getByLabel( 'Divider' ).click();
+		expect(
+			! ( await topLevel() )[ 0 ].className.includes( 'sse-divider' ),
+			'divider not removed'
+		);
+		await page.keyboard.press( 'Escape' );
+	}
+);
 await step( 'View layouts swaps the layout and keeps the colours', async () => {
 	const anchor = await hoverSection( 0 );
 	await anchor.getByRole( 'button', { name: 'View layouts' } ).click();

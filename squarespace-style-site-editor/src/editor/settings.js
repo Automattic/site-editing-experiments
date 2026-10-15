@@ -84,7 +84,7 @@ export const getDividerShapes = () => settings.dividers || [];
  * A section's divider, from its className.
  *
  * @param {string} className Block className attribute.
- * @return {{ shape: string|null, size: string, flip: boolean }} Divider.
+ * @return {{ shape: string|null, size: string, flip: boolean, width: number, offset: number, stroke: number }} Divider.
  */
 export function getDivider( className = '' ) {
 	const classes = ( className || '' ).split( /\s+/ );
@@ -99,14 +99,32 @@ export function getDivider( className = '' ) {
 	} else if ( classes.includes( 'sse-divider-l' ) ) {
 		size = 'l';
 	}
-	return { shape, size, flip: classes.includes( 'sse-divider-flip' ) };
+	const number = ( prefix, fallback ) => {
+		const found = classes.find( ( c ) => c.startsWith( prefix ) );
+		if ( ! found ) {
+			return fallback;
+		}
+		const value = found.slice( prefix.length );
+		return value.startsWith( 'm' )
+			? -Number( value.slice( 1 ) )
+			: Number( value );
+	};
+	return {
+		shape,
+		size,
+		flip: classes.includes( 'sse-divider-flip' ),
+		width: number( 'sse-divider-w-', 100 ),
+		offset: number( 'sse-divider-x-', 0 ),
+		stroke: number( 'sse-divider-stroke-', 0 ),
+	};
 }
 
 /**
  * Returns className with its divider replaced.
  *
  * @param {string} className Current className.
- * @param {Object} divider   { shape, size, flip }; shape null removes it.
+ * @param {Object} divider   { shape, size, flip, width, offset, stroke };
+ *                           shape null removes it.
  * @return {string|undefined} New className.
  */
 export function withDivider( className = '', divider ) {
@@ -120,6 +138,21 @@ export function withDivider( className = '', divider ) {
 		}
 		if ( divider.flip ) {
 			kept.push( 'sse-divider-flip' );
+		}
+		if ( divider.width && divider.width !== 100 ) {
+			kept.push( `sse-divider-w-${ divider.width }` );
+		}
+		if ( divider.offset ) {
+			kept.push(
+				`sse-divider-x-${
+					divider.offset < 0
+						? `m${ Math.abs( divider.offset ) }`
+						: divider.offset
+				}`
+			);
+		}
+		if ( divider.stroke ) {
+			kept.push( `sse-divider-stroke-${ divider.stroke }` );
 		}
 	}
 	return kept.length ? kept.join( ' ' ) : undefined;

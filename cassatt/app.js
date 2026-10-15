@@ -82,7 +82,6 @@
     link: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>',
     fcol: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h5M5 10h4M5 14h5M14 5h5M14 10h4M14 14h5"/></svg>',
     qa: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6M12 17h.01"/></svg>',
-    grip: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg>',
     plan: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12l-8 8-9-9V3h8z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>'
   };
 
@@ -341,7 +340,6 @@
   // Taps on the page
   screen.addEventListener('click', function (e) {
     if (e.target.closest('a')) e.preventDefault();
-    if (e.target.closest('.handles')) return;
     var sec = e.target.closest('.sec');
     // In the desktop preview, tapping a section goes back to the phone view to edit it.
     if (state.view === 'desktop' && !deskEdit()) {
@@ -402,7 +400,7 @@
     } else if (state.mode === 'arrange') {
       var it = state.item && state.item.isConnected ? state.item : null;
       var prev = it && siblingItem(it, -1), next = it && siblingItem(it, 1);
-      html = '<div class="dock-bar"><span class="dock-hint">' + (deskEdit() ? (it ? 'Drag to move it, or use the arrows' : 'Drag an item to move it') : (it ? 'Drag a handle, or use the arrows' : 'Drag a handle to move an item')) + '</span>' +
+      html = '<div class="dock-bar"><span class="dock-hint">' + (deskEdit() ? (it ? 'Drag to move it, or use the arrows' : 'Drag an item to move it') : (it ? 'Hold and drag it, or use the arrows' : 'Hold an item, then drag it')) + '</span>' +
         '<button type="button" class="dock-icon" data-act="item-up" aria-label="Move item up"' + (prev ? '' : ' disabled') + '>' + ICON.up + '</button>' +
         '<button type="button" class="dock-icon" data-act="item-down" aria-label="Move item down"' + (next ? '' : ' disabled') + '>' + ICON.down + '</button>' +
         '<button type="button" class="dock-icon" data-act="remove-item" aria-label="Remove item"' + (it ? '' : ' disabled') + '>' + ICON.bin + '</button>' +
@@ -800,11 +798,11 @@
   });
 
   // ---------- Drag and drop in Arrange ----------
-  // Each item that can move gets a handle on its left edge (on a phone you need one, because a
-  // finger on the page scrolls it). On a computer you can also drag the item itself. The item lifts
-  // and follows the pointer, the others slide out of the way, and a dashed slot shows where it'll land.
+  // On a computer you drag an item straight away. On a phone a swipe still scrolls the page, so you
+  // press and hold an item to pick it up. A copy follows the pointer, the others slide out of the way,
+  // and a dashed slot shows where it'll land.
   var drag = null;
-  var handleItems = [];
+  var press = null;
 
   function itemSiblings(it) {
     return Array.prototype.filter.call(it.parentElement.children, function (n) { return n.hasAttribute('data-item'); });
@@ -822,18 +820,7 @@
       }
       return;
     }
-    handleItems = [];
-    if (!arranging()) { if (handlesEl.firstChild) handlesEl.innerHTML = ''; return; }
-    var html = '';
-    state.sel.querySelectorAll('[data-item]').forEach(function (it) {
-      if (!it.parentElement || itemSiblings(it).length < 2) return;
-      var r = it.getBoundingClientRect();
-      if (!r.width) return;
-      html += '<button type="button" class="hdl' + (it === state.item ? ' on' : '') + '" data-h="' + handleItems.length + '" aria-label="Drag to move" style="left:' +
-        Math.round(r.left - base.left - 4) + 'px;top:' + Math.round(r.top - base.top + r.height / 2) + 'px">' + ICON.grip + '</button>';
-      handleItems.push(it);
-    });
-    handlesEl.innerHTML = html;
+    if (handlesEl.firstChild) handlesEl.innerHTML = '';
   }
   // Inner scrollers (like a carousel of cards) move items too.
   page.addEventListener('scroll', function () { if (arranging()) positionHandles(); }, true);
@@ -842,10 +829,7 @@
   function measure() {
     var pr = drag.parent.getBoundingClientRect();
     var rel = function (r) { return { x: r.left - pr.left, y: r.top - pr.top, w: r.width, h: r.height }; };
-    var keep = drag.it.style.transform;
-    drag.it.style.transform = 'none';
     drag.self = rel(drag.it.getBoundingClientRect());
-    drag.it.style.transform = keep;
     drag.rects = new Map();
     drag.sibs.forEach(function (n) { if (n !== drag.it) drag.rects.set(n, rel(n.getBoundingClientRect())); });
   }
@@ -867,10 +851,38 @@
     render();
   }
 
+  // A copy of the item, with its styles baked in, floats above everything so nothing can clip it.
+  function makeGhost(it) {
+    var copy = it.cloneNode(true);
+    var from = [it].concat(Array.prototype.slice.call(it.querySelectorAll('*')));
+    var to = [copy].concat(Array.prototype.slice.call(copy.querySelectorAll('*')));
+    from.forEach(function (el, i) {
+      var cs = getComputedStyle(el), st = to[i].style;
+      for (var k = 0; k < cs.length; k++) st.setProperty(cs[k], cs.getPropertyValue(cs[k]));
+      to[i].removeAttribute('contenteditable');
+      to[i].removeAttribute('id');
+    });
+    copy.removeAttribute('data-item');
+    copy.style.margin = '0'; copy.style.position = 'static'; copy.style.transform = 'none';
+    copy.style.outline = 'none'; copy.style.animation = 'none'; copy.style.transition = 'none';
+    var r = it.getBoundingClientRect();
+    var g = document.createElement('div');
+    g.className = 'ghost';
+    g.setAttribute('aria-hidden', 'true');
+    g.style.width = r.width + 'px'; g.style.height = r.height + 'px';
+    var bg = getComputedStyle(it).backgroundColor.replace(/\s/g, '');
+    g.style.background = bg === 'rgba(0,0,0,0)' ? surface(it.parentElement) : 'transparent';
+    g.style.borderRadius = getComputedStyle(it).borderRadius;
+    copy.style.width = r.width + 'px'; copy.style.height = r.height + 'px'; copy.style.boxSizing = 'border-box';
+    g.appendChild(copy);
+    frame.appendChild(g);
+    return g;
+  }
+
   function liftDrag() {
     drag.moved = true;
     var it = drag.it;
-    if (getComputedStyle(it).backgroundColor.replace(/\s/g, '') === 'rgba(0,0,0,0)') it.style.backgroundColor = surface(it.parentElement);
+    drag.ghost = makeGhost(it);
     it.classList.add('dragging');
     measure();
     handlesEl.classList.add('dragging');
@@ -879,10 +891,14 @@
     drag.raf = requestAnimationFrame(autoScroll);
   }
 
+  function placeGhost() {
+    var fr = frame.getBoundingClientRect();
+    drag.ghost.style.transform = 'translate(' + (drag.px - drag.ox - fr.left) + 'px,' + (drag.py - drag.oy - fr.top) + 'px) rotate(-1deg) scale(1.03)';
+  }
+
   function followPointer() {
     var it = drag.it, L = drag.self, pr = drag.parent.getBoundingClientRect();
-    var tx = drag.px - drag.ox - (pr.left + L.x), ty = drag.py - drag.oy - (pr.top + L.y);
-    it.style.transform = 'translate(' + tx + 'px,' + ty + 'px) scale(1.02)';
+    placeGhost();
     // Is the pointer over another item? Then the dragged one takes its place.
     var hit = null, after = false;
     drag.rects.forEach(function (R, n) {
@@ -913,8 +929,6 @@
       if (dx || dy) n.animate([{ transform: 'translate(' + dx + 'px,' + dy + 'px)' }, { transform: 'none' }], { duration: 180, easing: 'cubic-bezier(.2,.8,.2,1)' });
     });
     positionHandles();
-    var it2 = drag.it, L = drag.self, pr = drag.parent.getBoundingClientRect();
-    it2.style.transform = 'translate(' + (drag.px - drag.ox - (pr.left + L.x)) + 'px,' + (drag.py - drag.oy - (pr.top + L.y)) + 'px) scale(1.02)';
   }
 
   // Dragging near the top or bottom of the screen scrolls the page.
@@ -939,14 +953,16 @@
     handlesEl.classList.remove('dragging');
     var it = d.it;
     if (d.moved) {
-      // Settle into the slot.
-      it.style.transition = 'transform 0.18s ease-out';
-      it.style.transform = '';
+      // The copy settles into the slot, then the item itself reappears there.
+      var fr = frame.getBoundingClientRect(), r = it.getBoundingClientRect(), g = d.ghost;
+      g.style.transition = 'transform 0.18s ease-out, box-shadow 0.18s ease-out';
+      g.style.transform = 'translate(' + (r.left - fr.left) + 'px,' + (r.top - fr.top) + 'px)';
+      g.style.boxShadow = 'none';
       setTimeout(function () {
-        it.style.transition = ''; it.style.backgroundColor = '';
+        g.remove();
         it.classList.remove('dragging');
         positionHandles();
-      }, 200);
+      }, 190);
       if (it.nextSibling !== d.home) {
         var parent = d.parent, home = d.home;
         toast('Item moved', 'Undo', function () {
@@ -959,20 +975,36 @@
     render();
   }
 
-  handlesEl.addEventListener('pointerdown', function (e) {
-    var b = e.target.closest('.hdl');
-    if (!b || !arranging()) return;
-    e.preventDefault();
-    beginDrag(handleItems[+b.dataset.h], e.clientX, e.clientY);
-  });
-  // On a computer the item itself can be dragged too.
   page.addEventListener('pointerdown', function (e) {
-    if (!deskEdit() || !arranging() || e.button !== 0) return;
+    if (!arranging() || e.button !== 0) return;
     var it = e.target.closest('[data-item]');
     if (!it || !state.sel.contains(it) || itemSiblings(it).length < 2) return;
-    e.preventDefault();
-    beginDrag(it, e.clientX, e.clientY);
+    if (e.pointerType === 'mouse') { e.preventDefault(); beginDrag(it, e.clientX, e.clientY); return; }
+    // Touch: press and hold to pick the item up, so a swipe still scrolls.
+    it.classList.add('pressing');
+    press = { it: it, x: e.clientX, y: e.clientY, timer: setTimeout(function () {
+      var p = press;
+      press = null;
+      if (!p) return;
+      p.it.classList.remove('pressing');
+      beginDrag(p.it, p.x, p.y);
+      liftDrag();
+      followPointer();
+      if (navigator.vibrate) navigator.vibrate(10);
+    }, 300) };
   });
+  function cancelPress() {
+    if (!press) return;
+    clearTimeout(press.timer);
+    press.it.classList.remove('pressing');
+    press = null;
+  }
+  document.addEventListener('pointermove', function (e) {
+    if (press && Math.abs(e.clientX - press.x) + Math.abs(e.clientY - press.y) > 8) cancelPress();
+  });
+  // Once an item is picked up, the finger moves it instead of scrolling the page.
+  document.addEventListener('touchmove', function (e) { if (drag) e.preventDefault(); }, { passive: false });
+  page.addEventListener('contextmenu', function (e) { if (arranging() && e.target.closest('[data-item]')) e.preventDefault(); });
   document.addEventListener('pointermove', function (e) {
     if (!drag) return;
     drag.px = e.clientX; drag.py = e.clientY;
@@ -982,8 +1014,8 @@
     }
     followPointer();
   });
-  document.addEventListener('pointerup', function () { if (drag) endDrag(); });
-  document.addEventListener('pointercancel', function () { if (drag) endDrag(); });
+  document.addEventListener('pointerup', function () { cancelPress(); if (drag) endDrag(); });
+  document.addEventListener('pointercancel', function () { cancelPress(); if (drag) endDrag(); });
 
   // ---------- Toast ----------
   var toastTimer = null;

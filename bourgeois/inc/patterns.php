@@ -3,7 +3,7 @@
  * Section patterns for the "Add section" picker.
  *
  * Each category is a section type (Hero, Features, Gallery...), mirroring
- * the section-editing-modes prototype. The placeholder studio, copy and photos match that prototype.
+ * the Albers (section editing modes) prototype. The placeholder studio, copy and photos match that prototype.
  *
  * @package SectionSiteEditor
  */

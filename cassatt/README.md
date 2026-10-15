@@ -1,6 +1,6 @@
-# Mobile section editing
+# Cassatt: mobile section editing
 
-A phone-first take on the [section editing modes](../section-editing-modes/) mockup. On a phone it fills the screen. On a larger screen it shows inside a phone-sized frame, with a short introduction beside it.
+A phone-first take on the [Albers](../albers/) (section editing modes) mockup. On a phone it fills the screen. On a larger screen it shows inside a phone-sized frame, with a short introduction beside it.
 
 ## How it works
 
@@ -54,6 +54,6 @@ Each mobile layout is followed by its desktop arrangement in brackets.
 
 ## Running it
 
-It's plain HTML, CSS and JavaScript with no build step, and it uses the photos from `../section-editing-modes/images/`. Serve the repository root with any static server and open `mobile-section-editing/`.
+It's plain HTML, CSS and JavaScript with no build step, and it uses the photos from `../albers/images/`. Serve the repository root with any static server and open `cassatt/`.
 
 The studio name and copy are invented placeholders, and names, prices and contact details are bracketed placeholders. Photos chosen from your device stay in the browser and aren't uploaded anywhere.

@@ -2,7 +2,7 @@
   'use strict';
 
   // ---------- Data ----------
-  var IMG = '../section-editing-modes/images/';
+  var IMG = '../albers/images/';
   var IMAGES = [
     { src: IMG + 'wheel-studio.jpg', alt: 'A potter’s wheel surrounded by finished pots in a studio' },
     { src: IMG + 'shelves.jpg', alt: 'Ceramic bowls and saucers stacked on wooden shelves' },

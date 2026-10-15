@@ -1,4 +1,4 @@
-# Section Site Editor
+# Bourgeois: Section Site Editor
 
 A WordPress plugin that turns the site editor into a section-by-section editor: pages are built from whole sections, each with its own colour theme, layouts and freeform grid, with site-wide styles in one panel. Unlike the other experiments in this repo it isn't a static mockup: it runs inside a real site editor, on real blocks, and everything it does is saved as ordinary block markup and global styles.
 
@@ -100,7 +100,7 @@ Placement is saved as CSS custom properties on each item (`--sse-c`, `--sse-r`, 
 
 The built files are committed, so the folder is a working plugin:
 
-1. Copy or symlink `section-site-editor/` into `wp-content/plugins/`.
+1. Copy or symlink this `bourgeois/` folder into `wp-content/plugins/`, named `section-site-editor`.
 2. Activate **Section Site Editor (experiment)**.
 3. Open **Appearance → Editor**.
 
@@ -108,7 +108,7 @@ To try it without a local site, [WordPress Playground](https://wordpress.github.
 
 ```sh
 npx @wp-playground/cli server --login \
-  --mount=./section-site-editor:/wordpress/wp-content/plugins/section-site-editor
+  --mount=./bourgeois:/wordpress/wp-content/plugins/section-site-editor
 ```
 
 Then activate the plugin from the Plugins screen.
@@ -160,4 +160,4 @@ Set the `sse_load_editor_ui` filter to true to load the editor UI on other scree
 
 ## Credits
 
-The placeholder studio, copy and photos are shared with the [Section editing modes](../section-editing-modes/) prototype. The photos are from [Unsplash](https://unsplash.com), used under the [Unsplash License](https://unsplash.com/license), and resized for the plugin.
+The placeholder studio, copy and photos are shared with the [Albers](../albers/) (section editing modes) prototype. The photos are from [Unsplash](https://unsplash.com), used under the [Unsplash License](https://unsplash.com/license), and resized for the plugin.

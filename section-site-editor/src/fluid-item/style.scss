@@ -1,0 +1,87 @@
+// Placement on the grid. The CSS custom properties are written by save() and
+// by the editor while you drag, so both use the same rules.
+.wp-block-sse-fluid-item {
+	position: relative;
+	box-sizing: border-box;
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+	min-height: 0;
+	margin: 0 !important;
+	max-width: none !important;
+	grid-column: var(--sse-c, 1) / span var(--sse-w, 12);
+	grid-row: var(--sse-r, 1) / span var(--sse-h, 4);
+	z-index: var(--sse-z, auto);
+}
+
+.wp-block-sse-fluid-item__content {
+	flex: 1 1 auto;
+	display: flex;
+	flex-direction: column;
+	justify-content: flex-start;
+	gap: 0.5em;
+	min-height: 0;
+
+	> * {
+		margin-block: 0 !important;
+		max-width: none;
+	}
+
+	// An image on its own fills the item and is cropped to it.
+	// Positioned so it never stretches the grid rows.
+	> .wp-block-image:only-child {
+		position: relative;
+		flex: 1 1 auto;
+		min-height: 0;
+		margin: 0;
+
+		img {
+			position: absolute;
+			inset: 0;
+			width: 100%;
+			height: 100%;
+			object-fit: cover;
+		}
+
+		// Keep the editor's resize wrapper filling the item too.
+		.components-resizable-box__container {
+			position: absolute !important;
+			inset: 0;
+			width: 100% !important;
+			height: 100% !important;
+		}
+	}
+}
+
+.wp-block-sse-fluid-item.is-vertically-aligned-center > .wp-block-sse-fluid-item__content {
+	justify-content: center;
+}
+
+.wp-block-sse-fluid-item.is-vertically-aligned-bottom > .wp-block-sse-fluid-item__content {
+	justify-content: flex-end;
+}
+
+@media (max-width: 767px) {
+	// No mobile layout yet: stack in reading order.
+	.wp-block-sse-fluid-section:not(.has-mobile-layout) .wp-block-sse-fluid-item {
+		grid-column: 1 / -1;
+		grid-row: auto;
+		order: var(--sse-o, 0);
+	}
+
+	// Stacked rows size to content, so images go back to their own height.
+	.wp-block-sse-fluid-section:not(.has-mobile-layout) .wp-block-sse-fluid-item__content > .wp-block-image:only-child {
+
+		img,
+		.components-resizable-box__container {
+			position: static !important;
+			height: auto !important;
+		}
+	}
+
+	.wp-block-sse-fluid-section.has-mobile-layout .wp-block-sse-fluid-item {
+		grid-column: var(--sse-mc, 1) / span var(--sse-mw, 8);
+		// Items without a mobile placement get a few rows rather than one.
+		grid-row: var(--sse-mr, auto) / span var(--sse-mh, 4);
+	}
+}

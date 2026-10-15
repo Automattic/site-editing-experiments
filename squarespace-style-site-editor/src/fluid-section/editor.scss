@@ -1,0 +1,214 @@
+$sse-blue: #1071e5;
+
+.wp-block-sse-fluid-section__stage {
+	position: relative;
+}
+
+// The grid container is a block list; keep core's layout margins off it.
+.wp-block-sse-fluid-section__grid {
+	position: relative;
+	z-index: 1;
+	min-height: calc(var(--sse-row-h) * 4);
+
+	> * {
+		margin: 0 !important;
+		max-width: none !important;
+	}
+}
+
+.wp-block-sse-fluid-section__overlay {
+	position: absolute;
+	inset: 0;
+	z-index: 0;
+	pointer-events: none;
+
+	opacity: 0;
+	transition: opacity 0.15s ease;
+
+	> span {
+		background: rgba(16, 113, 229, 0.05);
+		outline: 1px solid rgba(16, 113, 229, 0.18);
+		outline-offset: -0.5px;
+	}
+}
+
+// The grid shows while a block is being moved or resized, as in Squarespace.
+.wp-block-sse-fluid-section__stage:has(.is-sse-gesture) > .wp-block-sse-fluid-section__overlay {
+	opacity: 1;
+}
+
+
+// "Add block" and the layers button, top left, as in Squarespace. Shown
+// while the section is hovered or being edited.
+.sse-fluid-bar {
+	position: absolute;
+	top: 24px;
+	left: 18px;
+	z-index: 5;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	visibility: hidden;
+	opacity: 0;
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+
+	.wp-block-sse-fluid-section:hover > &,
+	&.is-visible {
+		visibility: visible;
+		opacity: 1;
+	}
+
+	.components-button {
+		height: 40px;
+		background: #fff;
+		color: #1a1a1a;
+		border-radius: 4px;
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.16);
+
+		&:hover {
+			background: #f3f3f3;
+			color: #1a1a1a;
+		}
+	}
+
+	.sse-fluid-bar__layers.components-button {
+		width: 40px;
+		justify-content: center;
+	}
+
+	.sse-fluid-bar__add.components-button {
+		gap: 6px;
+		padding: 0 16px 0 10px;
+		font-size: 11px;
+		font-weight: 600;
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
+	}
+
+	.sse-fluid-bar__note {
+		padding: 4px 10px;
+		border-radius: 3px;
+		background: $sse-blue;
+		color: #fff;
+		font-size: 11px;
+		font-weight: 600;
+		letter-spacing: 0.04em;
+		text-transform: uppercase;
+	}
+}
+
+// Leave room for the "Add block" pill when the section is empty.
+.wp-block-sse-fluid-section:not(:has(.wp-block-sse-fluid-item)) .wp-block-sse-fluid-section__grid {
+	min-height: 240px;
+}
+
+// Bottom edge handle: drag to add or remove rows, as in Squarespace.
+.sse-rows-handle {
+	position: absolute;
+	right: 0;
+	bottom: -15px;
+	z-index: 6;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 36px;
+	height: 30px;
+	padding: 0;
+	border: 0;
+	border-radius: 3px;
+	background: $sse-blue;
+	color: #fff;
+	cursor: ns-resize;
+	touch-action: none;
+	visibility: hidden;
+	opacity: 0;
+
+	svg {
+		fill: currentcolor;
+	}
+
+	.wp-block-sse-fluid-section:hover &,
+	.wp-block-sse-fluid-section.is-sse-active &,
+	&.is-dragging,
+	&:focus-visible {
+		visibility: visible;
+		opacity: 1;
+	}
+
+	&:focus-visible {
+		outline: 2px solid #fff;
+		box-shadow: 0 0 0 4px $sse-blue;
+	}
+}
+
+.wp-block-sse-fluid-section__stage:has(.sse-rows-handle.is-dragging) > .wp-block-sse-fluid-section__overlay {
+	opacity: 1;
+}
+
+// In the editor the grid follows the preview device, not the canvas width:
+// a narrow canvas in the Desktop preview (say, with both sidebars open)
+// still shows and edits the desktop layout.
+.wp-block-sse-fluid-section.is-sse-desktop.is-sse-desktop {
+	--sse-cols: 24;
+	--sse-row-h: clamp(1.5rem, 3vw, 2.75rem);
+
+	.wp-block-sse-fluid-section__grid,
+	.wp-block-sse-fluid-section__overlay {
+		grid-template-rows: repeat(var(--sse-rows, 10), minmax(var(--sse-row-h), auto));
+		row-gap: var(--sse-gap);
+	}
+}
+
+.wp-block-sse-fluid-section.is-sse-mobile.is-sse-mobile {
+	--sse-cols: 8;
+	--sse-row-h: 2.25rem;
+
+	&.has-mobile-layout .wp-block-sse-fluid-section__grid,
+	&.has-mobile-layout .wp-block-sse-fluid-section__overlay {
+		grid-template-rows: repeat(var(--sse-mobile-rows, 10), minmax(var(--sse-row-h), auto));
+	}
+
+	&:not(.has-mobile-layout) .wp-block-sse-fluid-section__grid {
+		grid-template-rows: none;
+		grid-auto-rows: auto;
+		row-gap: 1.25rem;
+	}
+}
+
+// Pink alignment guides while a block is dragged, above the blocks.
+.wp-block-sse-fluid-section__guides {
+	position: absolute;
+	inset: 0;
+	z-index: 3;
+	display: grid;
+	grid-template-columns: repeat(var(--sse-cols), minmax(0, 1fr));
+	grid-template-rows: repeat(var(--sse-rows, 10), minmax(var(--sse-row-h), auto));
+	gap: var(--sse-gap);
+	pointer-events: none;
+}
+
+.wp-block-sse-fluid-section.is-sse-mobile .wp-block-sse-fluid-section__guides {
+	grid-template-rows: repeat(var(--sse-mobile-rows, 10), minmax(var(--sse-row-h), auto));
+}
+
+.sse-guide {
+	position: absolute;
+	z-index: 2;
+	pointer-events: none;
+
+	&.is-vertical {
+		top: 0;
+		bottom: 0;
+		width: 0;
+		margin-left: -1px;
+		border-left: 2px solid #e93888;
+	}
+
+	&.is-horizontal {
+		left: 0;
+		right: 0;
+		height: 0;
+		margin-top: -1px;
+		border-top: 2px solid #e93888;
+	}
+}

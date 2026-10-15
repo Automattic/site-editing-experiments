@@ -102,9 +102,9 @@ npm run lint:js
 npm run lint:css
 ```
 
-The unit tests check every section pattern against core's current `save()` output (so none open with "This block contains unexpected or invalid content") and cover the grid snapping and placement maths.
+The unit tests check every section pattern against core's current `save()` output (so none open with "This block contains unexpected or invalid content"), check that every colour theme is readable with every ready-made palette (WCAG AA: text, links and button labels at 4.5:1, headings at 3:1), and cover the grid snapping and placement maths.
 
-The end-to-end test drives the real site editor through the main flows: building a page from the section picker, the section menu, Edit section and View layouts, saving a section, freeform blocks (adding, dragging, editing, the rows handle and the first mobile drag), Site Styles, saving and reloading, editing the header, and the front end at desktop and phone widths. It needs a site with the plugin active, Twenty Twenty-Five and automatic login, which Playground gives you:
+The end-to-end test drives the real site editor through the main flows: building a page from the section picker, the section menu, Edit section and View layouts, saving a section, freeform blocks (adding, dragging, editing, the rows handle and the first mobile drag), Site Styles, saving and reloading, editing the header, an axe accessibility check of the new UI (WCAG 2 A and AA), and the front end at desktop and phone widths. It needs a site with the plugin active, Twenty Twenty-Five and automatic login, which Playground gives you:
 
 ```sh
 npx playwright install chromium   # once

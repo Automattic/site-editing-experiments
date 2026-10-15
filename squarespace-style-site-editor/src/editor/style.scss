@@ -733,8 +733,9 @@ $sse-font: -apple-system, blinkmacsystemfont, "Segoe UI", roboto, "Helvetica Neu
 }
 
 .sse-theme-row__aa {
-	width: 24px;
-	font: 400 16px/1 $sse-font;
+	width: 26px;
+	// Large text, like the headings it stands for.
+	font: 700 19px/1 $sse-font;
 }
 
 .sse-theme-row__name {

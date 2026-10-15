@@ -17,7 +17,8 @@
  * changes the site's header.
  */
 import { chromium } from 'playwright';
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 
 const BASE = ( process.env.SSE_BASE_URL || 'http://127.0.0.1:9400' ).replace(
 	/\/$/,
@@ -448,7 +449,7 @@ await step( 'palette writes custom colours that reach the canvas', async () => {
 			)
 		);
 	expect(
-		accent.trim().toUpperCase() === '#2D7DD2',
+		accent.trim().toUpperCase() === '#2A74C3',
 		`accent is ${ accent }`
 	);
 	expect(
@@ -529,6 +530,69 @@ await step( 'Edit site header: dim, add a button, colour, save', async () => {
 	);
 	await save();
 } );
+
+console.log( 'Accessibility (axe, WCAG 2 A and AA)' );
+const axeSource = readFileSync(
+	createRequire( import.meta.url ).resolve( 'axe-core/axe.min.js' ),
+	'utf8'
+);
+async function axe( frame, selector ) {
+	await frame.evaluate( axeSource );
+	return frame.evaluate( async ( sel ) => {
+		const result = await window.axe.run(
+			{ include: [ [ sel ] ] },
+			{ runOnly: [ 'wcag2a', 'wcag2aa' ] }
+		);
+		return result.violations.map(
+			( v ) => `${ v.id }: ${ v.nodes[ 0 ]?.target.join( ' ' ) }`
+		);
+	}, selector );
+}
+await openEditor(
+	`/wp-admin/site-editor.php?p=${ encodeURIComponent(
+		`/page/${ pageId }`
+	) }&canvas=edit`
+);
+await step(
+	'section chrome, Edit section, picker and Site Styles',
+	async () => {
+		const canvasFrame = page
+			.frames()
+			.find( ( f ) => f.name() === 'editor-canvas' );
+		const problems = [
+			...( await axe( canvasFrame, '.sse-section-anchor' ) ),
+		];
+		const anchor = await hoverSection( 0 );
+		await anchor.getByRole( 'button', { name: 'Edit section' } ).click();
+		await page.locator( '.sse-panel' ).waitFor();
+		for ( const tab of [ 'Design', 'Background', 'Colors' ] ) {
+			await page
+				.locator( '.sse-panel .components-tab-panel__tabs-item', {
+					hasText: tab,
+				} )
+				.click();
+			problems.push( ...( await axe( page.mainFrame(), '.sse-panel' ) ) );
+		}
+		await page.keyboard.press( 'Escape' );
+		await select( () =>
+			window.wp.data.dispatch( 'sse/editor' ).openSectionPicker( '', 0 )
+		);
+		await page.locator( '.sse-picker__card' ).first().waitFor();
+		problems.push( ...( await axe( page.mainFrame(), '.sse-picker' ) ) );
+		await page.keyboard.press( 'Escape' );
+		await select( () =>
+			window.wp.data
+				.dispatch( 'core/interface' )
+				.enableComplementaryArea( 'core', 'sse-editor/sse-site-styles' )
+		);
+		await page.locator( '.sse-card' ).first().waitFor();
+		problems.push( ...( await axe( page.mainFrame(), '.sse-styles' ) ) );
+		await page.locator( '.sse-card__main', { hasText: 'Colours' } ).click();
+		problems.push( ...( await axe( page.mainFrame(), '.sse-styles' ) ) );
+		problems.push( ...( await axe( page.mainFrame(), '.editor-header' ) ) );
+		expect( problems.length === 0, problems.join( '; ' ) );
+	}
+);
 
 console.log( 'Front end' );
 for ( const [ width, name ] of [

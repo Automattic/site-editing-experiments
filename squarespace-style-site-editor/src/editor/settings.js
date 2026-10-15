@@ -124,3 +124,61 @@ export function withDivider( className = '', divider ) {
 	}
 	return kept.length ? kept.join( ' ' ) : undefined;
 }
+
+function luminance( hex ) {
+	const value = ( hex || '' ).replace( '#', '' );
+	const full =
+		value.length === 3
+			? value
+					.split( '' )
+					.map( ( c ) => c + c )
+					.join( '' )
+			: value.slice( 0, 6 );
+	const channels = [ 0, 2, 4 ].map( ( i ) => {
+		const c = parseInt( full.slice( i, i + 2 ), 16 ) / 255;
+		return c <= 0.03928
+			? c / 12.92
+			: Math.pow( ( c + 0.055 ) / 1.055, 2.4 );
+	} );
+	if ( channels.some( ( c ) => Number.isNaN( c ) ) ) {
+		return null;
+	}
+	return (
+		0.2126 * channels[ 0 ] + 0.7152 * channels[ 1 ] + 0.0722 * channels[ 2 ]
+	);
+}
+
+/**
+ * Contrast ratio between two hex colours, or null if either can't be read.
+ *
+ * @param {string} a Hex colour.
+ * @param {string} b Hex colour.
+ * @return {number|null} Ratio, 1 to 21.
+ */
+export function contrast( a, b ) {
+	const la = luminance( a );
+	const lb = luminance( b );
+	if ( la === null || lb === null ) {
+		return null;
+	}
+	return ( Math.max( la, lb ) + 0.05 ) / ( Math.min( la, lb ) + 0.05 );
+}
+
+/**
+ * A text colour for labels on a background: the preferred one if it's
+ * readable (4.5:1), otherwise black or white, whichever reads better.
+ *
+ * @param {string} background Hex colour.
+ * @param {string} preferred  Hex colour.
+ * @return {string} Hex colour.
+ */
+export function readableOn( background, preferred ) {
+	const ratio = contrast( background, preferred );
+	if ( ratio === null || ratio >= 4.5 ) {
+		return preferred;
+	}
+	return contrast( background, '#000000' ) >=
+		contrast( background, '#ffffff' )
+		? '#000000'
+		: '#ffffff';
+}

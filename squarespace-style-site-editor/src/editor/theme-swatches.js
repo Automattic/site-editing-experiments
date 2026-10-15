@@ -1,7 +1,7 @@
 import clsx from 'clsx';
 import { __ } from '@wordpress/i18n';
 
-import { getSectionThemes, useSitePalette } from './settings';
+import { getSectionThemes, readableOn, useSitePalette } from './settings';
 
 /**
  * The section colour themes as a list of rows, Squarespace style: each row is
@@ -38,7 +38,9 @@ export default function ThemeSwatches( {
 					} ) }
 					onClick={ () => onChange( null ) }
 				>
-					<span className="sse-theme-row__aa">Aa</span>
+					<span className="sse-theme-row__aa" aria-hidden="true">
+						Aa
+					</span>
 					<span className="sse-theme-row__name">
 						{ __( 'No theme', 'squarespace-style-site-editor' ) }
 					</span>
@@ -61,11 +63,22 @@ export default function ThemeSwatches( {
 				>
 					<span
 						className="sse-theme-row__aa"
+						aria-hidden="true"
 						style={ { color: palette[ theme.heading ] } }
 					>
 						Aa
 					</span>
-					<span className="sse-theme-row__name">{ theme.label }</span>
+					<span
+						className="sse-theme-row__name"
+						style={ {
+							color: readableOn(
+								palette[ theme.background ],
+								palette[ theme.text ]
+							),
+						} }
+					>
+						{ theme.label }
+					</span>
 					<span
 						className="sse-theme-row__button"
 						style={ { background: palette[ theme.buttonBg ] } }

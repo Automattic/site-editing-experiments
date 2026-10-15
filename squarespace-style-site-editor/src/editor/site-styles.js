@@ -100,7 +100,7 @@ const SITE_THEMES = [
 		weight: '700',
 	},
 	{
-		name: __( 'Citrus', 'squarespace-style-site-editor' ),
+		name: __( 'Harvest', 'squarespace-style-site-editor' ),
 		palette: 5,
 		button: 'pill',
 		weight: '800',

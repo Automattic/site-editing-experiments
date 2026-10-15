@@ -35,13 +35,13 @@ function sse_palette_roles() {
 function sse_palette_presets() {
 	return array(
 		array( 'name' => __( 'Paper', 'squarespace-style-site-editor' ), 'colors' => array( '#FFFFFF', '#F4F2EE', '#3858E9', '#3A3A3A', '#1A1A1A' ) ),
-		array( 'name' => __( 'Sand', 'squarespace-style-site-editor' ), 'colors' => array( '#FBF7F0', '#EADFCC', '#B5653A', '#5B4636', '#2B2118' ) ),
+		array( 'name' => __( 'Sand', 'squarespace-style-site-editor' ), 'colors' => array( '#FBF7F0', '#EADFCC', '#A75D36', '#5B4636', '#2B2118' ) ),
 		array( 'name' => __( 'Sage', 'squarespace-style-site-editor' ), 'colors' => array( '#F6F8F3', '#DCE5D3', '#4F7A4A', '#2F4A35', '#16241A' ) ),
-		array( 'name' => __( 'Sky', 'squarespace-style-site-editor' ), 'colors' => array( '#F5F9FC', '#D7E7F3', '#2D7DD2', '#21405E', '#0F1E2E' ) ),
-		array( 'name' => __( 'Clay', 'squarespace-style-site-editor' ), 'colors' => array( '#FDF6F2', '#F2D6C9', '#C2502E', '#6B2E1F', '#2E1510' ) ),
-		array( 'name' => __( 'Citrus', 'squarespace-style-site-editor' ), 'colors' => array( '#FFFDF5', '#FFF0B8', '#E8A100', '#3D3A2E', '#141310' ) ),
+		array( 'name' => __( 'Sky', 'squarespace-style-site-editor' ), 'colors' => array( '#F5F9FC', '#D7E7F3', '#2A74C3', '#21405E', '#0F1E2E' ) ),
+		array( 'name' => __( 'Clay', 'squarespace-style-site-editor' ), 'colors' => array( '#FDF6F2', '#F2D6C9', '#BE4E2D', '#6B2E1F', '#2E1510' ) ),
+		array( 'name' => __( 'Mustard', 'squarespace-style-site-editor' ), 'colors' => array( '#FFFDF5', '#FFF0B8', '#9C6C00', '#3D3A2E', '#141310' ) ),
 		array( 'name' => __( 'Mono', 'squarespace-style-site-editor' ), 'colors' => array( '#FFFFFF', '#EDEDED', '#000000', '#444444', '#111111' ) ),
-		array( 'name' => __( 'Night', 'squarespace-style-site-editor' ), 'colors' => array( '#F2F0FF', '#B9B2E8', '#8C7BFF', '#26214A', '#100D24' ) ),
+		array( 'name' => __( 'Night', 'squarespace-style-site-editor' ), 'colors' => array( '#F2F0FF', '#B9B2E8', '#543BFF', '#26214A', '#100D24' ) ),
 	);
 }
 
@@ -54,14 +54,14 @@ function sse_section_themes() {
 	$themes = array(
 		'lightest-1' => array( __( 'Lightest 1', 'squarespace-style-site-editor' ), 'lightest', 'darkest', 'darkest', 'accent', 'accent', 'lightest' ),
 		'lightest-2' => array( __( 'Lightest 2', 'squarespace-style-site-editor' ), 'lightest', 'dark', 'accent', 'accent', 'darkest', 'lightest' ),
-		'light-1'    => array( __( 'Light 1', 'squarespace-style-site-editor' ), 'light', 'darkest', 'darkest', 'accent', 'accent', 'lightest' ),
+		'light-1'    => array( __( 'Light 1', 'squarespace-style-site-editor' ), 'light', 'darkest', 'darkest', 'dark', 'accent', 'lightest' ),
 		'light-2'    => array( __( 'Light 2', 'squarespace-style-site-editor' ), 'light', 'dark', 'accent', 'darkest', 'darkest', 'light' ),
 		'bright-1'   => array( __( 'Bright 1', 'squarespace-style-site-editor' ), 'accent', 'lightest', 'lightest', 'lightest', 'lightest', 'accent' ),
-		'bright-2'   => array( __( 'Bright 2', 'squarespace-style-site-editor' ), 'accent', 'darkest', 'darkest', 'darkest', 'darkest', 'lightest' ),
+		'bright-2'   => array( __( 'Bright 2', 'squarespace-style-site-editor' ), 'accent', 'lightest', 'lightest', 'lightest', 'darkest', 'lightest' ),
 		'dark-1'     => array( __( 'Dark 1', 'squarespace-style-site-editor' ), 'dark', 'lightest', 'lightest', 'light', 'accent', 'lightest' ),
-		'dark-2'     => array( __( 'Dark 2', 'squarespace-style-site-editor' ), 'dark', 'light', 'accent', 'lightest', 'lightest', 'dark' ),
-		'darkest-1'  => array( __( 'Darkest 1', 'squarespace-style-site-editor' ), 'darkest', 'lightest', 'lightest', 'accent', 'accent', 'lightest' ),
-		'darkest-2'  => array( __( 'Darkest 2', 'squarespace-style-site-editor' ), 'darkest', 'light', 'accent', 'lightest', 'lightest', 'darkest' ),
+		'dark-2'     => array( __( 'Dark 2', 'squarespace-style-site-editor' ), 'dark', 'light', 'lightest', 'lightest', 'lightest', 'dark' ),
+		'darkest-1'  => array( __( 'Darkest 1', 'squarespace-style-site-editor' ), 'darkest', 'lightest', 'lightest', 'light', 'accent', 'lightest' ),
+		'darkest-2'  => array( __( 'Darkest 2', 'squarespace-style-site-editor' ), 'darkest', 'light', 'lightest', 'light', 'lightest', 'darkest' ),
 	);
 
 	$out = array();

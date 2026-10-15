@@ -11,17 +11,19 @@ Requires WordPress 6.8 or later and a block theme. Developed against WordPress 7
 | | |
 | --- | --- |
 | ![Browse mode: the page preview with an Edit button](docs/screenshots/01-browse.jpg) | ![A section in edit mode, with its type tag, Add section button and section menu](docs/screenshots/02-section.jpg) |
-| **Browse mode.** The page preview, with an Edit button. | **A section.** Hover shows its type, Add section and the section menu. |
+| **Browse mode.** The page in its template, header and all, with an Edit button. | **A section.** Hover shows its type, Add section and the section menu. |
 | ![The Add a Section picker, grouped like Squarespace's](docs/screenshots/03-add-a-section.jpg) | ![Edit section, Design tab, with a curved divider](docs/screenshots/04-edit-section-design.jpg) |
-| **Add a Section.** Blank, saved sections and grouped layouts. | **Edit section → Design.** Size, width, dividers and anchor. |
+| **Add a Section.** Blank, saved sections and grouped layouts. | **Edit section → Design.** Size, inset, dividers (shape, height, width, offset, stroke) and anchor. |
 | ![Edit section, Colors tab, listing the ten colour themes](docs/screenshots/05-edit-section-colors.jpg) | ![View layouts: other layouts for the same kind of section](docs/screenshots/06-view-layouts.jpg) |
 | **Edit section → Colors.** Ten colour themes drawn from the palette. | **View layouts.** Swap the layout and keep the content's colours. |
 | ![A freeform block mid-drag, with the grid and guides showing](docs/screenshots/07-freeform-drag.jpg) | ![The Add Block panel in a freeform section](docs/screenshots/08-add-block.jpg) |
 | **Freeform.** The grid and guides show while you drag. | **Add Block.** The essentials, placed on the grid. |
 | ![Site Styles: Themes, Fonts, Colours, Buttons and Spacing](docs/screenshots/09-site-styles.jpg) | ![Site Styles, Colours: the palette and recommended palettes](docs/screenshots/10-site-styles-colours.jpg) |
 | **Site Styles.** Themes, fonts, colours, buttons and spacing. | **Colours.** One palette feeds every section's theme. |
-| ![The page in the mobile preview](docs/screenshots/11-mobile.jpg) | ![Editing the site header, with the page dimmed and the header layouts](docs/screenshots/13-header-editing.jpg) |
-| **Mobile.** Freeform sections get their own mobile layout. | **Site header.** Edit it in place; the page dims and the layouts show. |
+| ![The page in the mobile preview](docs/screenshots/11-mobile.jpg) | ![Hovering the site header above a page offers Edit site header](docs/screenshots/12-header-hover.jpg) |
+| **Mobile.** Freeform sections get their own mobile layout. | **Site header.** Shown around every page, with Edit site header on hover. |
+| ![Editing the site header, with the page dimmed and the header layouts](docs/screenshots/13-header-editing.jpg) | |
+| **Editing the header.** The page dims; Add elements and Edit design (layouts and colours). | |
 
 ## What it does
 

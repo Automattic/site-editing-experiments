@@ -31,8 +31,8 @@ Inserted sections are named after their type, so their tag reads "Intro" rather 
 
 A panel beside the section's menu with three tabs:
 
-- **Design:** row count (freeform sections), Fill screen, Full width, Section height (S, M, L) and an anchor link name.
-- **Background:** add, replace or remove a background image.
+- **Design:** row count and gap (freeform sections), Fill screen, Full width, Section height (S, M, L), a **Divider** (seven shapes for the section's bottom edge, three heights, flip) and an anchor link name.
+- **Background:** **Image** (add, replace or remove a background image) or **Art**: six gradient backgrounds built from the section's colour theme, so they change with the palette.
 - **Colors:** the section's colour theme, one row per theme, each drawn in its own colours.
 
 #### View layouts
@@ -130,7 +130,8 @@ Set the `sse_load_editor_ui` filter to true to load the editor UI on other scree
 ## Known gaps
 
 - The editor look is CSS over core class names, and Save, Exit and the device switch are placed into core's top bar markup, so they may need adjusting as the site editor changes.
-- Squarespace's "Edit section" also offers section dividers, background video and per-section animation; this doesn't.
+- Squarespace's "Edit section" also offers background video, divider width and stroke, and an "Inset" background width; this doesn't.
+- Header and footer editing works where the template is shown, as when editing a template; WordPress doesn't show them when editing a page's content on its own.
 - Fonts in Site Styles preview in the editor's own font until the theme's font faces have loaded.
 - Freeform items grow taller than their rows if their text doesn't fit, rather than clipping.
 

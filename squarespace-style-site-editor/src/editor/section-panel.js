@@ -7,7 +7,7 @@
 import clsx from 'clsx';
 import { __ } from '@wordpress/i18n';
 import { useDispatch, useSelect } from '@wordpress/data';
-import { useMemo } from '@wordpress/element';
+import { useMemo, useState } from '@wordpress/element';
 import { getBlockSupport, parse } from '@wordpress/blocks';
 import {
 	BlockPreview,
@@ -21,13 +21,16 @@ import {
 	TextControl,
 	ToggleControl,
 } from '@wordpress/components';
-import { close as closeIcon, plus } from '@wordpress/icons';
+import { Icon, close as closeIcon, plus } from '@wordpress/icons';
 import { minus } from '../shared/icons';
 
 import {
+	PALETTE_ROLES,
 	getDivider,
 	getDividerShapes,
+	getSectionThemes,
 	getThemeFromClassName,
+	useSitePalette,
 	withDivider,
 	withTheme,
 } from './settings';
@@ -417,27 +420,65 @@ function DesignTab( { clientId, name, attributes } ) {
 	);
 }
 
-function BackgroundTab( { clientId, name, attributes } ) {
+// Art backgrounds: gradients drawn from the section's colour theme and the
+// site palette, so they follow both.
+// A: the theme's button colour (the accent, on most themes); B: the
+// section's background; T: its text colour. Mixing from these keeps every
+// preset visible on every colour theme.
+const A = 'var(--sse-btn-bg, var(--wp--preset--color--sse-accent))';
+const B = 'var(--sse-bg, var(--wp--preset--color--sse-lightest))';
+const T = 'var(--sse-text, var(--wp--preset--color--sse-darkest))';
+const ART = [
+	{
+		key: 'glow',
+		label: __( 'Glow', 'squarespace-style-site-editor' ),
+		value: `radial-gradient(circle at 15% 20%, color-mix(in srgb, ${ A } 75%, transparent) 0, transparent 45%), radial-gradient(circle at 85% 85%, color-mix(in srgb, ${ T } 20%, transparent) 0, transparent 40%), ${ B }`,
+	},
+	{
+		key: 'dusk',
+		label: __( 'Dusk', 'squarespace-style-site-editor' ),
+		value: `linear-gradient(160deg, ${ B } 30%, color-mix(in srgb, ${ A } 70%, ${ B }) 130%)`,
+	},
+	{
+		key: 'horizon',
+		label: __( 'Horizon', 'squarespace-style-site-editor' ),
+		value: `linear-gradient(180deg, ${ B } 50%, color-mix(in srgb, ${ B } 75%, ${ T }) 100%)`,
+	},
+	{
+		key: 'spotlight',
+		label: __( 'Spotlight', 'squarespace-style-site-editor' ),
+		value: `radial-gradient(ellipse at 50% 0%, color-mix(in srgb, ${ A } 70%, ${ B }) 0, ${ B } 65%)`,
+	},
+	{
+		key: 'split',
+		label: __( 'Split', 'squarespace-style-site-editor' ),
+		value: `linear-gradient(100deg, ${ B } 0 58%, color-mix(in srgb, ${ B } 85%, ${ T }) 58% 100%)`,
+	},
+	{
+		key: 'stripes',
+		label: __( 'Stripes', 'squarespace-style-site-editor' ),
+		value: `repeating-linear-gradient(135deg, ${ B } 0 22px, color-mix(in srgb, ${ B } 90%, ${ T }) 22px 44px)`,
+	},
+];
+
+function ImageBackground( { clientId, name, attributes } ) {
 	const { updateBlockAttributes } = useDispatch( blockEditorStore );
-	const supported = !! getBlockSupport( name, 'background.backgroundImage' );
 	const style = attributes.style || {};
 	const image = style.background?.backgroundImage;
 
-	if ( ! supported ) {
+	if ( ! getBlockSupport( name, 'background.backgroundImage' ) ) {
 		return (
-			<div className="sse-panel__body">
-				<p className="sse-panel__help">
-					{ name === 'core/cover'
-						? __(
-								'This section is a cover: select its image in the canvas to replace it.',
-								'squarespace-style-site-editor'
-							)
-						: __(
-								'Background images are available on standard sections.',
-								'squarespace-style-site-editor'
-							) }
-				</p>
-			</div>
+			<p className="sse-panel__help">
+				{ name === 'core/cover'
+					? __(
+							'This section is a cover: select its image in the canvas to replace it.',
+							'squarespace-style-site-editor'
+						)
+					: __(
+							'Background images are available on standard sections.',
+							'squarespace-style-site-editor'
+						) }
+			</p>
 		);
 	}
 
@@ -462,50 +503,54 @@ function BackgroundTab( { clientId, name, attributes } ) {
 		} );
 
 	return (
-		<div className="sse-panel__body">
-			<PanelHeading>
-				{ __( 'Image', 'squarespace-style-site-editor' ) }
-			</PanelHeading>
-			{ image?.url && (
-				<div
-					className="sse-panel__bg-preview"
-					style={ { backgroundImage: `url(${ image.url })` } }
-				/>
-			) }
-			<MediaUploadCheck
-				fallback={
-					<p className="sse-panel__help">
-						{ __(
-							'You need permission to upload media to add a background image.',
-							'squarespace-style-site-editor'
-						) }
-					</p>
-				}
-			>
-				<MediaUpload
-					allowedTypes={ [ 'image' ] }
-					value={ image?.id }
-					onSelect={ setImage }
-					render={ ( { open } ) => (
-						<Button
-							__next40pxDefaultSize
-							variant="secondary"
-							className="sse-panel__wide-button"
+		<MediaUploadCheck
+			fallback={
+				<p className="sse-panel__help">
+					{ __(
+						'You need permission to upload media to add a background image.',
+						'squarespace-style-site-editor'
+					) }
+				</p>
+			}
+		>
+			<MediaUpload
+				allowedTypes={ [ 'image' ] }
+				value={ image?.id }
+				onSelect={ setImage }
+				render={ ( { open } ) =>
+					image?.url ? (
+						<button
+							type="button"
+							className="sse-dropzone has-image"
+							style={ { backgroundImage: `url(${ image.url })` } }
 							onClick={ open }
 						>
-							{ image?.url
-								? __(
-										'Replace image',
-										'squarespace-style-site-editor'
-									)
-								: __(
-										'Add image',
-										'squarespace-style-site-editor'
-									) }
-						</Button>
-					) }
-				/>
-			</MediaUploadCheck>
+							<span>
+								{ __(
+									'Replace image',
+									'squarespace-style-site-editor'
+								) }
+							</span>
+						</button>
+					) : (
+						<button
+							type="button"
+							className="sse-dropzone"
+							onClick={ open }
+						>
+							<span className="sse-dropzone__plus">
+								<Icon icon={ plus } size={ 20 } />
+							</span>
+							<span className="sse-dropzone__label">
+								{ __(
+									'Add an image',
+									'squarespace-style-site-editor'
+								) }
+							</span>
+						</button>
+					)
+				}
+			/>
 			{ image?.url && (
 				<Button
 					__next40pxDefaultSize
@@ -515,6 +560,121 @@ function BackgroundTab( { clientId, name, attributes } ) {
 				>
 					{ __( 'Remove image', 'squarespace-style-site-editor' ) }
 				</Button>
+			) }
+		</MediaUploadCheck>
+	);
+}
+
+function ArtBackground( { clientId, name, attributes } ) {
+	const { updateBlockAttributes } = useDispatch( blockEditorStore );
+	const style = attributes.style || {};
+	const current = style.color?.gradient;
+	const palette = useSitePalette();
+
+	if ( ! getBlockSupport( name, 'color.gradients' ) ) {
+		return (
+			<p className="sse-panel__help">
+				{ __(
+					'Art backgrounds are available on standard and freeform sections.',
+					'squarespace-style-site-editor'
+				) }
+			</p>
+		);
+	}
+
+	// The editor's own window doesn't have the site's colour variables, so
+	// give the previews this section's.
+	const theme = getSectionThemes().find(
+		( t ) => t.slug === getThemeFromClassName( attributes.className )
+	);
+	const previewVars = {};
+	PALETTE_ROLES.forEach( ( role ) => {
+		previewVars[ `--wp--preset--color--sse-${ role }` ] = palette[ role ];
+	} );
+	if ( theme ) {
+		previewVars[ '--sse-bg' ] = palette[ theme.background ];
+		previewVars[ '--sse-text' ] = palette[ theme.text ];
+		previewVars[ '--sse-btn-bg' ] = palette[ theme.buttonBg ];
+	}
+
+	const setArt = ( value ) =>
+		updateBlockAttributes( clientId, {
+			gradient: undefined,
+			style: {
+				...style,
+				color: { ...( style.color || {} ), gradient: value },
+			},
+		} );
+
+	return (
+		<>
+			<div
+				className="sse-art-grid"
+				role="radiogroup"
+				style={ previewVars }
+			>
+				{ ART.map( ( art ) => (
+					<button
+						key={ art.key }
+						type="button"
+						role="radio"
+						aria-checked={ current === art.value }
+						aria-label={ art.label }
+						title={ art.label }
+						className={ clsx( 'sse-art-option', {
+							'is-active': current === art.value,
+						} ) }
+						style={ { background: art.value } }
+						onClick={ () => setArt( art.value ) }
+					/>
+				) ) }
+			</div>
+			<p className="sse-panel__help">
+				{ __(
+					'Art uses the section’s colour theme and the site palette, so it changes with them.',
+					'squarespace-style-site-editor'
+				) }
+			</p>
+			{ current && (
+				<Button
+					__next40pxDefaultSize
+					variant="tertiary"
+					isDestructive
+					onClick={ () => setArt( undefined ) }
+				>
+					{ __( 'Remove art', 'squarespace-style-site-editor' ) }
+				</Button>
+			) }
+		</>
+	);
+}
+
+function BackgroundTab( props ) {
+	const hasArt = !! props.attributes.style?.color?.gradient;
+	const [ kind, setKind ] = useState( hasArt ? 'art' : 'image' );
+	return (
+		<div className="sse-panel__body">
+			<div className="sse-segmented is-wide" role="tablist">
+				{ [
+					[ 'image', __( 'Image', 'squarespace-style-site-editor' ) ],
+					[ 'art', __( 'Art', 'squarespace-style-site-editor' ) ],
+				].map( ( [ key, label ] ) => (
+					<button
+						key={ key }
+						type="button"
+						role="tab"
+						aria-selected={ kind === key }
+						className={ clsx( { 'is-active': kind === key } ) }
+						onClick={ () => setKind( key ) }
+					>
+						{ label }
+					</button>
+				) ) }
+			</div>
+			{ kind === 'art' ? (
+				<ArtBackground { ...props } />
+			) : (
+				<ImageBackground { ...props } />
 			) }
 		</div>
 	);

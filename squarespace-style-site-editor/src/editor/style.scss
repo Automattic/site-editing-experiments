@@ -1369,3 +1369,94 @@ $sse-font: -apple-system, blinkmacsystemfont, "Segoe UI", roboto, "Helvetica Neu
 		outline: 2px solid $sse-blue;
 	}
 }
+
+/* ------------------------------------------------------- Backgrounds */
+
+.sse-segmented.is-wide {
+	display: grid;
+	grid-auto-flow: column;
+	grid-auto-columns: 1fr;
+
+	button {
+		height: 32px;
+		font-weight: 500;
+	}
+}
+
+.sse-dropzone {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	width: 100%;
+	height: 110px;
+	border: 1px dashed #c9c9c9;
+	border-radius: 3px;
+	background: #fff center / cover no-repeat;
+	color: $sse-ink;
+	font: 500 13px/1.2 $sse-font;
+	cursor: pointer;
+
+	&:hover {
+		border-color: $sse-ink;
+	}
+
+	&.has-image {
+		border-style: solid;
+
+		span {
+			padding: 6px 10px;
+			border-radius: 3px;
+			background: rgba(255, 255, 255, 0.92);
+			opacity: 0;
+			transition: opacity 0.12s ease;
+		}
+
+		&:hover span,
+		&:focus-visible span {
+			opacity: 1;
+		}
+	}
+}
+
+.sse-dropzone__plus {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 30px;
+	height: 30px;
+	border-radius: 50%;
+	background: #f0f0f0;
+
+	svg {
+		fill: currentcolor;
+	}
+}
+
+.sse-art-grid {
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	gap: 8px;
+}
+
+.sse-art-option {
+	aspect-ratio: 4 / 3;
+	padding: 0;
+	border: 1px solid rgba(0, 0, 0, 0.12);
+	border-radius: 3px;
+	cursor: pointer;
+
+	&:hover {
+		box-shadow: 0 0 0 2px #c9c6c0;
+	}
+
+	&.is-active {
+		box-shadow: 0 0 0 2px $sse-ink;
+	}
+
+	&:focus-visible {
+		outline: 2px solid $sse-blue;
+		outline-offset: 2px;
+	}
+}

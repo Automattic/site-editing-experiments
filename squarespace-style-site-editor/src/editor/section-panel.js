@@ -6,7 +6,7 @@
  */
 import clsx from 'clsx';
 import { __ } from '@wordpress/i18n';
-import { useDispatch, useSelect } from '@wordpress/data';
+import { useDispatch, useRegistry, useSelect } from '@wordpress/data';
 import { useMemo, useState } from '@wordpress/element';
 import { getBlockSupport, parse } from '@wordpress/blocks';
 import {
@@ -17,6 +17,7 @@ import {
 } from '@wordpress/block-editor';
 import {
 	Button,
+	RangeControl,
 	TabPanel,
 	TextControl,
 	ToggleControl,
@@ -26,6 +27,7 @@ import { minus } from '../shared/icons';
 
 import {
 	PALETTE_ROLES,
+	contrast,
 	getDivider,
 	getDividerShapes,
 	getSectionThemes,
@@ -41,6 +43,8 @@ import {
 	useSectionPatterns,
 } from './section-patterns';
 import { MAX_ROWS, bottomRow, normalizeLayout } from '../shared/grid';
+import { STORE_NAME } from './store';
+import { hasVideoBackground, withVideo, withoutVideo } from './video-section';
 
 const FLUID = 'sse/fluid-section';
 
@@ -565,6 +569,150 @@ function ImageBackground( { clientId, name, attributes } ) {
 	);
 }
 
+function VideoBackground( { clientId, name, attributes } ) {
+	const registry = useRegistry();
+	const { replaceBlock, updateBlockAttributes } =
+		useDispatch( blockEditorStore );
+	const { openSectionPanel } = useDispatch( STORE_NAME );
+	const palette = useSitePalette();
+	const hasVideo = hasVideoBackground( { name, attributes } );
+
+	if ( name !== 'core/group' && name !== 'core/cover' ) {
+		return (
+			<p className="sse-panel__help">
+				{ __(
+					'Background video is available on standard sections.',
+					'squarespace-style-site-editor'
+				) }
+			</p>
+		);
+	}
+
+	// The overlay is the section's own background colour, so the video
+	// takes on its colour theme, as in Squarespace.
+	const theme = getSectionThemes().find(
+		( t ) => t.slug === getThemeFromClassName( attributes.className )
+	);
+	const overlay = theme ? palette[ theme.background ] : undefined;
+	const isDark = overlay
+		? contrast( overlay, '#ffffff' ) > contrast( overlay, '#000000' )
+		: true;
+
+	const setVideo = ( media ) => {
+		const block = registry.select( blockEditorStore ).getBlock( clientId );
+		const result = withVideo( block, media, { overlay, isDark } );
+		if ( result.attributes ) {
+			updateBlockAttributes( clientId, result.attributes );
+			return;
+		}
+		replaceBlock( clientId, result.block );
+		openSectionPanel( result.block.clientId, 'edit', 'background:video' );
+	};
+
+	const removeVideo = () => {
+		const block = registry.select( blockEditorStore ).getBlock( clientId );
+		const group = withoutVideo( block );
+		replaceBlock( clientId, group );
+		openSectionPanel( group.clientId, 'edit', 'background:video' );
+	};
+
+	return (
+		<MediaUploadCheck
+			fallback={
+				<p className="sse-panel__help">
+					{ __(
+						'You need permission to upload media to add a background video.',
+						'squarespace-style-site-editor'
+					) }
+				</p>
+			}
+		>
+			<MediaUpload
+				allowedTypes={ [ 'video' ] }
+				value={ hasVideo ? attributes.id : undefined }
+				onSelect={ setVideo }
+				render={ ( { open } ) =>
+					hasVideo ? (
+						<button
+							type="button"
+							className="sse-dropzone has-image"
+							onClick={ open }
+						>
+							<video
+								className="sse-dropzone__video"
+								src={ attributes.url }
+								muted
+								loop
+								autoPlay
+								playsInline
+								aria-hidden="true"
+							/>
+							<span>
+								{ __(
+									'Replace video',
+									'squarespace-style-site-editor'
+								) }
+							</span>
+						</button>
+					) : (
+						<button
+							type="button"
+							className="sse-dropzone"
+							onClick={ open }
+						>
+							<span className="sse-dropzone__plus">
+								<Icon icon={ plus } size={ 20 } />
+							</span>
+							<span className="sse-dropzone__label">
+								{ __(
+									'Add a video',
+									'squarespace-style-site-editor'
+								) }
+							</span>
+						</button>
+					)
+				}
+			/>
+			{ hasVideo && (
+				<>
+					<RangeControl
+						__nextHasNoMarginBottom
+						__next40pxDefaultSize
+						label={ __(
+							'Overlay',
+							'squarespace-style-site-editor'
+						) }
+						help={ __(
+							'How much of the section colour shows over the video.',
+							'squarespace-style-site-editor'
+						) }
+						value={ attributes.dimRatio ?? 50 }
+						min={ 0 }
+						max={ 100 }
+						step={ 10 }
+						onChange={ ( dimRatio ) =>
+							updateBlockAttributes( clientId, {
+								dimRatio: dimRatio ?? 40,
+							} )
+						}
+					/>
+					<Button
+						__next40pxDefaultSize
+						variant="tertiary"
+						isDestructive
+						onClick={ removeVideo }
+					>
+						{ __(
+							'Remove video',
+							'squarespace-style-site-editor'
+						) }
+					</Button>
+				</>
+			) }
+		</MediaUploadCheck>
+	);
+}
+
 function ArtBackground( { clientId, name, attributes } ) {
 	const { updateBlockAttributes } = useDispatch( blockEditorStore );
 	const style = attributes.style || {};
@@ -649,14 +797,24 @@ function ArtBackground( { clientId, name, attributes } ) {
 	);
 }
 
-function BackgroundTab( props ) {
+function BackgroundTab( { initialKind, ...props } ) {
 	const hasArt = !! props.attributes.style?.color?.gradient;
-	const [ kind, setKind ] = useState( hasArt ? 'art' : 'image' );
+	const hasVideo = hasVideoBackground( props );
+	let initial = 'image';
+	if ( initialKind ) {
+		initial = initialKind;
+	} else if ( hasVideo ) {
+		initial = 'video';
+	} else if ( hasArt ) {
+		initial = 'art';
+	}
+	const [ kind, setKind ] = useState( initial );
 	return (
 		<div className="sse-panel__body">
 			<div className="sse-segmented is-wide" role="tablist">
 				{ [
 					[ 'image', __( 'Image', 'squarespace-style-site-editor' ) ],
+					[ 'video', __( 'Video', 'squarespace-style-site-editor' ) ],
 					[ 'art', __( 'Art', 'squarespace-style-site-editor' ) ],
 				].map( ( [ key, label ] ) => (
 					<button
@@ -671,11 +829,9 @@ function BackgroundTab( props ) {
 					</button>
 				) ) }
 			</div>
-			{ kind === 'art' ? (
-				<ArtBackground { ...props } />
-			) : (
-				<ImageBackground { ...props } />
-			) }
+			{ kind === 'art' && <ArtBackground { ...props } /> }
+			{ kind === 'video' && <VideoBackground { ...props } /> }
+			{ kind === 'image' && <ImageBackground { ...props } /> }
 		</div>
 	);
 }
@@ -723,9 +879,15 @@ export function EditSectionPanel( { clientId, onClose } ) {
 		( select ) => select( blockEditorStore ).getBlock( clientId ),
 		[ clientId ]
 	);
+	const startOn = useSelect(
+		( select ) => select( STORE_NAME ).getSectionPanel()?.tab,
+		[]
+	);
 	if ( ! block ) {
 		return null;
 	}
+	// "background:video" opens on the Background tab, showing Video.
+	const [ initialTab, initialKind ] = ( startOn || '' ).split( ':' );
 	const props = {
 		clientId,
 		name: block.name,
@@ -735,6 +897,7 @@ export function EditSectionPanel( { clientId, onClose } ) {
 		<div className="sse-panel">
 			<TabPanel
 				className="sse-panel__tabs"
+				initialTabName={ initialTab || 'design' }
 				tabs={ [
 					{
 						name: 'design',
@@ -755,7 +918,12 @@ export function EditSectionPanel( { clientId, onClose } ) {
 			>
 				{ ( tab ) => {
 					if ( tab.name === 'background' ) {
-						return <BackgroundTab { ...props } />;
+						return (
+							<BackgroundTab
+								{ ...props }
+								initialKind={ initialKind }
+							/>
+						);
 					}
 					if ( tab.name === 'colors' ) {
 						return <ColorsTab { ...props } />;

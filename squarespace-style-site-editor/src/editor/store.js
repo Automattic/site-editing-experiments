@@ -5,8 +5,8 @@ export const STORE_NAME = 'sse/editor';
 const DEFAULT_STATE = {
 	// Where the section picker will insert: { rootClientId, index }.
 	sectionPicker: null,
-	// The section panel that's open: { clientId, panel } where panel is
-	// 'edit' or 'layouts'.
+	// The section panel that's open: { clientId, panel, tab } where panel is
+	// 'edit' or 'layouts', and tab the Edit section tab to start on.
 	sectionPanel: null,
 	// Whether sections show their colour theme in the canvas (while Site
 	// Styles → Colours is open).
@@ -23,8 +23,8 @@ const actions = {
 	closeSectionPicker() {
 		return { type: 'CLOSE_SECTION_PICKER' };
 	},
-	openSectionPanel( clientId, panel = 'edit' ) {
-		return { type: 'OPEN_SECTION_PANEL', clientId, panel };
+	openSectionPanel( clientId, panel = 'edit', tab = undefined ) {
+		return { type: 'OPEN_SECTION_PANEL', clientId, panel, tab };
 	},
 	closeSectionPanel() {
 		return { type: 'CLOSE_SECTION_PANEL' };
@@ -59,6 +59,7 @@ function reducer( state = DEFAULT_STATE, action ) {
 				sectionPanel: {
 					clientId: action.clientId,
 					panel: action.panel,
+					tab: action.tab,
 				},
 			};
 		case 'CLOSE_SECTION_PANEL':

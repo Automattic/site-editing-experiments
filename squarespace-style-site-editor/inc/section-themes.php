@@ -157,12 +157,18 @@ function sse_section_themes_css() {
 	$css .= "{$s}{background-color:var(--sse-bg);color:var(--sse-text);}";
 	$css .= ":where({$s}:not(.wp-block-template-part)){padding-block:var(--wp--custom--sse--section-padding,5rem);}";
 	// Coloured sections sit flush against each other, like Squarespace.
+	// Cover sets its own 1em padding; give a Cover section (one with a
+	// background video or image) the same room as any other section.
+	$css .= "{$s}.wp-block-cover{padding-block:var(--wp--custom--sse--section-padding,5rem);padding-inline:var(--wp--style--root--padding-left,1rem) var(--wp--style--root--padding-right,1rem);}";
 	$css .= "{$s}+{$s}{margin-block-start:0;}";
 	$css .= "{$s} :is(h1,h2,h3,h4,h5,h6){color:var(--sse-heading);}";
 	$css .= "{$s} a:not(.wp-element-button):not(.wp-block-button__link){color:var(--sse-link);}";
 	$css .= "{$s} :is(.wp-element-button,.wp-block-button__link):not(.has-background){background-color:var(--sse-btn-bg);}";
 	$css .= "{$s} :is(.wp-element-button,.wp-block-button__link):not(.has-text-color){color:var(--sse-btn-text);}";
 	$css .= "{$s} .is-style-outline :is(.wp-element-button,.wp-block-button__link):not(.has-background){background-color:transparent;color:var(--sse-link);border-color:currentColor;}";
+	// A Cover section (one with a background video) keeps its theme's text
+	// colour rather than Cover's own light/dark guess.
+	$css .= "{$s}.wp-block-cover,{$s}.wp-block-cover .wp-block-cover__inner-container{color:var(--sse-text);}";
 	// Themes colour some blocks for a light page (Twenty Twenty-Four's quotes
 	// sit on a pale card, its separators are dark). In a coloured section,
 	// let them take the section's colours instead.

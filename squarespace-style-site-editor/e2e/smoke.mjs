@@ -4,17 +4,17 @@
  * End-to-end smoke test: drives the real site editor in a headless browser
  * through the plugin's main flows and checks the results.
  *
- * Needs a WordPress site with the plugin active, a block theme with header
- * and footer template parts (Twenty Twenty-Five is what it's written
- * against), and automatic login, which WordPress Playground gives you:
+ * Needs a WordPress site with the plugin active, a block theme with a header
+ * part and a page template (it passes with Twenty Twenty-Five and Twenty
+ * Twenty-Four), and automatic login, which WordPress Playground gives you:
  *
  *   npx `@wp-playground/cli` server --login --port=9400 \
  *     --mount=.:/wordpress/wp-content/plugins/squarespace-style-site-editor
  *   npm run test:e2e
  *
  * Set SSE_BASE_URL to use another site, and SSE_SHOTS to a folder to keep
- * screenshots. It creates a page called "SSE smoke test" each run, and
- * changes the site's header.
+ * screenshots. It resets the theme's header, and adds a page and a short
+ * video that it deletes at the end (set SSE_KEEP to keep them).
  */
 import { chromium } from 'playwright';
 import { mkdirSync, readFileSync } from 'node:fs';
@@ -311,6 +311,93 @@ await step( 'View layouts swaps the layout and keeps the colours', async () => {
 		'colour theme was not kept'
 	);
 } );
+let videoId = null;
+await step(
+	'background video turns the section into a Cover and back',
+	async () => {
+		// Upload a short clip through the REST API, then pick it in the media
+		// library the way a person would.
+		const clip = readFileSync(
+			new URL( './fixtures/background.mp4', import.meta.url )
+		).toString( 'base64' );
+		videoId = await select( async ( data ) => {
+			const bytes = Uint8Array.from( window.atob( data ), ( c ) =>
+				c.charCodeAt( 0 )
+			);
+			const body = new window.FormData();
+			body.append(
+				'file',
+				new window.Blob( [ bytes ], { type: 'video/mp4' } ),
+				'sse-smoke-test.mp4'
+			);
+			return (
+				await window.wp.apiFetch( {
+					path: '/wp/v2/media',
+					method: 'POST',
+					body,
+				} )
+			).id;
+		}, clip );
+		expect(
+			( await topLevel() )[ 0 ].name === 'core/group',
+			'not a Group'
+		);
+
+		const anchor = await hoverSection( 0 );
+		await anchor.getByRole( 'button', { name: 'Edit section' } ).click();
+		await page
+			.locator( '.sse-panel .components-tab-panel__tabs-item', {
+				hasText: 'Background',
+			} )
+			.click();
+		await page.getByRole( 'tab', { name: 'Video' } ).click();
+		await page.getByRole( 'button', { name: 'Add a video' } ).click();
+		await page
+			.locator( '.media-modal .media-menu-item', {
+				hasText: 'Media Library',
+			} )
+			.click();
+		await page
+			.locator( `.media-modal .attachment[data-id="${ videoId }"]` )
+			.click();
+		await page.locator( '.media-modal .media-button-select' ).click();
+		await page.getByRole( 'button', { name: 'Remove video' } ).waitFor();
+
+		let first = ( await topLevel() )[ 0 ];
+		expect( first.name === 'core/cover', 'section did not become a Cover' );
+		expect(
+			first.className.includes( 'is-style-sse-dark-1' ),
+			'colour theme was not kept'
+		);
+		expect(
+			await canvas
+				.locator( 'video.wp-block-cover__video-background' )
+				.count(),
+			'no video in the canvas'
+		);
+		// The panel stays open on the new block, on the Background tab.
+		expect(
+			await page
+				.getByRole( 'tab', { name: 'Video', selected: true } )
+				.count(),
+			'panel did not stay on the video'
+		);
+		await shot( 'background-video' );
+
+		await page.getByRole( 'button', { name: 'Remove video' } ).click();
+		await page.getByRole( 'button', { name: 'Add a video' } ).waitFor();
+		first = ( await topLevel() )[ 0 ];
+		expect(
+			first.name === 'core/group',
+			'section did not go back to a Group'
+		);
+		expect(
+			first.className.includes( 'is-style-sse-dark-1' ),
+			'colour theme was not kept going back'
+		);
+		await page.keyboard.press( 'Escape' );
+	}
+);
 await step( 'heart saves the section, and it shows under Saved', async () => {
 	const anchor = await hoverSection( 0 );
 	await anchor.getByRole( 'button', { name: 'Save section' } ).click();
@@ -646,12 +733,19 @@ for ( const [ width, name ] of [
 if ( ! process.env.SSE_KEEP ) {
 	await page
 		.evaluate(
-			( id ) =>
-				window.wp.apiFetch( {
-					path: `/wp/v2/pages/${ id }?force=true`,
-					method: 'DELETE',
-				} ),
-			pageId
+			( [ id, media ] ) =>
+				Promise.all( [
+					window.wp.apiFetch( {
+						path: `/wp/v2/pages/${ id }?force=true`,
+						method: 'DELETE',
+					} ),
+					media &&
+						window.wp.apiFetch( {
+							path: `/wp/v2/media/${ media }?force=true`,
+							method: 'DELETE',
+						} ),
+				] ),
+			[ pageId, videoId ]
 		)
 		.catch( () => null );
 }

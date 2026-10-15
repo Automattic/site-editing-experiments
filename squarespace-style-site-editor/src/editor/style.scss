@@ -1446,6 +1446,28 @@ $sse-font: -apple-system, blinkmacsystemfont, "Segoe UI", roboto, "Helvetica Neu
 	}
 }
 
+.sse-dropzone:has(.sse-dropzone__video) {
+	position: relative;
+	overflow: hidden;
+
+	span {
+		position: relative;
+	}
+}
+
+.sse-dropzone__video {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	pointer-events: none;
+}
+
+.sse-panel .components-range-control {
+	margin-block: 16px 8px;
+}
+
 .sse-dropzone__plus {
 	display: flex;
 	align-items: center;

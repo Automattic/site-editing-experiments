@@ -51,7 +51,7 @@ Inserted sections are named after their type, so their tag reads "Intro" rather 
 A panel beside the section's menu with three tabs:
 
 - **Design:** row count and gap (freeform sections), Fill screen, Full width, Section height (S, M, L), a **Divider** (seven shapes for the section's bottom edge, three heights, flip) and an anchor link name.
-- **Background:** **Image** (add, replace or remove a background image) or **Art**: six gradient backgrounds built from the section's colour theme, so they change with the palette.
+- **Background:** **Image** (add, replace or remove a background image), **Video** (a looping background video under an overlay in the section's own colour, with an Overlay slider) or **Art**: six gradient backgrounds built from the section's colour theme, so they change with the palette. Core's Group can't play a video, so a section becomes a Cover block while it has one and goes back to a Group when the video is removed, keeping its colour theme, divider, anchor and spacing.
 - **Colors:** the section's colour theme, one row per theme, each drawn in its own colours.
 
 #### View layouts
@@ -121,9 +121,9 @@ npm run lint:js
 npm run lint:css
 ```
 
-The unit tests check every section pattern against core's current `save()` output (so none open with "This block contains unexpected or invalid content"), check that every colour theme is readable with every ready-made palette (WCAG AA: text, links and button labels at 4.5:1, headings at 3:1), and cover the grid snapping and placement maths.
+The unit tests check every section pattern against core's current `save()` output (so none open with "This block contains unexpected or invalid content"), check that every colour theme is readable with every ready-made palette (WCAG AA: text, links and button labels at 4.5:1, headings at 3:1), cover the grid snapping and placement maths, and check that adding and removing a background video keeps a section's settings and saves valid blocks.
 
-The end-to-end test drives the real site editor through the main flows: building a page from the section picker, the section menu, Edit section and View layouts, saving a section, freeform blocks (adding, dragging, editing, the rows handle and the first mobile drag), Site Styles, saving and reloading, editing the header, an axe accessibility check of the new UI (WCAG 2 A and AA), and the front end at desktop and phone widths. It needs a site with the plugin active, a block theme with a header part and a page template (Twenty Twenty-Five and Twenty Twenty-Four both work) and automatic login, which Playground gives you:
+The end-to-end test drives the real site editor through the main flows: building a page from the section picker, the section menu, Edit section and View layouts, saving a section, freeform blocks (adding, dragging, editing, the rows handle and the first mobile drag), adding and removing a background video, Site Styles, saving and reloading, editing the header, an axe accessibility check of the new UI (WCAG 2 A and AA), and the front end at desktop and phone widths. It needs a site with the plugin active, a block theme with a header part and a page template (Twenty Twenty-Five and Twenty Twenty-Four both work) and automatic login, which Playground gives you:
 
 ```sh
 npx playwright install chromium   # once
@@ -149,7 +149,7 @@ Set the `sse_load_editor_ui` filter to true to load the editor UI on other scree
 ## Known gaps
 
 - The editor look is CSS over core class names, and Save, Exit and the device switch are placed into core's top bar markup, so they may need adjusting as the site editor changes.
-- Squarespace's "Edit section" also offers background video, divider width and stroke, and an "Inset" background width; this doesn't.
+- Squarespace's "Edit section" also offers divider width and stroke, and an "Inset" background width; this doesn't.
 - Header and footer editing works where the template is shown, as when editing a template; WordPress doesn't show them when editing a page's content on its own.
 - Fonts in Site Styles preview in the editor's own font until the theme's font faces have loaded.
 - Freeform items grow taller than their rows if their text doesn't fit, rather than clipping.

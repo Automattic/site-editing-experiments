@@ -400,6 +400,21 @@ function SectionMenu( { clientId, info } ) {
 					offset={ 12 }
 					className="sse-panel-popover"
 					onClose={ closeSectionPanel }
+					onFocusOutside={ ( event ) => {
+						// Choosing an image or video opens the media library,
+						// which takes focus. Closing the panel then would
+						// unmount the picker and break the library.
+						const to = event?.relatedTarget;
+						if (
+							document.body.classList.contains( 'modal-open' ) ||
+							to?.closest?.(
+								'.media-modal, .components-modal__frame'
+							)
+						) {
+							return;
+						}
+						closeSectionPanel();
+					} }
 					focusOnMount="firstElement"
 				>
 					{ panel }

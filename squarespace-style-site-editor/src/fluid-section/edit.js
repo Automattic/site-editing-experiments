@@ -18,6 +18,7 @@ import {
 } from '@wordpress/components';
 import { useDispatch, useRegistry, useSelect } from '@wordpress/data';
 import { useState } from '@wordpress/element';
+import { useRefEffect } from '@wordpress/compose';
 import { Icon, plus } from '@wordpress/icons';
 
 import {
@@ -34,6 +35,75 @@ import { layers, rowsHandle } from '../shared/icons';
 import { useIsMobilePreview } from '../shared/use-device';
 import { sectionStyle } from './save';
 
+/**
+ * Where a guide line goes on the grid: a 1-based line number, possibly
+ * halfway between two (for centres).
+ *
+ * @param {number}  position Line position.
+ * @param {number}  tracks   Number of tracks.
+ * @param {boolean} vertical Whether it's a column line.
+ * @return {Object} Style for the guide element.
+ */
+function guideStyle( position, tracks, vertical ) {
+	// Absolutely positioned grid children are placed in their grid area
+	// without taking part in auto-placement, so the cells stay put.
+	let track = Math.floor( position );
+	let inset = { start: 0 };
+	if ( position !== track ) {
+		inset = { start: '50%' };
+	} else if ( track > tracks ) {
+		track = tracks;
+		inset = { end: 0 };
+	}
+	return vertical
+		? {
+				gridColumn: `${ track } / span 1`,
+				gridRow: '1 / -1',
+				left: inset.start ?? 'auto',
+				right: inset.end ?? 'auto',
+			}
+		: {
+				gridRow: `${ track } / span 1`,
+				gridColumn: '1 / -1',
+				top: inset.start ?? 'auto',
+				bottom: inset.end ?? 'auto',
+			};
+}
+
+/**
+ * Lines the dragged block shares with another block's edges or centre, or
+ * with the section's centre: Squarespace's pink alignment guides.
+ *
+ * @param {Object}   drag    { itemId, layout }.
+ * @param {Object[]} others  Other blocks' layouts.
+ * @param {number}   columns Grid columns.
+ * @return {{ vertical: number[], horizontal: number[] }} Guide positions.
+ */
+function findGuides( drag, others, columns ) {
+	const l = drag.layout;
+	const xs = [ l.c, l.c + l.w, l.c + l.w / 2 ];
+	const ys = [ l.r, l.r + l.h, l.r + l.h / 2 ];
+	const vertical = new Set();
+	const horizontal = new Set();
+	const centre = columns / 2 + 1;
+	if ( xs[ 2 ] === centre ) {
+		vertical.add( centre );
+	}
+	others.forEach( ( o ) => {
+		[ o.c, o.c + o.w, o.c + o.w / 2 ].forEach( ( x ) => {
+			if ( xs.includes( x ) ) {
+				vertical.add( x );
+			}
+		} );
+		[ o.r, o.r + o.h, o.r + o.h / 2 ].forEach( ( y ) => {
+			if ( ys.includes( y ) ) {
+				horizontal.add( y );
+			}
+		} );
+	} );
+	return { vertical: [ ...vertical ], horizontal: [ ...horizontal ] };
+}
+
 function GridOverlay( { columns, rows } ) {
 	const cells = [];
 	for ( let i = 0; i < columns * rows; i++ ) {
@@ -42,6 +112,31 @@ function GridOverlay( { columns, rows } ) {
 	return (
 		<div className="wp-block-sse-fluid-section__overlay" aria-hidden="true">
 			{ cells }
+		</div>
+	);
+}
+
+// Guides sit in a grid of their own above the blocks.
+function GuideLayer( { columns, rows, guides } ) {
+	if ( ! guides?.vertical.length && ! guides?.horizontal.length ) {
+		return null;
+	}
+	return (
+		<div className="wp-block-sse-fluid-section__guides" aria-hidden="true">
+			{ guides.vertical.map( ( x ) => (
+				<i
+					key={ `v${ x }` }
+					className="sse-guide is-vertical"
+					style={ guideStyle( x, columns, true ) }
+				/>
+			) ) }
+			{ guides.horizontal.map( ( y ) => (
+				<i
+					key={ `h${ y }` }
+					className="sse-guide is-horizontal"
+					style={ guideStyle( y, rows, false ) }
+				/>
+			) ) }
 		</div>
 	);
 }
@@ -137,6 +232,29 @@ export default function Edit( {
 		icon: item.icon,
 		onClick: () => addItem( item ),
 	} ) );
+
+	// Alignment guides while a block in this section is dragged.
+	const [ drag, setDrag ] = useState( null );
+	const stageRef = useRefEffect( ( stage ) => {
+		const onDrag = ( event ) =>
+			setDrag( event.detail?.layout ? event.detail : null );
+		stage.addEventListener( 'sse-fluid-drag', onDrag );
+		return () => stage.removeEventListener( 'sse-fluid-drag', onDrag );
+	}, [] );
+	const guides = drag
+		? findGuides(
+				drag,
+				items
+					.filter( ( b ) => b.clientId !== drag.itemId )
+					.map( ( b ) =>
+						isMobile
+							? b.attributes.mobileLayout
+							: normalizeLayout( b.attributes.layout )
+					)
+					.filter( Boolean ),
+				columns
+			)
+		: null;
 
 	// Dragging the handle on the bottom edge adds or removes rows.
 	const [ previewRows, setPreviewRows ] = useState( null );
@@ -282,9 +400,19 @@ export default function Edit( {
 				</PanelBody>
 			</InspectorControls>
 			<div { ...blockProps }>
-				<div className="wp-block-sse-fluid-section__stage">
+				<div
+					className="wp-block-sse-fluid-section__stage"
+					ref={ stageRef }
+				>
 					{ active && overlayRows > 0 && (
 						<GridOverlay columns={ columns } rows={ overlayRows } />
+					) }
+					{ overlayRows > 0 && (
+						<GuideLayer
+							columns={ columns }
+							rows={ overlayRows }
+							guides={ guides }
+						/>
 					) }
 					<div { ...innerBlocksProps } />
 					{ canResizeRows && (

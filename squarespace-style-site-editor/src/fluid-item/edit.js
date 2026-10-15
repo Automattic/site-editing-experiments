@@ -320,6 +320,24 @@ export default function Edit( {
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [ sectionHasMobileLayout, mobileLayout, parentId ] );
 
+	// Tell the section where this block is while it moves, so it can draw
+	// alignment guides.
+	useEffect( () => {
+		const grid = findGrid();
+		if ( ! grid ) {
+			return;
+		}
+		const send = ( at ) =>
+			grid.dispatchEvent(
+				new grid.ownerDocument.defaultView.CustomEvent(
+					'sse-fluid-drag',
+					{ bubbles: true, detail: { itemId: clientId, layout: at } }
+				)
+			);
+		send( gesture && preview ? preview : null );
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [ gesture, preview ] );
+
 	// Second click (or Enter, or a double-click) edits what's inside.
 	const startEditing = () => {
 		if ( firstInnerId ) {

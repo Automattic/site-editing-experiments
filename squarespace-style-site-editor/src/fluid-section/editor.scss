@@ -174,3 +174,41 @@ $sse-blue: #1071e5;
 		row-gap: 1.25rem;
 	}
 }
+
+// Pink alignment guides while a block is dragged, above the blocks.
+.wp-block-sse-fluid-section__guides {
+	position: absolute;
+	inset: 0;
+	z-index: 3;
+	display: grid;
+	grid-template-columns: repeat(var(--sse-cols), minmax(0, 1fr));
+	grid-template-rows: repeat(var(--sse-rows, 10), minmax(var(--sse-row-h), auto));
+	gap: var(--sse-gap);
+	pointer-events: none;
+}
+
+.wp-block-sse-fluid-section.is-sse-mobile .wp-block-sse-fluid-section__guides {
+	grid-template-rows: repeat(var(--sse-mobile-rows, 10), minmax(var(--sse-row-h), auto));
+}
+
+.sse-guide {
+	position: absolute;
+	z-index: 2;
+	pointer-events: none;
+
+	&.is-vertical {
+		top: 0;
+		bottom: 0;
+		width: 0;
+		margin-left: -1px;
+		border-left: 2px solid #e93888;
+	}
+
+	&.is-horizontal {
+		left: 0;
+		right: 0;
+		height: 0;
+		margin-top: -1px;
+		border-top: 2px solid #e93888;
+	}
+}

@@ -1,0 +1,333 @@
+<?php
+/**
+ * Site palette and section colour themes.
+ *
+ * The site has one five-colour palette (lightest, light,
+ * accent, dark, darkest) and every section picks one of ten colour themes
+ * that assign those colours to background, text, headings, links and buttons.
+ *
+ * @package SectionSiteEditor
+ */
+
+defined( 'ABSPATH' ) || exit;
+
+/**
+ * The five palette roles, in order.
+ *
+ * @return array<string,string> Slug => label.
+ */
+function sse_palette_roles() {
+	return array(
+		'sse-lightest' => __( 'Lightest', 'section-site-editor' ),
+		'sse-light'    => __( 'Light', 'section-site-editor' ),
+		'sse-accent'   => __( 'Accent', 'section-site-editor' ),
+		'sse-dark'     => __( 'Dark', 'section-site-editor' ),
+		'sse-darkest'  => __( 'Darkest', 'section-site-editor' ),
+	);
+}
+
+/**
+ * Curated palettes offered in Site Styles. Colours run lightest to darkest,
+ * with the accent in the middle.
+ *
+ * @return array[]
+ */
+function sse_palette_presets() {
+	return array(
+		array( 'name' => __( 'Paper', 'section-site-editor' ), 'colors' => array( '#FFFFFF', '#F4F2EE', '#3858E9', '#3A3A3A', '#1A1A1A' ) ),
+		array( 'name' => __( 'Sand', 'section-site-editor' ), 'colors' => array( '#FBF7F0', '#EADFCC', '#A75D36', '#5B4636', '#2B2118' ) ),
+		array( 'name' => __( 'Sage', 'section-site-editor' ), 'colors' => array( '#F6F8F3', '#DCE5D3', '#4F7A4A', '#2F4A35', '#16241A' ) ),
+		array( 'name' => __( 'Sky', 'section-site-editor' ), 'colors' => array( '#F5F9FC', '#D7E7F3', '#2A74C3', '#21405E', '#0F1E2E' ) ),
+		array( 'name' => __( 'Clay', 'section-site-editor' ), 'colors' => array( '#FDF6F2', '#F2D6C9', '#BE4E2D', '#6B2E1F', '#2E1510' ) ),
+		array( 'name' => __( 'Mustard', 'section-site-editor' ), 'colors' => array( '#FFFDF5', '#FFF0B8', '#9C6C00', '#3D3A2E', '#141310' ) ),
+		array( 'name' => __( 'Mono', 'section-site-editor' ), 'colors' => array( '#FFFFFF', '#EDEDED', '#000000', '#444444', '#111111' ) ),
+		array( 'name' => __( 'Night', 'section-site-editor' ), 'colors' => array( '#F2F0FF', '#B9B2E8', '#543BFF', '#26214A', '#100D24' ) ),
+	);
+}
+
+/**
+ * The ten section colour themes. Each value is a palette role slug.
+ *
+ * @return array[]
+ */
+function sse_section_themes() {
+	$themes = array(
+		'lightest-1' => array( __( 'Lightest 1', 'section-site-editor' ), 'lightest', 'darkest', 'darkest', 'accent', 'accent', 'lightest' ),
+		'lightest-2' => array( __( 'Lightest 2', 'section-site-editor' ), 'lightest', 'dark', 'accent', 'accent', 'darkest', 'lightest' ),
+		'light-1'    => array( __( 'Light 1', 'section-site-editor' ), 'light', 'darkest', 'darkest', 'dark', 'accent', 'lightest' ),
+		'light-2'    => array( __( 'Light 2', 'section-site-editor' ), 'light', 'dark', 'accent', 'darkest', 'darkest', 'light' ),
+		'bright-1'   => array( __( 'Bright 1', 'section-site-editor' ), 'accent', 'lightest', 'lightest', 'lightest', 'lightest', 'accent' ),
+		'bright-2'   => array( __( 'Bright 2', 'section-site-editor' ), 'accent', 'lightest', 'lightest', 'lightest', 'darkest', 'lightest' ),
+		'dark-1'     => array( __( 'Dark 1', 'section-site-editor' ), 'dark', 'lightest', 'lightest', 'light', 'accent', 'lightest' ),
+		'dark-2'     => array( __( 'Dark 2', 'section-site-editor' ), 'dark', 'light', 'lightest', 'lightest', 'lightest', 'dark' ),
+		'darkest-1'  => array( __( 'Darkest 1', 'section-site-editor' ), 'darkest', 'lightest', 'lightest', 'light', 'accent', 'lightest' ),
+		'darkest-2'  => array( __( 'Darkest 2', 'section-site-editor' ), 'darkest', 'light', 'lightest', 'light', 'lightest', 'darkest' ),
+	);
+
+	$out = array();
+	foreach ( $themes as $slug => $t ) {
+		$out[] = array(
+			'slug'       => $slug,
+			'label'      => $t[0],
+			'background' => $t[1],
+			'text'       => $t[2],
+			'heading'    => $t[3],
+			'link'       => $t[4],
+			'buttonBg'   => $t[5],
+			'buttonText' => $t[6],
+		);
+	}
+	return $out;
+}
+
+/**
+ * Adds the palette and section spacing to the theme's theme.json data, so the
+ * colours exist as presets (and CSS variables) before anyone opens Site Styles.
+ *
+ * @param WP_Theme_JSON_Data $theme_json Theme data.
+ * @return WP_Theme_JSON_Data
+ */
+function sse_filter_theme_json( $theme_json ) {
+	$data    = $theme_json->get_data();
+	$palette = isset( $data['settings']['color']['palette'] ) && is_array( $data['settings']['color']['palette'] )
+		? $data['settings']['color']['palette']
+		: array();
+
+	// Some versions return presets keyed by origin.
+	if ( isset( $palette['theme'] ) ) {
+		$palette = $palette['theme'];
+	}
+
+	$existing = wp_list_pluck( $palette, 'slug' );
+	$defaults = sse_palette_presets()[0]['colors'];
+	$i        = 0;
+	foreach ( sse_palette_roles() as $slug => $label ) {
+		if ( ! in_array( $slug, $existing, true ) ) {
+			$palette[] = array(
+				'slug'  => $slug,
+				/* translators: %s: palette role, e.g. Accent. */
+				'name'  => sprintf( __( 'Site %s', 'section-site-editor' ), $label ),
+				'color' => $defaults[ $i ],
+			);
+		}
+		++$i;
+	}
+
+	return $theme_json->update_with(
+		array(
+			'version'  => 3,
+			'settings' => array(
+				'color'  => array( 'palette' => $palette ),
+				'custom' => array(
+					'sse' => array(
+						'sectionPadding' => 'clamp(3rem, 8vw, 7rem)',
+					),
+				),
+			),
+		)
+	);
+}
+add_filter( 'wp_theme_json_data_theme', 'sse_filter_theme_json' );
+
+/**
+ * Builds the CSS for the section colour themes from the theme definitions.
+ *
+ * @return string
+ */
+function sse_section_themes_css() {
+	$var = static function ( $role ) {
+		return 'var(--wp--preset--color--sse-' . $role . ')';
+	};
+
+	$css = '';
+	foreach ( sse_section_themes() as $t ) {
+		$css .= sprintf(
+			'.is-style-sse-%1$s{--sse-bg:%2$s;--sse-text:%3$s;--sse-heading:%4$s;--sse-link:%5$s;--sse-btn-bg:%6$s;--sse-btn-text:%7$s;}',
+			$t['slug'],
+			$var( $t['background'] ),
+			$var( $t['text'] ),
+			$var( $t['heading'] ),
+			$var( $t['link'] ),
+			$var( $t['buttonBg'] ),
+			$var( $t['buttonText'] )
+		);
+	}
+
+	$s    = '[class*="is-style-sse-"]';
+	$css .= "{$s}{background-color:var(--sse-bg);color:var(--sse-text);}";
+	$css .= ":where({$s}:not(.wp-block-template-part)){padding-block:var(--wp--custom--sse--section-padding,5rem);}";
+	// Coloured sections sit flush against each other.
+	// Inset: the section's background is a rounded panel in from the page
+	// edges. Clipping (rather than margins) leaves alignment and the
+	// content's own padding alone.
+	$css .= '.sse-inset{clip-path:inset(clamp(.375rem,1vw,.75rem) clamp(.75rem,2.5vw,2rem) round clamp(.5rem,1.5vw,1.25rem));}';
+	// Cover sets its own 1em padding; give a Cover section (one with a
+	// background video or image) the same room as any other section.
+	$css .= "{$s}.wp-block-cover{padding-block:var(--wp--custom--sse--section-padding,5rem);padding-inline:var(--wp--style--root--padding-left,1rem) var(--wp--style--root--padding-right,1rem);}";
+	$css .= "{$s}+{$s}{margin-block-start:0;}";
+	$css .= "{$s} :is(h1,h2,h3,h4,h5,h6){color:var(--sse-heading);}";
+	$css .= "{$s} a:not(.wp-element-button):not(.wp-block-button__link){color:var(--sse-link);}";
+	$css .= "{$s} :is(.wp-element-button,.wp-block-button__link):not(.has-background){background-color:var(--sse-btn-bg);}";
+	$css .= "{$s} :is(.wp-element-button,.wp-block-button__link):not(.has-text-color){color:var(--sse-btn-text);}";
+	$css .= "{$s} .is-style-outline :is(.wp-element-button,.wp-block-button__link):not(.has-background){background-color:transparent;color:var(--sse-link);border-color:currentColor;}";
+	// A Cover section (one with a background video) keeps its theme's text
+	// colour rather than Cover's own light/dark guess.
+	$css .= "{$s}.wp-block-cover:not(.has-text-color),{$s}.wp-block-cover:not(.has-text-color) .wp-block-cover__inner-container{color:var(--sse-text);}";
+	// Themes colour some blocks for a light page (Twenty Twenty-Four's quotes
+	// sit on a pale card, its separators are dark). In a coloured section,
+	// let them take the section's colours instead.
+	$css .= "{$s} :is(.wp-block-quote,.wp-block-pullquote):not(.has-background){background-color:transparent;}";
+	$css .= "{$s} :is(.wp-block-quote,.wp-block-pullquote,.wp-block-separator):not(.has-text-color){color:inherit;}";
+
+	return $css;
+}
+
+/**
+ * Registers the section themes as block styles and outputs their CSS on the
+ * front end and in the editor canvas.
+ */
+function sse_register_section_themes() {
+	wp_register_style( 'sse-section-themes', false, array(), SSE_VERSION );
+	wp_add_inline_style( 'sse-section-themes', sse_section_themes_css() . sse_divider_css() );
+
+	foreach ( array( 'core/group', 'core/cover', 'core/columns', 'sse/fluid-section' ) as $block ) {
+		foreach ( sse_section_themes() as $t ) {
+			register_block_style(
+				$block,
+				array(
+					'name'  => 'sse-' . $t['slug'],
+					'label' => $t['label'],
+				)
+			);
+		}
+	}
+}
+add_action( 'init', 'sse_register_section_themes', 20 );
+
+/**
+ * Enqueues the section theme CSS everywhere blocks render.
+ */
+function sse_enqueue_section_themes() {
+	wp_enqueue_style( 'sse-section-themes' );
+}
+add_action( 'enqueue_block_assets', 'sse_enqueue_section_themes' );
+
+/**
+ * Section divider shapes: the outline of the section's bottom edge, as an
+ * SVG path in a 100 × 100 box whose filled part is what stays visible.
+ *
+ * @return array<string,array> Slug => [ label, path ].
+ */
+function sse_divider_shapes() {
+	return array(
+		'curve'   => array( __( 'Curve', 'section-site-editor' ), 'M0 0H100V0Q50 200 0 0Z' ),
+		'scoop'   => array( __( 'Scoop', 'section-site-editor' ), 'M0 0H100V100Q50 -100 0 100Z' ),
+		'rounded' => array( __( 'Rounded', 'section-site-editor' ), 'M0 0H100V20Q100 100 80 100H20Q0 100 0 20Z' ),
+		'slant'   => array( __( 'Slant', 'section-site-editor' ), 'M0 0H100V0L0 100Z' ),
+		'wave'    => array( __( 'Wave', 'section-site-editor' ), 'M0 0H100V50C75 110 75 -10 50 50C25 110 25 -10 0 50Z' ),
+		'peak'    => array( __( 'Peak', 'section-site-editor' ), 'M0 0H100V0L50 100L0 0Z' ),
+		'notch'   => array( __( 'Notch', 'section-site-editor' ), 'M0 0H100V100L50 0L0 100Z' ),
+	);
+}
+
+/**
+ * CSS for section dividers. A section with a divider masks its bottom edge
+ * to the shape and overlaps the next section by the divider's height.
+ *
+ * @return string
+ */
+function sse_divider_css() {
+	// The shape is the second mask layer: centred, moved by the offset,
+	// sized by the width and repeated sideways, so widths under 100% make a
+	// row of shapes and wider ones show a gentler part of a single shape.
+	$shape_layer = 'var(--sse-div-shape) calc(50% + var(--sse-div-x,0vw)) 100%/var(--sse-div-w,100%) var(--sse-div-h) repeat-x';
+	$mask        = 'linear-gradient(#000 0 0) top/100% calc(100% - var(--sse-div-h) + 1px) no-repeat,' . $shape_layer;
+
+	$css  = '[class*="sse-divider-"]{--sse-div-h:clamp(2.5rem,6vw,5rem);position:relative;z-index:1;margin-block-end:calc(-1 * var(--sse-div-h)) !important;padding-block-end:calc(var(--wp--custom--sse--section-padding,5rem) + var(--sse-div-h)) !important;-webkit-mask:' . $mask . ';mask:' . $mask . ';}';
+	// A divider overlaps the next section, so it has to sit above it, even
+	// when the next section has a divider of its own: earlier sections
+	// stack higher.
+	// The parent is isolated so these stay local to the page's sections
+	// and never rise above a sticky header or the editor's own controls.
+	$css .= ':where(:has(> [class*="sse-divider-"])){isolation:isolate;}';
+	for ( $n = 2; $n <= 25; $n++ ) {
+		$css .= sprintf( '[class*="sse-divider-"]:nth-last-child(%1$d){z-index:%1$d;}', $n );
+	}
+	$css .= '.sse-divider-s{--sse-div-h:clamp(1.25rem,3vw,2.5rem);}';
+	$css .= '.sse-divider-l{--sse-div-h:clamp(4rem,10vw,8rem);}';
+	foreach ( sse_divider_widths() as $width ) {
+		$css .= sprintf( '.sse-divider-w-%1$d{--sse-div-w:%1$d%%;}', $width );
+	}
+	foreach ( sse_divider_offsets() as $offset ) {
+		if ( 0 !== $offset ) {
+			$css .= sprintf( '.sse-divider-x-%1$s{--sse-div-x:%2$dvw;}', $offset < 0 ? 'm' . abs( $offset ) : $offset, $offset );
+		}
+	}
+	// The stroke: a line along the shape's edge, in the section's link
+	// colour, drawn as a mask over a pseudo-element so it can be any colour.
+	$edge_layer = 'var(--sse-div-edge) calc(50% + var(--sse-div-x,0vw)) 100%/var(--sse-div-w,100%) 100% repeat-x';
+	$css       .= '[class*="sse-divider-stroke-"]::before{content:"";position:absolute;inset:auto 0 0;height:var(--sse-div-h);z-index:2;background:var(--sse-link,currentColor);pointer-events:none;-webkit-mask:' . $edge_layer . ';mask:' . $edge_layer . ';}';
+	// The next section's content stays clear of the overlap.
+	$css .= '[class*="sse-divider-"]+*{padding-block-start:calc(var(--wp--custom--sse--section-padding,5rem) + var(--sse-div-h,0px));}';
+
+	$flips = array(
+		''                  => '',
+		'.sse-divider-flip' => '<g transform="translate(100 0) scale(-1 1)">',
+	);
+	foreach ( sse_divider_shapes() as $slug => $shape ) {
+		foreach ( $flips as $selector => $group ) {
+			$open  = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="none">' . $group;
+			$close = ( $group ? '</g>' : '' ) . '</svg>';
+			$css  .= sprintf(
+				'.sse-divider-%1$s%2$s{--sse-div-shape:url("data:image/svg+xml,%3$s");}',
+				$slug,
+				$selector,
+				rawurlencode( $open . '<path d="' . $shape[1] . '"/>' . $close )
+			);
+			// The section's own mask trims the outer half of the line, so these
+			// are twice the width that shows.
+			foreach ( array( 1 => 6, 2 => 14 ) as $stroke => $px ) {
+				$css .= sprintf(
+					'.sse-divider-%1$s%2$s.sse-divider-stroke-%3$d{--sse-div-edge:url("data:image/svg+xml,%4$s");}',
+					$slug,
+					$selector,
+					$stroke,
+					rawurlencode( $open . '<path d="' . sse_divider_edge( $shape[1] ) . '" fill="none" stroke="#000" stroke-width="' . $px . '" vector-effect="non-scaling-stroke"/>' . $close )
+				);
+			}
+		}
+	}
+	return $css;
+}
+
+/**
+ * The edge of a divider shape: its outline without the straight top and
+ * sides, which is where a stroke goes.
+ *
+ * @param string $path A shape path, as in sse_divider_shapes().
+ * @return string
+ */
+function sse_divider_edge( $path ) {
+	if ( preg_match( '/^M0 0H100V(-?[\d.]+)(.*)Z$/', $path, $m ) ) {
+		return 'M100 ' . $m[1] . $m[2];
+	}
+	return $path;
+}
+
+/**
+ * Divider widths offered, as a percentage of the section's width.
+ *
+ * @return int[]
+ */
+function sse_divider_widths() {
+	return array( 25, 50, 75, 100, 150, 200, 300 );
+}
+
+/**
+ * Divider offsets offered, in steps of the viewport width.
+ *
+ * @return int[]
+ */
+function sse_divider_offsets() {
+	return range( -50, 50, 10 );
+}

@@ -1,0 +1,1572 @@
+// Editor chrome: a light, canvas-first, section-by-section site editor.
+// Everything is scoped to body.sse-studio (the site editor).
+
+$sse-ink: #1a1a1a;
+$sse-muted: #6b6b6b;
+$sse-line: #e6e4df;
+$sse-panel: #fff;
+$sse-backdrop: #f4f2ee;
+$sse-hover: #f2f0ec;
+$sse-blue: #3858e9;
+$sse-font: -apple-system, blinkmacsystemfont, "Segoe UI", roboto, "Helvetica Neue", sans-serif;
+
+/* ------------------------------------------------ Layout and left panel */
+
+.sse-studio {
+
+	.edit-site-layout {
+		background: $sse-backdrop;
+		color: $sse-ink;
+	}
+
+	// The navigation panel (Website / Pages): white, roomy, dark text.
+	.edit-site-layout__sidebar-region {
+		background: $sse-panel;
+		color: $sse-ink;
+		border-right: 1px solid $sse-line;
+
+		.edit-site-sidebar__content,
+		.edit-site-sidebar__screen-wrapper,
+		.edit-site-sidebar-navigation-screen {
+			background: transparent;
+			color: $sse-ink;
+		}
+
+		// The sticky title row has its own dark background.
+		.edit-site-sidebar-navigation-screen__title-icon {
+			background: $sse-panel;
+		}
+
+		.edit-site-save-hub {
+			color: $sse-ink;
+			border-top-color: $sse-line;
+		}
+
+		.edit-site-sidebar-navigation-screen__title,
+		.edit-site-sidebar-navigation-screen__title-icon,
+		h1,
+		h2,
+		h3 {
+			color: $sse-ink;
+			font-weight: 700;
+		}
+
+		.edit-site-sidebar-navigation-screen__title {
+			font-size: 22px;
+			letter-spacing: -0.01em;
+		}
+
+		.edit-site-sidebar-navigation-screen__description,
+		.edit-site-sidebar-navigation-screen__meta,
+		.edit-site-sidebar-navigation-screen-details-panel-label,
+		.edit-site-sidebar-navigation-screen__sticky-section,
+		.edit-site-sidebar-navigation-screen-details-footer,
+		p {
+			color: $sse-muted;
+		}
+
+		.components-button,
+		.edit-site-sidebar-navigation-item,
+		.edit-site-sidebar-button,
+		a {
+			color: $sse-ink;
+		}
+
+		.edit-site-sidebar-navigation-item {
+			border-radius: 8px;
+			font-size: 15px;
+			min-height: 40px;
+
+			&:hover,
+			&:focus {
+				background: $sse-hover;
+				color: $sse-ink;
+			}
+
+			&[aria-current="true"],
+			&.is-selected {
+				background: #e8e5df;
+				color: $sse-ink;
+				font-weight: 600;
+			}
+		}
+
+		svg {
+			fill: currentcolor;
+		}
+
+		.components-divider,
+		hr {
+			border-color: $sse-line;
+		}
+
+		// Search fields and inputs on a light background.
+		.components-input-control__backdrop,
+		.components-text-control__input,
+		.components-search-control__input {
+			background: $sse-backdrop;
+			color: $sse-ink;
+			border-color: transparent;
+		}
+	}
+
+	// Site hub (site icon and title at the top of the panel).
+	.edit-site-site-hub {
+		color: $sse-ink;
+
+		.edit-site-site-hub__title,
+		.edit-site-site-hub__site-title,
+		.components-button {
+			color: $sse-ink;
+		}
+	}
+
+	.edit-site-site-hub__view-mode-toggle-container,
+	.edit-site-layout__view-mode-toggle {
+		background: $sse-panel;
+		color: $sse-ink;
+
+		svg {
+			fill: $sse-ink;
+		}
+	}
+
+	// The site preview in browse mode: a flat page on a warm backdrop.
+	.edit-site-layout__canvas-container .edit-site-resizable-frame__inner-content,
+	.edit-site-layout__canvas .edit-site-resizable-frame__inner-content {
+		border-radius: 6px;
+		box-shadow: 0 0 0 1px $sse-line, 0 18px 48px rgba(0, 0, 0, 0.08);
+	}
+
+	.edit-site-resizable-frame__handle {
+		background: $sse-ink;
+	}
+}
+
+/* ------------------------------------------------------- Editor header */
+
+.sse-studio {
+
+	.editor-header {
+		background: $sse-panel;
+		border-bottom: 1px solid $sse-line;
+		font-family: $sse-font;
+	}
+
+	// The document title, as a quiet pill in the middle.
+	.editor-document-bar {
+		background: $sse-backdrop;
+		border-radius: 8px;
+
+		&:hover {
+			background: $sse-hover;
+		}
+	}
+
+	// "Save": solid black, as the primary action.
+	.editor-header .components-button.is-primary,
+	.entities-saved-states__panel-header .components-button.is-primary {
+		min-width: 76px;
+		justify-content: center;
+		border-radius: 4px;
+		background: $sse-ink;
+		color: #fff;
+		font-weight: 600;
+		letter-spacing: 0.02em;
+
+		&:hover:not(:disabled) {
+			background: #000;
+		}
+
+		&:disabled,
+		&[aria-disabled="true"] {
+			background: #c9c6c0;
+			color: #fff;
+		}
+	}
+
+	// The block inserter toggle reads as a plain "+" pill.
+	.editor-document-tools__inserter-toggle.components-button.is-primary {
+		min-width: 0;
+		border-radius: 999px;
+	}
+
+	// Less editor noise around the canvas.
+	.interface-interface-skeleton__footer,
+	.block-editor-block-breadcrumb {
+		display: none;
+	}
+
+	// Canvas backdrop in edit mode.
+	.editor-visual-editor {
+		background: $sse-backdrop;
+	}
+
+	// Snackbars ("Section deleted. Undo") in the bottom middle.
+	.components-snackbar {
+		background: $sse-ink;
+		border-radius: 8px;
+	}
+}
+
+/* ------------------------------------------- Save, Exit, device switch */
+
+.sse-studio {
+	// Replaced by Save and Exit on the left and the device switch.
+	.editor-header__back-button,
+	.editor-preview-dropdown {
+		display: none !important;
+	}
+
+	// Still clicked by our Save button, so hidden rather than removed;
+	// visibility keeps it out of the tab order.
+	.editor-header .editor-post-publish-button {
+		visibility: hidden;
+		position: absolute !important;
+		width: 1px !important;
+		height: 1px !important;
+		min-width: 0 !important;
+		padding: 0 !important;
+		overflow: hidden;
+		clip-path: inset(50%);
+	}
+
+	.editor-header__toolbar {
+		padding-left: 12px;
+	}
+}
+
+.sse-save-exit {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	margin-right: 12px;
+}
+
+.sse-save-exit__save,
+.sse-save-exit__exit {
+	height: 32px;
+	padding: 0 12px;
+	border: 0;
+	border-radius: 3px;
+	font: 500 13px/1 $sse-font;
+	cursor: pointer;
+}
+
+.sse-save-exit__save {
+	background: #c4c4c4;
+	color: #fff;
+	cursor: default;
+
+	&.is-dirty {
+		background: $sse-ink;
+		cursor: pointer;
+
+		&:hover {
+			background: #000;
+		}
+	}
+}
+
+.sse-save-exit__exit {
+	background: transparent;
+	color: $sse-ink;
+
+	&:hover {
+		background: #f2f2f2;
+	}
+}
+
+.sse-device-switch__group {
+	display: flex;
+	padding: 2px;
+	border-radius: 4px;
+	background: #f2f2f2;
+
+	button {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 36px;
+		height: 28px;
+		border: 0;
+		border-radius: 3px;
+		background: transparent;
+		color: $sse-ink;
+		cursor: pointer;
+
+		svg {
+			fill: currentcolor;
+		}
+
+		&.is-active {
+			background: #fff;
+			box-shadow: 0 1px 2px rgba(0, 0, 0, 0.14);
+		}
+	}
+}
+
+.sse-device-switch {
+	margin-right: 8px;
+}
+
+// "Editing Site Header · Global" in place of the document title.
+.editor-header__center:has(.sse-part-title) > :not(.sse-part-title) {
+	display: none !important;
+}
+
+.sse-part-title {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 2px;
+	font: 500 12px/1.2 $sse-font;
+
+	span {
+		color: $sse-muted;
+		font-size: 11px;
+	}
+}
+
+// Browse mode: an Edit button on the site preview.
+.sse-browse-edit {
+	position: absolute;
+	top: 16px;
+	left: 16px;
+	z-index: 10;
+}
+
+.sse-browse-edit__button {
+	height: 32px;
+	padding: 0 14px;
+	border: 0;
+	border-radius: 3px;
+	background: $sse-ink;
+	color: #fff;
+	font: 500 13px/1 $sse-font;
+	cursor: pointer;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+
+	&:hover {
+		background: #000;
+	}
+}
+
+/* -------------------------------------------------------- Section picker */
+
+.sse-picker-overlay {
+	background: rgba(255, 255, 255, 0.72);
+}
+
+.sse-picker.components-modal__frame {
+	width: min(1060px, calc(100vw - 48px));
+	max-width: none;
+	height: calc(100vh - 64px);
+	max-height: none;
+	border-radius: 6px;
+	box-shadow: 0 12px 48px rgba(0, 0, 0, 0.16);
+	font-family: $sse-font;
+
+	.components-modal__content {
+		padding: 0;
+		display: flex;
+		flex-direction: column;
+	}
+
+	.components-modal__header {
+		height: auto;
+		padding: 32px 32px 12px;
+		border-bottom: 0;
+	}
+
+	.components-modal__header-heading {
+		font-size: 26px;
+		font-weight: 500;
+		letter-spacing: -0.01em;
+	}
+}
+
+.sse-picker__loading {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 320px;
+}
+
+.sse-picker__layout {
+	flex: 1;
+	display: grid;
+	grid-template-columns: 260px 1fr;
+	min-height: 0;
+	height: 100%;
+}
+
+.sse-picker__nav {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	padding: 8px 20px 24px 32px;
+	overflow-y: auto;
+}
+
+.sse-picker__nav-action,
+.sse-picker__nav-item {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 6px 0;
+	border: 0;
+	background: none;
+	color: $sse-ink;
+	font: 400 14px/1.3 $sse-font;
+	text-align: left;
+	cursor: pointer;
+
+	svg {
+		fill: currentcolor;
+	}
+
+	&:hover {
+		text-decoration: underline;
+		text-underline-offset: 4px;
+	}
+
+	&.is-active {
+		text-decoration: underline;
+		text-decoration-thickness: 1.5px;
+		text-underline-offset: 6px;
+	}
+
+	&:focus-visible {
+		outline: 2px solid $sse-blue;
+		outline-offset: 2px;
+	}
+}
+
+.sse-picker__nav-item {
+	color: #4a4a4a;
+}
+
+.sse-picker__group {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	margin-top: 20px;
+}
+
+.sse-picker__group-label {
+	margin: 0 0 4px;
+	color: $sse-ink;
+	font: 600 15px/1.3 $sse-font;
+}
+
+.sse-picker__content {
+	overflow-y: auto;
+	padding: 8px 32px 32px 8px;
+}
+
+.sse-picker__empty {
+	max-width: 360px;
+	margin: 40px auto;
+	color: $sse-muted;
+	text-align: center;
+	line-height: 1.5;
+}
+
+// Two columns, cards at their natural height.
+.sse-picker__grid {
+	columns: 2;
+	column-gap: 20px;
+}
+
+.sse-picker__card {
+	display: block;
+	width: 100%;
+	margin: 0 0 20px;
+	padding: 0;
+	border: 0;
+	background: none;
+	break-inside: avoid;
+	cursor: pointer;
+
+	&:hover .sse-picker__preview,
+	&:focus-visible .sse-picker__preview {
+		box-shadow: 0 0 0 2px $sse-blue;
+	}
+
+	&:focus-visible {
+		outline: none;
+	}
+}
+
+.sse-picker__preview {
+	display: block;
+	overflow: hidden;
+	background: #f7f7f7;
+	box-shadow: 0 0 0 1px #ebebeb;
+	pointer-events: none;
+	transition: box-shadow 0.12s ease;
+}
+
+/* ------------------------------------------- Section panels (popover) */
+
+.sse-popover .components-popover__content {
+	border-radius: 10px;
+}
+
+.sse-popover__body {
+	width: 300px;
+	padding: 16px;
+	font-family: $sse-font;
+}
+
+.sse-popover__title {
+	margin: 0 0 12px;
+	font-weight: 600;
+	font-size: 13px;
+	color: $sse-ink;
+}
+
+.sse-panel-popover .components-popover__content {
+	border: 0;
+	border-radius: 8px;
+	box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(0, 0, 0, 0.05);
+	max-height: min(640px, 80vh);
+	overflow: auto;
+}
+
+.sse-panel {
+	position: relative;
+	width: 270px;
+	font-family: $sse-font;
+	color: $sse-ink;
+
+	.components-tab-panel__tabs {
+		gap: 16px;
+		padding: 0 18px;
+		border-bottom: 1px solid #ececec;
+	}
+
+	.components-tab-panel__tabs-item {
+		height: 48px;
+		padding: 0;
+		font-size: 13px;
+		color: $sse-muted;
+
+		&.is-active {
+			color: $sse-ink;
+			box-shadow: inset 0 -2px 0 $sse-ink;
+		}
+
+		&::after {
+			display: none;
+		}
+
+		// Core draws its focus ring inset by 12px, which with no padding
+		// lands on the label. Ring the label with a little room instead.
+		&::before {
+			display: none;
+		}
+
+		&:focus-visible {
+			outline: none;
+			box-shadow: none;
+		}
+
+		&.is-active:focus-visible {
+			box-shadow: inset 0 -2px 0 $sse-ink;
+		}
+
+		&:focus-visible::before {
+			display: block;
+			content: "";
+			position: absolute;
+			inset: 10px -6px;
+			border: 2px solid $sse-blue;
+			border-radius: 4px;
+			box-shadow: none;
+		}
+	}
+}
+
+.sse-panel__close.components-button {
+	position: absolute;
+	top: 10px;
+	right: 8px;
+}
+
+.sse-panel__body {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	padding: 16px 18px 18px;
+
+	.components-toggle-control {
+		padding-bottom: 12px;
+		border-bottom: 1px solid #f0f0f0;
+
+		.components-toggle-control__label,
+		label {
+			font-size: 13px;
+		}
+
+		.components-h-stack {
+			flex-direction: row-reverse;
+			justify-content: space-between;
+		}
+	}
+}
+
+.sse-panel__heading {
+	margin: 4px 0 -4px;
+	font-size: 10px;
+	font-weight: 600;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: $sse-muted;
+}
+
+.sse-panel__title {
+	margin: 0;
+	font-size: 15px;
+	font-weight: 600;
+}
+
+.sse-panel__help {
+	margin: 0;
+	font-size: 12px;
+	line-height: 1.5;
+	color: $sse-muted;
+}
+
+.sse-panel__link {
+	padding: 0;
+	border: 0;
+	background: none;
+	color: $sse-ink;
+	font: inherit;
+	text-decoration: underline;
+	cursor: pointer;
+}
+
+.sse-panel__row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	padding-bottom: 12px;
+	border-bottom: 1px solid #f0f0f0;
+	font-size: 13px;
+}
+
+.sse-panel__hash {
+	padding-left: 10px;
+	color: $sse-muted;
+}
+
+.sse-panel__bg-preview {
+	height: 120px;
+	border-radius: 4px;
+	background-size: cover;
+	background-position: center;
+	box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+}
+
+.sse-panel__wide-button.components-button {
+	justify-content: center;
+	width: 100%;
+}
+
+.sse-stepper {
+	display: flex;
+	align-items: center;
+	gap: 2px;
+	padding: 2px;
+	border-radius: 4px;
+	background: #f3f3f3;
+}
+
+.sse-stepper__value {
+	min-width: 28px;
+	text-align: center;
+	font-variant-numeric: tabular-nums;
+}
+
+.sse-segmented {
+	display: flex;
+	padding: 2px;
+	border-radius: 4px;
+	background: #f3f3f3;
+
+	button {
+		min-width: 32px;
+		height: 28px;
+		border: 0;
+		border-radius: 3px;
+		background: transparent;
+		color: $sse-muted;
+		font: 600 12px/1 $sse-font;
+		cursor: pointer;
+
+		&.is-active {
+			background: #fff;
+			color: $sse-ink;
+			box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+		}
+	}
+}
+
+// Section colour themes, one row each, drawn in the theme.
+.sse-theme-list {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.sse-theme-row {
+	position: relative;
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	height: 38px;
+	padding: 0 14px;
+	border: 1px solid rgba(0, 0, 0, 0.1);
+	border-radius: 2px;
+	background: #fff;
+	color: $sse-ink;
+	text-align: left;
+	cursor: pointer;
+
+	&:hover {
+		box-shadow: 0 0 0 1px #9a9a9a;
+	}
+
+	&.is-selected {
+		box-shadow: 0 0 0 2px $sse-ink, 0 0 0 3px #fff;
+	}
+
+	&:focus-visible {
+		outline: 2px solid $sse-blue;
+		outline-offset: 2px;
+	}
+
+	&.is-none {
+		background: repeating-linear-gradient(-45deg, #fff, #fff 6px, #f4f4f4 6px, #f4f4f4 12px);
+		color: $sse-muted;
+	}
+}
+
+.sse-theme-row__aa {
+	width: 26px;
+	// Large text, like the headings it stands for.
+	font: 700 19px/1 $sse-font;
+}
+
+.sse-theme-row__name {
+	flex: 1;
+	text-align: center;
+	font: 600 10px/1 $sse-font;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+}
+
+.sse-theme-row__button {
+	width: 24px;
+	height: 8px;
+	border-radius: 2px;
+}
+
+// View layouts.
+.sse-layouts {
+	width: 320px;
+	padding: 16px 18px 18px;
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+
+.sse-layouts__header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+}
+
+.sse-layouts__grid {
+	display: flex;
+	flex-direction: column;
+	gap: 14px;
+}
+
+.sse-layouts__card {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	padding: 0;
+	border: 0;
+	background: none;
+	text-align: left;
+	cursor: pointer;
+
+	&:hover .sse-layouts__preview,
+	&:focus-visible .sse-layouts__preview {
+		box-shadow: 0 0 0 2px $sse-blue;
+	}
+}
+
+.sse-layouts__preview {
+	display: block;
+	max-height: 200px;
+	overflow: hidden;
+	border-radius: 4px;
+	box-shadow: 0 0 0 1px $sse-line;
+	pointer-events: none;
+}
+
+.sse-layouts__preview.is-part {
+	max-height: 90px;
+}
+
+.sse-layouts__title {
+	font-size: 12px;
+	color: $sse-muted;
+}
+
+/* ---------------------------------------------------------- Site Styles */
+
+.sse-styles {
+	padding: 4px 16px 24px;
+	font-family: $sse-font;
+	color: $sse-ink;
+}
+
+.sse-styles .sse-styles__heading {
+	margin: 12px 0 16px;
+	font-size: 20px;
+	line-height: 1.2;
+	font-weight: 600;
+	letter-spacing: -0.01em;
+}
+
+.sse-styles__back {
+	display: inline-flex;
+	align-items: center;
+	gap: 2px;
+	margin: 8px 0 0 -6px;
+	padding: 4px 6px;
+	border: 0;
+	background: none;
+	color: $sse-ink;
+	font: 500 13px/1 $sse-font;
+	cursor: pointer;
+
+	svg {
+		fill: currentcolor;
+	}
+
+	&:hover {
+		text-decoration: underline;
+	}
+}
+
+.sse-styles__cards {
+	margin-top: 12px;
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+
+.sse-styles__screen {
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+}
+
+.sse-styles .sse-styles__subhead {
+	margin: 8px 0 -6px;
+	font-size: 13px;
+	font-weight: 600;
+	text-transform: none;
+	letter-spacing: 0;
+}
+
+.sse-styles__label {
+	margin: 0 0 -8px;
+	font-size: 10px;
+	font-weight: 600;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: $sse-muted;
+}
+
+.sse-styles__help {
+	margin: 0;
+	color: $sse-muted;
+	font-size: 12px;
+	line-height: 1.5;
+}
+
+.sse-styles__footer {
+	margin-top: 20px;
+	padding-top: 12px;
+	border-top: 1px solid $sse-line;
+}
+
+// Preview cards: a grey card with a white preview, and a chevron column.
+.sse-card {
+	display: flex;
+	gap: 4px;
+
+	&.is-static {
+		display: block;
+		padding: 10px;
+		background: #f3f3f3;
+	}
+}
+
+.sse-card__main {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	min-width: 0;
+	padding: 10px;
+	border: 0;
+	background: #f3f3f3;
+	color: $sse-ink;
+	text-align: left;
+	cursor: pointer;
+
+	&:hover {
+		background: #ebebeb;
+	}
+
+	&:focus-visible {
+		outline: 2px solid $sse-blue;
+	}
+}
+
+.sse-card__title {
+	font-size: 11px;
+	color: #555;
+}
+
+.sse-card__preview {
+	display: block;
+	padding: 12px;
+	background: #fff;
+	box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.04);
+}
+
+.sse-card__center {
+	display: flex;
+	justify-content: center;
+}
+
+.sse-card__chevron {
+	width: 36px;
+	border: 0;
+	background: #f3f3f3;
+	color: $sse-ink;
+	cursor: pointer;
+
+	svg {
+		fill: currentcolor;
+	}
+
+	&:hover {
+		background: #ebebeb;
+	}
+}
+
+.sse-strip {
+	display: flex;
+	flex: 1;
+	height: 28px;
+	overflow: hidden;
+	box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.06);
+
+	&.is-large {
+		height: 44px;
+	}
+
+	span {
+		flex: 1;
+	}
+}
+
+.sse-theme-preview {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+
+.sse-theme-preview__aa {
+	font-size: 30px;
+	line-height: 1;
+}
+
+.sse-button-sample {
+	display: inline-block;
+	padding: 0.85em 1.7em;
+	font: 600 12px/1 $sse-font;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+	white-space: nowrap;
+
+	&.is-small {
+		padding: 6px 10px;
+		font-size: 8px;
+	}
+}
+
+.sse-font-sample {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.sse-font-sample__heading {
+	font-size: 22px;
+	line-height: 1.15;
+}
+
+.sse-font-sample__body {
+	font-size: 12px;
+}
+
+.sse-font-preview {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	padding: 20px 16px;
+	background: #f3f3f3;
+}
+
+.sse-font-preview__heading {
+	font-size: 28px;
+	line-height: 1.1;
+}
+
+.sse-font-preview__body {
+	font-size: 14px;
+}
+
+.sse-font-preview__names {
+	margin-top: 8px;
+	font-size: 10px;
+	font-weight: 600;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: $sse-muted;
+}
+
+// List rows, with a value and a chevron when they open something.
+.sse-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	min-height: 40px;
+	padding: 0;
+	border: 0;
+	border-bottom: 1px solid $sse-line;
+	background: none;
+	color: $sse-ink;
+	font: 400 13px/1.3 $sse-font;
+	text-align: left;
+
+	&.is-link {
+		cursor: pointer;
+
+		&:hover {
+			text-decoration: underline;
+		}
+	}
+}
+
+.sse-row__value {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	color: $sse-muted;
+
+	svg {
+		fill: currentcolor;
+	}
+}
+
+.sse-stepper {
+	display: inline-flex;
+	align-items: center;
+	gap: 2px;
+	padding: 2px;
+	border-radius: 4px;
+	background: #f3f3f3;
+	color: $sse-ink;
+}
+
+.sse-stepper__value {
+	min-width: 44px;
+	text-align: center;
+	font-variant-numeric: tabular-nums;
+	font-size: 12px;
+}
+
+.sse-palette-editor {
+	display: grid;
+	grid-template-columns: repeat(5, 1fr);
+	gap: 6px;
+
+	.components-dropdown {
+		display: block;
+	}
+}
+
+.sse-palette-editor__swatch {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 6px;
+	width: 100%;
+	padding: 0;
+	border: 0;
+	background: none;
+	color: $sse-muted;
+	font: 500 10px/1 $sse-font;
+	cursor: pointer;
+
+	span {
+		display: block;
+		width: 100%;
+		aspect-ratio: 1;
+		box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
+	}
+
+	&:hover span {
+		box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12), 0 0 0 2px #c9c6c0;
+	}
+
+	&[aria-expanded="true"] span {
+		box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12), 0 0 0 2px $sse-blue;
+	}
+}
+
+.sse-palette-presets {
+	display: grid;
+	grid-template-columns: repeat(2, 1fr);
+	gap: 8px;
+}
+
+.sse-palette-preset {
+	display: flex;
+	padding: 12px;
+	border: 0;
+	background: #f3f3f3;
+	cursor: pointer;
+
+	&:hover {
+		background: #ebebeb;
+	}
+
+	&.is-selected {
+		box-shadow: inset 0 0 0 2px $sse-ink;
+	}
+
+	&:focus-visible {
+		outline: 2px solid $sse-blue;
+	}
+}
+
+.sse-theme-list.is-static {
+	pointer-events: none;
+}
+
+.sse-site-themes {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+
+.sse-site-theme {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	padding: 0;
+	border: 0;
+	background: none;
+	text-align: left;
+	cursor: pointer;
+
+	&:hover .sse-site-theme__preview {
+		box-shadow: 0 0 0 2px #c9c6c0;
+	}
+
+	&.is-selected .sse-site-theme__preview {
+		box-shadow: 0 0 0 2px $sse-ink;
+	}
+
+	&:focus-visible {
+		outline: 2px solid $sse-blue;
+		outline-offset: 2px;
+	}
+}
+
+.sse-site-theme__preview {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 14px;
+	box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08);
+}
+
+.sse-site-theme__aa {
+	font-size: 28px;
+	line-height: 1;
+}
+
+.sse-site-theme__name {
+	font-size: 12px;
+	color: $sse-muted;
+}
+
+.sse-font-packs {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.sse-font-pack {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	padding: 14px;
+	border: 0;
+	background: #f3f3f3;
+	color: $sse-ink;
+	text-align: left;
+	cursor: pointer;
+
+	&:hover {
+		background: #ebebeb;
+	}
+
+	&.is-selected {
+		box-shadow: inset 0 0 0 2px $sse-ink;
+	}
+}
+
+.sse-font-pack__heading {
+	font-size: 22px;
+	line-height: 1.15;
+}
+
+.sse-font-pack__body {
+	font-size: 13px;
+	color: #555;
+}
+
+/* ------------------------------------------------------------ Add block */
+
+.sse-add-block-popover .components-popover__content {
+	border: 0;
+	border-radius: 8px;
+	box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(0, 0, 0, 0.05);
+}
+
+.sse-add-block {
+	display: flex;
+	flex-direction: column;
+	width: 268px;
+	max-height: min(460px, 70vh);
+	padding: 8px;
+	font-family: $sse-font;
+
+	.components-search-control input[type="search"].components-search-control__input {
+		height: 40px;
+		border: 1.5px solid $sse-ink;
+		border-radius: 4px;
+		background: #f5f5f5;
+	}
+}
+
+.sse-add-block__scroll {
+	overflow-y: auto;
+	margin-top: 8px;
+}
+
+.sse-add-block__group + .sse-add-block__group {
+	margin-top: 8px;
+}
+
+.sse-add-block__title {
+	margin: 8px 2px;
+	font-size: 13px;
+	font-weight: 600;
+	color: $sse-ink;
+}
+
+.sse-add-block__tiles {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 4px;
+}
+
+.sse-add-block__tile {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	height: 38px;
+	padding: 0 10px;
+	border: 0;
+	border-radius: 3px;
+	background: #f5f5f5;
+	color: $sse-ink;
+	font: 400 12px/1.2 $sse-font;
+	text-align: left;
+	cursor: pointer;
+
+	.block-editor-block-icon {
+		width: 16px;
+		height: 16px;
+		flex: none;
+
+		svg {
+			width: 16px;
+			height: 16px;
+		}
+	}
+
+	span {
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	&:hover {
+		background: #ebebeb;
+	}
+
+	&:focus-visible {
+		outline: 2px solid $sse-blue;
+	}
+}
+
+.sse-add-block__empty {
+	margin: 16px 4px;
+	color: $sse-muted;
+	font-size: 13px;
+}
+
+/* -------------------------------------------------------------- Dividers */
+
+.sse-shape-picker {
+	display: grid;
+	grid-template-columns: repeat(4, 1fr);
+	gap: 6px;
+	padding: 8px;
+	background: #f3f3f3;
+}
+
+.sse-shape-option {
+	height: 40px;
+	padding: 6px 6px 2px;
+	border: 1px solid transparent;
+	border-radius: 2px;
+	background: #fff;
+	cursor: pointer;
+
+	svg {
+		display: block;
+		width: 100%;
+		height: 100%;
+		fill: $sse-ink;
+	}
+
+	&:hover {
+		border-color: #c9c6c0;
+	}
+
+	&.is-active {
+		border-color: $sse-ink;
+	}
+
+	&:focus-visible {
+		outline: 2px solid $sse-blue;
+	}
+}
+
+/* ------------------------------------------------------- Backgrounds */
+
+.sse-segmented.is-wide {
+	display: grid;
+	grid-auto-flow: column;
+	grid-auto-columns: 1fr;
+
+	button {
+		height: 32px;
+		font-weight: 500;
+	}
+}
+
+.sse-dropzone {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	width: 100%;
+	height: 110px;
+	border: 1px dashed #c9c9c9;
+	border-radius: 3px;
+	background: #fff center / cover no-repeat;
+	color: $sse-ink;
+	font: 500 13px/1.2 $sse-font;
+	cursor: pointer;
+
+	&:hover {
+		border-color: $sse-ink;
+	}
+
+	&.has-image {
+		border-style: solid;
+
+		span {
+			padding: 6px 10px;
+			border-radius: 3px;
+			background: rgba(255, 255, 255, 0.92);
+			opacity: 0;
+			transition: opacity 0.12s ease;
+		}
+
+		&:hover span,
+		&:focus-visible span {
+			opacity: 1;
+		}
+	}
+}
+
+.sse-dropzone:has(.sse-dropzone__video) {
+	position: relative;
+	overflow: hidden;
+
+	span {
+		position: relative;
+	}
+}
+
+.sse-dropzone__video {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	pointer-events: none;
+}
+
+.sse-panel .components-range-control {
+	margin-block: 16px 8px;
+}
+
+.sse-dropzone__plus {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 30px;
+	height: 30px;
+	border-radius: 50%;
+	background: #f0f0f0;
+
+	svg {
+		fill: currentcolor;
+	}
+}
+
+.sse-art-grid {
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	gap: 8px;
+}
+
+.sse-art-option {
+	aspect-ratio: 4 / 3;
+	padding: 0;
+	border: 1px solid rgba(0, 0, 0, 0.12);
+	border-radius: 3px;
+	cursor: pointer;
+
+	&:hover {
+		box-shadow: 0 0 0 2px #c9c6c0;
+	}
+
+	&.is-active {
+		box-shadow: 0 0 0 2px $sse-ink;
+	}
+
+	&:focus-visible {
+		outline: 2px solid $sse-blue;
+		outline-offset: 2px;
+	}
+}
+
+/* -------------------------------------------------------- Block toolbar */
+
+// Lighter: white, rounded, a soft shadow and pale
+// dividers instead of the black outline.
+.sse-studio {
+
+	.block-editor-block-contextual-toolbar:not(.is-fixed) {
+		border: 0;
+		border-radius: 6px;
+		box-shadow: 0 4px 16px rgba(0, 0, 0, 0.16), 0 0 0 1px rgba(0, 0, 0, 0.06);
+		overflow: hidden;
+
+		.block-editor-block-toolbar .components-toolbar-group,
+		.block-editor-block-toolbar .components-toolbar,
+		.block-editor-block-toolbar__block-controls {
+			border-right-color: #ececec;
+		}
+
+		.block-editor-block-parent-selector {
+			border-right-color: #ececec;
+		}
+	}
+}
+
+// While a freeform block is dragged or resized, the toolbar would cover the
+// grid and the alignment guides.
+.sse-is-gesturing .block-editor-block-list__block-popover,
+.sse-is-gesturing .block-editor-block-contextual-toolbar {
+	visibility: hidden;
+}
+
+// A whole section is selected: the section menu stands in for the toolbar.
+// Transparent rather than hidden, so keyboard users can still reach it
+// with Alt+F10 (focus can't move into something with visibility: hidden).
+.sse-hide-section-toolbar .block-editor-block-list__block-popover:not(:focus-within) {
+	opacity: 0;
+	pointer-events: none;
+}
+
+// Toggles sit on the right in the panel, so their help text lines up with
+// the label rather than leaving room for a switch on the left.
+.sse-panel .components-toggle-control .components-base-control__help {
+	margin-inline-start: 0;
+	margin-top: 4px;
+	padding-inline-end: 48px;
+}
+
+.sse-panel__row.is-slider {
+	min-height: 0;
+	margin-top: 12px;
+	padding-bottom: 0;
+	border-bottom: 0;
+}
+
+.sse-panel__value {
+	color: $sse-muted;
+	font-variant-numeric: tabular-nums;
+}
+
+.sse-panel .sse-panel__row.is-slider + .components-range-control {
+	margin-block: 0 4px;
+}

@@ -10,7 +10,8 @@
 		"lint:js": "wp-scripts lint-js src test",
 		"lint:css": "wp-scripts lint-style \"src/**/*.scss\"",
 		"test": "wp-scripts test-unit-js",
-		"plugin-zip": "wp-scripts plugin-zip"
+		"plugin-zip": "wp-scripts plugin-zip",
+		"test:e2e": "node e2e/smoke.mjs"
 	},
 	"files": [
 		"build",
@@ -30,6 +31,7 @@
 		"@wordpress/i18n": "^6.30.0",
 		"@wordpress/scripts": "^36.1.0",
 		"jsdom": "^29.1.1",
+		"playwright": "^1.64.1",
 		"vite": "^8.3.4",
 		"vitest": "^5.0.4"
 	},

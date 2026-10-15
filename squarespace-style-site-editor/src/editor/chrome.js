@@ -95,11 +95,13 @@ function EditButton() {
 			type="button"
 			className="sse-browse-edit__button"
 			onClick={ () => {
-				const frame = document.querySelector(
-					'.edit-site-visual-editor__editor-canvas'
-				);
-				frame?.contentDocument?.body?.dispatchEvent(
-					new window.MouseEvent( 'click', { bubbles: true } )
+				// The site editor's router follows the URL, so going to the
+				// same page with canvas=edit is what entering edit mode is.
+				const url = new URL( window.location.href );
+				url.searchParams.set( 'canvas', 'edit' );
+				window.history.pushState( {}, '', url );
+				window.dispatchEvent(
+					new window.PopStateEvent( 'popstate', { state: {} } )
 				);
 			} }
 		>

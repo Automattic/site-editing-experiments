@@ -97,11 +97,23 @@ Then activate the plugin from the Plugins screen.
 npm install
 npm run build      # or npm start to watch
 npm test           # pattern validity and grid maths
+npm run test:e2e   # the editor itself, in a headless browser (see below)
 npm run lint:js
 npm run lint:css
 ```
 
-The tests check every section pattern against core's current `save()` output (so none open with "This block contains unexpected or invalid content") and cover the grid snapping and placement maths.
+The unit tests check every section pattern against core's current `save()` output (so none open with "This block contains unexpected or invalid content") and cover the grid snapping and placement maths.
+
+The end-to-end test drives the real site editor through the main flows: building a page from the section picker, the section menu, Edit section and View layouts, saving a section, freeform blocks (adding, dragging, editing, the rows handle and the first mobile drag), Site Styles, saving and reloading, editing the header, and the front end at desktop and phone widths. It needs a site with the plugin active, Twenty Twenty-Five and automatic login, which Playground gives you:
+
+```sh
+npx playwright install chromium   # once
+npx @wp-playground/cli server --login --port=9400 \
+  --mount=.:/wordpress/wp-content/plugins/squarespace-style-site-editor
+npm run test:e2e
+```
+
+Set `SSE_BASE_URL` to test another site and `SSE_SHOTS` to a folder to keep screenshots. Each run adds a page and resets the theme's header.
 
 | Path | What's there |
 | --- | --- |

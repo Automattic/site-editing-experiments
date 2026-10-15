@@ -1,8 +1,17 @@
 import clsx from 'clsx';
 import { useBlockProps, useInnerBlocksProps } from '@wordpress/block-editor';
 
-export function sectionStyle( { rows, mobileRows } ) {
+const GAPS = {
+	none: '0px',
+	narrow: 'clamp(0.25rem, 0.5vw, 0.375rem)',
+	wide: 'clamp(1rem, 2vw, 1.75rem)',
+};
+
+export function sectionStyle( { rows, mobileRows, gap } ) {
 	const style = { '--sse-rows': rows };
+	if ( GAPS[ gap ] ) {
+		style[ '--sse-gap' ] = GAPS[ gap ];
+	}
 	if ( mobileRows > 0 ) {
 		style[ '--sse-mobile-rows' ] = mobileRows;
 	}

@@ -76,3 +76,51 @@ export function useSitePalette() {
 		return out;
 	}, [ user, base ] );
 }
+
+/** @return {Object[]} Divider shapes: { slug, label, path }. */
+export const getDividerShapes = () => settings.dividers || [];
+
+/**
+ * A section's divider, from its className.
+ *
+ * @param {string} className Block className attribute.
+ * @return {{ shape: string|null, size: string, flip: boolean }} Divider.
+ */
+export function getDivider( className = '' ) {
+	const classes = ( className || '' ).split( /\s+/ );
+	const shapes = getDividerShapes().map( ( d ) => d.slug );
+	const shape =
+		shapes.find( ( slug ) =>
+			classes.includes( `sse-divider-${ slug }` )
+		) || null;
+	let size = 'm';
+	if ( classes.includes( 'sse-divider-s' ) ) {
+		size = 's';
+	} else if ( classes.includes( 'sse-divider-l' ) ) {
+		size = 'l';
+	}
+	return { shape, size, flip: classes.includes( 'sse-divider-flip' ) };
+}
+
+/**
+ * Returns className with its divider replaced.
+ *
+ * @param {string} className Current className.
+ * @param {Object} divider   { shape, size, flip }; shape null removes it.
+ * @return {string|undefined} New className.
+ */
+export function withDivider( className = '', divider ) {
+	const kept = ( className || '' )
+		.split( /\s+/ )
+		.filter( ( c ) => c && ! c.startsWith( 'sse-divider-' ) );
+	if ( divider?.shape ) {
+		kept.push( `sse-divider-${ divider.shape }` );
+		if ( divider.size && divider.size !== 'm' ) {
+			kept.push( `sse-divider-${ divider.size }` );
+		}
+		if ( divider.flip ) {
+			kept.push( 'sse-divider-flip' );
+		}
+	}
+	return kept.length ? kept.join( ' ' ) : undefined;
+}

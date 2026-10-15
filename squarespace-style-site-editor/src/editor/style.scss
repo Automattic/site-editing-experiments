@@ -1331,3 +1331,41 @@ $sse-font: -apple-system, blinkmacsystemfont, "Segoe UI", roboto, "Helvetica Neu
 	color: $sse-muted;
 	font-size: 13px;
 }
+
+/* -------------------------------------------------------------- Dividers */
+
+.sse-shape-picker {
+	display: grid;
+	grid-template-columns: repeat(4, 1fr);
+	gap: 6px;
+	padding: 8px;
+	background: #f3f3f3;
+}
+
+.sse-shape-option {
+	height: 40px;
+	padding: 6px 6px 2px;
+	border: 1px solid transparent;
+	border-radius: 2px;
+	background: #fff;
+	cursor: pointer;
+
+	svg {
+		display: block;
+		width: 100%;
+		height: 100%;
+		fill: $sse-ink;
+	}
+
+	&:hover {
+		border-color: #c9c6c0;
+	}
+
+	&.is-active {
+		border-color: $sse-ink;
+	}
+
+	&:focus-visible {
+		outline: 2px solid $sse-blue;
+	}
+}

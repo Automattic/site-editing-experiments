@@ -24,7 +24,13 @@ import {
 import { close as closeIcon, plus } from '@wordpress/icons';
 import { minus } from '../shared/icons';
 
-import { getThemeFromClassName, withTheme } from './settings';
+import {
+	getDivider,
+	getDividerShapes,
+	getThemeFromClassName,
+	withDivider,
+	withTheme,
+} from './settings';
 import ThemeSwatches from './theme-swatches';
 import {
 	blocksForPattern,
@@ -66,6 +72,139 @@ function Stepper( { label, value, min = 1, max = MAX_ROWS, onChange } ) {
 				/>
 			</div>
 		</div>
+	);
+}
+
+function Segmented( { label, value, options, onChange } ) {
+	return (
+		<div className="sse-panel__row">
+			<span>{ label }</span>
+			<div
+				className="sse-segmented"
+				role="radiogroup"
+				aria-label={ label }
+			>
+				{ options.map( ( [ key, short ] ) => (
+					<button
+						key={ key }
+						type="button"
+						role="radio"
+						aria-checked={ value === key }
+						className={ clsx( { 'is-active': value === key } ) }
+						onClick={ () => onChange( key ) }
+					>
+						{ short }
+					</button>
+				) ) }
+			</div>
+		</div>
+	);
+}
+
+function DividerPreview( { path, flip } ) {
+	// A band of section with the shape as its bottom edge.
+	return (
+		<svg
+			viewBox="0 0 100 150"
+			preserveAspectRatio="none"
+			aria-hidden="true"
+		>
+			<rect width="100" height="70" />
+			<g
+				transform={
+					flip
+						? 'translate(100 70) scale(-1 0.8)'
+						: 'translate(0 70) scale(1 0.8)'
+				}
+			>
+				<path d={ path } />
+			</g>
+		</svg>
+	);
+}
+
+/**
+ * Divider: a shaped bottom edge for the section, as in Squarespace.
+ *
+ * @param {Object}                                props
+ * @param {string}                                props.className Section className.
+ * @param {(className: string|undefined) => void} props.onChange  Called with the new className.
+ */
+function DividerControls( { className, onChange } ) {
+	const shapes = getDividerShapes();
+	const divider = getDivider( className );
+	const update = ( next ) =>
+		onChange( withDivider( className, { ...divider, ...next } ) );
+	if ( ! shapes.length ) {
+		return null;
+	}
+	return (
+		<>
+			<PanelHeading>
+				{ __( 'Styling', 'squarespace-style-site-editor' ) }
+			</PanelHeading>
+			<ToggleControl
+				__nextHasNoMarginBottom
+				label={ __( 'Divider', 'squarespace-style-site-editor' ) }
+				checked={ !! divider.shape }
+				onChange={ ( on ) =>
+					update( { shape: on ? shapes[ 0 ].slug : null } )
+				}
+			/>
+			{ divider.shape && (
+				<>
+					<div
+						className="sse-shape-picker"
+						role="radiogroup"
+						aria-label={ __(
+							'Shape',
+							'squarespace-style-site-editor'
+						) }
+					>
+						{ shapes.map( ( shape ) => (
+							<button
+								key={ shape.slug }
+								type="button"
+								role="radio"
+								aria-checked={ divider.shape === shape.slug }
+								aria-label={ shape.label }
+								title={ shape.label }
+								className={ clsx( 'sse-shape-option', {
+									'is-active': divider.shape === shape.slug,
+								} ) }
+								onClick={ () =>
+									update( { shape: shape.slug } )
+								}
+							>
+								<DividerPreview
+									path={ shape.path }
+									flip={ divider.flip }
+								/>
+							</button>
+						) ) }
+					</div>
+					<Segmented
+						label={ __(
+							'Height',
+							'squarespace-style-site-editor'
+						) }
+						value={ divider.size }
+						options={ [
+							[ 's', __( 'S', 'squarespace-style-site-editor' ) ],
+							[ 'm', __( 'M', 'squarespace-style-site-editor' ) ],
+							[ 'l', __( 'L', 'squarespace-style-site-editor' ) ],
+						] }
+						onChange={ ( size ) => update( { size } ) }
+					/>
+					<ToggleControl
+						__nextHasNoMarginBottom
+						label={ __( 'Flip', 'squarespace-style-site-editor' ) }
+						checked={ divider.flip }
+						onChange={ ( flip ) => update( { flip } ) }
+					/>
+				</>
+			) }
+		</>
 	);
 }
 
@@ -239,6 +378,10 @@ function DesignTab( { clientId, name, attributes } ) {
 					</div>
 				</div>
 			) }
+			<DividerControls
+				className={ attributes.className }
+				onChange={ ( className ) => set( { className } ) }
+			/>
 			{ supportsAnchor && (
 				<>
 					<PanelHeading>

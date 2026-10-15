@@ -401,3 +401,9 @@ $sse-font: -apple-system, blinkmacsystemfont, "Segoe UI", roboto, "Helvetica Neu
 .is-root-container:has(.is-sse-editing-part) .sse-section:not(.is-sse-editing-part):hover {
 	outline: 0;
 }
+
+// In the editor each section has its anchor in front of it, so the section
+// after a divider is two along.
+[class*="sse-divider-"] + .sse-section-anchor + * {
+	padding-block-start: calc(var(--wp--custom--sse--section-padding, 5rem) + var(--sse-div-h, 0px));
+}

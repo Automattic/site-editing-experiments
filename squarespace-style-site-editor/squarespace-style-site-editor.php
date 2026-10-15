@@ -79,6 +79,17 @@ function sse_enqueue_editor_ui() {
 		'window.sseEditorSettings = ' . wp_json_encode(
 			array(
 				'sectionThemes' => sse_section_themes(),
+				'dividers'      => array_map(
+					static function ( $slug, $shape ) {
+						return array(
+							'slug'  => $slug,
+							'label' => $shape[0],
+							'path'  => $shape[1],
+						);
+					},
+					array_keys( sse_divider_shapes() ),
+					sse_divider_shapes()
+				),
 				'palettes'      => sse_palette_presets(),
 			)
 		) . ';',

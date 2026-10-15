@@ -173,7 +173,7 @@ function sse_section_themes_css() {
  */
 function sse_register_section_themes() {
 	wp_register_style( 'sse-section-themes', false, array(), SSE_VERSION );
-	wp_add_inline_style( 'sse-section-themes', sse_section_themes_css() );
+	wp_add_inline_style( 'sse-section-themes', sse_section_themes_css() . sse_divider_css() );
 
 	foreach ( array( 'core/group', 'core/cover', 'core/columns', 'sse/fluid-section' ) as $block ) {
 		foreach ( sse_section_themes() as $t ) {
@@ -196,3 +196,48 @@ function sse_enqueue_section_themes() {
 	wp_enqueue_style( 'sse-section-themes' );
 }
 add_action( 'enqueue_block_assets', 'sse_enqueue_section_themes' );
+
+/**
+ * Section divider shapes: the outline of the section's bottom edge, as an
+ * SVG path in a 100 × 100 box whose filled part is what stays visible.
+ *
+ * @return array<string,array> Slug => [ label, path ].
+ */
+function sse_divider_shapes() {
+	return array(
+		'curve'   => array( __( 'Curve', 'squarespace-style-site-editor' ), 'M0 0H100V0Q50 200 0 0Z' ),
+		'scoop'   => array( __( 'Scoop', 'squarespace-style-site-editor' ), 'M0 0H100V100Q50 -100 0 100Z' ),
+		'rounded' => array( __( 'Rounded', 'squarespace-style-site-editor' ), 'M0 0H100V20Q100 100 80 100H20Q0 100 0 20Z' ),
+		'slant'   => array( __( 'Slant', 'squarespace-style-site-editor' ), 'M0 0H100V0L0 100Z' ),
+		'wave'    => array( __( 'Wave', 'squarespace-style-site-editor' ), 'M0 0H100V50C75 110 75 -10 50 50C25 110 25 -10 0 50Z' ),
+		'peak'    => array( __( 'Peak', 'squarespace-style-site-editor' ), 'M0 0H100V0L50 100L0 0Z' ),
+		'notch'   => array( __( 'Notch', 'squarespace-style-site-editor' ), 'M0 0H100V100L50 0L0 100Z' ),
+	);
+}
+
+/**
+ * CSS for section dividers. A section with a divider masks its bottom edge
+ * to the shape and overlaps the next section by the divider's height.
+ *
+ * @return string
+ */
+function sse_divider_css() {
+	$css = '[class*="sse-divider-"]{--sse-div-h:clamp(2.5rem,6vw,5rem);position:relative;z-index:1;margin-block-end:calc(-1 * var(--sse-div-h)) !important;padding-block-end:calc(var(--wp--custom--sse--section-padding,5rem) + var(--sse-div-h)) !important;-webkit-mask:linear-gradient(#000 0 0) top/100% calc(100% - var(--sse-div-h) + 1px) no-repeat,var(--sse-div-shape) bottom/100% var(--sse-div-h) no-repeat;mask:linear-gradient(#000 0 0) top/100% calc(100% - var(--sse-div-h) + 1px) no-repeat,var(--sse-div-shape) bottom/100% var(--sse-div-h) no-repeat;}';
+	$css .= '.sse-divider-s{--sse-div-h:clamp(1.25rem,3vw,2.5rem);}';
+	$css .= '.sse-divider-l{--sse-div-h:clamp(4rem,10vw,8rem);}';
+	// The next section's content stays clear of the overlap.
+	$css .= '[class*="sse-divider-"]+*{padding-block-start:calc(var(--wp--custom--sse--section-padding,5rem) + var(--sse-div-h,0px));}';
+	foreach ( sse_divider_shapes() as $slug => $shape ) {
+		foreach ( array( '' => '', '.sse-divider-flip' => '<g transform="translate(100 0) scale(-1 1)">' ) as $selector => $group ) {
+			$svg  = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="none">';
+			$svg .= $group . '<path d="' . $shape[1] . '"/>' . ( $group ? '</g>' : '' ) . '</svg>';
+			$css .= sprintf(
+				'.sse-divider-%1$s%2$s{--sse-div-shape:url("data:image/svg+xml,%3$s");}',
+				$slug,
+				$selector,
+				rawurlencode( $svg )
+			);
+		}
+	}
+	return $css;
+}

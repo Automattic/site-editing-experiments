@@ -26,6 +26,14 @@
 		"mobileRows": {
 			"type": "number",
 			"default": 0
+		},
+		"gap": {
+			"type": "string",
+			"enum": [
+				"none",
+				"narrow",
+				"wide"
+			]
 		}
 	},
 	"supports": {

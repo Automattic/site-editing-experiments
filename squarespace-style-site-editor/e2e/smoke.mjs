@@ -718,9 +718,18 @@ await openEditor(
 );
 await step( 'Edit site header: dim, add a button, colour, save', async () => {
 	const header = canvas.locator( '.sse-section--shared' ).first();
-	await header.waitFor( { timeout: 30000 } );
-	await header.scrollIntoViewIfNeeded();
-	const box = await header.boundingBox();
+	// The header can re-render while its template part loads, so keep
+	// trying until it has settled on screen.
+	let box = null;
+	for ( let tries = 0; tries < 20 && ! box; tries++ ) {
+		await header.waitFor( { timeout: 30000 } );
+		await header.scrollIntoViewIfNeeded().catch( () => {} );
+		box = await header.boundingBox().catch( () => null );
+		if ( ! box ) {
+			await page.waitForTimeout( 500 );
+		}
+	}
+	expect( box, 'header never appeared' );
 	await page.mouse.move( box.x + 400, box.y + box.height / 2 );
 	await canvas.locator( '.sse-part-button.is-edit' ).first().click();
 	const title = await page.locator( '.sse-part-title' ).innerText();

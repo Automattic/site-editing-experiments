@@ -59,7 +59,7 @@ function allValid( block ) {
 describe( 'background video', () => {
 	it( 'turns a Group into a Cover with the video', () => {
 		const { block } = withVideo( section(), media, {
-			overlay: '#222222',
+			overlay: 'sse-darkest',
 			isDark: true,
 		} );
 		expect( block.name ).toBe( 'core/cover' );
@@ -71,16 +71,19 @@ describe( 'background video', () => {
 			align: 'full',
 			anchor: 'studio',
 			className: 'is-style-sse-dark-1 sse-divider-wave',
-			customOverlayColor: '#222222',
+			overlayColor: 'sse-darkest',
 			dimRatio: 40,
 			isDark: true,
 			minHeight: 100,
 			minHeightUnit: 'vh',
 			metadata: { name: 'Intro' },
 		} );
-		// Art (a gradient) doesn't carry over: the video replaces it.
+		// Art (a gradient) can't show behind a video; it's kept aside.
 		expect( block.attributes.style ).toEqual( {
 			spacing: { padding: { top: '4rem' } },
+		} );
+		expect( block.attributes.metadata.sseBeforeVideo ).toEqual( {
+			gradient: 'linear-gradient(red,blue)',
 		} );
 		expect( block.innerBlocks.map( ( b ) => b.name ) ).toEqual( [
 			'core/heading',
@@ -125,6 +128,54 @@ describe( 'background video', () => {
 			},
 		} );
 		expect( hasVideoBackground( group ) ).toBe( false );
+		expect( allValid( reload( group ) ) ).toBe( true );
+		// Art comes back, and the stash goes.
+		expect( group.attributes.style.color ).toEqual( {
+			gradient: 'linear-gradient(red,blue)',
+		} );
+		expect( group.attributes.metadata ).toEqual( { name: 'Intro' } );
+	} );
+
+	it( 'puts back what Cover can not hold, and keeps what it can', () => {
+		const original = createBlock(
+			'core/group',
+			{
+				align: 'full',
+				backgroundColor: 'sse-light',
+				fontSize: 'large',
+				lock: { move: true, remove: true },
+				style: {
+					background: {
+						backgroundImage: { url: 'https://example.com/a.jpg' },
+					},
+					dimensions: { minHeight: 'clamp(20rem, 50vh, 40rem)' },
+				},
+			},
+			[ createBlock( 'core/paragraph', { content: 'Hi' } ) ]
+		);
+		const { block } = withVideo( original, media, {} );
+		expect( block.attributes ).toMatchObject( {
+			fontSize: 'large',
+			lock: { move: true, remove: true },
+			// No colour theme: the background colour becomes the overlay.
+			overlayColor: 'sse-light',
+		} );
+		expect( block.attributes.minHeight ).toBeUndefined();
+		expect( allValid( reload( block ) ) ).toBe( true );
+
+		const group = withoutVideo( reload( block ) );
+		expect( group.attributes ).toMatchObject( {
+			backgroundColor: 'sse-light',
+			fontSize: 'large',
+			lock: { move: true, remove: true },
+			style: {
+				background: {
+					backgroundImage: { url: 'https://example.com/a.jpg' },
+				},
+				dimensions: { minHeight: 'clamp(20rem, 50vh, 40rem)' },
+			},
+		} );
+		expect( group.attributes.metadata ).toBeUndefined();
 		expect( allValid( reload( group ) ) ).toBe( true );
 	} );
 } );

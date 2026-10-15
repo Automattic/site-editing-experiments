@@ -44,7 +44,12 @@ import {
 } from './section-patterns';
 import { MAX_ROWS, bottomRow, normalizeLayout } from '../shared/grid';
 import { STORE_NAME } from './store';
-import { hasVideoBackground, withVideo, withoutVideo } from './video-section';
+import {
+	hasVideoBackground,
+	overlayFor,
+	withVideo,
+	withoutVideo,
+} from './video-section';
 
 const FLUID = 'sse/fluid-section';
 
@@ -241,6 +246,7 @@ function DividerControls( { className, onChange } ) {
 						__next40pxDefaultSize
 						hideLabelFromVision
 						label={ __( 'Width', 'squarespace-style-site-editor' ) }
+						aria-valuetext={ `${ divider.width }%` }
 						value={ Math.max(
 							0,
 							DIVIDER_WIDTHS.indexOf( divider.width )
@@ -273,6 +279,7 @@ function DividerControls( { className, onChange } ) {
 							'Offset',
 							'squarespace-style-site-editor'
 						) }
+						aria-valuetext={ `${ divider.offset }%` }
 						value={ divider.offset }
 						min={ -50 }
 						max={ 50 }
@@ -713,9 +720,10 @@ function VideoBackground( { clientId, name, attributes } ) {
 	const theme = getSectionThemes().find(
 		( t ) => t.slug === getThemeFromClassName( attributes.className )
 	);
-	const overlay = theme ? palette[ theme.background ] : undefined;
-	const isDark = overlay
-		? contrast( overlay, '#ffffff' ) > contrast( overlay, '#000000' )
+	const overlayHex = theme ? palette[ theme.background ] : undefined;
+	const overlay = overlayFor( theme );
+	const isDark = overlayHex
+		? contrast( overlayHex, '#ffffff' ) > contrast( overlayHex, '#000000' )
 		: true;
 
 	const setVideo = ( media ) => {
@@ -956,7 +964,7 @@ function BackgroundTab( { initialKind, ...props } ) {
 	);
 }
 
-function ColorsTab( { clientId, attributes } ) {
+function ColorsTab( { clientId, name, attributes } ) {
 	const { updateBlockAttributes } = useDispatch( blockEditorStore );
 	const interfaceDispatch = useDispatch( 'core/interface' );
 	return (
@@ -987,6 +995,18 @@ function ColorsTab( { clientId, attributes } ) {
 				onChange={ ( slug ) =>
 					updateBlockAttributes( clientId, {
 						className: withTheme( attributes.className, slug ),
+						// A video's overlay is the section's colour, so it
+						// changes with the theme.
+						...( hasVideoBackground( { name, attributes } ) && slug
+							? {
+									overlayColor: overlayFor(
+										getSectionThemes().find(
+											( t ) => t.slug === slug
+										)
+									),
+									customOverlayColor: undefined,
+								}
+							: {} ),
 					} )
 				}
 			/>

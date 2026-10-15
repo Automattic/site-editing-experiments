@@ -5,13 +5,15 @@ import { useEffect } from '@wordpress/element';
 import { useIsEditMode } from './chrome';
 
 const SECTION_CONTAINERS = [ 'core/post-content' ];
+const SECTION_BLOCKS = [ 'core/group', 'core/cover', 'core/columns' ];
 
 /**
  * Squarespace shows no block toolbar for a section itself: the section menu
  * (Edit section, View layouts, move, remove) does that job, and a freeform
  * section has its own Add Block bar where core's toolbar would sit. So while
- * a whole section is selected, hide core's toolbar. It comes back as soon as
- * it gets keyboard focus (Alt+F10), so it's never out of reach.
+ * a whole section is selected, hide core's toolbar. It's only made
+ * transparent, so it stays focusable and shows again as soon as it gets
+ * keyboard focus (Alt+F10).
  */
 export default function SectionToolbarVisibility() {
 	const isEditMode = useIsEditMode();
@@ -29,6 +31,12 @@ export default function SectionToolbarVisibility() {
 			return true;
 		}
 		if ( name === 'core/template-part' ) {
+			return false;
+		}
+		// Only whole sections (containers). A paragraph or heading sitting
+		// directly in the page keeps its toolbar, since that's where its
+		// formatting lives.
+		if ( ! SECTION_BLOCKS.includes( name ) ) {
 			return false;
 		}
 		const root = be.getBlockRootClientId( id );

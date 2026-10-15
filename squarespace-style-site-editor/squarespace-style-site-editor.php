@@ -146,7 +146,7 @@ add_filter( 'admin_body_class', 'sse_admin_body_class' );
  * @return array
  */
 function sse_page_rendering_mode( $settings, $context ) {
-	if ( 'core/edit-site' !== ( $context->name ?? '' ) ) {
+	if ( 'core/edit-site' !== ( $context->name ?? '' ) || ! sse_is_site_editor() ) {
 		return $settings;
 	}
 	/**

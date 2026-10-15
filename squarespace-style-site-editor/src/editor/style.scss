@@ -1541,8 +1541,11 @@ $sse-font: -apple-system, blinkmacsystemfont, "Segoe UI", roboto, "Helvetica Neu
 }
 
 // A whole section is selected: the section menu stands in for the toolbar.
+// Transparent rather than hidden, so keyboard users can still reach it
+// with Alt+F10 (focus can't move into something with visibility: hidden).
 .sse-hide-section-toolbar .block-editor-block-list__block-popover:not(:focus-within) {
-	visibility: hidden;
+	opacity: 0;
+	pointer-events: none;
 }
 
 // Toggles sit on the right in the panel, so their help text lines up with

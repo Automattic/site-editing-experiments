@@ -172,7 +172,7 @@ function sse_section_themes_css() {
 	$css .= "{$s} .is-style-outline :is(.wp-element-button,.wp-block-button__link):not(.has-background){background-color:transparent;color:var(--sse-link);border-color:currentColor;}";
 	// A Cover section (one with a background video) keeps its theme's text
 	// colour rather than Cover's own light/dark guess.
-	$css .= "{$s}.wp-block-cover,{$s}.wp-block-cover .wp-block-cover__inner-container{color:var(--sse-text);}";
+	$css .= "{$s}.wp-block-cover:not(.has-text-color),{$s}.wp-block-cover:not(.has-text-color) .wp-block-cover__inner-container{color:var(--sse-text);}";
 	// Themes colour some blocks for a light page (Twenty Twenty-Four's quotes
 	// sit on a pale card, its separators are dark). In a coloured section,
 	// let them take the section's colours instead.
@@ -247,7 +247,10 @@ function sse_divider_css() {
 	// A divider overlaps the next section, so it has to sit above it, even
 	// when the next section has a divider of its own: earlier sections
 	// stack higher.
-	for ( $n = 2; $n <= 40; $n++ ) {
+	// The parent is isolated so these stay local to the page's sections
+	// and never rise above a sticky header or the editor's own controls.
+	$css .= ':where(:has(> [class*="sse-divider-"])){isolation:isolate;}';
+	for ( $n = 2; $n <= 25; $n++ ) {
 		$css .= sprintf( '[class*="sse-divider-"]:nth-last-child(%1$d){z-index:%1$d;}', $n );
 	}
 	$css .= '.sse-divider-s{--sse-div-h:clamp(1.25rem,3vw,2.5rem);}';
@@ -263,7 +266,7 @@ function sse_divider_css() {
 	// The stroke: a line along the shape's edge, in the section's link
 	// colour, drawn as a mask over a pseudo-element so it can be any colour.
 	$edge_layer = 'var(--sse-div-edge) calc(50% + var(--sse-div-x,0vw)) 100%/var(--sse-div-w,100%) 100% repeat-x';
-	$css       .= '[class*="sse-divider-stroke-"]::before{content:"";position:absolute;inset:auto 0 0;height:var(--sse-div-h);background:var(--sse-link,currentColor);pointer-events:none;-webkit-mask:' . $edge_layer . ';mask:' . $edge_layer . ';}';
+	$css       .= '[class*="sse-divider-stroke-"]::before{content:"";position:absolute;inset:auto 0 0;height:var(--sse-div-h);z-index:2;background:var(--sse-link,currentColor);pointer-events:none;-webkit-mask:' . $edge_layer . ';mask:' . $edge_layer . ';}';
 	// The next section's content stays clear of the overlap.
 	$css .= '[class*="sse-divider-"]+*{padding-block-start:calc(var(--wp--custom--sse--section-padding,5rem) + var(--sse-div-h,0px));}';
 
@@ -281,7 +284,9 @@ function sse_divider_css() {
 				$selector,
 				rawurlencode( $open . '<path d="' . $shape[1] . '"/>' . $close )
 			);
-			foreach ( array( 1 => 3, 2 => 7 ) as $stroke => $px ) {
+			// The section's own mask trims the outer half of the line, so these
+			// are twice the width that shows.
+			foreach ( array( 1 => 6, 2 => 14 ) as $stroke => $px ) {
 				$css .= sprintf(
 					'.sse-divider-%1$s%2$s.sse-divider-stroke-%3$d{--sse-div-edge:url("data:image/svg+xml,%4$s");}',
 					$slug,

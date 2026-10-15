@@ -403,21 +403,33 @@
     placeDock();
   }
 
-  // ---------- Tools at the bottom, or on the section ----------
-  // On the section, the toolbar sits at the top of the selected section and sticks to the top of the
-  // screen while you scroll through it. The section gets extra space at the top so the toolbar
-  // doesn't cover anything you might want to tap.
+  // ---------- Where the tools go: bottom, top of the section, or right of the section ----------
+  // Top: the toolbar sits at the top of the selected section and sticks to the top of the screen
+  // while you scroll through it. Right: a narrow column on the right of the section, kept in the
+  // middle of whatever part of the section is on screen. Either way the section makes room for the
+  // toolbar, so it doesn't cover anything you might want to tap.
   function placeDock() {
-    var on = state.tools === 'section' && !dock.hidden && !!state.sel && state.sel.isConnected;
+    var mode = state.tools;
+    var on = mode !== 'bottom' && !dock.hidden && !!state.sel && state.sel.isConnected;
     var gap = 8;
-    var h = on ? dock.offsetHeight : 0;
+    var h = on ? dock.offsetHeight : 0, w = on ? dock.offsetWidth : 0;
     sections().forEach(function (s) {
-      var want = on && s === state.sel ? (h + gap * 2) + 'px' : '';
-      if (s.style.paddingTop !== want) s.style.paddingTop = want;
+      var sel = on && s === state.sel;
+      var pt = sel && mode === 'section' ? (h + gap * 2) + 'px' : '';
+      var pr = sel && mode === 'right' ? (w + gap * 2) + 'px' : '';
+      if (s.style.paddingTop !== pt) s.style.paddingTop = pt;
+      if (s.style.paddingRight !== pr) s.style.paddingRight = pr;
     });
     if (!on) { dock.style.top = ''; return; }
     var fr = frame.getBoundingClientRect(), sr = screen.getBoundingClientRect(), r = state.sel.getBoundingClientRect();
-    var top = Math.min(Math.max(r.top - fr.top + gap, sr.top - fr.top + gap), r.bottom - fr.top - h - gap);
+    var top;
+    if (mode === 'section') {
+      top = Math.min(Math.max(r.top - fr.top + gap, sr.top - fr.top + gap), r.bottom - fr.top - h - gap);
+    } else {
+      var mid = (Math.max(r.top, sr.top) + Math.min(r.bottom, sr.bottom)) / 2 - fr.top;
+      top = Math.min(mid - h / 2, r.bottom - fr.top - h - gap);
+      top = Math.max(top, r.top - fr.top + gap);
+    }
     dock.style.top = Math.round(top) + 'px';
   }
   screen.addEventListener('scroll', placeDock, { passive: true });
@@ -427,6 +439,7 @@
     state.tools = v;
     try { localStorage.setItem('mse-tools', v); } catch (err) { /* not available */ }
     frame.classList.toggle('tools-section', v === 'section');
+    frame.classList.toggle('tools-right', v === 'right');
     document.querySelectorAll('[data-tools]').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.tools === v)); });
     render();
     if (state.sel) scrollToSection(state.sel);
@@ -765,6 +778,7 @@
 
   var savedTools = null;
   try { savedTools = localStorage.getItem('mse-tools'); } catch (err) { /* not available */ }
-  if (/[?&]tools=section/.test(location.search)) savedTools = 'section';
-  if (savedTools === 'section') setTools('section'); else render();
+  var asked = /[?&]tools=(section|right)/.exec(location.search);
+  if (asked) savedTools = asked[1];
+  if (savedTools === 'section' || savedTools === 'right') setTools(savedTools); else render();
 })();

@@ -483,11 +483,11 @@ h2 { font-size: 28px; line-height: 1.15; }
 /* ---------- Tools: at the bottom, or on the section ---------- */
 .toolsw {
   position: absolute; top: 56px; left: 0; right: 0; z-index: 30; display: flex; align-items: center; gap: 4px;
-  height: 44px; padding: 0 12px 6px 20px; background: var(--editor); color: #C7C7C7; font-size: 13px;
+  height: 44px; padding: 0 8px 6px 16px; background: var(--editor); color: #C7C7C7; font-size: 13px; white-space: nowrap;
 }
-.toolsw > span { margin-right: 6px; font-weight: 600; }
+.toolsw > span { margin-right: 4px; font-weight: 600; }
 .toolsw button {
-  min-height: 32px; padding: 0 12px; background: #2C2C2C; color: #C7C7C7; border: 0; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;
+  min-height: 32px; padding: 0 10px; background: #2C2C2C; color: #C7C7C7; border: 0; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;
 }
 .toolsw button[aria-pressed="true"] { background: #fff; color: var(--chrome-ink); }
 .toolsw button:focus-visible { outline: 2px solid var(--blue); outline-offset: 1px; }
@@ -508,3 +508,17 @@ h2 { font-size: 28px; line-height: 1.15; }
 .frame.tools-section .dock-bar { min-height: 46px; }
 /* The toolbar names the section, so the tab isn't needed. */
 .frame.tools-section .sec.selected > .sectab { display: none; }
+
+/* Right of section: a narrow column of tools */
+.frame.tools-right .dock {
+  left: auto; right: 8px; bottom: auto; z-index: 25; width: 60px; padding: 4px;
+  border: 0; border-radius: 14px; box-shadow: 0 0 0 2px var(--blue), 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+.frame.tools-right .dock-row { grid-template-columns: 1fr; gap: 2px; }
+.frame.tools-right .dbtn { min-height: 52px; padding: 4px 0; font-size: 10.5px; }
+.frame.tools-right .dbtn svg { width: 20px; height: 20px; }
+.frame.tools-right .dock-bar { flex-direction: column; gap: 4px; min-height: 0; }
+.frame.tools-right .dock-hint, .frame.tools-right .dock-note { display: none; }
+.frame.tools-right .dock-done { width: 100%; padding: 0; font-size: 14px; }
+/* With less room beside the toolbar, the header's links can drop below the logo. */
+.frame.tools-right .header.selected .hdr-inner, .frame.tools-right .header.selected .hnav { flex-wrap: wrap; }

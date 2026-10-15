@@ -23,27 +23,27 @@
 
   // Section types: name, mobile layouts and what can be added to them.
   var TYPES = {
-    header: { title: 'Header', global: true, layouts: [['inline', 'Links beside logo'], ['stacked', 'Links below logo'], ['centered', 'Centred']],
+    header: { title: 'Header', global: true, layouts: [['inline', 'Links beside logo', 'logo left, links right'], ['stacked', 'Links below logo', 'links under the logo'], ['centered', 'Centred', 'centred']],
       add: [['link', 'Link', '.hnav'], ['button', 'Button', '.hnav']] },
-    hero: { title: 'Hero', layouts: [['stack', 'Image on top'], ['textfirst', 'Text on top'], ['overlay', 'Text over image']],
+    hero: { title: 'Hero', layouts: [['stack', 'Image on top', 'image left, text right'], ['textfirst', 'Text on top', 'text left, image right'], ['overlay', 'Text over image', 'full-width image']],
       add: [['heading', 'Heading', '.hero-text'], ['paragraph', 'Paragraph', '.hero-text'], ['button', 'Button', '.hero-text'], ['image', 'Image', '.hero-media']] },
-    features: { title: 'Features', layouts: [['stack', 'Stacked cards'], ['carousel', 'Swipe through'], ['list', 'Compact list']],
+    features: { title: 'Features', layouts: [['stack', 'Stacked cards', 'three columns'], ['carousel', 'Swipe through', 'a row of cards'], ['list', 'Compact list', 'two-column list']],
       add: [['card', 'Card', '.cards'], ['heading', 'Heading', '.feat-head'], ['paragraph', 'Paragraph', '.feat-head']] },
-    gallery: { title: 'Gallery', layouts: [['grid2', 'Two across'], ['single', 'One per row'], ['carousel', 'Swipe through']],
+    gallery: { title: 'Gallery', layouts: [['grid2', 'Two across', 'three across'], ['single', 'One per row', 'two large across'], ['carousel', 'Swipe through', 'one long row']],
       add: [['image', 'Image', '.gal-grid'], ['heading', 'Heading', '.gal-head'], ['paragraph', 'Paragraph', '.gal-head']] },
-    quote: { title: 'Quote', layouts: [['center', 'Centred'], ['left', 'Left aligned'], ['dark', 'Dark band']],
+    quote: { title: 'Quote', layouts: [['center', 'Centred', 'centred'], ['left', 'Left aligned', 'left aligned'], ['dark', 'Dark band', 'dark band']],
       add: [['paragraph', 'Paragraph', '.quote-fig'], ['button', 'Button', '.quote-fig']] },
-    pricing: { title: 'Pricing', layouts: [['stack', 'Stacked'], ['carousel', 'Swipe through'], ['compact', 'Compact']],
+    pricing: { title: 'Pricing', layouts: [['stack', 'Stacked', 'side by side'], ['carousel', 'Swipe through', 'side by side'], ['compact', 'Compact', 'rows']],
       add: [['plan', 'Plan', '.plans'], ['heading', 'Heading', '.price-head'], ['paragraph', 'Paragraph', '.price-head']] },
-    faq: { title: 'FAQ', layouts: [['cards', 'Cards'], ['plain', 'Plain list'], ['numbered', 'Numbered']],
+    faq: { title: 'FAQ', layouts: [['cards', 'Cards', 'two columns of cards'], ['plain', 'Plain list', 'one narrow column'], ['numbered', 'Numbered', 'two numbered columns']],
       add: [['qa', 'Question', '.faq-list'], ['heading', 'Heading', '.faq-head'], ['paragraph', 'Paragraph', '.faq-head']] },
-    newsletter: { title: 'Newsletter', layouts: [['panel', 'Panel'], ['plain', 'Plain'], ['dark', 'Dark band']],
+    newsletter: { title: 'Newsletter', layouts: [['panel', 'Panel', 'text and form side by side'], ['plain', 'Plain', 'centred'], ['dark', 'Dark band', 'dark, side by side']],
       add: [['heading', 'Heading', '.nl-text'], ['paragraph', 'Paragraph', '.nl-text']] },
-    cta: { title: 'Call to action', layouts: [['panel', 'Panel'], ['plain', 'Plain'], ['banner', 'Dark banner']],
+    cta: { title: 'Call to action', layouts: [['panel', 'Panel', 'centred panel'], ['plain', 'Plain', 'centred'], ['banner', 'Dark banner', 'button on the right']],
       add: [['heading', 'Heading', '.cta-text'], ['paragraph', 'Paragraph', '.cta-text'], ['button', 'Button', '.cta-text']] },
-    contact: { title: 'Contact', layouts: [['imagetop', 'Image on top'], ['imagebottom', 'Image below'], ['card', 'Card over image']],
+    contact: { title: 'Contact', layouts: [['imagetop', 'Image on top', 'text left, image right'], ['imagebottom', 'Image below', 'image left, text right'], ['card', 'Card over image', 'card over a wide image']],
       add: [['heading', 'Heading', '.contact-text'], ['paragraph', 'Paragraph', '.contact-text'], ['button', 'Button', '.contact-text']] },
-    footer: { title: 'Footer', global: true, layouts: [['stacked', 'Stacked'], ['twocol', 'Two columns'], ['centered', 'Centred']],
+    footer: { title: 'Footer', global: true, layouts: [['stacked', 'Stacked', 'columns in a row'], ['twocol', 'Two columns', 'brand beside two columns'], ['centered', 'Centred', 'centred']],
       add: [['fcol', 'Column', '.footer-cols'], ['paragraph', 'Paragraph', '.footer-base']] }
   };
   // Types that can be added as new sections, with a simple diagram for the picker: [x, y, w, h, kind]
@@ -72,6 +72,7 @@
     bin: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></svg>',
     close: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>',
     globe: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>',
+    desktop: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>',
     phone: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="2"/><path d="M11 18h2"/></svg>',
     heading: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4v16M18 4v16M6 12h12"/></svg>',
     paragraph: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 11h16M4 16h11"/></svg>',
@@ -85,8 +86,10 @@
   };
 
   // ---------- State ----------
-  var state = { sel: null, mode: null, item: null, sheet: null, layout: {}, palette: {}, img: {} };
+  var state = { sel: null, mode: null, item: null, sheet: null, layout: {}, palette: {}, img: {}, view: 'phone' };
   var page = document.getElementById('page');
+  var stage = document.getElementById('stage');
+  var deskbar = document.getElementById('deskbar');
   var screen = document.getElementById('screen');
   var frame = document.getElementById('frame');
   var dock = document.getElementById('dock');
@@ -290,10 +293,50 @@
     screen.scrollTo({ top: Math.max(0, sec.offsetTop - 8), behavior: 'smooth' });
   }
 
+  // ---------- Phone and desktop views ----------
+  // The desktop view lays the same page out at desktop width and zooms out to fit the screen.
+  var DESKTOP_W = 1280;
+  function setView(v) {
+    if (v === state.view) return;
+    state.view = v;
+    if (v === 'desktop') {
+      state.sel = null; state.mode = null; state.item = null;
+      closeSheet();
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    }
+    frame.classList.toggle('desk', v === 'desktop');
+    document.querySelectorAll('[data-view]').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.view === v)); });
+    deskbar.hidden = v !== 'desktop';
+    fitView();
+    screen.scrollTop = 0;
+    render();
+  }
+  function fitView() {
+    if (state.view === 'desktop') {
+      var k = screen.clientWidth / DESKTOP_W;
+      page.style.width = DESKTOP_W + 'px';
+      page.style.transform = 'scale(' + k + ')';
+      stage.style.height = Math.ceil(page.offsetHeight * k) + 'px';
+    } else {
+      page.style.width = page.style.transform = stage.style.height = '';
+    }
+  }
+  window.addEventListener('resize', fitView);
+  page.addEventListener('load', fitView, true);
+  document.querySelectorAll('[data-view]').forEach(function (b) {
+    b.addEventListener('click', function () { setView(b.dataset.view); });
+  });
+
   // Taps on the page
   screen.addEventListener('click', function (e) {
     if (e.target.closest('a')) e.preventDefault();
     var sec = e.target.closest('.sec');
+    // In the desktop preview, tapping a section goes back to the phone view to edit it.
+    if (state.view === 'desktop') {
+      setView('phone');
+      if (sec) { select(sec); setTimeout(function () { scrollToSection(sec); flash(sec); }, 30); }
+      return;
+    }
     if (sec && sec === state.sel && state.mode === 'content') {
       var media = e.target.closest('[data-media]');
       if (media) { state.item = media.closest('[data-item]') || media; openSheet('image', media); render(); return; }
@@ -559,8 +602,9 @@
         b.className = 'lay';
         b.dataset.layout = l[0];
         b.setAttribute('aria-pressed', String(layoutOf(sec) === l[0]));
-        b.setAttribute('aria-label', l[1]);
-        b.innerHTML = '<span class="lay-th" aria-hidden="true" inert></span><span class="lay-label">' + l[1] + '</span>';
+        b.setAttribute('aria-label', l[1] + '. On desktop: ' + l[2]);
+        b.innerHTML = '<span class="lay-th" aria-hidden="true" inert></span><span class="lay-label">' + l[1] + '</span>' +
+          '<span class="lay-desk">' + ICON.desktop + l[2] + '</span>';
         row.appendChild(b);
         var th = b.querySelector('.lay-th');
         var stage = document.createElement('span');

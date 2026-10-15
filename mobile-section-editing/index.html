@@ -19,17 +19,21 @@
     <li><strong>Layout</strong> opens a sheet of mobile layouts and colours, with the section still in view above it.</li>
     <li><strong>Content</strong> lets you type straight into text and swap photos, including from your phone.</li>
     <li><strong>Arrange</strong> replaces freeform dragging: tap an item, then move it up or down.</li>
-    <li><strong>Add</strong> adds to the section or adds a new section below it. <strong>⋯</strong> moves, duplicates or deletes it.</li>
+    <li><strong>Add</strong> adds to the section or adds a new section below it. <strong>More</strong> moves, duplicates or deletes it.</li>
+    <li><strong>Phone | Desktop</strong> in the top bar shows the same page laid out for a desktop screen, so you can check it looks good there too. Each mobile layout has a matching desktop arrangement.</li>
   </ul>
 </aside>
 
 <div class="frame" id="frame">
   <div class="topbar">
-    <span class="topbar-title">Editing <strong>Northfield Ceramics</strong></span>
+    <div class="viewsw" role="group" aria-label="Preview the page on">
+      <button type="button" data-view="phone" aria-pressed="true"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="2"/><path d="M11 18h2"/></svg>Phone</button>
+      <button type="button" data-view="desktop" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>Desktop</button>
+    </div>
     <button type="button" class="topbar-btn" id="reset-all">Reset</button>
   </div>
   <div class="screen" id="screen">
-    <div class="page" id="page"></div>
+    <div class="stage" id="stage"><div class="page" id="page"></div></div>
   </div>
   <div class="scrim" id="scrim" hidden></div>
   <div class="sheet" id="sheet" role="dialog" aria-modal="false" hidden>
@@ -38,6 +42,7 @@
     <div class="sheet-body" id="sheet-body"></div>
   </div>
   <div class="dock" id="dock" hidden></div>
+  <div class="deskbar" id="deskbar" hidden>Desktop preview · tap a section to edit it</div>
   <div class="toast" id="toast" role="status"></div>
   <input type="file" id="file-input" accept="image/*" hidden>
 </div>

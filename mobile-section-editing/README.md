@@ -13,25 +13,29 @@ There's no hover on a phone, so everything starts with a tap, and the tools live
 - **Add** opens a sheet with things to add to the section (headings, paragraphs, buttons, images, cards, plans or questions, depending on the section) and a grid of section types to add below it.
 - **More** moves the section up or down, duplicates it, or deletes it. Removing an item or deleting a section shows a message with **Undo**.
 
+**Phone | Desktop** in the top bar is for building a site on a phone that also looks good on a big screen. **Desktop** lays the same page out at desktop width (1280px) and zooms out to fit the phone, keeping every edit, layout and colour. Tapping a section in the desktop preview goes back to the phone view with that section selected. Every mobile layout has a matching desktop arrangement, and the Layout sheet shows it under each option (for example, "Stacked cards" becomes three columns on desktop).
+
 The header and footer are shared across the whole site. Their tab reads **Header · shown on every page**, every sheet says **You're editing the header on every page of your site**, and they can't be moved, duplicated or deleted.
 
 **Reset** in the top bar reloads the original page.
 
-## Sections and mobile layouts
+## Sections and layouts
+
+Each mobile layout is followed by its desktop arrangement in brackets.
 
 | Section | Layouts |
 | --- | --- |
-| Header | Links beside logo, Links below logo, Centred |
-| Hero | Image on top, Text on top, Text over image |
-| Features | Stacked cards, Swipe through, Compact list |
-| Gallery | Two across, One per row, Swipe through |
+| Header | Links beside logo (logo left, links right), Links below logo (links under the logo), Centred (centred) |
+| Hero | Image on top (image left, text right), Text on top (text left, image right), Text over image (full-width image) |
+| Features | Stacked cards (three columns), Swipe through (a row of cards), Compact list (two-column list) |
+| Gallery | Two across (three across), One per row (two large across), Swipe through (one long row) |
 | Quote | Centred, Left aligned, Dark band |
-| Pricing | Stacked, Swipe through, Compact |
-| FAQ | Cards, Plain list, Numbered |
-| Newsletter | Panel, Plain, Dark band |
-| Call to action | Panel, Plain, Dark banner |
-| Contact | Image on top, Image below, Card over image |
-| Footer | Stacked, Two columns, Centred |
+| Pricing | Stacked (side by side), Swipe through (side by side), Compact (rows) |
+| FAQ | Cards (two columns of cards), Plain list (one narrow column), Numbered (two numbered columns) |
+| Newsletter | Panel (text and form side by side), Plain (centred), Dark band (dark, side by side) |
+| Call to action | Panel (centred panel), Plain (centred), Dark banner (button on the right) |
+| Contact | Image on top (text left, image right), Image below (image left, text right), Card over image (card over a wide image) |
+| Footer | Stacked (columns in a row), Two columns (brand beside two columns), Centred (centred) |
 
 ## Running it
 

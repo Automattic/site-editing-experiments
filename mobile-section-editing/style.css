@@ -51,7 +51,7 @@ svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width:
   min-height: 40px; padding: 0 14px; background: transparent; color: #fff; border: 1px solid #5A5A5A; border-radius: 8px; font-size: 13px; cursor: pointer;
 }
 .screen {
-  position: absolute; inset: 56px 0 0; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain;
+  position: absolute; inset: 100px 0 0; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain;
 }
 .page { padding-bottom: 32px; }
 .has-dock .page { padding-bottom: 50vh; }
@@ -166,8 +166,10 @@ h2 { font-size: 28px; line-height: 1.15; }
 .nl-text { display: flex; flex-direction: column; gap: 10px; }
 .nl-text p { color: var(--ink-soft); line-height: 1.55; }
 .nl-form { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
-.nl-form input { width: 100%; min-height: 48px; padding: 0 18px; background: var(--card); color: var(--ink); border: 1px solid #A9BAB1; border-radius: 999px; font: inherit; font-size: 16px; }
-.nl-form .btn { cursor: pointer; }
+.nl-field {
+  display: flex; align-items: center; width: 100%; min-height: 48px; padding: 0 18px; background: var(--card);
+  color: color-mix(in srgb, var(--ink) 55%, var(--card)); border: 1px solid #A9BAB1; border-radius: 999px; font-size: 16px;
+}
 .newsletter[data-layout="plain"] .nl-panel { background: transparent; padding: 0; }
 .newsletter[data-layout="dark"] .nl-panel { background: var(--ink); color: var(--ground); }
 .newsletter[data-layout="dark"] .nl-text p { color: var(--on-dark-soft); }
@@ -442,7 +444,7 @@ h2 { font-size: 28px; line-height: 1.15; }
   .nl-panel { flex-direction: row; align-items: center; justify-content: space-between; gap: 40px; padding: 48px; }
   .nl-text { max-width: 520px; }
   .nl-form { flex-direction: row; align-items: center; flex: 0 1 460px; }
-  .nl-form input { flex: 1 1 auto; width: auto; }
+  .nl-field { flex: 1 1 auto; width: auto; }
   .newsletter[data-layout="plain"] .nl-panel { flex-direction: column; text-align: center; padding: 0; }
   .newsletter[data-layout="plain"] .nl-text { align-items: center; }
   .newsletter[data-layout="plain"] .nl-form { flex: 0 0 auto; width: 100%; max-width: 520px; }
@@ -477,3 +479,32 @@ h2 { font-size: 28px; line-height: 1.15; }
   .footer[data-layout="centered"] .footer-cols { grid-auto-flow: column; justify-content: center; }
   .footer[data-layout="centered"] .footer-base { justify-content: center; gap: 24px; }
 }
+
+/* ---------- Tools: at the bottom, or on the section ---------- */
+.toolsw {
+  position: absolute; top: 56px; left: 0; right: 0; z-index: 30; display: flex; align-items: center; gap: 4px;
+  height: 44px; padding: 0 12px 6px 20px; background: var(--editor); color: #C7C7C7; font-size: 13px;
+}
+.toolsw > span { margin-right: 6px; font-weight: 600; }
+.toolsw button {
+  min-height: 32px; padding: 0 12px; background: #2C2C2C; color: #C7C7C7; border: 0; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;
+}
+.toolsw button[aria-pressed="true"] { background: #fff; color: var(--chrome-ink); }
+.toolsw button:focus-visible { outline: 2px solid var(--blue); outline-offset: 1px; }
+.frame.desk .toolsw { display: none; }
+.frame.desk .screen { top: 56px; }
+
+.dock-name { display: none; }
+.frame.tools-section .dock {
+  left: 8px; right: 8px; bottom: auto; z-index: 25; padding: 4px 6px 6px;
+  border: 0; border-radius: 14px; box-shadow: 0 0 0 2px var(--blue), 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+.frame.tools-section .dock-name {
+  display: flex; align-items: center; gap: 5px; padding: 4px 8px 2px; color: var(--blue); font-size: 12px; font-weight: 600;
+}
+.frame.tools-section .dock-name svg { width: 13px; height: 13px; }
+.frame.tools-section .dbtn { min-height: 48px; padding: 4px 2px; font-size: 11px; }
+.frame.tools-section .dbtn svg { width: 20px; height: 20px; }
+.frame.tools-section .dock-bar { min-height: 46px; }
+/* The toolbar names the section, so the tab isn't needed. */
+.frame.tools-section .sec.selected > .sectab { display: none; }

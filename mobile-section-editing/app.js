@@ -86,7 +86,7 @@
   };
 
   // ---------- State ----------
-  var state = { sel: null, mode: null, item: null, sheet: null, layout: {}, palette: {}, img: {}, view: 'phone' };
+  var state = { sel: null, mode: null, item: null, sheet: null, layout: {}, palette: {}, img: {}, view: 'phone', tools: 'bottom' };
   var page = document.getElementById('page');
   var stage = document.getElementById('stage');
   var deskbar = document.getElementById('deskbar');
@@ -163,8 +163,8 @@
       case 'newsletter':
         body = '<div class="inner"><div class="nl-panel"><div class="nl-text"><h2' + I('head') + T + '>Hear about new work first</h2>' +
           '<p' + I('body') + T + '>An occasional email when new pieces and class dates go up.</p></div>' +
-          '<div class="nl-form"' + I('form') + '><label class="sr-only" for="' + id + '-email">Email address</label>' +
-          '<input id="' + id + '-email" type="email" placeholder="Email address" autocomplete="off"><button type="button" class="btn">Sign up</button></div></div></div>';
+          '<div class="nl-form"' + I('form') + '><span class="nl-field"' + T + '>Email address</span>' +
+          '<span class="btn" role="button"' + T + '>Sign up</span></div></div></div>';
         break;
       case 'cta':
         body = '<div class="inner"><div class="cta-panel"><div class="cta-text"><h2' + I('title') + T + '>Visit the open studio</h2>' +
@@ -372,7 +372,7 @@
     var showDock = !!sec && state.mode !== 'layout';
     dock.hidden = !showDock;
     frame.classList.toggle('has-dock', showDock || !!state.sheet);
-    if (!showDock) return;
+    if (!showDock) { placeDock(); return; }
     var t = typeOf(sec);
     var html = '';
     if (!state.mode) {
@@ -396,8 +396,44 @@
         '<button type="button" class="dock-done" data-act="exit">Done</button></div>' +
         '<p class="dock-note">Free positioning is available when editing on a larger screen.</p>';
     }
+    if (state.tools === 'section') {
+      html = '<div class="dock-name">' + (t.global ? ICON.globe + t.title + '<span class="tabnote"> · shown on every page</span>' : t.title) + '</div>' + html;
+    }
     dock.innerHTML = html;
+    placeDock();
   }
+
+  // ---------- Tools at the bottom, or on the section ----------
+  // On the section, the toolbar sits at the top of the selected section and sticks to the top of the
+  // screen while you scroll through it. The section gets extra space at the top so the toolbar
+  // doesn't cover anything you might want to tap.
+  function placeDock() {
+    var on = state.tools === 'section' && !dock.hidden && !!state.sel && state.sel.isConnected;
+    var gap = 8;
+    var h = on ? dock.offsetHeight : 0;
+    sections().forEach(function (s) {
+      var want = on && s === state.sel ? (h + gap * 2) + 'px' : '';
+      if (s.style.paddingTop !== want) s.style.paddingTop = want;
+    });
+    if (!on) { dock.style.top = ''; return; }
+    var fr = frame.getBoundingClientRect(), sr = screen.getBoundingClientRect(), r = state.sel.getBoundingClientRect();
+    var top = Math.min(Math.max(r.top - fr.top + gap, sr.top - fr.top + gap), r.bottom - fr.top - h - gap);
+    dock.style.top = Math.round(top) + 'px';
+  }
+  screen.addEventListener('scroll', placeDock, { passive: true });
+  window.addEventListener('resize', placeDock);
+
+  function setTools(v) {
+    state.tools = v;
+    try { localStorage.setItem('mse-tools', v); } catch (err) { /* not available */ }
+    frame.classList.toggle('tools-section', v === 'section');
+    document.querySelectorAll('[data-tools]').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.tools === v)); });
+    render();
+    if (state.sel) scrollToSection(state.sel);
+  }
+  document.querySelectorAll('[data-tools]').forEach(function (b) {
+    b.addEventListener('click', function () { setTools(b.dataset.tools); });
+  });
 
   function siblingItem(el, dir) {
     var n = dir < 0 ? el.previousElementSibling : el.nextElementSibling;
@@ -481,6 +517,7 @@
   function duplicateSection(sec) {
     var id = newId();
     var copy = sec.cloneNode(true);
+    copy.style.paddingTop = '';
     var old = sec.dataset.id;
     copy.dataset.id = id;
     copy.classList.remove('selected');
@@ -726,5 +763,8 @@
     fit();
   }
 
-  render();
+  var savedTools = null;
+  try { savedTools = localStorage.getItem('mse-tools'); } catch (err) { /* not available */ }
+  if (/[?&]tools=section/.test(location.search)) savedTools = 'section';
+  if (savedTools === 'section') setTools('section'); else render();
 })();

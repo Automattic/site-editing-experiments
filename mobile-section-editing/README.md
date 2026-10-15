@@ -13,6 +13,13 @@ There's no hover on a phone, so everything starts with a tap, and the tools live
 - **Add** opens a sheet with things to add to the section (headings, paragraphs, buttons, images, cards, plans or questions, depending on the section) and a grid of section types to add below it.
 - **More** moves the section up or down, duplicates it, or deletes it. Removing an item or deleting a section shows a message with **Undo**.
 
+**Tools** under the top bar switches where the editing tools appear, so the two approaches can be compared on a real phone:
+
+- **At the bottom** docks the toolbar along the bottom of the screen, within thumb reach, and keeps it in the same place whichever section is selected.
+- **On the section** puts the toolbar on the selected section, labelled with the section's name. The section makes room for it at the top so it doesn't cover anything, and it sticks to the top of the screen as you scroll through a tall section. Sheets still open from the bottom.
+
+The choice is remembered in the browser, and `?tools=section` opens the page with tools on the section.
+
 **Phone | Desktop** in the top bar is for building a site on a phone that also looks good on a big screen. **Desktop** lays the same page out at desktop width (1280px) and zooms out to fit the phone, keeping every edit, layout and colour. Tapping a section in the desktop preview goes back to the phone view with that section selected. Every mobile layout has a matching desktop arrangement, and the Layout sheet shows it under each option (for example, "Stacked cards" becomes three columns on desktop).
 
 The header and footer are shared across the whole site. Their tab reads **Header · shown on every page**, every sheet says **You're editing the header on every page of your site**, and they can't be moved, duplicated or deleted.

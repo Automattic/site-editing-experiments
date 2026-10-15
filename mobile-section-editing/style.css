@@ -305,7 +305,7 @@ h2 { font-size: 28px; line-height: 1.15; }
 }
 .lay[aria-pressed="true"] { border-color: var(--blue); background: #EEF1FD; color: var(--blue); }
 .lay-th { position: relative; display: block; width: 104px; height: 150px; overflow: hidden; background: var(--ground); border-radius: 8px; }
-.lay-stage { position: absolute; left: 0; top: 0; transform-origin: 0 0; pointer-events: none; color: var(--ink); text-align: left; }
+.lay-stage { container: page / inline-size; position: absolute; left: 0; top: 0; transform-origin: 0 0; pointer-events: none; color: var(--ink); text-align: left; }
 .mini-sec { display: block; }
 .pal-row { display: flex; gap: 8px; overflow-x: auto; margin: 0 -16px; padding: 0 16px 4px; }
 .pal {
@@ -522,3 +522,57 @@ h2 { font-size: 28px; line-height: 1.15; }
 .frame.tools-right .dock-done { width: 100%; padding: 0; font-size: 14px; }
 /* With less room beside the toolbar, the header's links can drop below the logo. */
 .frame.tools-right .header.selected .hdr-inner, .frame.tools-right .header.selected .hnav { flex-wrap: wrap; }
+
+/* ---------- Editing at desktop size, on a computer ---------- */
+.kbd { display: none; }
+body.desk-wide .intro { display: none; }
+.frame.desk.wide {
+  width: min(1440px, calc(100vw - 32px)); height: calc(100vh - 32px); border-radius: 14px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.12), 0 30px 60px rgba(0, 0, 0, 0.25);
+}
+.frame.desk.wide .screen { background: var(--ground); }
+.frame.desk.wide .page { margin-bottom: 0; }
+.frame.desk.wide .sec { cursor: pointer; }
+.frame.desk.wide .sec.selected { cursor: default; }
+/* Hovering a section shows what you'd select. */
+.frame.desk.wide .sec:not(.selected):hover { box-shadow: inset 0 0 0 1px var(--blue); }
+.frame.desk.wide .sec:not(.selected):hover > .sectab { display: inline-flex; background: #fff; color: var(--blue); box-shadow: inset 0 0 0 1px var(--blue); }
+
+/* The toolbar floats at the bottom, centred, with the section's name at its start. */
+.frame.desk.wide .dock {
+  left: 0; right: 0; bottom: 20px; display: flex; align-items: center; gap: 4px; width: fit-content; max-width: calc(100% - 40px);
+  margin: 0 auto; padding: 6px; border: 0; border-radius: 16px; box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08), 0 12px 32px rgba(0, 0, 0, 0.18);
+}
+.frame.desk.wide .dock[hidden] { display: none; }
+.frame.desk.wide .dock-name {
+  display: flex; align-items: center; gap: 6px; align-self: stretch; margin-right: 4px; padding: 0 16px 0 10px;
+  border-right: 1px solid #E2E2E2; color: var(--blue); font-size: 13px; font-weight: 600; white-space: nowrap;
+}
+.frame.desk.wide .dock-name svg { width: 14px; height: 14px; }
+.frame.desk.wide .dock-row { display: flex; gap: 2px; }
+.frame.desk.wide .dbtn { width: 88px; min-height: 52px; }
+.frame.desk.wide .dbtn:hover { background: #F2F2F2; }
+.frame.desk.wide .dbtn > span { display: inline-flex; align-items: center; gap: 5px; }
+.frame.desk.wide .kbd {
+  display: inline-block; min-width: 16px; padding: 0 3px; border: 1px solid #D0D0D0; border-radius: 4px;
+  font: 600 10px/14px 'Instrument Sans', sans-serif; color: #6A6A6A; text-align: center;
+}
+.frame.desk.wide .dock-bar { min-width: 440px; }
+.frame.desk.wide .dock-icon:hover:not(:disabled), .frame.desk.wide .sbtn-icon:hover { background: #E6E6E6; }
+
+/* Sheets become panels above the toolbar; Layout replaces the toolbar with a tray of every layout side by side. */
+.frame.desk.wide .scrim { background: transparent; }
+.frame.desk.wide .sheet {
+  left: 0; right: 0; bottom: 96px; width: min(560px, calc(100% - 40px)); max-height: calc(100% - 140px); margin: 0 auto;
+  border-radius: 16px; box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08), 0 16px 40px rgba(0, 0, 0, 0.22);
+}
+.frame.desk.wide .sheet[data-kind="layout"] { bottom: 20px; width: min(980px, calc(100% - 40px)); max-height: 62%; }
+.frame.desk.wide .grabber { height: 0; margin: 6px 0 0; }
+.frame.desk.wide .lay-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); overflow: visible; margin: 0; padding: 2px 0 6px; }
+.frame.desk.wide .lay { max-width: none; }
+.frame.desk.wide .lay-th { width: 100%; }
+.frame.desk.wide .lay:hover:not([aria-pressed="true"]) { background: #E9E9E9; }
+
+/* Dragging in Arrange */
+.frame.desk.wide .sec[data-mode="arrange"] [data-item] { cursor: grab; user-select: none; }
+.frame.desk.wide .sec[data-mode="arrange"] [data-item].dragging { cursor: grabbing; opacity: 0.75; }

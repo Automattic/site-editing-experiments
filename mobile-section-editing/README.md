@@ -21,7 +21,15 @@ There's no hover on a phone, so everything starts with a tap, and the tools live
 
 On the section, the section makes room for the toolbar so it doesn't cover anything, and sheets still open from the bottom. The choice is remembered in the browser, and `?tools=section` or `?tools=right` opens the page with that choice.
 
-**Phone | Desktop** in the top bar is for building a site on a phone that also looks good on a big screen. **Desktop** lays the same page out at desktop width (1280px) and zooms out to fit the phone, keeping every edit, layout and colour. Tapping a section in the desktop preview goes back to the phone view with that section selected. Every mobile layout has a matching desktop arrangement, and the Layout sheet shows it under each option (for example, "Stacked cards" becomes three columns on desktop).
+**Phone | Desktop** in the top bar is for building a site on a phone that also looks good on a big screen. **Desktop** lays the same page out at desktop width, keeping every edit, layout and colour. Every mobile layout has a matching desktop arrangement, and the Layout sheet shows it under each option (for example, "Stacked cards" becomes three columns on desktop).
+
+- **On a phone**, the desktop view is a zoomed-out preview. Tapping a section goes back to the phone view with that section selected.
+- **On a computer**, the desktop view is a full-size editor using the same tools, in a floating bar at the bottom of the window:
+  - Hovering a section outlines it and shows its name. Clicking selects it, and the bar names the section it's editing.
+  - **L**, **C** and **A** switch to Layout, Content and Arrange. **Esc** steps back out.
+  - Layout opens a tray in place of the bar with every layout side by side, named for desktop, with the phone version under each.
+  - Add, More and photo choices open as panels just above the bar.
+  - In Arrange, you can drag items to reorder them as well as using the arrows.
 
 The header and footer are shared across the whole site. Their tab reads **Header · shown on every page**, every sheet says **You're editing the header on every page of your site**, and they can't be moved, duplicated or deleted.
 

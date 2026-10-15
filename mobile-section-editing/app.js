@@ -296,23 +296,30 @@
   // ---------- Phone and desktop views ----------
   // The desktop view lays the same page out at desktop width and zooms out to fit the screen.
   var DESKTOP_W = 1280;
+  // On a computer (a wide window), the desktop view is a full-size editor with the same tools,
+  // in a floating bar at the bottom. On a phone it's a zoomed-out preview; tapping it goes back to
+  // the phone view to edit.
+  function deskEdit() { return state.view === 'desktop' && frame.classList.contains('wide'); }
   function setView(v) {
     if (v === state.view) return;
     state.view = v;
-    if (v === 'desktop') {
-      state.sel = null; state.mode = null; state.item = null;
-      closeSheet();
-      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
-    }
     frame.classList.toggle('desk', v === 'desktop');
     document.querySelectorAll('[data-view]').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.view === v)); });
-    deskbar.hidden = v !== 'desktop';
+    state.mode = null; state.item = null;
+    closeSheet();
+    if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
     fitView();
-    screen.scrollTop = 0;
+    if (v === 'desktop' && !deskEdit()) state.sel = null;
     render();
+    if (state.sel) { var sec = state.sel; setTimeout(function () { scrollToSection(sec); flash(sec); }, 30); }
+    else screen.scrollTop = 0;
   }
   function fitView() {
-    if (state.view === 'desktop') {
+    var wide = state.view === 'desktop' && window.innerWidth >= 1000;
+    frame.classList.toggle('wide', wide);
+    document.body.classList.toggle('desk-wide', wide);
+    deskbar.hidden = !(state.view === 'desktop' && !wide);
+    if (state.view === 'desktop' && !(wide && screen.clientWidth >= 960)) {
       var k = screen.clientWidth / DESKTOP_W;
       page.style.width = DESKTOP_W + 'px';
       page.style.transform = 'scale(' + k + ')';
@@ -320,6 +327,8 @@
     } else {
       page.style.width = page.style.transform = stage.style.height = '';
     }
+    if (state.view === 'desktop' && !wide && state.sel) { state.sel = null; state.mode = null; state.item = null; closeSheet(); render(); }
+    placeDock();
   }
   window.addEventListener('resize', fitView);
   page.addEventListener('load', fitView, true);
@@ -332,7 +341,7 @@
     if (e.target.closest('a')) e.preventDefault();
     var sec = e.target.closest('.sec');
     // In the desktop preview, tapping a section goes back to the phone view to edit it.
-    if (state.view === 'desktop') {
+    if (state.view === 'desktop' && !deskEdit()) {
       setView('phone');
       if (sec) { select(sec); setTimeout(function () { scrollToSection(sec); flash(sec); }, 30); }
       return;
@@ -363,8 +372,9 @@
   });
 
   // ---------- Bottom dock ----------
-  function dockButton(act, icon, label, extra) {
-    return '<button type="button" class="dbtn' + (extra || '') + '" data-act="' + act + '">' + ICON[icon] + '<span>' + label + '</span></button>';
+  function dockButton(act, icon, label, key) {
+    return '<button type="button" class="dbtn" data-act="' + act + '"' + (key ? ' aria-keyshortcuts="' + key + '"' : '') + '>' + ICON[icon] +
+      '<span>' + label + (key ? '<kbd class="kbd" aria-hidden="true">' + key + '</kbd>' : '') + '</span></button>';
   }
 
   function renderDock() {
@@ -377,26 +387,26 @@
     var html = '';
     if (!state.mode) {
       html = '<div class="dock-row">' +
-        dockButton('mode-layout', 'layout', 'Layout') + dockButton('mode-content', 'content', 'Content') +
-        dockButton('mode-arrange', 'arrange', 'Arrange') + dockButton('sheet-add', 'add', 'Add') +
+        dockButton('mode-layout', 'layout', 'Layout', 'L') + dockButton('mode-content', 'content', 'Content', 'C') +
+        dockButton('mode-arrange', 'arrange', 'Arrange', 'A') + dockButton('sheet-add', 'add', 'Add') +
         dockButton('sheet-more', 'more', 'More') + '</div>';
     } else if (state.mode === 'content') {
       var canRemove = state.item && state.item.isConnected;
       html = '<div class="dock-bar"><span class="dock-hint">' +
-        (t.global ? ICON.globe + 'Editing the ' + t.title.toLowerCase() + ' on every page' : 'Tap text to type, or a photo to replace it') + '</span>' +
+        (t.global ? ICON.globe + 'Editing the ' + t.title.toLowerCase() + ' on every page' : (deskEdit() ? 'Click' : 'Tap') + ' text to type, or a photo to replace it') + '</span>' +
         '<button type="button" class="dock-icon" data-act="remove-item" aria-label="Remove selected item"' + (canRemove ? '' : ' disabled') + '>' + ICON.bin + '</button>' +
         '<button type="button" class="dock-done" data-act="exit">Done</button></div>';
     } else if (state.mode === 'arrange') {
       var it = state.item && state.item.isConnected ? state.item : null;
       var prev = it && siblingItem(it, -1), next = it && siblingItem(it, 1);
-      html = '<div class="dock-bar"><span class="dock-hint">' + (it ? 'Move the selected item' : 'Tap an item to move it') + '</span>' +
+      html = '<div class="dock-bar"><span class="dock-hint">' + (deskEdit() ? (it ? 'Drag to move it, or use the arrows' : 'Drag an item to move it') : (it ? 'Move the selected item' : 'Tap an item to move it')) + '</span>' +
         '<button type="button" class="dock-icon" data-act="item-up" aria-label="Move item up"' + (prev ? '' : ' disabled') + '>' + ICON.up + '</button>' +
         '<button type="button" class="dock-icon" data-act="item-down" aria-label="Move item down"' + (next ? '' : ' disabled') + '>' + ICON.down + '</button>' +
         '<button type="button" class="dock-icon" data-act="remove-item" aria-label="Remove item"' + (it ? '' : ' disabled') + '>' + ICON.bin + '</button>' +
         '<button type="button" class="dock-done" data-act="exit">Done</button></div>' +
-        '<p class="dock-note">Free positioning is available when editing on a larger screen.</p>';
+        (deskEdit() ? '' : '<p class="dock-note">Free positioning is available when editing on a larger screen.</p>');
     }
-    if (state.tools === 'section') {
+    if (state.tools !== 'bottom' || deskEdit()) {
       html = '<div class="dock-name">' + (t.global ? ICON.globe + t.title + '<span class="tabnote"> · shown on every page</span>' : t.title) + '</div>' + html;
     }
     dock.innerHTML = html;
@@ -409,7 +419,7 @@
   // middle of whatever part of the section is on screen. Either way the section makes room for the
   // toolbar, so it doesn't cover anything you might want to tap.
   function placeDock() {
-    var mode = state.tools;
+    var mode = state.view === 'desktop' ? 'bottom' : state.tools;
     var on = mode !== 'bottom' && !dock.hidden && !!state.sel && state.sel.isConnected;
     var gap = 8;
     var h = on ? dock.offsetHeight : 0, w = on ? dock.offsetWidth : 0;
@@ -652,9 +662,12 @@
         b.className = 'lay';
         b.dataset.layout = l[0];
         b.setAttribute('aria-pressed', String(layoutOf(sec) === l[0]));
-        b.setAttribute('aria-label', l[1] + '. On desktop: ' + l[2]);
-        b.innerHTML = '<span class="lay-th" aria-hidden="true" inert></span><span class="lay-label">' + l[1] + '</span>' +
-          '<span class="lay-desk">' + ICON.desktop + l[2] + '</span>';
+        // On a phone, each layout is named for the phone and notes its desktop arrangement; on desktop, the other way round.
+        var desk = deskEdit();
+        var main = desk ? l[2].charAt(0).toUpperCase() + l[2].slice(1) : l[1];
+        b.setAttribute('aria-label', main + (desk ? '. On phones: ' + l[1] : '. On desktop: ' + l[2]));
+        b.innerHTML = '<span class="lay-th" aria-hidden="true" inert></span><span class="lay-label">' + main + '</span>' +
+          '<span class="lay-desk">' + (desk ? ICON.phone + l[1] : ICON.desktop + l[2]) + '</span>';
         row.appendChild(b);
         var th = b.querySelector('.lay-th');
         var stage = document.createElement('span');
@@ -748,6 +761,63 @@
     fileInput.value = '';
     closeSheet();
     render();
+  });
+
+  // ---------- Keyboard ----------
+  // Esc steps back out (closes a sheet, leaves a mode, then deselects). L, C and A switch modes.
+  document.addEventListener('keydown', function (e) {
+    if (state.view === 'desktop' && !deskEdit()) return;
+    if (e.key === 'Escape') {
+      if (state.sheet && state.sheet !== 'layout') { closeSheet(); render(); }
+      else if (state.mode) exitMode();
+      else if (state.sel) select(null);
+      return;
+    }
+    var t = e.target;
+    if (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || e.metaKey || e.ctrlKey || e.altKey) return;
+    if (!state.sel || state.mode || state.sheet) return;
+    var k = e.key.toLowerCase();
+    if (k === 'l') setMode('layout');
+    else if (k === 'c') setMode('content');
+    else if (k === 'a') setMode('arrange');
+  });
+
+  // ---------- Dragging items in Arrange, on desktop ----------
+  var drag = null;
+  page.addEventListener('pointerdown', function (e) {
+    if (!deskEdit() || state.mode !== 'arrange' || e.button !== 0 || !state.sel) return;
+    var it = e.target.closest('[data-item]');
+    if (!it || !state.sel.contains(it)) return;
+    e.preventDefault();
+    drag = { it: it, x: e.clientX, y: e.clientY, moved: false };
+    state.item = it;
+    render();
+  });
+  document.addEventListener('pointermove', function (e) {
+    if (!drag) return;
+    if (!drag.moved && Math.abs(e.clientX - drag.x) + Math.abs(e.clientY - drag.y) < 5) return;
+    drag.moved = true;
+    drag.it.classList.add('dragging');
+    var it = drag.it, sibs = it.parentElement.children;
+    for (var i = 0; i < sibs.length; i++) {
+      var n = sibs[i];
+      if (n === it || !n.hasAttribute('data-item')) continue;
+      var r = n.getBoundingClientRect();
+      if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) continue;
+      // Items side by side swap on the horizontal midpoint; stacked items on the vertical one.
+      var ir = it.getBoundingClientRect();
+      var across = Math.abs(r.top - ir.top) < Math.min(r.height, ir.height) / 2;
+      var after = across ? e.clientX > r.left + r.width / 2 : e.clientY > r.top + r.height / 2;
+      if (after && n.nextElementSibling !== it) n.parentNode.insertBefore(it, n.nextSibling);
+      else if (!after && n.previousElementSibling !== it) n.parentNode.insertBefore(it, n);
+      break;
+    }
+  });
+  document.addEventListener('pointerup', function () {
+    if (!drag) return;
+    drag.it.classList.remove('dragging');
+    drag = null;
+    renderDock();
   });
 
   // ---------- Toast ----------

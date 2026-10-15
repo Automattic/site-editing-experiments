@@ -16,11 +16,10 @@
   <p>A phone-first take on the <a href="../albers/">Albers</a> section editing mockup. Open this page on a phone to try it full screen.</p>
   <ul>
     <li><strong>Tap a section</strong> to select it. Its tools appear at the bottom of the screen.</li>
-    <li><strong>Layout</strong> opens a sheet of mobile layouts and colours, with the section still in view above it.</li>
+    <li><strong>Layout</strong> opens a sheet of layouts and colours, with the section still in view above it. Each layout shows what it looks like on phones and on desktop.</li>
     <li><strong>Content</strong> lets you type straight into text and swap photos, including from your phone.</li>
-    <li><strong>Arrange</strong> lets you drag items into a new order. On a phone, press and hold an item to pick it up. The others slide out of the way, and a slot shows where it'll land.</li>
+    <li><strong>Arrange</strong> drags items into a new order, or switch it to <strong>Freeform</strong> to put things anywhere, resize them and line them up with guides. On a phone, press and hold an item to pick it up.</li>
     <li><strong>Add</strong> adds to the section or adds a new section below it. <strong>More</strong> moves, duplicates or deletes it.</li>
-    <li><strong>Tools</strong> switches between three places for the editing tools: docked at the bottom of the screen, along the top of the selected section, or down its right-hand side. On the section, they stay in view as you scroll.</li>
     <li><strong>Phone | Desktop</strong> in the top bar switches to the same page laid out for a desktop screen. On a computer you can keep editing there, with the same tools in a bar at the bottom of the selected section. On a phone it's a preview.</li>
   </ul>
 </aside>
@@ -32,12 +31,6 @@
       <button type="button" data-view="desktop" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>Desktop</button>
     </div>
     <button type="button" class="topbar-btn" id="reset-all">Reset</button>
-  </div>
-  <div class="toolsw" role="group" aria-label="Where the editing tools appear">
-    <span>Tools</span>
-    <button type="button" data-tools="bottom" aria-pressed="true">Bottom</button>
-    <button type="button" data-tools="section" aria-pressed="false">Top of section</button>
-    <button type="button" data-tools="right" aria-pressed="false">Right of section</button>
   </div>
   <div class="screen" id="screen">
     <div class="stage" id="stage"><div class="page" id="page"></div><div class="handles" id="handles"></div></div>

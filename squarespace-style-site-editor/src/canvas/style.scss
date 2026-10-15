@@ -408,10 +408,10 @@ $sse-font: -apple-system, blinkmacsystemfont, "Segoe UI", roboto, "Helvetica Neu
 	padding-block-start: calc(var(--wp--custom--sse--section-padding, 5rem) + var(--sse-div-h, 0px));
 }
 
-// A page shown in its template: an empty featured image would show core's
-// placeholder in the middle of the page. Squarespace has nothing there, and
-// the front end shows nothing, so neither does the canvas. (Set one from the
-// page's settings.)
-.wp-block-post-featured-image.has-editable-outline:has(> .components-placeholder) {
-	display: none;
+// A page shown in its template: placeholders for things that aren't set
+// (featured image, logo, tagline) show nothing on the site, so they show
+// nothing here either while locked. See quiet-placeholders.js.
+.sse-quiet-placeholder:has(> .components-placeholder),
+.sse-quiet-empty {
+	display: none !important;
 }

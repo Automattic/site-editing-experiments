@@ -2,6 +2,7 @@ import { registerPlugin } from '@wordpress/plugins';
 
 import './store';
 import './section-controls';
+import './quiet-placeholders';
 import Chrome from './chrome';
 import EmptyCanvas from './empty-canvas';
 import { PartEditingManager } from './part-editing';

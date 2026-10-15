@@ -30,7 +30,7 @@ The details follow Squarespace's editor (version 7.1, checked in October 2026): 
 ### Editor chrome
 
 - **Browse mode** shows the site in a white Website/Pages panel, with an **Edit** button on the preview.
-- **Pages open inside their template**, so the site header and footer show around the page, as they do in Squarespace, and can be edited from there. (WordPress would otherwise show a page's content on its own. Turning "Show template" off from the editor's menu sticks, and the `sse_show_page_template` filter turns the default off.) An empty featured image doesn't show its placeholder, since nothing shows on the site either.
+- **Pages open inside their template**, so the site header and footer show around the page, as they do in Squarespace, and can be edited from there. (WordPress would otherwise show a page's content on its own. Turning "Show template" off from the editor's menu sticks, and the `sse_show_page_template` filter turns the default off.) Placeholders the template brings with it (an empty featured image, a logo or tagline that hasn't been set) are hidden while they're locked, since nothing shows on the site either; editing the header or footer brings them back.
 - **Edit mode** starts canvas first, with the settings sidebar closed. **Save** and **Exit** sit at the left of the top bar (Save stays grey until there's something to save), the page title is in the middle, and a desktop/mobile switch is on the right. Save and Exit use core's own save and back buttons, so saving works exactly as before.
 
 ### Sections

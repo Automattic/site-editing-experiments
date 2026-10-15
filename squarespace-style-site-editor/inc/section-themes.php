@@ -157,6 +157,10 @@ function sse_section_themes_css() {
 	$css .= "{$s}{background-color:var(--sse-bg);color:var(--sse-text);}";
 	$css .= ":where({$s}:not(.wp-block-template-part)){padding-block:var(--wp--custom--sse--section-padding,5rem);}";
 	// Coloured sections sit flush against each other, like Squarespace.
+	// Inset: the section's background is a rounded panel in from the page
+	// edges. Clipping (rather than margins) leaves alignment and the
+	// content's own padding alone.
+	$css .= '.sse-inset{clip-path:inset(clamp(.375rem,1vw,.75rem) clamp(.75rem,2.5vw,2rem) round clamp(.5rem,1.5vw,1.25rem));}';
 	// Cover sets its own 1em padding; give a Cover section (one with a
 	// background video or image) the same room as any other section.
 	$css .= "{$s}.wp-block-cover{padding-block:var(--wp--custom--sse--section-padding,5rem);padding-inline:var(--wp--style--root--padding-left,1rem) var(--wp--style--root--padding-right,1rem);}";

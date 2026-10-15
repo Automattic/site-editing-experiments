@@ -53,6 +53,20 @@ const SPACING = {
 	large: 'clamp(6rem, 12vw, 10rem)',
 };
 
+function hasClass( className, name ) {
+	return ( className || '' ).split( /\s+/ ).includes( name );
+}
+
+function toggleClass( className, name, on ) {
+	const classes = ( className || '' )
+		.split( /\s+/ )
+		.filter( ( c ) => c && c !== name );
+	if ( on ) {
+		classes.push( name );
+	}
+	return classes.length ? classes.join( ' ' ) : undefined;
+}
+
 function PanelHeading( { children } ) {
 	return <p className="sse-panel__heading">{ children }</p>;
 }
@@ -329,6 +343,24 @@ function DesignTab( { clientId, name, attributes } ) {
 					}
 				/>
 			) }
+			<ToggleControl
+				__nextHasNoMarginBottom
+				label={ __( 'Inset', 'squarespace-style-site-editor' ) }
+				help={ __(
+					'Draw the background as a rounded panel, in from the page edges.',
+					'squarespace-style-site-editor'
+				) }
+				checked={ hasClass( attributes.className, 'sse-inset' ) }
+				onChange={ ( on ) =>
+					set( {
+						className: toggleClass(
+							attributes.className,
+							'sse-inset',
+							on
+						),
+					} )
+				}
+			/>
 			{ getBlockSupport( name, 'spacing.padding' ) && (
 				<div className="sse-panel__row">
 					<span>

@@ -299,6 +299,29 @@ await step( 'Edit section: colour theme', async () => {
 		.evaluate( ( e ) => getComputedStyle( e ).backgroundColor );
 	expect( bg !== 'rgba(0, 0, 0, 0)', 'section has no background colour' );
 } );
+await step(
+	'Edit section: Inset clips the background, and turns off',
+	async () => {
+		const anchor = await hoverSection( 0 );
+		await anchor.getByRole( 'button', { name: 'Edit section' } ).click();
+		await page.getByLabel( 'Inset' ).click();
+		expect(
+			( await topLevel() )[ 0 ].className.includes( 'sse-inset' ),
+			'Inset class not added'
+		);
+		const clip = await canvas
+			.locator( '.sse-section:not(.sse-section--shared)' )
+			.first()
+			.evaluate( ( e ) => getComputedStyle( e ).clipPath );
+		expect( clip.startsWith( 'inset(' ), `clip-path is ${ clip }` );
+		await page.getByLabel( 'Inset' ).click();
+		expect(
+			! ( await topLevel() )[ 0 ].className.includes( 'sse-inset' ),
+			'Inset class not removed'
+		);
+		await page.keyboard.press( 'Escape' );
+	}
+);
 await step( 'View layouts swaps the layout and keeps the colours', async () => {
 	const anchor = await hoverSection( 0 );
 	await anchor.getByRole( 'button', { name: 'View layouts' } ).click();

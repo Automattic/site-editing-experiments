@@ -1544,3 +1544,11 @@ $sse-font: -apple-system, blinkmacsystemfont, "Segoe UI", roboto, "Helvetica Neu
 .sse-hide-section-toolbar .block-editor-block-list__block-popover:not(:focus-within) {
 	visibility: hidden;
 }
+
+// Toggles sit on the right in the panel, so their help text lines up with
+// the label rather than leaving room for a switch on the left.
+.sse-panel .components-toggle-control .components-base-control__help {
+	margin-inline-start: 0;
+	margin-top: 4px;
+	padding-inline-end: 48px;
+}

@@ -82,6 +82,7 @@
     link: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>',
     fcol: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h5M5 10h4M5 14h5M14 5h5M14 10h4M14 14h5"/></svg>',
     qa: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6M12 17h.01"/></svg>',
+    grip: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg>',
     plan: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12l-8 8-9-9V3h8z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>'
   };
 
@@ -90,6 +91,7 @@
   var page = document.getElementById('page');
   var stage = document.getElementById('stage');
   var deskbar = document.getElementById('deskbar');
+  var handlesEl = document.getElementById('handles');
   var screen = document.getElementById('screen');
   var frame = document.getElementById('frame');
   var dock = document.getElementById('dock');
@@ -339,6 +341,7 @@
   // Taps on the page
   screen.addEventListener('click', function (e) {
     if (e.target.closest('a')) e.preventDefault();
+    if (e.target.closest('.handles')) return;
     var sec = e.target.closest('.sec');
     // In the desktop preview, tapping a section goes back to the phone view to edit it.
     if (state.view === 'desktop' && !deskEdit()) {
@@ -399,7 +402,7 @@
     } else if (state.mode === 'arrange') {
       var it = state.item && state.item.isConnected ? state.item : null;
       var prev = it && siblingItem(it, -1), next = it && siblingItem(it, 1);
-      html = '<div class="dock-bar"><span class="dock-hint">' + (deskEdit() ? (it ? 'Drag to move it, or use the arrows' : 'Drag an item to move it') : (it ? 'Move the selected item' : 'Tap an item to move it')) + '</span>' +
+      html = '<div class="dock-bar"><span class="dock-hint">' + (deskEdit() ? (it ? 'Drag to move it, or use the arrows' : 'Drag an item to move it') : (it ? 'Drag a handle, or use the arrows' : 'Drag a handle to move an item')) + '</span>' +
         '<button type="button" class="dock-icon" data-act="item-up" aria-label="Move item up"' + (prev ? '' : ' disabled') + '>' + ICON.up + '</button>' +
         '<button type="button" class="dock-icon" data-act="item-down" aria-label="Move item down"' + (next ? '' : ' disabled') + '>' + ICON.down + '</button>' +
         '<button type="button" class="dock-icon" data-act="remove-item" aria-label="Remove item"' + (it ? '' : ' disabled') + '>' + ICON.bin + '</button>' +
@@ -434,6 +437,7 @@
       if (s.style.paddingRight !== pr) s.style.paddingRight = pr;
       if (s.style.paddingBottom !== pb) s.style.paddingBottom = pb;
     });
+    positionHandles();
     if (!on) { dock.style.top = ''; sheet.style.bottom = sheet.style.maxHeight = ''; return; }
     var fr = frame.getBoundingClientRect(), sr = screen.getBoundingClientRect(), r = state.sel.getBoundingClientRect();
     var top;
@@ -795,43 +799,191 @@
     else if (k === 'a') setMode('arrange');
   });
 
-  // ---------- Dragging items in Arrange, on desktop ----------
+  // ---------- Drag and drop in Arrange ----------
+  // Each item that can move gets a handle on its left edge (on a phone you need one, because a
+  // finger on the page scrolls it). On a computer you can also drag the item itself. The item lifts
+  // and follows the pointer, the others slide out of the way, and a dashed slot shows where it'll land.
   var drag = null;
-  page.addEventListener('pointerdown', function (e) {
-    if (!deskEdit() || state.mode !== 'arrange' || e.button !== 0 || !state.sel) return;
-    var it = e.target.closest('[data-item]');
-    if (!it || !state.sel.contains(it)) return;
-    e.preventDefault();
-    drag = { it: it, x: e.clientX, y: e.clientY, moved: false };
+  var handleItems = [];
+
+  function itemSiblings(it) {
+    return Array.prototype.filter.call(it.parentElement.children, function (n) { return n.hasAttribute('data-item'); });
+  }
+  function arranging() { return state.mode === 'arrange' && state.sel && state.sel.isConnected && !(state.view === 'desktop' && !deskEdit()); }
+
+  function positionHandles() {
+    var base = stage.getBoundingClientRect();
+    if (drag) {
+      var slot = handlesEl.querySelector('.slot');
+      var L = drag.self, pr = drag.parent.getBoundingClientRect();
+      if (slot) {
+        slot.style.left = (pr.left + L.x - base.left) + 'px'; slot.style.top = (pr.top + L.y - base.top) + 'px';
+        slot.style.width = L.w + 'px'; slot.style.height = L.h + 'px';
+      }
+      return;
+    }
+    handleItems = [];
+    if (!arranging()) { if (handlesEl.firstChild) handlesEl.innerHTML = ''; return; }
+    var html = '';
+    state.sel.querySelectorAll('[data-item]').forEach(function (it) {
+      if (!it.parentElement || itemSiblings(it).length < 2) return;
+      var r = it.getBoundingClientRect();
+      if (!r.width) return;
+      html += '<button type="button" class="hdl' + (it === state.item ? ' on' : '') + '" data-h="' + handleItems.length + '" aria-label="Drag to move" style="left:' +
+        Math.round(r.left - base.left - 4) + 'px;top:' + Math.round(r.top - base.top + r.height / 2) + 'px">' + ICON.grip + '</button>';
+      handleItems.push(it);
+    });
+    handlesEl.innerHTML = html;
+  }
+  // Inner scrollers (like a carousel of cards) move items too.
+  page.addEventListener('scroll', function () { if (arranging()) positionHandles(); }, true);
+
+  // Positions are kept relative to the items' container, so scrolling doesn't upset them.
+  function measure() {
+    var pr = drag.parent.getBoundingClientRect();
+    var rel = function (r) { return { x: r.left - pr.left, y: r.top - pr.top, w: r.width, h: r.height }; };
+    var keep = drag.it.style.transform;
+    drag.it.style.transform = 'none';
+    drag.self = rel(drag.it.getBoundingClientRect());
+    drag.it.style.transform = keep;
+    drag.rects = new Map();
+    drag.sibs.forEach(function (n) { if (n !== drag.it) drag.rects.set(n, rel(n.getBoundingClientRect())); });
+  }
+
+  function surface(el) {
+    // The colour behind an item, so a lifted heading or paragraph stays readable over the others.
+    for (var n = el; n && n !== document.body; n = n.parentElement) {
+      var c = getComputedStyle(n).backgroundColor;
+      if (c && c !== 'transparent' && !/rgba\(.*,\s*0\)$/.test(c)) return c;
+    }
+    return '#fff';
+  }
+
+  function beginDrag(it, x, y) {
+    var r = it.getBoundingClientRect();
+    drag = { it: it, parent: it.parentElement, ox: x - r.left, oy: y - r.top, px: x, py: y, moved: false,
+      home: it.nextSibling, sibs: itemSiblings(it) };
     state.item = it;
     render();
+  }
+
+  function liftDrag() {
+    drag.moved = true;
+    var it = drag.it;
+    if (getComputedStyle(it).backgroundColor.replace(/\s/g, '') === 'rgba(0,0,0,0)') it.style.backgroundColor = surface(it.parentElement);
+    it.classList.add('dragging');
+    measure();
+    handlesEl.classList.add('dragging');
+    handlesEl.innerHTML = '<div class="slot"></div>';
+    positionHandles();
+    drag.raf = requestAnimationFrame(autoScroll);
+  }
+
+  function followPointer() {
+    var it = drag.it, L = drag.self, pr = drag.parent.getBoundingClientRect();
+    var tx = drag.px - drag.ox - (pr.left + L.x), ty = drag.py - drag.oy - (pr.top + L.y);
+    it.style.transform = 'translate(' + tx + 'px,' + ty + 'px) scale(1.02)';
+    // Is the pointer over another item? Then the dragged one takes its place.
+    var hit = null, after = false;
+    drag.rects.forEach(function (R, n) {
+      if (hit) return;
+      var x = pr.left + R.x, y = pr.top + R.y;
+      if (drag.px < x || drag.px > x + R.w || drag.py < y || drag.py > y + R.h) return;
+      var across = Math.abs(R.y - L.y) < Math.min(R.h, L.h) / 2;
+      hit = n;
+      after = across ? drag.px > x + R.w / 2 : drag.py > y + R.h / 2;
+    });
+    if (!hit) return;
+    var itFirst = !!(it.compareDocumentPosition(hit) & Node.DOCUMENT_POSITION_FOLLOWING);
+    if (after === itFirst) reorder(hit, after);
+  }
+
+  function reorder(target, after) {
+    var it = drag.it;
+    var others = drag.sibs.filter(function (n) { return n !== it; });
+    var first = others.map(function (n) { return n.getBoundingClientRect(); });
+    others.forEach(function (n) { n.getAnimations().forEach(function (a) { a.cancel(); }); });
+    drag.parent.insertBefore(it, after ? target.nextSibling : target);
+    drag.sibs = itemSiblings(it);
+    measure();
+    // Slide the others from where they were to where they are now.
+    others.forEach(function (n, i) {
+      var last = n.getBoundingClientRect(), f = first[i];
+      var dx = f.left - last.left, dy = f.top - last.top;
+      if (dx || dy) n.animate([{ transform: 'translate(' + dx + 'px,' + dy + 'px)' }, { transform: 'none' }], { duration: 180, easing: 'cubic-bezier(.2,.8,.2,1)' });
+    });
+    positionHandles();
+    var it2 = drag.it, L = drag.self, pr = drag.parent.getBoundingClientRect();
+    it2.style.transform = 'translate(' + (drag.px - drag.ox - (pr.left + L.x)) + 'px,' + (drag.py - drag.oy - (pr.top + L.y)) + 'px) scale(1.02)';
+  }
+
+  // Dragging near the top or bottom of the screen scrolls the page.
+  function autoScroll() {
+    if (!drag) return;
+    var sr = screen.getBoundingClientRect();
+    var bottom = sr.bottom;
+    if (!dock.hidden) { var dr = dock.getBoundingClientRect(); if (dr.top > sr.top + sr.height / 2) bottom = Math.min(bottom, dr.top); }
+    var edge = 64, v = 0;
+    // Only as far as the items' container: once its end is in view, there's nowhere further to drop.
+    var pr = drag.parent.getBoundingClientRect();
+    if (drag.py < sr.top + edge && pr.top < sr.top + 16) v = -Math.min(Math.ceil((sr.top + edge - drag.py) / 5), sr.top + 16 - pr.top);
+    else if (drag.py > bottom - edge && pr.bottom > bottom - 16) v = Math.min(Math.ceil((drag.py - (bottom - edge)) / 5), pr.bottom - bottom + 16);
+    if (v) { screen.scrollTop += v; followPointer(); }
+    drag.raf = requestAnimationFrame(autoScroll);
+  }
+
+  function endDrag() {
+    var d = drag;
+    drag = null;
+    cancelAnimationFrame(d.raf);
+    handlesEl.classList.remove('dragging');
+    var it = d.it;
+    if (d.moved) {
+      // Settle into the slot.
+      it.style.transition = 'transform 0.18s ease-out';
+      it.style.transform = '';
+      setTimeout(function () {
+        it.style.transition = ''; it.style.backgroundColor = '';
+        it.classList.remove('dragging');
+        positionHandles();
+      }, 200);
+      if (it.nextSibling !== d.home) {
+        var parent = d.parent, home = d.home;
+        toast('Item moved', 'Undo', function () {
+          parent.insertBefore(it, home && home.parentNode === parent ? home : null);
+          state.item = it;
+          render();
+        });
+      }
+    }
+    render();
+  }
+
+  handlesEl.addEventListener('pointerdown', function (e) {
+    var b = e.target.closest('.hdl');
+    if (!b || !arranging()) return;
+    e.preventDefault();
+    beginDrag(handleItems[+b.dataset.h], e.clientX, e.clientY);
+  });
+  // On a computer the item itself can be dragged too.
+  page.addEventListener('pointerdown', function (e) {
+    if (!deskEdit() || !arranging() || e.button !== 0) return;
+    var it = e.target.closest('[data-item]');
+    if (!it || !state.sel.contains(it) || itemSiblings(it).length < 2) return;
+    e.preventDefault();
+    beginDrag(it, e.clientX, e.clientY);
   });
   document.addEventListener('pointermove', function (e) {
     if (!drag) return;
-    if (!drag.moved && Math.abs(e.clientX - drag.x) + Math.abs(e.clientY - drag.y) < 5) return;
-    drag.moved = true;
-    drag.it.classList.add('dragging');
-    var it = drag.it, sibs = it.parentElement.children;
-    for (var i = 0; i < sibs.length; i++) {
-      var n = sibs[i];
-      if (n === it || !n.hasAttribute('data-item')) continue;
-      var r = n.getBoundingClientRect();
-      if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) continue;
-      // Items side by side swap on the horizontal midpoint; stacked items on the vertical one.
-      var ir = it.getBoundingClientRect();
-      var across = Math.abs(r.top - ir.top) < Math.min(r.height, ir.height) / 2;
-      var after = across ? e.clientX > r.left + r.width / 2 : e.clientY > r.top + r.height / 2;
-      if (after && n.nextElementSibling !== it) n.parentNode.insertBefore(it, n.nextSibling);
-      else if (!after && n.previousElementSibling !== it) n.parentNode.insertBefore(it, n);
-      break;
+    drag.px = e.clientX; drag.py = e.clientY;
+    if (!drag.moved) {
+      if (Math.abs(e.clientX - (drag.ox + drag.it.getBoundingClientRect().left)) + Math.abs(e.clientY - (drag.oy + drag.it.getBoundingClientRect().top)) < 4) return;
+      liftDrag();
     }
+    followPointer();
   });
-  document.addEventListener('pointerup', function () {
-    if (!drag) return;
-    drag.it.classList.remove('dragging');
-    drag = null;
-    renderDock();
-  });
+  document.addEventListener('pointerup', function () { if (drag) endDrag(); });
+  document.addEventListener('pointercancel', function () { if (drag) endDrag(); });
 
   // ---------- Toast ----------
   var toastTimer = null;

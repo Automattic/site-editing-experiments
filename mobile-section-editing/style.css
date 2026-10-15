@@ -573,6 +573,23 @@ body.desk-wide .intro { display: none; }
 .frame.desk.wide .lay-th { width: 100%; }
 .frame.desk.wide .lay:hover:not([aria-pressed="true"]) { background: #E9E9E9; }
 
-/* Dragging in Arrange */
+/* Dragging the item itself, on a computer */
 .frame.desk.wide .sec[data-mode="arrange"] [data-item] { cursor: grab; user-select: none; }
-.frame.desk.wide .sec[data-mode="arrange"] [data-item].dragging { cursor: grabbing; opacity: 0.75; }
+
+/* ---------- Drag and drop in Arrange ---------- */
+.handles { position: absolute; inset: 0; z-index: 6; pointer-events: none; }
+.hdl {
+  position: absolute; display: grid; place-items: center; width: 30px; height: 30px; margin: -15px 0 0 -15px; padding: 0;
+  background: var(--blue); color: #fff; border: 2px solid #fff; border-radius: 50%; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  pointer-events: auto; touch-action: none; cursor: grab;
+}
+.hdl svg { width: 16px; height: 16px; }
+.hdl.on { background: #fff; color: var(--blue); border-color: var(--blue); }
+.frame.desk.wide .hdl { width: 26px; height: 26px; margin: -13px 0 0 -13px; }
+.frame.desk.wide .hdl svg { width: 14px; height: 14px; }
+.slot { position: absolute; border: 2px dashed var(--blue); border-radius: 10px; background: rgba(56, 88, 233, 0.08); }
+.sec[data-mode="arrange"] [data-item] { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+.sec [data-item].dragging {
+  position: relative; z-index: 20; outline: 2.5px solid var(--blue) !important; outline-offset: 3px;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.28); cursor: grabbing;
+}

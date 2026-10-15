@@ -9,7 +9,7 @@ There's no hover on a phone, so everything starts with a tap, and the tools live
 - **Tap a section** to select it. It gets a blue outline and a name tab, and a toolbar docks at the bottom of the screen: **Layout**, **Content**, **Arrange**, **Add** and **More**.
 - **Layout** opens a bottom sheet over the lower half of the screen, so the section stays visible above it. You swipe sideways through live previews of the section's mobile layouts, and a **Colours** row below switches palettes (Default, Sand, Sage, Sky, Clay and Night). **Reset** undoes changes made since the sheet opened, and **Done** closes it.
 - **Content** turns text into tap-to-type fields. Tapping a photo opens a sheet where you can choose a photo from your device, pick a sample photo, or remove it. The bin in the toolbar removes whichever item you're editing.
-- **Arrange** replaces Freeform. Tap an item, then move it up or down within the stack, or remove it. Free positioning doesn't translate to a single-column phone layout, so the toolbar notes that it's available on larger screens.
+- **Arrange** replaces Freeform with drag and drop. Each item that can move gets a handle on its left edge (on a phone a finger on the page scrolls it, so you drag by the handle; on a computer you can drag the item itself). The item lifts and follows you, the others slide out of the way, and a dashed slot shows where it'll land. Dragging near the top or bottom of the screen scrolls, as far as the end of the items. Each move shows a message with **Undo**, and the toolbar's arrows and bin still move or remove the selected item.
 - **Add** opens a sheet with things to add to the section (headings, paragraphs, buttons, images, cards, plans or questions, depending on the section) and a grid of section types to add below it.
 - **More** moves the section up or down, duplicates it, or deletes it. Removing an item or deleting a section shows a message with **Undo**.
 
@@ -29,7 +29,6 @@ On the section, the section makes room for the toolbar so it doesn't cover anyth
   - **L**, **C** and **A** switch to Layout, Content and Arrange. **Esc** steps back out.
   - Layout opens a tray in place of the bar with every layout side by side, named for desktop, with the phone version under each.
   - Add, More and photo choices open as panels just above the bar. The Layout tray opens at the bottom of the window.
-  - In Arrange, you can drag items to reorder them as well as using the arrows.
 
 The header and footer are shared across the whole site. Their tab reads **Header · shown on every page**, every sheet says **You're editing the header on every page of your site**, and they can't be moved, duplicated or deleted.
 

@@ -141,14 +141,24 @@ async function save() {
 console.log( `Testing ${ BASE }` );
 
 await page.goto( `${ BASE }/wp-admin/`, { waitUntil: 'load' } );
+// Works with any block theme that has a header part and a page template.
+const theme = await select( async () => {
+	const [ active ] = await window.wp.apiFetch( {
+		path: '/wp/v2/themes?status=active',
+	} );
+	return active.stylesheet;
+} );
+console.log( `Theme: ${ theme }` );
 // Start from the theme's own header, so runs don't pile up changes.
-await select( () =>
-	window.wp
-		.apiFetch( {
-			path: '/wp/v2/template-parts/twentytwentyfive//header?force=true',
-			method: 'DELETE',
-		} )
-		.catch( () => null )
+await select(
+	( slug ) =>
+		window.wp
+			.apiFetch( {
+				path: `/wp/v2/template-parts/${ slug }//header?force=true`,
+				method: 'DELETE',
+			} )
+			.catch( () => null ),
+	theme
 );
 const pageId = await select( async () => {
 	const created = await window.wp.apiFetch( {
@@ -490,7 +500,7 @@ await step( 'save, reload, still valid', async () => {
 console.log( 'Header' );
 await openEditor(
 	`/wp-admin/site-editor.php?p=${ encodeURIComponent(
-		'/wp_template/twentytwentyfive//page'
+		`/wp_template/${ theme }//page`
 	) }&canvas=edit`
 );
 await step( 'Edit site header: dim, add a button, colour, save', async () => {

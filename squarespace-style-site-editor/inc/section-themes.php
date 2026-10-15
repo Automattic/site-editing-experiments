@@ -162,7 +162,12 @@ function sse_section_themes_css() {
 	$css .= "{$s} a:not(.wp-element-button):not(.wp-block-button__link){color:var(--sse-link);}";
 	$css .= "{$s} :is(.wp-element-button,.wp-block-button__link):not(.has-background){background-color:var(--sse-btn-bg);}";
 	$css .= "{$s} :is(.wp-element-button,.wp-block-button__link):not(.has-text-color){color:var(--sse-btn-text);}";
-	$css .= "{$s} .is-style-outline :is(.wp-element-button,.wp-block-button__link):not(.has-background){background-color:transparent;color:var(--sse-btn-bg);border-color:currentColor;}";
+	$css .= "{$s} .is-style-outline :is(.wp-element-button,.wp-block-button__link):not(.has-background){background-color:transparent;color:var(--sse-link);border-color:currentColor;}";
+	// Themes colour some blocks for a light page (Twenty Twenty-Four's quotes
+	// sit on a pale card, its separators are dark). In a coloured section,
+	// let them take the section's colours instead.
+	$css .= "{$s} :is(.wp-block-quote,.wp-block-pullquote):not(.has-background){background-color:transparent;}";
+	$css .= "{$s} :is(.wp-block-quote,.wp-block-pullquote,.wp-block-separator):not(.has-text-color){color:inherit;}";
 
 	return $css;
 }

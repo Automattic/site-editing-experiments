@@ -1,7 +1,8 @@
 /**
  * Every section colour theme should be readable with every ready-made
  * palette: body text, links and button labels at 4.5:1, headings (large
- * text) at 3:1, as WCAG AA asks.
+ * text) at 3:1, as WCAG AA asks. Outline buttons are drawn in the link
+ * colour, so the links check covers them.
  */
 import { execFileSync } from 'child_process';
 import path from 'path';

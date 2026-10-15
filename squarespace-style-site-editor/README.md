@@ -2,7 +2,7 @@
 
 A WordPress plugin that makes the site editor look and work like the Squarespace editor. Unlike the other experiments in this repo it isn't a static mockup: it runs inside a real site editor, on real blocks, and everything it does is saved as ordinary block markup and global styles.
 
-Requires WordPress 6.8 or later and a block theme. Developed and tested against WordPress 7.1 with Twenty Twenty-Five.
+Requires WordPress 6.8 or later and a block theme. Developed against WordPress 7.1 with Twenty Twenty-Five, and the end-to-end tests also pass with Twenty Twenty-Four.
 
 ## Tour
 
@@ -123,7 +123,7 @@ npm run lint:css
 
 The unit tests check every section pattern against core's current `save()` output (so none open with "This block contains unexpected or invalid content"), check that every colour theme is readable with every ready-made palette (WCAG AA: text, links and button labels at 4.5:1, headings at 3:1), and cover the grid snapping and placement maths.
 
-The end-to-end test drives the real site editor through the main flows: building a page from the section picker, the section menu, Edit section and View layouts, saving a section, freeform blocks (adding, dragging, editing, the rows handle and the first mobile drag), Site Styles, saving and reloading, editing the header, an axe accessibility check of the new UI (WCAG 2 A and AA), and the front end at desktop and phone widths. It needs a site with the plugin active, Twenty Twenty-Five and automatic login, which Playground gives you:
+The end-to-end test drives the real site editor through the main flows: building a page from the section picker, the section menu, Edit section and View layouts, saving a section, freeform blocks (adding, dragging, editing, the rows handle and the first mobile drag), Site Styles, saving and reloading, editing the header, an axe accessibility check of the new UI (WCAG 2 A and AA), and the front end at desktop and phone widths. It needs a site with the plugin active, a block theme with a header part and a page template (Twenty Twenty-Five and Twenty Twenty-Four both work) and automatic login, which Playground gives you:
 
 ```sh
 npx playwright install chromium   # once
@@ -132,7 +132,7 @@ npx @wp-playground/cli server --login --port=9400 \
 npm run test:e2e
 ```
 
-Set `SSE_BASE_URL` to test another site and `SSE_SHOTS` to a folder to keep screenshots. Each run resets the theme's header, and adds a test page that it deletes at the end (set `SSE_KEEP=1` to keep it).
+Set `SSE_BASE_URL` to test another site and `SSE_SHOTS` to a folder to keep screenshots. Each run resets the active theme's header, and adds a test page that it deletes at the end (set `SSE_KEEP=1` to keep it).
 
 | Path | What's there |
 | --- | --- |

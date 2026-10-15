@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mobile Section Editing</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Instrument+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<aside class="intro">
+  <h1>Mobile section editing</h1>
+  <p>A phone-first take on the <a href="../section-editing-modes/">section editing modes</a> mockup. Open this page on a phone to try it full screen.</p>
+  <ul>
+    <li><strong>Tap a section</strong> to select it. Its tools appear at the bottom of the screen.</li>
+    <li><strong>Layout</strong> opens a sheet of mobile layouts and colours, with the section still in view above it.</li>
+    <li><strong>Content</strong> lets you type straight into text and swap photos, including from your phone.</li>
+    <li><strong>Arrange</strong> replaces freeform dragging: tap an item, then move it up or down.</li>
+    <li><strong>Add</strong> adds to the section or adds a new section below it. <strong>⋯</strong> moves, duplicates or deletes it.</li>
+  </ul>
+</aside>
+
+<div class="frame" id="frame">
+  <div class="topbar">
+    <span class="topbar-title">Editing <strong>Northfield Ceramics</strong></span>
+    <button type="button" class="topbar-btn" id="reset-all">Reset</button>
+  </div>
+  <div class="screen" id="screen">
+    <div class="page" id="page"></div>
+  </div>
+  <div class="scrim" id="scrim" hidden></div>
+  <div class="sheet" id="sheet" role="dialog" aria-modal="false" hidden>
+    <div class="grabber" aria-hidden="true"></div>
+    <div class="sheet-head"><span class="sheet-title" id="sheet-title"></span><div class="sheet-actions" id="sheet-actions"></div></div>
+    <div class="sheet-body" id="sheet-body"></div>
+  </div>
+  <div class="dock" id="dock" hidden></div>
+  <div class="toast" id="toast" role="status"></div>
+  <input type="file" id="file-input" accept="image/*" hidden>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

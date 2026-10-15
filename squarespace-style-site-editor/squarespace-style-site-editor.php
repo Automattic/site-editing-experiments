@@ -135,3 +135,29 @@ function sse_admin_body_class( $classes ) {
 	return $classes;
 }
 add_filter( 'admin_body_class', 'sse_admin_body_class' );
+
+/**
+ * Opens pages inside their template in the site editor, so the site header
+ * and footer show around the page and can be edited from there, as in
+ * Squarespace. Someone who turns "Show template" off keeps that choice.
+ *
+ * @param array                   $settings Editor settings.
+ * @param WP_Block_Editor_Context $context  Editor context.
+ * @return array
+ */
+function sse_page_rendering_mode( $settings, $context ) {
+	if ( 'core/edit-site' !== ( $context->name ?? '' ) ) {
+		return $settings;
+	}
+	/**
+	 * Filters whether pages open inside their template in the site editor,
+	 * with the site header and footer showing.
+	 *
+	 * @param bool $show Default true.
+	 */
+	if ( apply_filters( 'sse_show_page_template', true ) ) {
+		$settings['defaultRenderingMode'] = 'template-locked';
+	}
+	return $settings;
+}
+add_filter( 'block_editor_settings_all', 'sse_page_rendering_mode', 10, 2 );

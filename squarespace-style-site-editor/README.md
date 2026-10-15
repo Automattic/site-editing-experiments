@@ -30,6 +30,7 @@ The details follow Squarespace's editor (version 7.1, checked in October 2026): 
 ### Editor chrome
 
 - **Browse mode** shows the site in a white Website/Pages panel, with an **Edit** button on the preview.
+- **Pages open inside their template**, so the site header and footer show around the page, as they do in Squarespace, and can be edited from there. (WordPress would otherwise show a page's content on its own. Turning "Show template" off from the editor's menu sticks, and the `sse_show_page_template` filter turns the default off.) An empty featured image doesn't show its placeholder, since nothing shows on the site either.
 - **Edit mode** starts canvas first, with the settings sidebar closed. **Save** and **Exit** sit at the left of the top bar (Save stays grey until there's something to save), the page title is in the middle, and a desktop/mobile switch is on the right. Save and Exit use core's own save and back buttons, so saving works exactly as before.
 
 ### Sections
@@ -38,7 +39,7 @@ Every top-level block on a page (or every block in Post Content, when the templa
 
 - **Hover a section** to outline it in blue, with a small tag on its top edge naming its type (INTRO, FEATURES…) and a menu at its top right: **Edit section**, **View layouts**, a row of duplicate, save, move up and move down, and a red **Remove**. Remove shows a snackbar with **Undo**. In a tall section the menu stays in view as you scroll.
 - **Add section** buttons sit in the middle of the hovered section's top and bottom edges. An empty page shows one **Add section** button.
-- **Header and footer** read **Header · shown on every page** and **Footer · shown on every page**, offer **Edit header**/**Edit footer**, and can't be moved, duplicated or removed.
+- **Header and footer** read **Header · shown on every page** and **Footer · shown on every page**, offer **Edit site header**/**Edit site footer**, and can't be moved, duplicated or removed. Editing one dims the rest of the page and shows **Add elements** and **Edit design** (layouts and colours); changes save to the header or footer itself, so every page gets them.
 
 #### Add a Section
 
@@ -150,7 +151,7 @@ Set the `sse_load_editor_ui` filter to true to load the editor UI on other scree
 
 - The editor look is CSS over core class names, and Save, Exit and the device switch are placed into core's top bar markup, so they may need adjusting as the site editor changes.
 - Squarespace's "Edit section" also offers divider width, offset and stroke; this doesn't.
-- Header and footer editing works where the template is shown, as when editing a template; WordPress doesn't show them when editing a page's content on its own.
+- When a page is shown in its template, core keeps the header's outer wrapper locked, so editing the header there edits what's inside it (title, navigation, buttons); its layout and colours are changed from Edit design.
 - Fonts in Site Styles preview in the editor's own font until the theme's font faces have loaded.
 - Freeform items grow taller than their rows if their text doesn't fit, rather than clipping.
 

@@ -77,17 +77,23 @@ function useSectionInfo( clientId, name ) {
 			) {
 				return null;
 			}
-			if ( be.getBlockEditingMode( clientId ) !== 'default' ) {
+			const mode = be.getBlockEditingMode( clientId );
+			const isTemplatePart = name === 'core/template-part';
+			// A page shown inside its template has its header and footer in
+			// "content only" mode; they still get "Edit site header".
+			const isLockedPart = isTemplatePart && mode === 'contentOnly';
+			if ( mode !== 'default' && ! isLockedPart ) {
 				return null;
 			}
 
 			const order = be.getBlockOrder( rootClientId );
 			const index = order.indexOf( clientId );
 			const attributes = be.getBlockAttributes( clientId ) || {};
-			const isTemplatePart = name === 'core/template-part';
 			const isShared = ( id ) =>
 				id && be.getBlockName( id ) === 'core/template-part';
-			const locked = !! be.getTemplateLock( rootClientId || undefined );
+			const locked =
+				isLockedPart ||
+				!! be.getTemplateLock( rootClientId || undefined );
 
 			return {
 				rootClientId,

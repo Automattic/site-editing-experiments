@@ -425,21 +425,31 @@ export function PartChrome( { clientId, info } ) {
 
 	// Template parts are locked inside a template. While this one is being
 	// edited, unlock it and everything in it; edits save to the part itself.
+	// The part's blocks can arrive after editing starts (a page shown in its
+	// template loads the header late, and navigation loads its links), so
+	// follow the list rather than reading it once.
+	const partIds = useSelect(
+		( select ) =>
+			isEditing
+				? [
+						clientId,
+						...select( blockEditorStore ).getClientIdsOfDescendants(
+							[ clientId ]
+						),
+					].join( ',' )
+				: '',
+		[ isEditing, clientId ]
+	);
 	useEffect( () => {
-		if ( ! isEditing ) {
+		if ( ! partIds ) {
 			return;
 		}
-		const ids = [
-			clientId,
-			...registry
-				.select( blockEditorStore )
-				.getClientIdsOfDescendants( clientId ),
-		];
+		const ids = partIds.split( ',' );
 		const { setBlockEditingMode, unsetBlockEditingMode } =
 			registry.dispatch( blockEditorStore );
 		ids.forEach( ( id ) => setBlockEditingMode( id, 'default' ) );
 		return () => ids.forEach( ( id ) => unsetBlockEditingMode( id ) );
-	}, [ isEditing, clientId, registry ] );
+	}, [ partIds, registry ] );
 
 	const label =
 		area === 'footer'

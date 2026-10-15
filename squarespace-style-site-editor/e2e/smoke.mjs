@@ -91,7 +91,10 @@ const select = ( fn, ...args ) => page.evaluate( fn, ...args );
 const topLevel = () =>
 	select( () => {
 		const be = window.wp.data.select( 'core/block-editor' );
-		return be.getBlockOrder().map( ( id ) => {
+		// Pages open inside their template, so the page's sections are
+		// in Post Content rather than at the root.
+		const root = be.getBlocksByName( 'core/post-content' )[ 0 ] || '';
+		return be.getBlockOrder( root ).map( ( id ) => {
 			const b = be.getBlock( id );
 			return {
 				name: b.name,
@@ -240,9 +243,11 @@ await step( 'Add section after, from each group, and Add Blank', async () => {
 await step( 'no invalid blocks', async () => {
 	const invalid = await select( () => {
 		const be = window.wp.data.select( 'core/block-editor' );
-		return be
-			.getClientIdsWithDescendants()
-			.filter( ( id ) => be.getBlock( id )?.isValid === false ).length;
+		const walk = ( id ) =>
+			be.getBlockOrder( id ).flatMap( ( c ) => [ c, ...walk( c ) ] );
+		return walk( '' ).filter(
+			( id ) => be.getBlock( id )?.isValid === false
+		).length;
 	} );
 	expect( invalid === 0, `${ invalid } invalid blocks` );
 } );
@@ -597,7 +602,9 @@ await step( 'save, reload, still valid', async () => {
 	);
 	const [ total, invalid ] = await select( () => {
 		const be = window.wp.data.select( 'core/block-editor' );
-		const all = be.getClientIdsWithDescendants();
+		const walk = ( id ) =>
+			be.getBlockOrder( id ).flatMap( ( c ) => [ c, ...walk( c ) ] );
+		const all = walk( '' );
 		return [
 			all.length,
 			all.filter( ( id ) => be.getBlock( id )?.isValid === false ).length,
@@ -608,6 +615,62 @@ await step( 'save, reload, still valid', async () => {
 } );
 
 console.log( 'Header' );
+await step(
+	'a page shows the site header, and it can be edited there',
+	async () => {
+		// Still on the page after reloading it.
+		const mode = await select( () =>
+			window.wp.data.select( 'core/editor' ).getRenderingMode()
+		);
+		expect( mode === 'template-locked', `page shown as ${ mode }` );
+		const header = canvas.locator( '.sse-section--shared' ).first();
+		await header.waitFor( { timeout: 30000 } );
+		await header.evaluate( ( e ) =>
+			e.scrollIntoView( { block: 'start' } )
+		);
+		const box = await header.boundingBox();
+		await page.mouse.move( box.x + 400, box.y + box.height / 2 );
+		await canvas
+			.locator( '.sse-part-button.is-edit', {
+				hasText: 'Edit site header',
+			} )
+			.first()
+			.click();
+		await page
+			.locator( '.sse-part-title', { hasText: 'Header' } )
+			.waitFor();
+		// What's in it is editable now, though the page shows it in its
+		// template. (Core keeps the part's own wrapper locked.)
+		await page.waitForFunction(
+			() => {
+				const be = window.wp.data.select( 'core/block-editor' );
+				const part = be.getBlocksByName( 'core/template-part' )[ 0 ];
+				return be
+					.getClientIdsOfDescendants( [ part ] )
+					.some(
+						( id ) =>
+							be.getBlockName( id ) === 'core/site-title' &&
+							be.getBlockEditingMode( id ) === 'default'
+					);
+			},
+			null,
+			{ timeout: 30000 }
+		);
+		await shot( 'page-header-editing' );
+		await page.keyboard.press( 'Escape' );
+		await canvas
+			.locator( '.sse-section:not(.sse-section--shared)' )
+			.first()
+			.click( {
+				position: { x: 20, y: 40 },
+			} );
+		await page.waitForFunction(
+			() => ! document.querySelector( '.sse-part-title' ),
+			null,
+			{ timeout: 10000 }
+		);
+	}
+);
 await openEditor(
 	`/wp-admin/site-editor.php?p=${ encodeURIComponent(
 		`/wp_template/${ theme }//page`

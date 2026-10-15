@@ -413,7 +413,7 @@ function SectionMenu( { clientId, info } ) {
  * Keeps a tall section's menu in view while you scroll through it, by
  * setting --sse-stick on the anchor (how far the menu should drop).
  *
- * @return {Function} Ref callback for the anchor element.
+ * @return {(node: HTMLElement|null) => void} Ref callback for the anchor element.
  */
 function useStickyMenu() {
 	return useRefEffect( ( anchor ) => {

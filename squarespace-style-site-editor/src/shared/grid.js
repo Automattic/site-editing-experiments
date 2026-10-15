@@ -82,9 +82,9 @@ export function bottomRow( layouts ) {
  * This matches what the front end shows before a mobile layout exists, so
  * the first drag on mobile starts from what's on screen.
  *
- * @param {Object[]} items   Blocks ({ clientId, attributes }).
- * @param {Function} rowsFor Optional: rows an item takes up as shown, by
- *                           clientId. Falls back to its desktop height.
+ * @param {Object[]}                 items   Blocks ({ clientId, attributes }).
+ * @param {(item: Object) => number} rowsFor Optional: rows an item takes up as shown, by
+ *                                           clientId. Falls back to its desktop height.
  * @return {{ layouts: Object, rows: number }} Mobile layouts by clientId.
  */
 export function stackForMobile( items, rowsFor ) {
@@ -114,7 +114,7 @@ export function stackForMobile( items, rowsFor ) {
  * will use once it has rows.
  *
  * @param {HTMLElement} grid The section's grid element.
- * @return {Function} clientId => rows, or 0 if it can't be measured.
+ * @return {(clientId: string) => number} clientId => rows, or 0 if it can't be measured.
  */
 export function measureStackedRows( grid ) {
 	const doc = grid.ownerDocument;

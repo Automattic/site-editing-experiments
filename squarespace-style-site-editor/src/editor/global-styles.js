@@ -22,9 +22,9 @@ export function getPath( object, path ) {
  * Sets a dotted path on a plain object, creating objects on the way. An
  * undefined value deletes the key and prunes any objects left empty.
  *
- * @param {Object} object Object to change in place.
- * @param {string} path   Dotted path.
- * @param {*}      value  New value.
+ * @param {Object}  object Object to change in place.
+ * @param {string}  path   Dotted path.
+ * @param {unknown} value  New value.
  */
 export function setPath( object, path, value ) {
 	const keys = path.split( '.' );
@@ -127,7 +127,7 @@ export function useGlobalStyles() {
 	 * The value in effect: the user's, falling back to the theme's.
 	 *
 	 * @param {string} path e.g. "styles.typography.fontFamily".
-	 * @return {*} Value.
+	 * @return {unknown} Value.
 	 */
 	const get = ( path ) => {
 		const value = getPath( user, path );

@@ -8,7 +8,7 @@
  * and footer template parts (Twenty Twenty-Five is what it's written
  * against), and automatic login, which WordPress Playground gives you:
  *
- *   npx @wp-playground/cli server --login --port=9400 \
+ *   npx `@wp-playground/cli` server --login --port=9400 \
  *     --mount=.:/wordpress/wp-content/plugins/squarespace-style-site-editor
  *   npm run test:e2e
  *
@@ -629,6 +629,21 @@ for ( const [ width, name ] of [
 			'header colour not saved'
 		);
 	} );
+}
+
+// Leave the site as we found it: the test page would otherwise pile up in
+// page lists and navigation menus.
+if ( ! process.env.SSE_KEEP ) {
+	await page
+		.evaluate(
+			( id ) =>
+				window.wp.apiFetch( {
+					path: `/wp/v2/pages/${ id }?force=true`,
+					method: 'DELETE',
+				} ),
+			pageId
+		)
+		.catch( () => null );
 }
 
 await browser.close();

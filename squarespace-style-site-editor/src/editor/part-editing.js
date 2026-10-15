@@ -100,8 +100,8 @@ export function partArea( attributes ) {
  * Where new elements go: next to the navigation if there is one (that's the
  * row of things on the right in most headers), otherwise at the end.
  *
- * @param {Function} select   Registry select.
- * @param {string}   clientId Template part block.
+ * @param {(store: string) => Object} select   Registry select.
+ * @param {string}                    clientId Template part block.
  * @return {{ rootClientId: string, index: number }} Insertion point.
  */
 function insertionPoint( select, clientId ) {
@@ -183,12 +183,11 @@ function LayoutOption( { pattern, onChoose } ) {
 			type="button"
 			className="sse-layouts__card"
 			onClick={ () => onChoose( blocks ) }
-			aria-label={ pattern.title }
-			title={ pattern.title }
 		>
 			<span className="sse-layouts__preview is-part" aria-hidden="true">
-				<BlockPreview blocks={ blocks } viewportWidth={ 1400 } />
+				<BlockPreview blocks={ blocks } viewportWidth={ 960 } />
 			</span>
+			<span className="sse-layouts__title">{ pattern.title }</span>
 		</button>
 	);
 }

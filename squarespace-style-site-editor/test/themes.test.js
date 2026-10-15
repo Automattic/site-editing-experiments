@@ -28,25 +28,28 @@ describe.each( palettes.map( ( p ) => [ p.name, p ] ) )(
 	'%s palette',
 	( name, palette ) => {
 		const colour = ( role ) => palette.colors[ ROLES.indexOf( role ) ];
-		it.each( themes.map( ( t ) => [ t.label, t ] ) )( '%s', ( label, t ) => {
-			const bg = colour( t.background );
-			const problems = [];
-			const check = ( what, fg, back, min ) => {
-				const ratio = contrast( fg, back );
-				if ( ratio < min ) {
-					problems.push( `${ what } ${ ratio.toFixed( 2 ) }:1` );
-				}
-			};
-			check( 'text', colour( t.text ), bg, 4.5 );
-			check( 'headings', colour( t.heading ), bg, 3 );
-			check( 'links', colour( t.link ), bg, 4.5 );
-			check(
-				'button label',
-				colour( t.buttonText ),
-				colour( t.buttonBg ),
-				4.5
-			);
-			expect( problems ).toEqual( [] );
-		} );
+		it.each( themes.map( ( t ) => [ t.label, t ] ) )(
+			'%s',
+			( label, t ) => {
+				const bg = colour( t.background );
+				const problems = [];
+				const check = ( what, fg, back, min ) => {
+					const ratio = contrast( fg, back );
+					if ( ratio < min ) {
+						problems.push( `${ what } ${ ratio.toFixed( 2 ) }:1` );
+					}
+				};
+				check( 'text', colour( t.text ), bg, 4.5 );
+				check( 'headings', colour( t.heading ), bg, 3 );
+				check( 'links', colour( t.link ), bg, 4.5 );
+				check(
+					'button label',
+					colour( t.buttonText ),
+					colour( t.buttonBg ),
+					4.5
+				);
+				expect( problems ).toEqual( [] );
+			}
+		);
 	}
 );

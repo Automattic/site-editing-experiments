@@ -162,10 +162,10 @@ export default function Edit( {
 	 * nothing happens until the pointer has moved that far, and a press that
 	 * doesn't move counts as a tap instead.
 	 *
-	 * @param {string}   mode              'move' or a resize direction.
-	 * @param {Object}   options
-	 * @param {number}   options.threshold Pixels before a drag starts.
-	 * @param {Function} options.onTap     Called for a press without a drag.
+	 * @param {string}     mode              'move' or a resize direction.
+	 * @param {Object}     options
+	 * @param {number}     options.threshold Pixels before a drag starts.
+	 * @param {() => void} options.onTap     Called for a press without a drag.
 	 */
 	const startGesture =
 		( mode, { threshold = 0, onTap } = {} ) =>
@@ -337,6 +337,16 @@ export default function Edit( {
 		send( gesture && preview ? preview : null );
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [ gesture, preview ] );
+
+	// Hide the block toolbar while dragging or resizing, so it doesn't sit
+	// over the grid and the guides (Squarespace hides its toolbar too).
+	useEffect( () => {
+		if ( ! gesture ) {
+			return;
+		}
+		document.body.classList.add( 'sse-is-gesturing' );
+		return () => document.body.classList.remove( 'sse-is-gesturing' );
+	}, [ gesture ] );
 
 	// Second click (or Enter, or a double-click) edits what's inside.
 	const startEditing = () => {

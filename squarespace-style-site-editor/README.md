@@ -4,6 +4,25 @@ A WordPress plugin that makes the site editor look and work like the Squarespace
 
 Requires WordPress 6.8 or later and a block theme. Developed and tested against WordPress 7.1 with Twenty Twenty-Five.
 
+## Tour
+
+![Dragging and resizing a block in a freeform section, with pink alignment guides](docs/screenshots/freeform.gif)
+
+| | |
+| --- | --- |
+| ![Browse mode: the page preview with an Edit button](docs/screenshots/01-browse.jpg) | ![A section in edit mode, with its type tag, Add section button and section menu](docs/screenshots/02-section.jpg) |
+| **Browse mode.** The page preview, with an Edit button. | **A section.** Hover shows its type, Add section and the section menu. |
+| ![The Add a Section picker, grouped like Squarespace's](docs/screenshots/03-add-a-section.jpg) | ![Edit section, Design tab, with a curved divider](docs/screenshots/04-edit-section-design.jpg) |
+| **Add a Section.** Blank, saved sections and grouped layouts. | **Edit section → Design.** Size, width, dividers and anchor. |
+| ![Edit section, Colors tab, listing the ten colour themes](docs/screenshots/05-edit-section-colors.jpg) | ![View layouts: other layouts for the same kind of section](docs/screenshots/06-view-layouts.jpg) |
+| **Edit section → Colors.** Ten colour themes drawn from the palette. | **View layouts.** Swap the layout and keep the content's colours. |
+| ![A freeform block mid-drag, with the grid and guides showing](docs/screenshots/07-freeform-drag.jpg) | ![The Add Block panel in a freeform section](docs/screenshots/08-add-block.jpg) |
+| **Freeform.** The grid and guides show while you drag. | **Add Block.** The essentials, placed on the grid. |
+| ![Site Styles: Themes, Fonts, Colours, Buttons and Spacing](docs/screenshots/09-site-styles.jpg) | ![Site Styles, Colours: the palette and recommended palettes](docs/screenshots/10-site-styles-colours.jpg) |
+| **Site Styles.** Themes, fonts, colours, buttons and spacing. | **Colours.** One palette feeds every section's theme. |
+| ![The page in the mobile preview](docs/screenshots/11-mobile.jpg) | ![Editing the site header, with the page dimmed and the header layouts](docs/screenshots/13-header-editing.jpg) |
+| **Mobile.** Freeform sections get their own mobile layout. | **Site header.** Edit it in place; the page dims and the layouts show. |
+
 ## What it does
 
 The details follow Squarespace's editor (version 7.1, checked in October 2026): its section menu, Add a Section picker, Edit section panel, Fluid Engine and Site Styles.
@@ -113,7 +132,7 @@ npx @wp-playground/cli server --login --port=9400 \
 npm run test:e2e
 ```
 
-Set `SSE_BASE_URL` to test another site and `SSE_SHOTS` to a folder to keep screenshots. Each run adds a page and resets the theme's header.
+Set `SSE_BASE_URL` to test another site and `SSE_SHOTS` to a folder to keep screenshots. Each run resets the theme's header, and adds a test page that it deletes at the end (set `SSE_KEEP=1` to keep it).
 
 | Path | What's there |
 | --- | --- |

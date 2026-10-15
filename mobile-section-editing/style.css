@@ -538,9 +538,9 @@ body.desk-wide .intro { display: none; }
 .frame.desk.wide .sec:not(.selected):hover { box-shadow: inset 0 0 0 1px var(--blue); }
 .frame.desk.wide .sec:not(.selected):hover > .sectab { display: inline-flex; background: #fff; color: var(--blue); box-shadow: inset 0 0 0 1px var(--blue); }
 
-/* The toolbar floats at the bottom, centred, with the section's name at its start. */
+/* The toolbar sits at the bottom of the selected section, centred, with the section's name at its start. */
 .frame.desk.wide .dock {
-  left: 0; right: 0; bottom: 20px; display: flex; align-items: center; gap: 4px; width: fit-content; max-width: calc(100% - 40px);
+  left: 0; right: 0; bottom: auto; display: flex; align-items: center; gap: 4px; width: fit-content; max-width: calc(100% - 40px);
   margin: 0 auto; padding: 6px; border: 0; border-radius: 16px; box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08), 0 12px 32px rgba(0, 0, 0, 0.18);
 }
 .frame.desk.wide .dock[hidden] { display: none; }

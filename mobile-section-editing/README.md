@@ -24,11 +24,11 @@ On the section, the section makes room for the toolbar so it doesn't cover anyth
 **Phone | Desktop** in the top bar is for building a site on a phone that also looks good on a big screen. **Desktop** lays the same page out at desktop width, keeping every edit, layout and colour. Every mobile layout has a matching desktop arrangement, and the Layout sheet shows it under each option (for example, "Stacked cards" becomes three columns on desktop).
 
 - **On a phone**, the desktop view is a zoomed-out preview. Tapping a section goes back to the phone view with that section selected.
-- **On a computer**, the desktop view is a full-size editor using the same tools, in a floating bar at the bottom of the window:
+- **On a computer**, the desktop view is a full-size editor using the same tools, in a bar at the bottom of the selected section. The section makes room for it, and it sticks to the bottom of the window while the end of a tall section is out of view:
   - Hovering a section outlines it and shows its name. Clicking selects it, and the bar names the section it's editing.
   - **L**, **C** and **A** switch to Layout, Content and Arrange. **Esc** steps back out.
   - Layout opens a tray in place of the bar with every layout side by side, named for desktop, with the phone version under each.
-  - Add, More and photo choices open as panels just above the bar.
+  - Add, More and photo choices open as panels just above the bar. The Layout tray opens at the bottom of the window.
   - In Arrange, you can drag items to reorder them as well as using the arrows.
 
 The header and footer are shared across the whole site. Their tab reads **Header · shown on every page**, every sheet says **You're editing the header on every page of your site**, and they can't be moved, duplicated or deleted.

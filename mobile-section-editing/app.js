@@ -419,21 +419,32 @@
   // middle of whatever part of the section is on screen. Either way the section makes room for the
   // toolbar, so it doesn't cover anything you might want to tap.
   function placeDock() {
-    var mode = state.view === 'desktop' ? 'bottom' : state.tools;
+    // On a computer, the bar sits at the bottom of the selected section, and sticks to the bottom of the
+    // window while the section's end is out of view.
+    var mode = deskEdit() ? 'deskbottom' : state.view === 'desktop' ? 'bottom' : state.tools;
     var on = mode !== 'bottom' && !dock.hidden && !!state.sel && state.sel.isConnected;
-    var gap = 8;
+    var gap = mode === 'deskbottom' ? 16 : 8;
     var h = on ? dock.offsetHeight : 0, w = on ? dock.offsetWidth : 0;
     sections().forEach(function (s) {
       var sel = on && s === state.sel;
       var pt = sel && mode === 'section' ? (h + gap * 2) + 'px' : '';
       var pr = sel && mode === 'right' ? (w + gap * 2) + 'px' : '';
+      var pb = sel && mode === 'deskbottom' ? (h + gap * 2) + 'px' : '';
       if (s.style.paddingTop !== pt) s.style.paddingTop = pt;
       if (s.style.paddingRight !== pr) s.style.paddingRight = pr;
+      if (s.style.paddingBottom !== pb) s.style.paddingBottom = pb;
     });
-    if (!on) { dock.style.top = ''; return; }
+    if (!on) { dock.style.top = ''; sheet.style.bottom = sheet.style.maxHeight = ''; return; }
     var fr = frame.getBoundingClientRect(), sr = screen.getBoundingClientRect(), r = state.sel.getBoundingClientRect();
     var top;
-    if (mode === 'section') {
+    if (mode !== 'deskbottom') sheet.style.bottom = sheet.style.maxHeight = '';
+    if (mode === 'deskbottom') {
+      top = Math.min(r.bottom - fr.top - h - gap, sr.bottom - fr.top - h - 20);
+      top = Math.max(top, r.top - fr.top + gap);
+      // Add, More and photo panels open just above the bar.
+      sheet.style.bottom = Math.round(fr.height - top + 10) + 'px';
+      sheet.style.maxHeight = Math.max(240, Math.round(top - (sr.top - fr.top) - 20)) + 'px';
+    } else if (mode === 'section') {
       top = Math.min(Math.max(r.top - fr.top + gap, sr.top - fr.top + gap), r.bottom - fr.top - h - gap);
     } else {
       var mid = (Math.max(r.top, sr.top) + Math.min(r.bottom, sr.bottom)) / 2 - fr.top;
@@ -602,10 +613,12 @@
     sheetTarget = target || null;
     sheet.hidden = false;
     sheet.dataset.kind = kind;
+    if (kind === 'layout') sheet.style.bottom = sheet.style.maxHeight = '';
     // The layout sheet keeps the section in view above it; the others dim the page.
     scrim.hidden = kind === 'layout';
     renderSheet();
     renderDock();
+    if (kind !== 'layout') placeDock();
   }
   function closeSheet() {
     state.sheet = null;

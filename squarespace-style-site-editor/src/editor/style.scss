@@ -1460,3 +1460,27 @@ $sse-font: -apple-system, blinkmacsystemfont, "Segoe UI", roboto, "Helvetica Neu
 		outline-offset: 2px;
 	}
 }
+
+/* -------------------------------------------------------- Block toolbar */
+
+// Lighter, like Squarespace's: white, rounded, a soft shadow and pale
+// dividers instead of the black outline.
+.sse-studio {
+
+	.block-editor-block-contextual-toolbar:not(.is-fixed) {
+		border: 0;
+		border-radius: 6px;
+		box-shadow: 0 4px 16px rgba(0, 0, 0, 0.16), 0 0 0 1px rgba(0, 0, 0, 0.06);
+		overflow: hidden;
+
+		.block-editor-block-toolbar .components-toolbar-group,
+		.block-editor-block-toolbar .components-toolbar,
+		.block-editor-block-toolbar__block-controls {
+			border-right-color: #ececec;
+		}
+
+		.block-editor-block-parent-selector {
+			border-right-color: #ececec;
+		}
+	}
+}

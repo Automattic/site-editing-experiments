@@ -40,7 +40,7 @@ It's built around a handful of ideas: a section menu on every section, an Add a 
 Every top-level block on a page (or every block in Post Content, when the template is shown) is a section:
 
 - **Hover a section** to outline it in blue, with a small tag on its top edge naming its type (INTRO, FEATURES…) and a menu at its top right: **Edit section**, **View layouts**, a row of duplicate, save, move up and move down, and a red **Remove**. Remove shows a snackbar with **Undo**. In a tall section the menu stays in view as you scroll.
-- **Add section** buttons sit in the middle of the hovered section's top and bottom edges. An empty page shows one **Add section** button.
+- **Add section** buttons sit in the middle of the hovered section's top and bottom edges. An empty page shows one **Add section** button (core's "Choose a pattern" dialog for new pages is turned off, since it would cover it).
 - **Header and footer** read **Header · shown on every page** and **Footer · shown on every page**, offer **Edit site header**/**Edit site footer**, and can't be moved, duplicated or removed. Editing one dims the rest of the page and shows **Add elements** and **Edit design** (layouts and colours); changes save to the header or footer itself, so every page gets them.
 
 #### Add a Section
@@ -53,8 +53,8 @@ Inserted sections are named after their type, so their tag reads "Intro" rather 
 
 A panel beside the section's menu with three tabs:
 
-- **Design:** row count and gap (freeform sections), Fill screen, Full width, Inset (the background as a rounded panel in from the page edges), Section height (S, M, L), a **Divider** (seven shapes for the section's bottom edge, three heights, a width that repeats the shape when narrow or stretches it when wide, a sideways offset, flip, and a thin or thick stroke along the edge in the section's link colour) and an anchor link name.
-- **Background:** **Image** (add, replace or remove a background image), **Video** (a looping background video under an overlay in the section's own colour, with an Overlay slider) or **Art**: six gradient backgrounds built from the section's colour theme, so they change with the palette. Core's Group can't play a video, so a section becomes a Cover block while it has one and goes back to a Group when the video is removed, keeping its colour theme, divider, anchor, spacing, typography and locking; a background image or art it had is kept aside and comes back with the video's removal. The overlay follows the section's colour theme and the palette.
+- **Design:** row count and gap (freeform sections), Fill screen, Full width, Inset (the background as a rounded panel in from the page edges), Section height (S, M, L), Content alignment (top, middle or bottom, for sections taller than their content), a **Divider** (seven shapes for the section's bottom edge, three heights, a width that repeats the shape when narrow or stretches it when wide, a sideways offset, flip, and a thin or thick stroke along the edge in the section's link colour or any of the site's five colours) and an anchor link name.
+- **Background:** **Image** (add, replace or remove a background image, with a focal point and an Overlay slider that lays the section's own colour over it), **Video** (a looping background video under an overlay in the section's own colour, with an Overlay slider) or **Art**: six gradient backgrounds built from the section's colour theme, so they change with the palette. Core's Group can't play a video, so a section becomes a Cover block while it has one and goes back to a Group when the video is removed, keeping its colour theme, divider, anchor, spacing, typography and locking; a background image or art it had is kept aside and comes back with the video's removal. The overlay follows the section's colour theme and the palette.
 - **Colors:** the section's colour theme, one row per theme, each drawn in its own colours.
 
 #### View layouts
@@ -73,13 +73,14 @@ The themes are block styles (`is-style-sse-dark-1` and so on) on Group, Cover, C
 
 ### Site Styles
 
-The brush in the top bar opens **Site Styles**: preview cards for **Themes**, **Fonts**, **Colours** and **Buttons**, and a **Spacing** row, each opening its own screen. Everything writes to the user's global styles, shows in the canvas straight away, saves with Save and can be undone.
+The brush in the top bar opens **Site Styles**: preview cards for **Themes**, **Fonts**, **Colours** and **Buttons**, and **Spacing** and **Animations** rows, each opening its own screen. Everything writes to the user's global styles, shows in the canvas straight away, saves with Save and can be undone.
 
 - **Themes:** eight combinations of palette, button shape and heading weight, applied in one click.
 - **Fonts:** a preview, **All font packs** (heading and paragraph pairings from the fonts available), a base size stepper, and heading font, paragraph font and heading weight.
 - **Colours:** the palette, **Edit palette** for each of the five colours, eight recommended palettes, the section colour themes used on this page and the others, and the site background's theme. While Colours is open, each section in the canvas is tagged with its theme
 - **Buttons:** shape (square, rounded, pill) and size.
 - **Spacing:** section padding, content width and wide width.
+- **Animations:** None, Fade, Scale, Slide, Clip or Flex. On the site, each section's blocks animate in one after another as visitors scroll to them (nothing is hidden without JavaScript, and nothing moves for people who ask for reduced motion). Picking one plays it on the sections in view, and each choice previews itself on hover.
 
 **Reset site styles** clears everything the panel set.
 
@@ -152,7 +153,7 @@ Set the `sse_load_editor_ui` filter to true to load the editor UI on other scree
 ## Known gaps
 
 - The editor look is CSS over core class names, and Save, Exit and the device switch are placed into core's top bar markup, so they may need adjusting as the site editor changes.
-- Divider strokes take the section's link colour; there's no choice of stroke colour or dash yet.
+- Divider strokes are solid; there's no dashed or dotted stroke yet.
 - Divider offset is measured against the page width, so on a section that isn't full width it moves the shape by a little more than it says. Inset clips a sliver off each edge of the section, which can catch content in themes with very little page padding.
 - When a page is shown in its template, core keeps the header's outer wrapper locked, so editing the header there edits what's inside it (title, navigation, buttons); its layout and colours are changed from Edit design.
 - Fonts in Site Styles preview in the editor's own font until the theme's font faces have loaded.

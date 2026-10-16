@@ -56,6 +56,14 @@ import {
 
 const FLUID = 'sse/fluid-section';
 
+const ROLE_LABELS = {
+	lightest: __( 'Lightest', 'section-site-editor' ),
+	light: __( 'Light', 'section-site-editor' ),
+	accent: __( 'Accent', 'section-site-editor' ),
+	dark: __( 'Dark', 'section-site-editor' ),
+	darkest: __( 'Darkest', 'section-site-editor' ),
+};
+
 // The divider widths the plugin's CSS has classes for (see
 // sse_divider_widths() in PHP).
 const DIVIDER_WIDTHS = [ 25, 50, 75, 100, 150, 200, 300 ];
@@ -177,6 +185,7 @@ function DividerPreview( { path, flip } ) {
 function DividerControls( { className, onChange } ) {
 	const shapes = getDividerShapes();
 	const divider = getDivider( className );
+	const palette = useSitePalette();
 	const update = ( next ) =>
 		onChange( withDivider( className, { ...divider, ...next } ) );
 	if ( ! shapes.length ) {
@@ -297,6 +306,64 @@ function DividerControls( { className, onChange } ) {
 						] }
 						onChange={ ( stroke ) => update( { stroke } ) }
 					/>
+					{ divider.stroke > 0 && (
+						<div className="sse-panel__row">
+							<span>
+								{ __( 'Stroke colour', 'section-site-editor' ) }
+							</span>
+							<div
+								className="sse-swatches"
+								role="radiogroup"
+								aria-label={ __(
+									'Stroke colour',
+									'section-site-editor'
+								) }
+							>
+								{ [ null, ...PALETTE_ROLES ].map( ( role ) => (
+									<button
+										key={ role || 'auto' }
+										type="button"
+										role="radio"
+										aria-checked={
+											divider.strokeColor === role
+										}
+										aria-label={
+											role
+												? ROLE_LABELS[ role ]
+												: __(
+														'Link colour',
+														'section-site-editor'
+													)
+										}
+										title={
+											role
+												? ROLE_LABELS[ role ]
+												: __(
+														'Link colour',
+														'section-site-editor'
+													)
+										}
+										className={ clsx( 'sse-swatch', {
+											'is-auto': ! role,
+											'is-selected':
+												divider.strokeColor === role,
+										} ) }
+										style={
+											role
+												? {
+														background:
+															palette[ role ],
+													}
+												: undefined
+										}
+										onClick={ () =>
+											update( { strokeColor: role } )
+										}
+									/>
+								) ) }
+							</div>
+						</div>
+					) }
 				</>
 			) }
 		</>

@@ -42,10 +42,11 @@ describe( 'dividers', () => {
 			width: 50,
 			offset: -20,
 			stroke: 2,
+			strokeColor: 'accent',
 		};
 		const className = withDivider( 'is-style-sse-dark-1', divider );
 		expect( className ).toBe(
-			'is-style-sse-dark-1 sse-divider-wave sse-divider-l sse-divider-flip sse-divider-w-50 sse-divider-x-m20 sse-divider-stroke-2'
+			'is-style-sse-dark-1 sse-divider-wave sse-divider-l sse-divider-flip sse-divider-w-50 sse-divider-x-m20 sse-divider-stroke-2 sse-divider-sc-accent'
 		);
 		expect( getDivider( className ) ).toEqual( divider );
 	} );
@@ -58,6 +59,7 @@ describe( 'dividers', () => {
 			width: 100,
 			offset: 0,
 			stroke: 0,
+			strokeColor: null,
 		};
 		expect( withDivider( '', plain ) ).toBe( 'sse-divider-curve' );
 		expect( getDivider( 'sse-divider-curve' ) ).toEqual( plain );
@@ -82,6 +84,7 @@ describe( 'dividers', () => {
 								width,
 								offset,
 								stroke,
+								strokeColor: stroke ? 'darkest' : null,
 							} )
 								.split( ' ' )
 								.forEach( ( c ) => classes.add( c ) );
@@ -96,5 +99,6 @@ describe( 'dividers', () => {
 				! php.css.includes( `.${ c }.` )
 		);
 		expect( missing ).toEqual( [] );
+		expect( classes.has( 'sse-divider-sc-darkest' ) ).toBe( true );
 	} );
 } );

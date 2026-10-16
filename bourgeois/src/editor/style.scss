@@ -1731,3 +1731,31 @@ $sse-font: -apple-system, blinkmacsystemfont, "Segoe UI", roboto, "Helvetica Neu
 	width: 100%;
 	justify-content: center;
 }
+
+// Small colour choices on one line, such as a divider's stroke colour.
+.sse-swatches {
+	display: flex;
+	gap: 6px;
+}
+
+.sse-swatch {
+	width: 22px;
+	height: 22px;
+	padding: 0;
+	border: 1px solid rgba(0, 0, 0, 0.15);
+	border-radius: 50%;
+	cursor: pointer;
+
+	&.is-auto {
+		background: linear-gradient(135deg, #fff 45%, $sse-blue 45% 55%, #fff 55%);
+	}
+
+	&.is-selected {
+		box-shadow: 0 0 0 2px #fff, 0 0 0 4px $sse-ink;
+	}
+
+	&:focus-visible {
+		outline: 2px solid $sse-blue;
+		outline-offset: 3px;
+	}
+}

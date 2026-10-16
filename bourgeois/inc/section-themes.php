@@ -274,7 +274,11 @@ function sse_divider_css() {
 	// The stroke: a line along the shape's edge, in the section's link
 	// colour, drawn as a mask over a pseudo-element so it can be any colour.
 	$edge_layer = 'var(--sse-div-edge) calc(50% + var(--sse-div-x,0vw)) 100%/var(--sse-div-w,100%) 100% repeat-x';
-	$css       .= '[class*="sse-divider-stroke-"]::before{content:"";position:absolute;inset:auto 0 0;height:var(--sse-div-h);z-index:2;background:var(--sse-link,currentColor);pointer-events:none;-webkit-mask:' . $edge_layer . ';mask:' . $edge_layer . ';}';
+	$css       .= '[class*="sse-divider-stroke-"]::before{content:"";position:absolute;inset:auto 0 0;height:var(--sse-div-h);z-index:2;background:var(--sse-div-stroke,var(--sse-link,currentColor));pointer-events:none;-webkit-mask:' . $edge_layer . ';mask:' . $edge_layer . ';}';
+	// A stroke in one of the site's colours rather than the link colour.
+	foreach ( array_keys( sse_palette_roles() ) as $role ) {
+		$css .= sprintf( '.sse-divider-sc-%1$s{--sse-div-stroke:var(--wp--preset--color--%2$s);}', substr( $role, 4 ), $role );
+	}
 	// The next section's content stays clear of the overlap.
 	$css .= '[class*="sse-divider-"]+*{padding-block-start:calc(var(--wp--custom--sse--section-padding,5rem) + var(--sse-div-h,0px));}';
 

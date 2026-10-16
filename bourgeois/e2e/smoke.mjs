@@ -356,11 +356,16 @@ await step(
 			.getByRole( 'radiogroup', { name: 'Stroke' } )
 			.getByRole( 'radio', { name: 'Thick' } )
 			.click();
+		await page
+			.getByRole( 'radiogroup', { name: 'Stroke colour' } )
+			.getByRole( 'radio', { name: 'Darkest' } )
+			.click();
 		const className = ( await topLevel() )[ 0 ].className;
 		for ( const expected of [
 			'sse-divider-wave',
 			'sse-divider-w-75',
 			'sse-divider-stroke-2',
+			'sse-divider-sc-darkest',
 		] ) {
 			expect(
 				className.includes( expected ),
@@ -692,6 +697,18 @@ await step( 'save, reload, still valid', async () => {
 			`/page/${ pageId }`
 		) }&canvas=edit`
 	);
+	// The page's blocks load into its template a moment after the editor.
+	await page
+		.waitForFunction(
+			() => {
+				const be = window.wp.data.select( 'core/block-editor' );
+				const root = be.getBlocksByName( 'core/post-content' )[ 0 ];
+				return root && be.getBlockOrder( root ).length > 0;
+			},
+			null,
+			{ timeout: 30000 }
+		)
+		.catch( () => {} );
 	const [ total, invalid ] = await select( () => {
 		const be = window.wp.data.select( 'core/block-editor' );
 		const walk = ( id ) =>

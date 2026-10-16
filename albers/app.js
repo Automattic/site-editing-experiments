@@ -2,6 +2,21 @@
   'use strict';
 
   // ---------- Data ----------
+  // A page can bring its own site: window.ALBERS_SITE sets its palettes and any extra photos,
+  // and the photos already in its markup (img[data-img][src]) become its picture library.
+  var SITE = window.ALBERS_SITE || null;
+
+  // Every site in this folder, for the switcher in the editor bar.
+  var SITES = [
+    { file: 'index.html', name: 'Northfield Ceramics' },
+    { file: 'elliot-grey.html', name: 'Elliot Grey · photographer' },
+    { file: 'yellow-house.html', name: 'The Yellow House · gallery' },
+    { file: 'yellow-house-shop.html', name: 'The Yellow House · with a shop' },
+    { file: 'halcyon.html', name: 'Halcyon · film studio' },
+    { file: 'fenwick-lowe.html', name: 'Fenwick & Lowe · one page' },
+    { file: 'hollowell.html', name: 'Hollowell · ceramics shop' }
+  ];
+
   var IMAGES = [
     { src: 'images/wheel-studio.jpg', alt: 'A potter’s wheel surrounded by finished pots in a studio' },
     { src: 'images/shelves.jpg', alt: 'Ceramic bowls and saucers stacked on wooden shelves' },
@@ -10,6 +25,21 @@
     { src: 'images/bowls.jpg', alt: 'Assorted stoneware bowls on a brown surface' },
     { src: 'images/bowls-white.jpg', alt: 'White and brown ceramic bowls' }
   ];
+  // The photos written into the page, in page order, then any extras the site lists.
+  var START_IMAGES = {};
+  (function pagePhotos() {
+    var own = [];
+    document.querySelectorAll('img[data-img][src]').forEach(function (img) {
+      var src = img.getAttribute('src');
+      var i = own.map(function (p) { return p.src; }).indexOf(src);
+      if (i < 0) { own.push({ src: src, alt: img.getAttribute('alt') || '' }); i = own.length - 1; }
+      START_IMAGES[img.dataset.img] = i;
+    });
+    ((SITE && SITE.images) || []).forEach(function (p) {
+      if (own.map(function (o) { return o.src; }).indexOf(p.src) < 0) own.push(p);
+    });
+    if (own.length) IMAGES = own;
+  })();
 
   function count(sec, sel) { return sec.querySelectorAll(sel).length; }
 
@@ -22,7 +52,8 @@
       { id: 'split', label: 'Split', rects: [[7, 12, 26, 5, TX], [7, 21, 22, 3, SB], [7, 26, 18, 3, SB], [7, 33, 12, 5, AC], [40, 8, 26, 32, IG]] },
       { id: 'centered', label: 'Centered', rects: [[18, 5, 36, 5, TX], [22, 13, 28, 3, SB], [30, 19, 12, 4, AC], [8, 27, 56, 16, IG]] },
       { id: 'gallery', label: 'Image row', when: function (sec) { return count(sec, '.hero-media > .media') >= 2; } },
-      { id: 'flip', label: 'Image left', rects: [[6, 8, 26, 32, IG], [39, 12, 26, 5, TX], [39, 21, 22, 3, SB], [39, 26, 18, 3, SB], [39, 33, 12, 5, AC]] }
+      { id: 'flip', label: 'Image left', rects: [[6, 8, 26, 32, IG], [39, 12, 26, 5, TX], [39, 21, 22, 3, SB], [39, 26, 18, 3, SB], [39, 33, 12, 5, AC]] },
+      { id: 'cover', label: 'Cover' }
     ],
     features: [
       { id: 'cols', label: 'Three columns', rects: [[6, 6, 30, 4, TX], [6, 15, 18, 14, IG], [27, 15, 18, 14, IG], [48, 15, 18, 14, IG], [6, 32, 14, 3, SB], [27, 32, 14, 3, SB], [48, 32, 14, 3, SB], [6, 37, 10, 3, SB], [27, 37, 10, 3, SB], [48, 37, 10, 3, SB]] },
@@ -240,7 +271,7 @@
       offsets: {},
       sizes: {},
       selected: null,
-      images: { hImg: 0, f1i: 4, f2i: 2, f3i: 3 },
+      images: SITE ? Object.assign({}, START_IMAGES) : { hImg: 0, f1i: 4, f2i: 2, f3i: 3 },
       grid: true,
       snap: true
     };
@@ -280,6 +311,43 @@
   function paletteOf(sec) {
     return (state.palette && state.palette[sec.dataset.section]) || 'default';
   }
+
+  // A site's own palettes replace the standard ones. Each sets the same colours the standard
+  // palettes do; its first palette is the site's own look, applied to the whole page.
+  if (SITE && SITE.palettes) {
+    var VARS = { ground: '--ground', groundAlt: '--ground-alt', ink: '--ink', inkSoft: '--ink-soft', accent: '--accent', card: '--card', panel: '--panel', onAccent: '--on-accent' };
+    var css = '';
+    PALETTES = SITE.palettes.map(function (pal, i) {
+      var id = i === 0 ? 'default' : 'site-' + pal.id;
+      var decl = Object.keys(VARS).filter(function (k) { return pal[k]; }).map(function (k) { return VARS[k] + ': ' + pal[k] + ';'; }).join(' ');
+      css += (i === 0 ? ':root, [data-palette="default"]' : '[data-palette="' + id + '"]') + ' { ' + decl + ' }\n';
+      return { id: id, label: pal.label, sw: [pal.ground, pal.ink, pal.accent] };
+    });
+    var styleEl = document.createElement('style');
+    styleEl.textContent = css;
+    document.head.appendChild(styleEl);
+  }
+
+  // The site switcher in the editor bar.
+  (function siteSwitcher() {
+    var bar = document.querySelector('.editor-bar');
+    if (!bar) return;
+    var here = location.pathname.split('/').pop() || 'index.html';
+    var wrap = document.createElement('label');
+    wrap.className = 'sitepick';
+    wrap.innerHTML = '<span>Site</span><select aria-label="Choose a site to edit">' + SITES.map(function (s) {
+      return '<option value="' + s.file + '"' + (s.file === here ? ' selected' : '') + '>' + s.name + '</option>';
+    }).join('') + '</select>';
+    bar.insertBefore(wrap, bar.querySelector('.editor-hint'));
+    wrap.querySelector('select').addEventListener('change', function () { location.href = this.value; });
+  })();
+
+  // Sections can start in a layout or palette other than the default: data-layout and data-palette in the markup.
+  document.querySelectorAll('.sec').forEach(function (sec) {
+    var lay = sec.getAttribute('data-layout'), pal = sec.getAttribute('data-palette');
+    if (lay) state.layout[sec.dataset.section] = lay;
+    if (pal) state.palette[sec.dataset.section] = pal === 'default' || !(SITE && SITE.palettes) ? pal : 'site-' + pal;
+  });
 
   var SEC_ICONS = {
     up: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M6 11l6-6 6 6"></path></svg>',
@@ -427,6 +495,7 @@
 
   // Fill out the page with more example sections, so there's more to try the tools on.
   (function addExampleSections() {
+    if (SITE) return; // a site page brings its own sections
     var cta = main.querySelector('[data-section="cta"]');
     var plan = [
       ['gallery', 'ex-gallery', cta], ['quote', 'ex-quote', cta], ['pricing', 'ex-pricing', cta],
@@ -1066,6 +1135,7 @@
     var id = 's' + secCount;
     var pre = 'd' + dupCount + '-';
     var copy = sec.cloneNode(true);
+    copy.removeAttribute('id');
     // Strip the editing chrome; initSection adds fresh chrome to the copy.
     copy.querySelectorAll('.grid, .gv, .gh, .selbox, .sectab, .ov, .tbwrap, .xlayer, .lp').forEach(function (n) { n.remove(); });
     copy.classList.remove('on', 'sec-flash');

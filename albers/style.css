@@ -11,6 +11,10 @@
   --panel: #DDE7E1;
   --on-accent: #FFFFFF;
   --chrome-ink: #1A1A1A;
+  /* The site's type. A site page can set its own; the editor's chrome always uses Instrument Sans. */
+  --font-head: 'Bricolage Grotesque', sans-serif;
+  --font-body: 'Instrument Sans', system-ui, sans-serif;
+  --head-weight: 700;
 }
 /* Colours derived from each section's own palette, worked out per section. */
 body, .sec, .mini-sec {
@@ -40,10 +44,10 @@ body {
 .tbb.act { background: var(--editor-blue); border-color: var(--editor-blue); }
 
 /* ---------- Site ---------- */
-.logo { font-family: 'Bricolage Grotesque', sans-serif; font-size: 22px; font-weight: 700; }
+.logo { font-family: var(--font-head); font-size: 22px; font-weight: var(--head-weight); }
 
 .inner { max-width: 1240px; margin: 0 auto; padding: 96px 48px 80px; }
-h1, h2, h3 { font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; margin: 0; }
+h1, h2, h3 { font-family: var(--font-head); font-weight: var(--head-weight); margin: 0; }
 p { margin: 0; }
 a { color: var(--accent); }
 
@@ -431,7 +435,7 @@ body.editing .ins { display: none; }
 .quote-inner { display: flex; justify-content: center; }
 .quote-fig { margin: 0; max-width: 860px; display: flex; flex-direction: column; align-items: center; gap: 24px; text-align: center; }
 .quote-fig blockquote {
-  margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 500; font-size: clamp(28px, 3.4vw, 42px); line-height: 1.2;
+  margin: 0; font-family: var(--font-head); font-weight: 500; font-size: clamp(28px, 3.4vw, 42px); line-height: 1.2;
 }
 .quote-fig figcaption { font-size: 16px; font-weight: 600; color: var(--accent); }
 .quote[data-layout="left"] .quote-inner { justify-content: flex-start; }
@@ -476,7 +480,7 @@ body.editing .ins { display: none; }
 .th.mini { width: 120px; height: 76px; background: var(--ground); }
 .mini-stage {
   position: absolute; left: 0; top: 0; display: block; transform-origin: 0 0; pointer-events: none;
-  color: var(--ink); font-family: 'Instrument Sans', system-ui, sans-serif; text-align: left; white-space: normal;
+  color: var(--ink); font-family: var(--font-body); text-align: left; white-space: normal;
 }
 .mini-sec { display: block; }
 .lo { position: relative; }
@@ -516,7 +520,7 @@ body.editing .ins { display: none; }
 .footer-brand p { margin-top: 12px; max-width: 320px; line-height: 1.55; color: var(--on-dark-soft); }
 .footer-col { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
 .footer-col h2 {
-  font-family: 'Instrument Sans', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 0.08em;
+  font-family: var(--font-body); font-size: 13px; font-weight: 600; letter-spacing: 0.08em;
   text-transform: uppercase; color: var(--accent-on-dark); margin-bottom: 4px;
 }
 .footer-col p { line-height: 1.55; }
@@ -578,7 +582,7 @@ body.editing .ins { display: none; }
 .person { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 6px; padding: 28px 20px; background: var(--card); border-radius: 12px; }
 .avatar {
   display: grid; place-items: center; width: 96px; height: 96px; margin-bottom: 10px; border-radius: 50%;
-  background: var(--panel); color: var(--accent); font: 700 28px 'Bricolage Grotesque', sans-serif;
+  background: var(--panel); color: var(--accent); font: var(--head-weight) 28px var(--font-head);
 }
 .person h3 { font-size: 20px; }
 .person p { color: var(--ink-soft); }
@@ -593,7 +597,7 @@ body.editing .ins { display: none; }
 .nl-text h2 { font-size: 36px; }
 .nl-text p { font-size: 18px; line-height: 1.55; color: var(--ink-soft); }
 .nl-form { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
-.nl-form button.btn { border: 0; font: 600 16px 'Instrument Sans', sans-serif; cursor: pointer; }
+.nl-form button.btn { border: 0; font: 600 16px var(--font-body); cursor: pointer; }
 .nl-form input {
   min-height: 48px; min-width: 260px; padding: 0 18px; background: var(--card); color: var(--ink);
   border: 1px solid #A9BAB1; border-radius: 999px; font: inherit;
@@ -613,8 +617,8 @@ body.editing .ins { display: none; }
 .plan { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; padding: 28px; background: var(--card); border-radius: 12px; }
 .plan h3 { font-size: 22px; }
 .plan p { color: var(--ink-soft); line-height: 1.5; }
-.plan .price { font: 700 36px 'Bricolage Grotesque', sans-serif; color: var(--ink); }
-.plan .price span { font: 500 15px 'Instrument Sans', sans-serif; color: var(--ink-soft); }
+.plan .price { font: var(--head-weight) 36px var(--font-head); color: var(--ink); }
+.plan .price span { font: 500 15px var(--font-body); color: var(--ink-soft); }
 .plan .btn { margin-top: auto; }
 .pricing[data-layout="highlight"] .plan:nth-child(2) { background: var(--ink); color: var(--ground); box-shadow: 0 16px 40px rgba(0, 0, 0, 0.18); }
 .pricing[data-layout="highlight"] .plan:nth-child(2) p, .pricing[data-layout="highlight"] .plan:nth-child(2) .price span { color: var(--on-dark-soft); }
@@ -683,3 +687,87 @@ body.editing .ins { display: none; }
 .palsw { display: flex; width: 56px; height: 28px; border-radius: 5px; overflow: hidden; box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.15); }
 .palsw span { flex: 1 1 0; }
 .palsw span:first-child { flex: 2 1 0; }
+
+/* ---------- Site pages: each site's own type, and the pieces its sections need ---------- */
+.sec { font-family: var(--font-body); }
+/* The editing chrome keeps the editor's own type whatever the site uses. */
+.ov, .tbwrap, .xlayer, .sectab, .selbox, .addmenu, .ins { font-family: 'Instrument Sans', system-ui, sans-serif; }
+
+.sitepick { display: inline-flex; align-items: center; gap: 8px; color: #C7C7C7; }
+.sitepick select {
+  min-height: 36px; padding: 0 10px; background: #2C2C2C; color: #fff; border: 1px solid #5A5A5A; border-radius: 6px;
+  font: 500 13px 'Instrument Sans', sans-serif; cursor: pointer;
+}
+.sitepick select:focus-visible { outline: 2px solid var(--editor-blue); outline-offset: 2px; }
+
+/* A section heading can sit under a small label, and a short intro can follow it. */
+.sec .kicker { font-size: 13px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); }
+.sec .intro { font-size: 18px; line-height: 1.6; color: var(--ink-soft); max-width: 640px; }
+.features-inner > .kicker, .gallery-inner > .kicker, .team-inner > .kicker, .faq-inner > .kicker, .pricing-inner > .kicker { align-self: flex-start; margin-bottom: -20px; }
+.features-inner > .intro, .gallery-inner > .intro, .team-inner > .intro { margin-top: -16px; }
+.gallery-inner > .btn, .features-inner > .btn, .team-inner > .btn { align-self: flex-start; }
+.text-inner > .kicker { margin-bottom: -12px; }
+.text[data-layout="center"] .text-inner > .kicker { justify-self: center; }
+
+/* Hero: any heading level, a small note under the buttons, a row of figures, and no empty image space. */
+.hero h2 { font-size: clamp(36px, 4.4vw, 60px); line-height: 1.04; max-width: 620px; }
+.hero-text .btn-row, .sec .btn-row { display: flex; flex-wrap: wrap; gap: 12px; }
+.hero-note { font-size: 15px; color: var(--ink-soft); }
+.hero .price-tag { font: var(--head-weight) 36px var(--font-head); }
+.stat-row { display: flex; flex-wrap: wrap; gap: 20px 40px; padding-top: 8px; }
+.stat-row div { display: flex; flex-direction: column; gap: 2px; }
+.stat-row strong { font: var(--head-weight) 28px var(--font-head); }
+.stat-row span { font-size: 14px; color: var(--ink-soft); }
+.hero-media:empty { display: none; }
+.btn-ghost { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1.5px currentColor; }
+
+/* Hero, Cover layout: the photo fills the section and the words sit over it. */
+.hero[data-layout="cover"] { position: relative; overflow: hidden; color: #fff; }
+.hero[data-layout="cover"] .hero-inner { position: static; min-height: 640px; align-items: flex-end; }
+.hero[data-layout="cover"] .hero-media { position: absolute; inset: 0; height: auto; flex-direction: row; gap: 0; z-index: 0; }
+.hero[data-layout="cover"] .hero-media > .media { border-radius: 0; }
+.hero[data-layout="cover"] .hero-media::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.66), rgba(0, 0, 0, 0.16) 75%), linear-gradient(to right, rgba(0, 0, 0, 0.38), transparent 65%);
+}
+.hero[data-layout="cover"] .hero-text { position: relative; z-index: 1; }
+.hero[data-layout="cover"] .eyebrow, .hero[data-layout="cover"] .lead, .hero[data-layout="cover"] .hero-note { color: rgba(255, 255, 255, 0.88); }
+.hero[data-layout="cover"] .btn { background: #fff; color: #111; }
+.hero[data-layout="cover"] .btn-ghost { background: transparent; color: #fff; }
+.hero[data-layout="cover"] .rep { z-index: 2; }
+
+/* Cards: they can go without a picture, and carry a label, a figure, a price, a swatch or a button. */
+.card-text .kicker { margin-bottom: 2px; }
+.card .stat { font-size: 56px; line-height: 1; }
+.card .price { font: var(--head-weight) 20px var(--font-head); color: var(--ink); }
+.card .card-text .btn, .card .card-text .text-link { margin-top: 8px; }
+.text-link { color: var(--accent); font-weight: 600; text-decoration: none; }
+.swatch { display: block; width: 100%; height: 72px; border-radius: 6px; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08); }
+.card.no-img { padding: 28px; }
+.card blockquote { margin: 0; font: 500 20px/1.4 var(--font-head); color: var(--ink); }
+
+/* Gallery tiles can carry a caption over the photo. */
+.gal-cap {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 1; padding: 28px 16px 14px; color: #fff; font-size: 14px; font-weight: 600;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.6), transparent);
+}
+.sec[data-mode="content"] .gal-cap { z-index: 3; }
+
+/* Team members can have a photo instead of initials. */
+.avatar.media { display: block; overflow: hidden; }
+.person .bio { font-size: 15px; line-height: 1.5; margin-top: 6px; }
+
+/* A contact section can go without a picture. */
+.contact-inner:not(:has(.contact-img)) .contact-text { flex: 0 1 auto; max-width: 720px; }
+.contact[data-layout="stacked"] .contact-inner:not(:has(.contact-img)) .contact-text { margin: 0 auto; }
+
+/* A slim section, such as an announcement bar. */
+.sec.slim .inner { padding-top: 14px; padding-bottom: 14px; }
+.sec.slim .text-inner { grid-template-columns: minmax(0, 1fr); }
+.sec.slim .text-body p { font-size: 14px; }
+.sec[id] { scroll-margin-top: 0; }
+.hero[data-layout="cover"] .hero-text { max-width: 720px; }
+.avatar .rep { top: 50%; left: 50%; right: auto; transform: translate(-50%, -50%); padding: 0 8px; min-height: 28px; font-size: 11px; }
+.text[data-layout="two"] .text-inner > .kicker { grid-column: 1 / -1; }
+/* Labels on the dark layouts take the lighter accent. */
+.newsletter[data-layout="banner"] .kicker, .quote[data-layout="dark"] .kicker, .cta[data-layout="banner"] .kicker { color: var(--accent-on-dark); }

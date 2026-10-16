@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hollowell · Albers</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Instrument+Sans:wght@400;500;600&family=Ysabeau+Office:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="style.css">
+<style>
+  /* This site's type. Its colours are the palettes below. */
+  :root { --font-head: 'Ysabeau Office', system-ui, sans-serif; --font-body: 'Ysabeau Office', system-ui, sans-serif; --head-weight: 500; }
+</style>
+<script>
+  // A copy of the "Hollowell" gogh demo's home page (github.com/jamiemarsland/gogh-demo).
+  // Its palettes: the first is the site's own look; the rest are offered in Edit layout.
+  window.ALBERS_SITE = {
+    "palettes": [
+      {
+        "id": "default",
+        "label": "Clay",
+        "ground": "#F6F5F1",
+        "groundAlt": "#EDE9E1",
+        "ink": "#22252A",
+        "inkSoft": "#585C64",
+        "accent": "#2D4EA2",
+        "card": "#FFFFFF",
+        "panel": "#ECEAE3",
+        "onAccent": "#FFFFFF"
+      },
+      {
+        "id": "salt",
+        "label": "Salt",
+        "ground": "#ECEAE3",
+        "groundAlt": "#ECEAE3",
+        "ink": "#22252A",
+        "inkSoft": "#585C64",
+        "accent": "#2D4EA2",
+        "card": "#F8F7F3",
+        "panel": "#E0DDD3",
+        "onAccent": "#FFFFFF"
+      },
+      {
+        "id": "ash",
+        "label": "Ash",
+        "ground": "#B9C2B4",
+        "groundAlt": "#B9C2B4",
+        "ink": "#22252A",
+        "inkSoft": "#3E453C",
+        "accent": "#22252A",
+        "card": "#CBD2C7",
+        "panel": "#A9B3A4",
+        "onAccent": "#FFFFFF"
+      },
+      {
+        "id": "cobalt",
+        "label": "Cobalt",
+        "ground": "#2D4EA2",
+        "groundAlt": "#2D4EA2",
+        "ink": "#F6F5F1",
+        "inkSoft": "#D5DCEE",
+        "accent": "#F6F5F1",
+        "card": "#3A5BAE",
+        "panel": "#25438E",
+        "onAccent": "#2D4EA2"
+      },
+      {
+        "id": "tenmoku",
+        "label": "Tenmoku",
+        "ground": "#3B2A22",
+        "groundAlt": "#3B2A22",
+        "ink": "#EDE9E1",
+        "inkSoft": "#CBBFB3",
+        "accent": "#EDE9E1",
+        "card": "#4A372E",
+        "panel": "#4F3B31",
+        "onAccent": "#3B2A22"
+      }
+    ]
+  };
+</script>
+</head>
+<body>
+
+<header class="editor-bar">
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"></rect><path d="M3 9h18M9 9v12"></path></svg>
+  <strong>Site editor</strong>
+  <span class="editor-hint">Hover a section to choose how you edit it</span>
+  <span class="spacer"></span>
+  <button class="reset" id="reset-all">Reset everything</button>
+</header>
+
+<header class="sec header" data-section="header" data-type="header" aria-label="Site header">
+  <div class="hdr-inner snap-inner">
+    <span class="logo" data-drag="nLogo" data-resize="text" data-text>Hollowell</span>
+    <nav class="hnav" aria-label="Main">
+      <a href="#shop" data-drag="nl1" data-resize="text" data-text>Shop</a>
+      <a href="#studio" data-drag="nl2" data-resize="text" data-text>Studio</a>
+      <a href="#journal" data-drag="nl3" data-resize="text" data-text>Journal</a>
+      <a href="#contact" data-drag="nl4" data-resize="text" data-text>Contact</a>
+      <a href="#bag" data-drag="nl5" data-resize="text" data-text>Bag</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+<section class="sec text slim" data-section="notice" data-type="text" data-layout="center" data-palette="salt" aria-label="Text section">
+  <div class="inner text-inner">
+    
+    <div class="text-body">
+      <p data-drag="notice-text" data-resize="text" data-text>Free UK delivery over £60 · Kiln to door in 3 to 5 days · Seconds Saturday is 4 October</p>
+    </div>
+  </div>
+</section>
+
+<section class="sec hero" data-section="hero" data-type="hero" aria-label="Hero section">
+  <div class="inner hero-inner">
+    <div class="hero-text">
+      <span class="eyebrow" data-drag="hero-tag" data-resize="text" data-text>Stoneware from Bristol</span>
+      <h1 data-drag="hero-title" data-resize="text" data-text>Thrown by hand. Fired to cone 8.</h1>
+      <p class="lead" data-drag="hero-body" data-resize="text" data-text>Mugs, bowls and bottles made in small batches in a railway-arch studio, glazed in four colours we mix ourselves. Built for tables that get used every day.</p>
+      <div class="btn-row"><a href="#shop" class="btn" data-drag="hero-btn1" data-resize="text" data-text>Shop the collection</a><a href="#studio" class="btn btn-ghost" data-drag="hero-btn2" data-resize="text" data-text>Visit the studio</a></div>
+      <p class="hero-note" data-drag="hero-rating" data-resize="text" data-text>★★★★★ 4.9 from 212 reviews</p>
+    </div>
+    <div class="hero-media"><div class="media hero-img" data-drag="hero-img1" data-resize="box"><img data-img="hero-img1i" src="images/hollowell/hero-wheel.jpg" alt="Two hands centring clay on a spinning wheel, seen from above" draggable="false"><button class="rep" data-act="replace" data-key="hero-img1i">Replace image</button></div></div>
+  </div>
+</section>
+
+<section class="sec features" data-section="firing" data-type="features" data-layout="cols4" aria-label="Features section">
+  <div class="inner features-inner">
+    <span class="kicker" data-drag="firing-tag" data-resize="text" data-text>New from the kiln</span>
+    <h2 data-drag="firing-head" data-resize="text" data-text>This week’s firing</h2>
+    <div class="cards">
+      <article class="card" data-drag="firing-c1" data-resize="box"><div class="media card-img"><img data-img="firing-c1mi" src="images/hollowell/p-tea-bowl.jpg" alt="A footed tea bowl in an iron glaze" draggable="false"><button class="rep" data-act="replace" data-key="firing-c1mi">Replace image</button></div><div class="card-text"><h3 data-text>Tea Bowl, small batch</h3><p class="price" data-text>£30</p><a href="#shop" class="btn" data-text>Add to bag</a></div></article>
+      <article class="card" data-drag="firing-c2" data-resize="box"><div class="media card-img"><img data-img="firing-c2mi" src="images/hollowell/p-espresso-cups.jpg" alt="Two stacking espresso cups in Tenmoku" draggable="false"><button class="rep" data-act="replace" data-key="firing-c2mi">Replace image</button></div><div class="card-text"><h3 data-text>Espresso Cups, pair</h3><p class="price" data-text>£30</p><a href="#shop" class="btn" data-text>Add to bag</a></div></article>
+      <article class="card" data-drag="firing-c3" data-resize="box"><div class="media card-img"><img data-img="firing-c3mi" src="images/hollowell/p-latte-cup.jpg" alt="A wide, low cup glazed in Cobalt" draggable="false"><button class="rep" data-act="replace" data-key="firing-c3mi">Replace image</button></div><div class="card-text"><h3 data-text>Latte Cup, cobalt</h3><p class="price" data-text>£26</p><a href="#shop" class="btn" data-text>Add to bag</a></div></article>
+      <article class="card" data-drag="firing-c4" data-resize="box"><div class="media card-img"><img data-img="firing-c4mi" src="images/hollowell/p-leaf-cup.jpg" alt="A handle-less cup carved with leaf lines" draggable="false"><button class="rep" data-act="replace" data-key="firing-c4mi">Replace image</button></div><div class="card-text"><h3 data-text>Leaf Cup</h3><p class="price" data-text>£24</p><a href="#shop" class="btn" data-text>Add to bag</a></div></article>
+    </div>
+    <a href="#shop" class="text-link" data-drag="firing-all" data-resize="text" data-text>All pieces →</a>
+  </div>
+</section>
+
+<section class="sec features" data-section="shapes" data-type="features" aria-label="Features section">
+  <div class="inner features-inner">
+    <span class="kicker" data-drag="shapes-tag" data-resize="text" data-text>Collections</span>
+    <h2 data-drag="shapes-head" data-resize="text" data-text>Shop by shape</h2>
+    <div class="cards">
+      <article class="card" data-drag="shapes-c1" data-resize="box"><div class="media card-img"><img data-img="shapes-c1mi" src="images/hollowell/p-speckled-cups.jpg" alt="Speckled stoneware cups" draggable="false"><button class="rep" data-act="replace" data-key="shapes-c1mi">Replace image</button></div><div class="card-text"><h3 data-text>Mugs &amp; cups</h3><p data-text>8 pieces</p></div></article>
+      <article class="card" data-drag="shapes-c2" data-resize="box"><div class="media card-img"><img data-img="shapes-c2mi" src="images/hollowell/p-supper-plate.jpg" alt="Stacked blue plates and bowls" draggable="false"><button class="rep" data-act="replace" data-key="shapes-c2mi">Replace image</button></div><div class="card-text"><h3 data-text>For the table</h3><p data-text>2 pieces</p></div></article>
+      <article class="card" data-drag="shapes-c3" data-resize="box"><div class="media card-img"><img data-img="shapes-c3mi" src="images/hollowell/p-poppy-bottle.jpg" alt="Grey stoneware bottles" draggable="false"><button class="rep" data-act="replace" data-key="shapes-c3mi">Replace image</button></div><div class="card-text"><h3 data-text>Vases &amp; bottles</h3><p data-text>2 pieces</p></div></article>
+    </div>
+  </div>
+</section>
+
+<section class="sec features" data-section="glazes" data-type="features" data-layout="cols4" data-palette="salt" aria-label="Features section">
+  <div class="inner features-inner">
+    <span class="kicker" data-drag="glazes-tag" data-resize="text" data-text>Glazes</span>
+    <h2 data-drag="glazes-head" data-resize="text" data-text>Four glazes, one kiln.</h2>
+    <p class="intro" data-drag="glazes-intro" data-resize="text" data-text>Every piece is fired to cone 8, about 1260°C, in a gas kiln in reduction. That is why the same glaze never comes out quite the same twice, and why we photograph every batch.</p>
+    <div class="cards">
+      <article class="card no-img" data-drag="glazes-c1" data-resize="box"><div class="card-text"><span class="swatch" style="background:#F1EEE6" aria-hidden="true"></span><h3 data-text>Salt</h3><p data-text>A soft white that breaks warm over rims and edges.</p><span class="kicker" data-text>Cone 8 · reduction</span></div></article>
+      <article class="card no-img" data-drag="glazes-c2" data-resize="box"><div class="card-text"><span class="swatch" style="background:#B9C2B4" aria-hidden="true"></span><h3 data-text>Ash</h3><p data-text>Green-grey, made with ash from the studio stove.</p><span class="kicker" data-text>Cone 8 · reduction</span></div></article>
+      <article class="card no-img" data-drag="glazes-c3" data-resize="box"><div class="card-text"><span class="swatch" style="background:#2D4EA2" aria-hidden="true"></span><h3 data-text>Cobalt</h3><p data-text>The blue that started it all. Deep where it pools.</p><span class="kicker" data-text>Cone 8 · reduction</span></div></article>
+      <article class="card no-img" data-drag="glazes-c4" data-resize="box"><div class="card-text"><span class="swatch" style="background:#3B2A22" aria-hidden="true"></span><h3 data-text>Tenmoku</h3><p data-text>Iron-rich, near black, rust where it runs thin.</p><span class="kicker" data-text>Cone 8 · reduction</span></div></article>
+    </div>
+  </div>
+</section>
+
+<section class="sec hero" id="studio" data-section="studio" data-type="hero" data-layout="flip" aria-label="Hero section">
+  <div class="inner hero-inner">
+    <div class="hero-text">
+      <span class="eyebrow" data-drag="studio-tag" data-resize="text" data-text>The studio</span>
+      <h2 data-drag="studio-title" data-resize="text" data-text>Two wheels, one kiln, an arch under the railway.</h2>
+      <p class="lead" data-drag="studio-body" data-resize="text" data-text>Hollowell started in 2019 when two potters pooled their savings on a second-hand kiln and a lease on Arch 14. Everything in the shop was thrown, trimmed, glazed and fired here by the same four hands. Trains go over about every eight minutes. The pots do not mind.</p>
+      <div class="stat-row" data-drag="studio-stats" data-resize="box"><div><strong data-text>2019</strong><span data-text>First firing</span></div><div><strong data-text>Arch 14</strong><span data-text>Cheese Lane, Bristol</span></div><div><strong data-text>4,000</strong><span data-text>pieces a year</span></div></div>
+    </div>
+    <div class="hero-media"><div class="media hero-img" data-drag="studio-img1" data-resize="box"><img data-img="studio-img1i" src="images/hollowell/studio-hands.jpg" alt="Clay-covered hands pulling a cylinder up on the wheel" draggable="false"><button class="rep" data-act="replace" data-key="studio-img1i">Replace image</button></div></div>
+  </div>
+</section>
+
+<section class="sec hero" data-section="bestseller" data-type="hero" data-palette="tenmoku" aria-label="Hero section">
+  <div class="inner hero-inner">
+    <div class="hero-text">
+      <span class="eyebrow" data-drag="bestseller-tag" data-resize="text" data-text>Bestseller</span>
+      <h2 data-drag="bestseller-title" data-resize="text" data-text>The Everyday Mug</h2>
+      <p class="lead" data-drag="bestseller-body" data-resize="text" data-text>340ml. A handle you can get three fingers through. Dishwasher safe, happy in the microwave, and heavy enough in the hand to feel like it was made for you, because it was.</p>
+      <p class="price-tag" data-drag="bestseller-price" data-resize="text" data-text>£28</p>
+      <a href="#shop" class="btn" data-drag="bestseller-btn" data-resize="text" data-text>Add to bag</a>
+      <p class="hero-note" data-drag="bestseller-note" data-resize="text" data-text>Also in Ash, Cobalt and Tenmoku · ★★★★★ 4.9 · 212 reviews</p>
+    </div>
+    <div class="hero-media"><div class="media hero-img" data-drag="bestseller-img1" data-resize="box"><img data-img="bestseller-img1i" src="images/hollowell/p-everyday-mug.jpg" alt="The Everyday Mug in Salt" draggable="false"><button class="rep" data-act="replace" data-key="bestseller-img1i">Replace image</button></div></div>
+  </div>
+</section>
+
+<section class="sec features" data-section="reviews" data-type="features" aria-label="Features section">
+  <div class="inner features-inner">
+    <span class="kicker" data-drag="reviews-tag" data-resize="text" data-text>Reviews</span>
+    <h2 data-drag="reviews-head" data-resize="text" data-text>From the table</h2>
+    <div class="cards">
+      <article class="card no-img" data-drag="reviews-c1" data-resize="box"><div class="card-text"><span class="kicker" data-text>★★★★★</span><blockquote data-text>“The mug has replaced every other mug in the house. My partner has started hiding it.”</blockquote><h3 data-text>Priya M.</h3><p data-text>Verified buyer · Everyday Mug, Cobalt</p></div></article>
+      <article class="card no-img" data-drag="reviews-c2" data-resize="box"><div class="card-text"><span class="kicker" data-text>★★★★★</span><blockquote data-text>“Arrived in three days, packed in shredded cardboard and not a scrap of plastic. The plates are heavier than they look and I love that.”</blockquote><h3 data-text>Tom A.</h3><p data-text>Verified buyer · Supper Plates, set of four</p></div></article>
+      <article class="card no-img" data-drag="reviews-c3" data-resize="box"><div class="card-text"><span class="kicker" data-text>★★★★☆</span><blockquote data-text>“Bought a seconds bottle at the studio. The wonk is exactly why I picked it.”</blockquote><h3 data-text>Ines R.</h3><p data-text>Verified buyer · Poppy Bottle, seconds</p></div></article>
+    </div>
+  </div>
+</section>
+
+<section class="sec cta" data-section="seconds" data-type="cta" data-layout="split" data-palette="ash" aria-label="Call to action">
+  <div class="inner cta-inner">
+    <div class="cta-panel">
+      <div class="cta-text">
+        <span class="kicker" data-drag="seconds-tag" data-resize="text" data-text>Studio only</span>
+        <h2 data-drag="seconds-title" data-resize="text" data-text>Seconds Saturday</h2>
+        <p class="cta-sub" data-drag="seconds-body" data-resize="text" data-text>Slightly wonky, a glaze that ran, a rim that dipped. Perfect pots with a story, 30% off, first Saturday of every month from 10am.</p>
+      </div>
+      <p class="hero-note" data-drag="seconds-next" data-resize="text" data-text>Next one: Saturday 4 October</p>
+    </div>
+  </div>
+</section>
+
+<section class="sec newsletter" data-section="kiln-notes" data-type="newsletter" data-layout="banner" aria-label="Newsletter section">
+  <div class="inner nl-inner"><div class="nl-panel"><div class="nl-text">
+    <span class="kicker" data-drag="kiln-notes-tag" data-resize="text" data-text>Kiln notes</span>
+    <h2 data-drag="kiln-notes-head" data-resize="text" data-text>One email when a firing comes out.</h2>
+    <p data-drag="kiln-notes-body" data-resize="text" data-text>No newsletters, no discounts you did not ask for. Just a photo of the shelf and what is on it.</p>
+  </div>
+  <div class="nl-form" data-drag="kiln-notes-form" data-resize="box"><label class="sr-only" for="kiln-notes-email">Email address</label><input id="kiln-notes-email" type="email" placeholder="Email address" autocomplete="off"><button type="button" class="btn">Get kiln notes</button></div></div></div>
+</section>
+</main>
+
+<footer class="sec footer" data-section="footer" data-type="footer" aria-label="Site footer">
+  <div class="footer-inner snap-inner">
+    <div class="footer-brand" data-drag="ftBrand" data-resize="box">
+      <span class="logo" data-text>Hollowell</span>
+      <p data-text>Stoneware from Bristol</p>
+    </div>
+    <nav class="footer-col" data-drag="ftCol1" data-resize="box" aria-label="Footer"><h2 data-text>Pages</h2><a href="#shop" data-text>Shop</a><a href="#studio" data-text>Studio</a><a href="#journal" data-text>Journal</a><a href="#contact" data-text>Contact</a><a href="#bag" data-text>Bag</a></nav>
+  </div>
+  <div class="footer-base">
+    <span data-drag="ftCopy" data-resize="text" data-text>© Hollowell · All rights reserved.</span>
+    <span data-drag="ftCredit" data-resize="text" data-text>Photos from the gogh demo</span>
+  </div>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>

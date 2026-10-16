@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fenwick &amp; Lowe · Albers</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Instrument+Sans:wght@400;500;600&family=Roboto+Slab:wght@400;500;600&family=Manrope:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="style.css">
+<style>
+  /* This site's type. Its colours are the palettes below. */
+  :root { --font-head: 'Roboto Slab', Georgia, serif; --font-body: 'Manrope', system-ui, sans-serif; --head-weight: 500; scroll-behavior: smooth; }
+</style>
+<script>
+  // A copy of the "Fenwick &amp; Lowe" gogh demo's home page (github.com/jamiemarsland/gogh-demo).
+  // Its palettes: the first is the site's own look; the rest are offered in Edit layout.
+  window.ALBERS_SITE = {
+    "palettes": [
+      {
+        "id": "default",
+        "label": "Limestone",
+        "ground": "#EFECE6",
+        "groundAlt": "#E6E1D8",
+        "ink": "#191817",
+        "inkSoft": "#6E675C",
+        "accent": "#B4572F",
+        "card": "#F8F6F2",
+        "panel": "#DCD5C7",
+        "onAccent": "#FFFFFF"
+      },
+      {
+        "id": "sandstone",
+        "label": "Sandstone",
+        "ground": "#DCD5C7",
+        "groundAlt": "#DCD5C7",
+        "ink": "#191817",
+        "inkSoft": "#5E584E",
+        "accent": "#B4572F",
+        "card": "#ECE7DD",
+        "panel": "#CEC5B4",
+        "onAccent": "#FFFFFF"
+      },
+      {
+        "id": "brick",
+        "label": "Brick",
+        "ground": "#B4572F",
+        "groundAlt": "#B4572F",
+        "ink": "#EFECE6",
+        "inkSoft": "#F3DCCF",
+        "accent": "#191817",
+        "card": "#C0663F",
+        "panel": "#9F4B27",
+        "onAccent": "#FFFFFF"
+      },
+      {
+        "id": "slate",
+        "label": "Slate",
+        "ground": "#191817",
+        "groundAlt": "#191817",
+        "ink": "#EFECE6",
+        "inkSoft": "#B8B1A5",
+        "accent": "#D9895F",
+        "card": "#252321",
+        "panel": "#2C2A27",
+        "onAccent": "#191817"
+      }
+    ]
+  };
+</script>
+</head>
+<body>
+
+<header class="editor-bar">
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"></rect><path d="M3 9h18M9 9v12"></path></svg>
+  <strong>Site editor</strong>
+  <span class="editor-hint">Hover a section to choose how you edit it</span>
+  <span class="spacer"></span>
+  <button class="reset" id="reset-all">Reset everything</button>
+</header>
+
+<header class="sec header" data-section="header" data-type="header" aria-label="Site header">
+  <div class="hdr-inner snap-inner">
+    <span class="logo" data-drag="nLogo" data-resize="text" data-text>Fenwick &amp; Lowe</span>
+    <nav class="hnav" aria-label="Main">
+      <a href="#practice" data-drag="nl1" data-resize="text" data-text>Practice</a>
+      <a href="#work" data-drag="nl2" data-resize="text" data-text>Work</a>
+      <a href="#services" data-drag="nl3" data-resize="text" data-text>What we do</a>
+      <a href="#studio" data-drag="nl4" data-resize="text" data-text>Studio</a>
+      <a href="#contact" data-drag="nl5" data-resize="text" data-text>Contact</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+<section class="sec hero" id="top" data-section="top" data-type="hero" data-layout="cover" aria-label="Hero section">
+  <div class="inner hero-inner">
+    <div class="hero-text">
+      <span class="eyebrow" data-drag="top-tag" data-resize="text" data-text>Fenwick &amp; Lowe · Architects · Bristol</span>
+      <h1 data-drag="top-title" data-resize="text" data-text>Buildings that keep their nerve</h1>
+      <p class="lead" data-drag="top-body" data-resize="text" data-text>Houses, schools and the careful repair of old buildings, across the west of England since 1984.</p>
+      <a href="#work" class="btn" data-drag="top-btn" data-resize="text" data-text>See the work</a>
+    </div>
+    <div class="hero-media"><div class="media hero-img" data-drag="top-img1" data-resize="box"><img data-img="top-img1i" src="images/fenwick-lowe/the-villa.jpg" alt="A villa, in black and white" draggable="false"><button class="rep" data-act="replace" data-key="top-img1i">Replace image</button></div></div>
+  </div>
+</section>
+
+<section class="sec text" id="practice" data-section="practice" data-type="text" data-layout="center" aria-label="Text section">
+  <div class="inner text-inner">
+    <span class="kicker" data-drag="practice-tag" data-resize="text" data-text>The practice</span>
+    <h2 data-drag="practice-head" data-resize="text" data-text>We would rather mend than replace</h2>
+    <div class="text-body">
+      <a href="#services" class="btn" data-drag="practice-btn" data-resize="text" data-text>What we do</a>
+    </div>
+  </div>
+</section>
+
+<section class="sec features" data-section="numbers" data-type="features" data-palette="sandstone" aria-label="Features section">
+  <div class="inner features-inner">
+    
+    <div class="cards">
+      <article class="card no-img" data-drag="numbers-c1" data-resize="box"><div class="card-text"><h3 class="stat" data-text>1984</h3><p data-text>Opened above a chemist on Park Street</p></div></article>
+      <article class="card no-img" data-drag="numbers-c2" data-resize="box"><div class="card-text"><h3 class="stat" data-text>31</h3><p data-text>Buildings finished, none of them the same</p></div></article>
+      <article class="card no-img" data-drag="numbers-c3" data-resize="box"><div class="card-text"><h3 class="stat" data-text>68%</h3><p data-text>Of our work is to buildings that already stand</p></div></article>
+    </div>
+  </div>
+</section>
+
+<section class="sec gallery" id="work" data-section="work" data-type="gallery" aria-label="Gallery section">
+  <div class="inner gallery-inner">
+    <span class="kicker" data-drag="work-tag" data-resize="text" data-text>Selected work</span>
+    <h2 data-drag="work-head" data-resize="text" data-text>Thirty-one buildings, and counting</h2>
+    <div class="gal-grid">
+      <div class="media gal-img" data-drag="work-g1" data-resize="box"><img data-img="work-g1i" src="images/fenwick-lowe/curves.jpg" alt="Curved walls, in black and white" draggable="false"><button class="rep" data-act="replace" data-key="work-g1i">Replace image</button></div>
+      <div class="media gal-img" data-drag="work-g2" data-resize="box"><img data-img="work-g2i" src="images/fenwick-lowe/white-house.jpg" alt="A white house in the sun" draggable="false"><button class="rep" data-act="replace" data-key="work-g2i">Replace image</button></div>
+      <div class="media gal-img" data-drag="work-g3" data-resize="box"><img data-img="work-g3i" src="images/fenwick-lowe/cinque-terre.jpg" alt="Houses on a hillside, in black and white" draggable="false"><button class="rep" data-act="replace" data-key="work-g3i">Replace image</button></div>
+    </div>
+    <a href="#contact" class="btn" data-drag="work-btn" data-resize="text" data-text>Start a project</a>
+  </div>
+</section>
+
+<section class="sec features" id="services" data-section="services" data-type="features" aria-label="Features section">
+  <div class="inner features-inner">
+    <h2 data-drag="services-head" data-resize="text" data-text>What we do</h2>
+    <div class="cards">
+      <article class="card no-img" data-drag="services-c1" data-resize="box"><div class="card-text"><h3 data-text>Houses</h3><p data-text>New houses, and the kind of extension that makes the rest of the house make sense at last.</p></div></article>
+      <article class="card no-img" data-drag="services-c2" data-resize="box"><div class="card-text"><h3 data-text>Public buildings</h3><p data-text>Schools, libraries and village halls. Small budgets, long lives, and a great deal of listening.</p></div></article>
+      <article class="card no-img" data-drag="services-c3" data-resize="box"><div class="card-text"><h3 data-text>Retrofit</h3><p data-text>Insulation, air-tightness and new uses for old walls, without stripping the character out of them.</p></div></article>
+    </div>
+  </div>
+</section>
+
+<section class="sec quote" data-section="words" data-type="quote" data-layout="dark" aria-label="Quote section">
+  <div class="inner quote-inner"><figure class="quote-fig">
+    <blockquote data-drag="words-q" data-resize="text" data-text>“They spent a whole morning in the building before they drew a single line. Nobody had done that before.”</blockquote>
+    <figcaption data-drag="words-who" data-resize="text" data-text>Sarah Mullan · Head teacher, Ashcott Primary</figcaption>
+  </figure></div>
+</section>
+
+<section class="sec team" id="studio" data-section="studio" data-type="team" aria-label="Team section">
+  <div class="inner team-inner">
+    <span class="kicker" data-drag="studio-tag" data-resize="text" data-text>The studio</span>
+    <h2 data-drag="studio-head" data-resize="text" data-text>Twelve people, one plan chest</h2>
+    <div class="team-grid">
+      <div class="person" data-drag="studio-p1" data-resize="box"><div class="media avatar"><img data-img="studio-p1mi" src="images/fenwick-lowe/laughing.jpg" alt="Ruth Fenwick" draggable="false"><button class="rep" data-act="replace" data-key="studio-p1mi">Replace</button></div><h3 data-text>Ruth Fenwick</h3><p data-text>Founding partner</p></div>
+      <div class="person" data-drag="studio-p2" data-resize="box"><div class="media avatar"><img data-img="studio-p2mi" src="images/fenwick-lowe/portrait-studio.jpg" alt="Adeyemi Lowe" draggable="false"><button class="rep" data-act="replace" data-key="studio-p2mi">Replace</button></div><h3 data-text>Adeyemi Lowe</h3><p data-text>Partner</p></div>
+      <div class="person" data-drag="studio-p3" data-resize="box"><div class="media avatar"><img data-img="studio-p3mi" src="images/fenwick-lowe/portrait-dusk.jpg" alt="Cara Nevin" draggable="false"><button class="rep" data-act="replace" data-key="studio-p3mi">Replace</button></div><h3 data-text>Cara Nevin</h3><p data-text>Associate, retrofit</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="sec contact" id="contact" data-section="contact" data-type="contact" data-layout="stacked" aria-label="Contact section">
+  <div class="inner contact-inner">
+    <div class="contact-text">
+      <span class="kicker" data-drag="contact-tag" data-resize="text" data-text>Say hello</span>
+      <h2 data-drag="contact-head" data-resize="text" data-text>Tell us about the building</h2>
+      <p data-drag="contact-body" data-resize="text" data-text>A sketch on the back of an envelope is a fine place to start. We answer everything within a day or two.</p>
+      <a href="#contact" class="btn" data-drag="contact-btn" data-resize="text" data-text>Get in touch</a>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer class="sec footer" data-section="footer" data-type="footer" data-layout="compact" aria-label="Site footer">
+  <div class="footer-inner snap-inner">
+    <div class="footer-brand" data-drag="ftBrand" data-resize="box">
+      <span class="logo" data-text>Fenwick &amp; Lowe</span>
+      <p data-text>Architects · Bristol</p>
+    </div>
+    <nav class="footer-col" data-drag="ftCol1" data-resize="box" aria-label="Footer"><h2 data-text>Pages</h2><a href="#practice" data-text>Practice</a><a href="#work" data-text>Work</a><a href="#services" data-text>What we do</a><a href="#studio" data-text>Studio</a><a href="#contact" data-text>Contact</a></nav>
+  </div>
+  <div class="footer-base">
+    <span data-drag="ftCopy" data-resize="text" data-text>© Fenwick &amp; Lowe · All rights reserved.</span>
+    <span data-drag="ftCredit" data-resize="text" data-text>Photos from the gogh demo</span>
+  </div>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>

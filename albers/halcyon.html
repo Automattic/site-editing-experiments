@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Halcyon · Albers</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Instrument+Sans:wght@400;500;600&family=Manrope:wght@300;400;500;600&display=swap">
+<link rel="stylesheet" href="style.css">
+<style>
+  /* This site's type. Its colours are the palettes below. */
+  :root { --font-head: 'Manrope', system-ui, sans-serif; --font-body: 'Manrope', system-ui, sans-serif; --head-weight: 500; }
+</style>
+<script>
+  // A copy of the "Halcyon" gogh demo's home page (github.com/jamiemarsland/gogh-demo).
+  // Its palettes: the first is the site's own look; the rest are offered in Edit layout.
+  window.ALBERS_SITE = {
+    "palettes": [
+      {
+        "id": "default",
+        "label": "Black",
+        "ground": "#0B0B0B",
+        "groundAlt": "#0B0B0B",
+        "ink": "#FFFFFF",
+        "inkSoft": "#A9A9A9",
+        "accent": "#FFFFFF",
+        "card": "#161616",
+        "panel": "#1C1C1C",
+        "onAccent": "#0B0B0B"
+      },
+      {
+        "id": "graphite",
+        "label": "Graphite",
+        "ground": "#1C1C1C",
+        "groundAlt": "#1C1C1C",
+        "ink": "#FFFFFF",
+        "inkSoft": "#B4B4B4",
+        "accent": "#FFFFFF",
+        "card": "#262626",
+        "panel": "#2A2A2A",
+        "onAccent": "#0B0B0B"
+      },
+      {
+        "id": "silver",
+        "label": "Silver",
+        "ground": "#C9C9C9",
+        "groundAlt": "#C9C9C9",
+        "ink": "#0B0B0B",
+        "inkSoft": "#333333",
+        "accent": "#0B0B0B",
+        "card": "#D8D8D8",
+        "panel": "#BBBBBB",
+        "onAccent": "#FFFFFF"
+      },
+      {
+        "id": "white",
+        "label": "White",
+        "ground": "#FFFFFF",
+        "groundAlt": "#FFFFFF",
+        "ink": "#0B0B0B",
+        "inkSoft": "#4A4A4A",
+        "accent": "#0B0B0B",
+        "card": "#F2F2F2",
+        "panel": "#EDEDED",
+        "onAccent": "#FFFFFF"
+      }
+    ]
+  };
+</script>
+</head>
+<body>
+
+<header class="editor-bar">
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"></rect><path d="M3 9h18M9 9v12"></path></svg>
+  <strong>Site editor</strong>
+  <span class="editor-hint">Hover a section to choose how you edit it</span>
+  <span class="spacer"></span>
+  <button class="reset" id="reset-all">Reset everything</button>
+</header>
+
+<header class="sec header" data-section="header" data-type="header" aria-label="Site header">
+  <div class="hdr-inner snap-inner">
+    <span class="logo" data-drag="nLogo" data-resize="text" data-text>Halcyon</span>
+    <nav class="hnav" aria-label="Main">
+      <a href="#about" data-drag="nl1" data-resize="text" data-text>About</a>
+      <a href="#work" data-drag="nl2" data-resize="text" data-text>Work</a>
+      <a href="#services" data-drag="nl3" data-resize="text" data-text>Services</a>
+      <a href="#insights" data-drag="nl4" data-resize="text" data-text>Insights</a>
+      <a href="#contact" data-drag="nl5" data-resize="text" data-text>Contact</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+<section class="sec hero" data-section="cover" data-type="hero" data-layout="cover" aria-label="Hero section">
+  <div class="inner hero-inner">
+    <div class="hero-text">
+      <span class="eyebrow" data-drag="cover-tag" data-resize="text" data-text>We are</span>
+      <h1 data-drag="cover-title" data-resize="text" data-text>Halcyon</h1>
+      <p class="hero-note" data-drag="cover-rating" data-resize="text" data-text>★★★★★ 4.9 / 5 · Trusted by 120+ studios and startups</p>
+      <p class="lead" data-drag="cover-body" data-resize="text" data-text>Halcyon is a film studio making brand films, campaign content and documentary stories for brands that want to be felt, not just seen.</p>
+    </div>
+    <div class="hero-media"><div class="media hero-img" data-drag="cover-img1" data-resize="box"><img data-img="cover-img1i" src="images/halcyon/hero-portrait.jpg" alt="A portrait in low, warm light" draggable="false"><button class="rep" data-act="replace" data-key="cover-img1i">Replace image</button></div></div>
+  </div>
+</section>
+
+<section class="sec text" data-section="about" data-type="text" data-layout="two" aria-label="Text section">
+  <div class="inner text-inner">
+    <span class="kicker" data-drag="about-tag" data-resize="text" data-text>— About us · /01</span>
+    <h2 data-drag="about-head" data-resize="text" data-text>A brand film should make someone feel something before it explains anything.</h2>
+    <div class="text-body">
+      <p data-drag="about-p1" data-resize="text" data-text>Halcyon was started in 2014 by two documentary editors who were tired of watching brands play it safe. The first films were shot for community projects out of a borrowed room above a print shop.</p>
+      <p data-drag="about-p2" data-resize="text" data-text>Today we make campaign films, brand documentaries and content series for clients across the UK and Europe, and the belief that every brand has one honest story has not moved an inch.</p>
+      <a href="#about" class="btn" data-drag="about-btn" data-resize="text" data-text>More about us</a>
+    </div>
+  </div>
+</section>
+
+<section class="sec gallery" data-section="stills" data-type="gallery" data-layout="grid2" aria-label="Gallery section">
+  <div class="inner gallery-inner">
+    
+    <div class="gal-grid">
+      <div class="media gal-img" data-drag="stills-g1" data-resize="box"><img data-img="stills-g1i" src="images/halcyon/projector.jpg" alt="A projector throwing light through smoke" draggable="false"><button class="rep" data-act="replace" data-key="stills-g1i">Replace image</button></div>
+      <div class="media gal-img" data-drag="stills-g2" data-resize="box"><img data-img="stills-g2i" src="images/halcyon/cinema.jpg" alt="An audience in a cinema" draggable="false"><button class="rep" data-act="replace" data-key="stills-g2i">Replace image</button></div>
+    </div>
+  </div>
+</section>
+
+<section class="sec features" data-section="portfolio" data-type="features" data-layout="cols4" aria-label="Features section">
+  <div class="inner features-inner">
+    <span class="kicker" data-drag="portfolio-tag" data-resize="text" data-text>— Portfolio · /02</span>
+    <h2 data-drag="portfolio-head" data-resize="text" data-text>Brand films, campaign work and documentaries — each one built on a story someone actually wanted to tell.</h2>
+    <div class="cards">
+      <article class="card" data-drag="portfolio-c1" data-resize="box"><div class="media card-img"><img data-img="portfolio-c1mi" src="images/halcyon/aurum.jpg" alt="Aurum, a brand film" draggable="false"><button class="rep" data-act="replace" data-key="portfolio-c1mi">Replace image</button></div><div class="card-text"><h3 data-text>Aurum — brand film</h3></div></article>
+      <article class="card" data-drag="portfolio-c2" data-resize="box"><div class="media card-img"><img data-img="portfolio-c2mi" src="images/halcyon/dwell.jpg" alt="Dwell, a campaign" draggable="false"><button class="rep" data-act="replace" data-key="portfolio-c2mi">Replace image</button></div><div class="card-text"><h3 data-text>Dwell — campaign</h3></div></article>
+      <article class="card" data-drag="portfolio-c3" data-resize="box"><div class="media card-img"><img data-img="portfolio-c3mi" src="images/halcyon/northern-lights.jpg" alt="Northern Lights, an aftermovie" draggable="false"><button class="rep" data-act="replace" data-key="portfolio-c3mi">Replace image</button></div><div class="card-text"><h3 data-text>Northern Lights — aftermovie</h3></div></article>
+      <article class="card" data-drag="portfolio-c4" data-resize="box"><div class="media card-img"><img data-img="portfolio-c4mi" src="images/halcyon/fieldwork.jpg" alt="Fieldwork, a documentary" draggable="false"><button class="rep" data-act="replace" data-key="portfolio-c4mi">Replace image</button></div><div class="card-text"><h3 data-text>Fieldwork — documentary</h3></div></article>
+    </div>
+  </div>
+</section>
+
+<section class="sec cta" data-section="feel" data-type="cta" data-layout="split" data-palette="graphite" aria-label="Call to action">
+  <div class="inner cta-inner">
+    <div class="cta-panel">
+      <div class="cta-text">
+        <h2 data-drag="feel-title" data-resize="text" data-text>A film shouldn’t explain your company. It should make people feel what it’s like to be on your side.</h2>
+      </div>
+      <a href="#contact" class="btn cta-btn" data-drag="feel-btn" data-resize="text" data-text>Contact us</a>
+    </div>
+  </div>
+</section>
+
+<section class="sec faq" data-section="services" data-type="faq" data-layout="side" aria-label="FAQ section">
+  <div class="inner faq-inner">
+    <span class="kicker" data-drag="services-tag" data-resize="text" data-text>— Services · /03</span>
+    <h2 data-drag="services-head" data-resize="text" data-text>Every stage of production, from the first creative conversation to the final exported frame.</h2>
+    <div class="faq-list">
+      <div class="qa" data-drag="services-q1" data-resize="box"><h3 data-text>Brand films</h3><p data-text>The film people watch on purpose: two to three minutes, one true story, built to be felt. Delivered with its full cutdown suite.</p></div>
+      <div class="qa" data-drag="services-q2" data-resize="box"><h3 data-text>Campaign production</h3><p data-text>Hero and social cuts for a launch, shot on one planned day, framed for every platform they will live on.</p></div>
+      <div class="qa" data-drag="services-q3" data-resize="box"><h3 data-text>Documentary series</h3><p data-text>Longer form, real people, real places. Episodic stories for brands with something worth following.</p></div>
+      <div class="qa" data-drag="services-q4" data-resize="box"><h3 data-text>Post production and finishing</h3><p data-text>Edit, grade, sound mix, motion graphics and delivery in every format you need. Structured revisions, clear timelines.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="sec features" data-section="process" data-type="features" data-layout="cols4" aria-label="Features section">
+  <div class="inner features-inner">
+    <span class="kicker" data-drag="process-tag" data-resize="text" data-text>— Process · /04</span>
+    <h2 data-drag="process-head" data-resize="text" data-text>Great production isn’t accidental. It’s designed.</h2>
+    <p class="intro" data-drag="process-intro" data-resize="text" data-text>A clear process is the first creative decision we make. It keeps projects on time, keeps clients informed and keeps the crew on the story rather than the chaos.</p>
+    <div class="cards">
+      <article class="card no-img" data-drag="process-c1" data-resize="box"><div class="card-text"><span class="kicker" data-text>1</span><h3 data-text>Discover</h3><p data-text>We start with your audience, your message and the feeling you want to leave behind. Every good film begins with a good brief.</p></div></article>
+      <article class="card no-img" data-drag="process-c2" data-resize="box"><div class="card-text"><span class="kicker" data-text>2</span><h3 data-text>Script and storyboard</h3><p data-text>We shape the story, scripted or documentary, and map every shot before a camera rolls. No surprises on set.</p></div></article>
+      <article class="card no-img" data-drag="process-c3" data-resize="box"><div class="card-text"><span class="kicker" data-text>3</span><h3 data-text>Production</h3><p data-text>One planned day, or a multi-country expedition: the crew captures the story with precision and presence.</p></div></article>
+      <article class="card no-img" data-drag="process-c4" data-resize="box"><div class="card-text"><span class="kicker" data-text>4</span><h3 data-text>Post and delivery</h3><p data-text>Edit, grade, mix and deliver, broadcast-ready, in every format. Timelines are clear and revisions are structured.</p></div></article>
+    </div>
+  </div>
+</section>
+
+<section class="sec team" data-section="team" data-type="team" aria-label="Team section">
+  <div class="inner team-inner">
+    <span class="kicker" data-drag="team-tag" data-resize="text" data-text>— Our team · /05</span>
+    <h2 data-drag="team-head" data-resize="text" data-text>A small, senior crew who have spent years getting better at one thing: stories that stick.</h2>
+    <div class="team-grid">
+      <div class="person" data-drag="team-p1" data-resize="box"><div class="media avatar"><img data-img="team-p1mi" src="images/halcyon/team-director.jpg" alt="Sam Ruthven" draggable="false"><button class="rep" data-act="replace" data-key="team-p1mi">Replace</button></div><h3 data-text>Sam Ruthven</h3><p data-text>Founder and director</p><p class="bio" data-text>Sam has directed more than two hundred brand films. He started in documentary, and it shows: every frame is built around a human truth.</p></div>
+      <div class="person" data-drag="team-p2" data-resize="box"><div class="media avatar"><img data-img="team-p2mi" src="images/halcyon/team-producer.jpg" alt="Lena Marsh" draggable="false"><button class="rep" data-act="replace" data-key="team-p2mi">Replace</button></div><h3 data-text>Lena Marsh</h3><p data-text>Executive producer</p><p class="bio" data-text>Lena keeps the wheels turning without letting them show. Fourteen countries, one missed delivery date, and that was the volcano.</p></div>
+      <div class="person" data-drag="team-p3" data-resize="box"><div class="media avatar"><img data-img="team-p3mi" src="images/halcyon/team-dop.jpg" alt="Ida Brennan" draggable="false"><button class="rep" data-act="replace" data-key="team-p3mi">Replace</button></div><h3 data-text>Ida Brennan</h3><p data-text>Director of photography</p><p class="bio" data-text>Ida has shot campaigns for global brands and quiet stories for small ones. Her eye for available light is why clients ask for her by name.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="sec features" data-section="words" data-type="features" aria-label="Features section">
+  <div class="inner features-inner">
+    <span class="kicker" data-drag="words-tag" data-resize="text" data-text>— Testimonials · /06</span>
+    <h2 data-drag="words-head" data-resize="text" data-text>Words from the people we have made films for.</h2>
+    <div class="cards">
+      <article class="card no-img" data-drag="words-c1" data-resize="box"><div class="card-text"><span class="kicker" data-text>★★★★★ 4.5 / 5</span><blockquote data-text>“We briefed them on a Monday. By Friday we had a rough cut that made our chief executive cry, in a good way.”</blockquote><h3 data-text>Emma V.</h3><p data-text>Head of brand, Aurum</p></div></article>
+      <article class="card no-img" data-drag="words-c2" data-resize="box"><div class="card-text"><span class="kicker" data-text>★★★★★ 5 / 5</span><blockquote data-text>“Every agency promised us a great film. Halcyon is the only one that delivered one.”</blockquote><h3 data-text>Jonas F.</h3><p data-text>Co-founder, Dwell</p></div></article>
+      <article class="card no-img" data-drag="words-c3" data-resize="box"><div class="card-text"><span class="kicker" data-text>★★★★★ 4.8 / 5</span><blockquote data-text>“We have worked with bigger studios and spent more money. Nothing has ever performed like the film Halcyon made us.”</blockquote><h3 data-text>Ren T.</h3><p data-text>Marketing director, Fieldwork</p></div></article>
+    </div>
+  </div>
+</section>
+
+<section class="sec cta" id="contact" data-section="start" data-type="cta" aria-label="Call to action">
+  <div class="inner cta-inner">
+    <div class="cta-panel">
+      <div class="cta-text">
+        <span class="kicker" data-drag="start-tag" data-resize="text" data-text>— Start a project · /07</span>
+        <h2 data-drag="start-title" data-resize="text" data-text>Let’s make something.</h2>
+        <p class="cta-sub" data-drag="start-body" data-resize="text" data-text>Every good film starts with one conversation. Tell us what you are building and we will tell you what is possible.</p>
+        <p class="cta-sub" data-drag="start-contact" data-resize="text" data-text>hello@halcyon.film · +44 20 7946 0000</p>
+      </div>
+      <a href="#contact" class="btn cta-btn" data-drag="start-btn" data-resize="text" data-text>Start a conversation</a>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer class="sec footer" data-section="footer" data-type="footer" data-palette="white" aria-label="Site footer">
+  <div class="footer-inner snap-inner">
+    <div class="footer-brand" data-drag="ftBrand" data-resize="box">
+      <span class="logo" data-text>Halcyon</span>
+      <p data-text>Films that are felt</p>
+    </div>
+    <nav class="footer-col" data-drag="ftCol1" data-resize="box" aria-label="Footer"><h2 data-text>Pages</h2><a href="#about" data-text>About</a><a href="#work" data-text>Work</a><a href="#services" data-text>Services</a><a href="#insights" data-text>Insights</a><a href="#contact" data-text>Contact</a></nav>
+  </div>
+  <div class="footer-base">
+    <span data-drag="ftCopy" data-resize="text" data-text>© Halcyon · All rights reserved.</span>
+    <span data-drag="ftCredit" data-resize="text" data-text>Photos from Unsplash</span>
+  </div>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>

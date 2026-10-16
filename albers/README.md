@@ -33,7 +33,7 @@ Only one section is in a mode at a time. **Done** leaves the mode, and **Reset e
 
 | Section | Layouts |
 | --- | --- |
-| Hero | Split, Centered, Image left |
+| Hero | Split, Centered, Image left, Cover (the photo fills the section and the words sit over it) |
 | Features | Three columns, Stacked list, Featured + 2 (the number follows how many other cards there are) |
 | Call to action | Centered, Split, Dark banner |
 | Text | Single column, Centered, Two columns |
@@ -46,13 +46,41 @@ Only one section is in a mode at a time. **Done** leaves the mode, and **Reset e
 | Newsletter | Centered, Split, Dark band |
 | Pricing | Side by side, Middle highlighted, Rows |
 
+## The gogh demo sites
+
+Alongside the original Northfield Ceramics page, the folder has copies of the home pages of the six demo sites from [gogh-demo](https://github.com/jamiemarsland/gogh-demo), each as its own page that runs on the same editor. Pick one from **Site** in the editor bar.
+
+| Page | gogh demo | Notes |
+| --- | --- | --- |
+| `elliot-grey.html` | Elliot Grey, a photographer's site (`blueprint.json`) | |
+| `yellow-house.html` | The Yellow House, a little gallery in Arles (`blueprint-classic.json`) | |
+| `yellow-house-shop.html` | The Yellow House with a shop (`blueprint-experiments.json`) | The same home page plus a Shop link and the shop's four prints as a section |
+| `halcyon.html` | Halcyon, a film studio (`blueprint-film-studio.json`) | |
+| `fenwick-lowe.html` | Fenwick & Lowe, a one-page site (`blueprint-onepage.json`) | The menu links jump to sections on the page |
+| `hollowell.html` | Hollowell, a ceramics studio's shop (`blueprint-ceramics.json`) | The product rail shows four of the shop's pieces |
+
+Each gogh section became the nearest Albers section, with the demo's own words and photos: statistics, glazes and reviews are Features cards, the services accordion is an FAQ, and so on. A few things don't carry over: gogh's freeform positions, parallax and section dividers, the full-screen painting viewer, and WooCommerce itself (prices and buttons are just text). Fonts are close matches from Google Fonts rather than the exact theme fonts.
+
+Every site keeps its own look in Edit layout: the **Colours** row shows that site's palettes (the first is the site's own colours), and **Replace image**, new sections and new images use that site's photos.
+
+### How a site page is put together
+
+A site page is ordinary markup in the same shape as `index.html`, plus:
+
+- `window.ALBERS_SITE` before `app.js`, with the site's `palettes` (ground, ink, accent and the other colours) and any extra `images` for Replace image.
+- `--font-head`, `--font-body` and `--head-weight` on `:root` for its type. The editor's own controls keep their type whatever the site uses.
+- `src` and `alt` on each `img[data-img]`: the page's photos become its picture library.
+- `data-layout` and `data-palette` on a section to start it in something other than the default.
+
 ## Running it
 
 It's plain HTML, CSS and JavaScript with no build step. Open `index.html` in a browser or serve the folder with any static server.
 
 ## Credits
 
-The studio name and copy are invented placeholders, and names, roles, prices and contact details are left as bracketed placeholders. The photos are from [Unsplash](https://unsplash.com) and used under the [Unsplash License](https://unsplash.com/license):
+The six demo sites, their copy and the photos in `images/yellow-house`, `images/fenwick-lowe`, `images/hollowell` and the team portraits in `images/halcyon` come from [gogh-demo](https://github.com/jamiemarsland/gogh-demo) by Jamie Marsland (GPLv2 or later). The paintings are by Vincent van Gogh. The other photos in `images/elliot-grey` and `images/halcyon` are from Unsplash, as linked from the demos.
+
+For the original Northfield Ceramics page, the studio name and copy are invented placeholders, and names, roles, prices and contact details are left as bracketed placeholders. The photos are from [Unsplash](https://unsplash.com) and used under the [Unsplash License](https://unsplash.com/license):
 
 | File | Unsplash photo ID |
 | --- | --- |

@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Elliot Grey · Albers</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Instrument+Sans:wght@400;500;600&family=Literata:opsz,wght@7..72,400;7..72,500&family=Manrope:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="style.css">
+<style>
+  /* This site's type. Its colours are the palettes below. */
+  :root { --font-head: 'Literata', Georgia, serif; --font-body: 'Manrope', system-ui, sans-serif; --head-weight: 500; }
+</style>
+<script>
+  // A copy of the "Elliot Grey" gogh demo's home page (github.com/jamiemarsland/gogh-demo).
+  // Its palettes: the first is the site's own look; the rest are offered in Edit layout.
+  window.ALBERS_SITE = {
+    "palettes": [
+      {
+        "id": "default",
+        "label": "Paper",
+        "ground": "#F6F4EE",
+        "groundAlt": "#EFEBE2",
+        "ink": "#171614",
+        "inkSoft": "#55514A",
+        "accent": "#8C7A5B",
+        "card": "#FFFFFF",
+        "panel": "#E7E1D5",
+        "onAccent": "#FFFFFF"
+      },
+      {
+        "id": "stone",
+        "label": "Stone",
+        "ground": "#E7E1D5",
+        "groundAlt": "#E7E1D5",
+        "ink": "#171614",
+        "inkSoft": "#4E4A42",
+        "accent": "#6F5F44",
+        "card": "#F6F4EE",
+        "panel": "#D9D1C1",
+        "onAccent": "#FFFFFF"
+      },
+      {
+        "id": "bronze",
+        "label": "Bronze",
+        "ground": "#8C7A5B",
+        "groundAlt": "#8C7A5B",
+        "ink": "#F6F4EE",
+        "inkSoft": "#ECE6D9",
+        "accent": "#171614",
+        "card": "#9A8968",
+        "panel": "#7D6C4F",
+        "onAccent": "#FFFFFF"
+      },
+      {
+        "id": "ink",
+        "label": "Ink",
+        "ground": "#171614",
+        "groundAlt": "#171614",
+        "ink": "#F6F4EE",
+        "inkSoft": "#BDB7AC",
+        "accent": "#C9B68F",
+        "card": "#24221F",
+        "panel": "#2B2926",
+        "onAccent": "#171614"
+      }
+    ],
+    "images": [
+      {
+        "src": "images/elliot-grey/beach.jpg",
+        "alt": "A quiet beach"
+      },
+      {
+        "src": "images/elliot-grey/portrait-man.jpg",
+        "alt": "A portrait of a man"
+      },
+      {
+        "src": "images/elliot-grey/architecture.jpg",
+        "alt": "A white building against the sky"
+      }
+    ]
+  };
+</script>
+</head>
+<body>
+
+<header class="editor-bar">
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"></rect><path d="M3 9h18M9 9v12"></path></svg>
+  <strong>Site editor</strong>
+  <span class="editor-hint">Hover a section to choose how you edit it</span>
+  <span class="spacer"></span>
+  <button class="reset" id="reset-all">Reset everything</button>
+</header>
+
+<header class="sec header" data-section="header" data-type="header" aria-label="Site header">
+  <div class="hdr-inner snap-inner">
+    <span class="logo" data-drag="nLogo" data-resize="text" data-text>Elliot Grey</span>
+    <nav class="hnav" aria-label="Main">
+      <a href="#about" data-drag="nl1" data-resize="text" data-text>About</a>
+      <a href="#portfolio" data-drag="nl2" data-resize="text" data-text>Portfolio</a>
+      <a href="#journal" data-drag="nl3" data-resize="text" data-text>Journal</a>
+      <a href="#contact" data-drag="nl4" data-resize="text" data-text>Contact</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+<section class="sec hero" data-section="hero" data-type="hero" data-layout="centered" aria-label="Hero section">
+  <div class="inner hero-inner">
+    <div class="hero-text">
+      <span class="eyebrow" data-drag="hero-tag" data-resize="text" data-text>People · Places · Quiet moments</span>
+      <h1 data-drag="hero-title" data-resize="text" data-text>The art of paying attention.</h1>
+      <p class="lead" data-drag="hero-body" data-resize="text" data-text>Photography for the moments that deserve to stay.</p>
+      <a href="#portfolio" class="text-link" data-drag="hero-btn" data-resize="text" data-text>Explore portfolio ↗</a>
+    </div>
+    <div class="hero-media"></div>
+  </div>
+</section>
+
+<section class="sec gallery" data-section="pictures" data-type="gallery" aria-label="Gallery section">
+  <div class="inner gallery-inner">
+    
+    <div class="gal-grid">
+      <div class="media gal-img" data-drag="pictures-g1" data-resize="box"><img data-img="pictures-g1i" src="images/elliot-grey/coastal-village.jpg" alt="A coastal village at golden hour" draggable="false"><button class="rep" data-act="replace" data-key="pictures-g1i">Replace image</button><span class="gal-cap" data-text>01 / Somewhere slower</span></div>
+      <div class="media gal-img" data-drag="pictures-g2" data-resize="box"><img data-img="pictures-g2i" src="images/elliot-grey/evening-portrait.jpg" alt="A portrait in evening light" draggable="false"><button class="rep" data-act="replace" data-key="pictures-g2i">Replace image</button><span class="gal-cap" data-text>02 / Human nature</span></div>
+      <div class="media gal-img" data-drag="pictures-g3" data-resize="box"><img data-img="pictures-g3i" src="images/elliot-grey/white-wall.jpg" alt="Sunlight on a white wall" draggable="false"><button class="rep" data-act="replace" data-key="pictures-g3i">Replace image</button><span class="gal-cap" data-text>03 / Light &amp; space</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="sec features" data-section="make" data-type="features" aria-label="Features section">
+  <div class="inner features-inner">
+    <h2 data-drag="make-head" data-resize="text" data-text>What I make</h2>
+    <p class="intro" data-drag="make-intro" data-resize="text" data-text>Three kinds of work, one way of looking.</p>
+    <div class="cards">
+      <article class="card no-img" data-drag="make-c1" data-resize="box"><div class="card-text"><span class="kicker" data-text>People</span><h3 data-text>Portraits</h3><p data-text>People as they are, in the light they like. An hour or an afternoon, outdoors when we can, and nobody asked to say cheese.</p><a class="text-link" href="#contact" data-text>Book a session ↗</a></div></article>
+      <article class="card no-img" data-drag="make-c2" data-resize="box"><div class="card-text"><span class="kicker" data-text>Places</span><h3 data-text>Spaces</h3><p data-text>Houses, studios, shops and coastlines: the rooms people love and the things they keep in them, photographed slowly.</p><a class="text-link" href="#portfolio" data-text>See the places ↗</a></div></article>
+      <article class="card no-img" data-drag="make-c3" data-resize="box"><div class="card-text"><span class="kicker" data-text>Work</span><h3 data-text>Commissions</h3><p data-text>Editorial stories, brand work and the occasional wedding that feels like a long lunch. Tell me the moment and I will tell you how.</p><a class="text-link" href="#contact" data-text>Start a conversation ↗</a></div></article>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer class="sec footer" data-section="footer" data-type="footer" data-layout="compact" aria-label="Site footer">
+  <div class="footer-inner snap-inner">
+    <div class="footer-brand" data-drag="ftBrand" data-resize="box">
+      <span class="logo" data-text>Elliot Grey</span>
+      <p data-text>Photography for the moments that deserve to stay.</p>
+    </div>
+    <nav class="footer-col" data-drag="ftCol1" data-resize="box" aria-label="Footer"><h2 data-text>Pages</h2><a href="#about" data-text>About</a><a href="#portfolio" data-text>Portfolio</a><a href="#journal" data-text>Journal</a><a href="#contact" data-text>Contact</a></nav>
+  </div>
+  <div class="footer-base">
+    <span data-drag="ftCopy" data-resize="text" data-text>© Elliot Grey · All rights reserved.</span>
+    <span data-drag="ftCredit" data-resize="text" data-text>Photos from Unsplash</span>
+  </div>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>

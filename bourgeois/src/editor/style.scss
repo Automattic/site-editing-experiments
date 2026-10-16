@@ -1570,3 +1570,155 @@ $sse-font: -apple-system, blinkmacsystemfont, "Segoe UI", roboto, "Helvetica Neu
 .sse-panel .sse-panel__row.is-slider + .components-range-control {
 	margin-block: 0 4px;
 }
+
+/* ---------------------------------------------------------- Animations */
+
+.sse-anim-list {
+	display: grid;
+	grid-template-columns: repeat(2, 1fr);
+	gap: 8px;
+	margin-bottom: 16px;
+}
+
+.sse-anim-option {
+	display: flex;
+	flex-direction: column;
+	align-items: stretch;
+	gap: 8px;
+	padding: 8px 8px 10px;
+	border: 1px solid $sse-line;
+	border-radius: 4px;
+	background: #fff;
+	color: $sse-ink;
+	font: 500 12px/1.2 $sse-font;
+	text-align: left;
+	cursor: pointer;
+
+	&:hover {
+		border-color: $sse-ink;
+	}
+
+	&.is-selected {
+		border-color: $sse-blue;
+		box-shadow: 0 0 0 1px $sse-blue;
+	}
+}
+
+// A tiny page: two bars that play the animation on hover, and on the
+// selected option.
+.sse-anim-option__demo {
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	gap: 6px;
+	height: 56px;
+	padding: 0 12px;
+	border-radius: 2px;
+	background: #f3f3f1;
+
+	span {
+		display: block;
+		height: 8px;
+		border-radius: 2px;
+		background: $sse-ink;
+	}
+
+	span + span {
+		width: 60%;
+		opacity: 0.5;
+	}
+}
+
+@keyframes sse-demo-fade {
+
+	0%,
+	15% {
+		opacity: 0;
+	}
+
+	55%,
+	100% {
+		opacity: 1;
+	}
+}
+
+@keyframes sse-demo-scale {
+
+	0%,
+	15% {
+		opacity: 0;
+		transform: scale(0.8);
+	}
+
+	60%,
+	100% {
+		opacity: 1;
+		transform: none;
+	}
+}
+
+@keyframes sse-demo-slide {
+
+	0%,
+	15% {
+		opacity: 0;
+		transform: translateY(12px);
+	}
+
+	60%,
+	100% {
+		opacity: 1;
+		transform: none;
+	}
+}
+
+@keyframes sse-demo-clip {
+
+	0%,
+	15% {
+		clip-path: inset(0 0 100% 0);
+	}
+
+	60%,
+	100% {
+		clip-path: inset(0);
+	}
+}
+
+@keyframes sse-demo-flex {
+
+	0%,
+	15% {
+		opacity: 0;
+		transform: translateY(10px) scale(0.94);
+	}
+
+	45% {
+		opacity: 1;
+		transform: translateY(-3px) scale(1.02);
+	}
+
+	65%,
+	100% {
+		opacity: 1;
+		transform: none;
+	}
+}
+
+@each $name in fade, scale, slide, clip, flex {
+	.sse-anim-option:hover .sse-anim-option__demo.is-#{$name} span,
+	.sse-anim-option.is-selected .sse-anim-option__demo.is-#{$name} span {
+		animation: sse-demo-#{$name} 1.8s ease infinite;
+	}
+
+	.sse-anim-option__demo.is-#{$name} span + span {
+		animation-delay: 0.12s !important;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+	.sse-anim-option__demo span {
+		animation: none !important;
+	}
+}

@@ -77,6 +77,9 @@ export function useSitePalette() {
 	}, [ user, base ] );
 }
 
+/** @return {Object<string,string>} Animations: slug => label. */
+export const getAnimations = () => settings.animations || {};
+
 /** @return {Object[]} Divider shapes: { slug, label, path }. */
 export const getDividerShapes = () => settings.dividers || [];
 

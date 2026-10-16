@@ -22,6 +22,7 @@ define( 'SSE_URL', plugin_dir_url( __FILE__ ) );
 
 require_once SSE_DIR . 'inc/section-themes.php';
 require_once SSE_DIR . 'inc/patterns.php';
+require_once SSE_DIR . 'inc/animations.php';
 
 /**
  * Whether the current admin screen is the site editor.
@@ -91,6 +92,7 @@ function sse_enqueue_editor_ui() {
 					sse_divider_shapes()
 				),
 				'palettes'      => sse_palette_presets(),
+				'animations'    => sse_animations(),
 			)
 		) . ';',
 		'before'

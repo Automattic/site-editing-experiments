@@ -38,7 +38,9 @@ import {
 	getSectionThemes,
 	getThemeFromClassName,
 	useSitePalette,
+	getAnimations,
 } from './settings';
+import { previewAnimation } from './animation-preview';
 import { STORE_NAME } from './store';
 import ThemeSwatches from './theme-swatches';
 import { minus } from '../shared/icons';
@@ -407,6 +409,15 @@ function MainScreen( { gs, go } ) {
 			<Row
 				label={ __( 'Spacing', 'section-site-editor' ) }
 				onClick={ () => go( 'spacing' ) }
+			/>
+			<Row
+				label={ __( 'Animations', 'section-site-editor' ) }
+				value={
+					getAnimations()[
+						gs.get( 'settings.custom.sse.animation' )
+					] || __( 'None', 'section-site-editor' )
+				}
+				onClick={ () => go( 'animations' ) }
 			/>
 		</div>
 	);
@@ -1049,6 +1060,68 @@ function SpacingScreen( { gs } ) {
 	);
 }
 
+function AnimationsScreen( { gs } ) {
+	const current = gs.get( 'settings.custom.sse.animation' ) || '';
+	const options = [
+		[ '', __( 'None', 'section-site-editor' ) ],
+		...Object.entries( getAnimations() ),
+	];
+	const choose = ( slug ) => {
+		gs.edit( ( { settings } ) =>
+			setPath( settings, 'custom.sse.animation', slug || undefined )
+		);
+		previewAnimation( slug );
+	};
+	return (
+		<div className="sse-styles__screen">
+			<p className="sse-styles__help">
+				{ __(
+					'How section content appears as visitors scroll to it. Pick one to see it on the page.',
+					'section-site-editor'
+				) }
+			</p>
+			<div
+				className="sse-anim-list"
+				role="radiogroup"
+				aria-label={ __( 'Animations', 'section-site-editor' ) }
+			>
+				{ options.map( ( [ slug, label ] ) => (
+					<button
+						key={ slug || 'none' }
+						type="button"
+						role="radio"
+						aria-checked={ current === slug }
+						className={ clsx( 'sse-anim-option', {
+							'is-selected': current === slug,
+						} ) }
+						onClick={ () => choose( slug ) }
+					>
+						<span
+							className={ `sse-anim-option__demo is-${
+								slug || 'none'
+							}` }
+							aria-hidden="true"
+						>
+							<span />
+							<span />
+						</span>
+						{ label }
+					</button>
+				) ) }
+			</div>
+			{ current && (
+				<Button
+					__next40pxDefaultSize
+					variant="secondary"
+					onClick={ () => previewAnimation( current ) }
+				>
+					{ __( 'Play again', 'section-site-editor' ) }
+				</Button>
+			) }
+		</div>
+	);
+}
+
 /* ---------------------------------------------------------------- Shell */
 
 const SCREENS = {
@@ -1076,6 +1149,10 @@ const SCREENS = {
 	spacing: {
 		title: __( 'Spacing', 'section-site-editor' ),
 		Component: SpacingScreen,
+	},
+	animations: {
+		title: __( 'Animations', 'section-site-editor' ),
+		Component: AnimationsScreen,
 	},
 };
 
@@ -1153,7 +1230,7 @@ function ResetButton( { gs } ) {
 				onCancel={ () => setConfirming( false ) }
 			>
 				{ __(
-					'Reset the colours, fonts, buttons and spacing set in Site Styles to the theme’s? You can undo this.',
+					'Reset the colours, fonts, buttons, spacing and animations set in Site Styles to the theme’s? You can undo this.',
 					'section-site-editor'
 				) }
 			</ConfirmDialog>

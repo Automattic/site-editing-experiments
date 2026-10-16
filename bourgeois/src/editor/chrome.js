@@ -239,14 +239,22 @@ export default function Chrome() {
 	const isEditMode = useIsEditMode();
 	const interfaceDispatch = useDispatch( 'core/interface' );
 
-	// Canvas first: the settings sidebar starts closed the
-	// first time you go into edit mode. It opens again as usual on request.
+	// Canvas first: the settings sidebar starts closed the first time you
+	// go into edit mode. It opens again as usual on request.
 	useEffect( () => {
 		if ( isEditMode && ! closedSidebarOnce ) {
 			closedSidebarOnce = true;
 			interfaceDispatch?.disableComplementaryArea?.( 'core' );
 		}
 	}, [ isEditMode, interfaceDispatch ] );
+
+	// A new page starts with the big Add section button, which leads to the
+	// section picker. Core's own "Choose a pattern" dialog for new pages
+	// would cover it and offer whole-page patterns instead, so it's off.
+	const { set: setPreference } = useDispatch( 'core/preferences' );
+	useEffect( () => {
+		setPreference( 'core', 'enableChoosePatternModal', false );
+	}, [ setPreference ] );
 
 	if ( ! isEditMode ) {
 		return <EditButton />;

@@ -156,7 +156,18 @@ function sse_section_themes_css() {
 	$s    = '[class*="is-style-sse-"]';
 	$css .= "{$s}{background-color:var(--sse-bg);color:var(--sse-text);}";
 	$css .= ":where({$s}:not(.wp-block-template-part)){padding-block:var(--wp--custom--sse--section-padding,5rem);}";
-	// Coloured sections sit flush against each other.
+	// Content alignment, for a section taller than its content.
+	// Flex would let core's centring margins shrink each block to its
+	// content, so blocks keep the full column width.
+	$valign = ':is(.sse-valign-middle,.sse-valign-bottom):not(.wp-block-cover)';
+	$css   .= "{$valign}{display:flex;flex-direction:column;}";
+	$css   .= ".sse-valign-middle:not(.wp-block-cover){justify-content:center;}.sse-valign-bottom:not(.wp-block-cover){justify-content:flex-end;}";
+	$css   .= "{$valign} > :not(.alignfull):not(.alignleft):not(.alignright){width:100%;}";
+	// The image overlay: the section's own colour over its background image,
+	// as an inset shadow so it sits between the image and the content.
+	for ( $n = 10; $n <= 90; $n += 10 ) {
+		$css .= sprintf( '.sse-overlay-%1$d{box-shadow:inset 0 0 0 100vmax color-mix(in srgb,var(--sse-bg,var(--wp--preset--color--sse-lightest,#fff)) %1$d%%,transparent);}', $n );
+	}
 	// Inset: the section's background is a rounded panel in from the page
 	// edges. Clipping (rather than margins) leaves alignment and the
 	// content's own padding alone.
@@ -164,6 +175,7 @@ function sse_section_themes_css() {
 	// Cover sets its own 1em padding; give a Cover section (one with a
 	// background video or image) the same room as any other section.
 	$css .= "{$s}.wp-block-cover{padding-block:var(--wp--custom--sse--section-padding,5rem);padding-inline:var(--wp--style--root--padding-left,1rem) var(--wp--style--root--padding-right,1rem);}";
+	// Coloured sections sit flush against each other.
 	$css .= "{$s}+{$s}{margin-block-start:0;}";
 	$css .= "{$s} :is(h1,h2,h3,h4,h5,h6){color:var(--sse-heading);}";
 	$css .= "{$s} a:not(.wp-element-button):not(.wp-block-button__link){color:var(--sse-link);}";
@@ -266,7 +278,11 @@ function sse_divider_css() {
 	// The stroke: a line along the shape's edge, in the section's link
 	// colour, drawn as a mask over a pseudo-element so it can be any colour.
 	$edge_layer = 'var(--sse-div-edge) calc(50% + var(--sse-div-x,0vw)) 100%/var(--sse-div-w,100%) 100% repeat-x';
-	$css       .= '[class*="sse-divider-stroke-"]::before{content:"";position:absolute;inset:auto 0 0;height:var(--sse-div-h);z-index:2;background:var(--sse-link,currentColor);pointer-events:none;-webkit-mask:' . $edge_layer . ';mask:' . $edge_layer . ';}';
+	$css       .= '[class*="sse-divider-stroke-"]::before{content:"";position:absolute;inset:auto 0 0;height:var(--sse-div-h);z-index:2;background:var(--sse-div-stroke,var(--sse-link,currentColor));pointer-events:none;-webkit-mask:' . $edge_layer . ';mask:' . $edge_layer . ';}';
+	// A stroke in one of the site's colours rather than the link colour.
+	foreach ( array_keys( sse_palette_roles() ) as $role ) {
+		$css .= sprintf( '.sse-divider-sc-%1$s{--sse-div-stroke:var(--wp--preset--color--%2$s);}', substr( $role, 4 ), $role );
+	}
 	// The next section's content stays clear of the overlap.
 	$css .= '[class*="sse-divider-"]+*{padding-block-start:calc(var(--wp--custom--sse--section-padding,5rem) + var(--sse-div-h,0px));}';
 

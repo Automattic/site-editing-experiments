@@ -324,6 +324,20 @@ await step(
 			! ( await topLevel() )[ 0 ].className.includes( 'sse-inset' ),
 			'Inset class not removed'
 		);
+		// Content alignment: Middle centres the content; Top is the default.
+		const alignment = page.getByRole( 'radiogroup', {
+			name: 'Content alignment',
+		} );
+		await alignment.getByRole( 'radio', { name: 'Middle' } ).click();
+		expect(
+			( await topLevel() )[ 0 ].className.includes( 'sse-valign-middle' ),
+			'alignment not set'
+		);
+		await alignment.getByRole( 'radio', { name: 'Top' } ).click();
+		expect(
+			! ( await topLevel() )[ 0 ].className.includes( 'sse-valign' ),
+			'alignment not cleared'
+		);
 		await page.keyboard.press( 'Escape' );
 	}
 );
@@ -342,11 +356,16 @@ await step(
 			.getByRole( 'radiogroup', { name: 'Stroke' } )
 			.getByRole( 'radio', { name: 'Thick' } )
 			.click();
+		await page
+			.getByRole( 'radiogroup', { name: 'Stroke colour' } )
+			.getByRole( 'radio', { name: 'Darkest' } )
+			.click();
 		const className = ( await topLevel() )[ 0 ].className;
 		for ( const expected of [
 			'sse-divider-wave',
 			'sse-divider-w-75',
 			'sse-divider-stroke-2',
+			'sse-divider-sc-darkest',
 		] ) {
 			expect(
 				className.includes( expected ),
@@ -632,6 +651,44 @@ await step( 'palette writes custom colours that reach the canvas', async () => {
 	);
 } );
 
+await step(
+	'animations: choosing one plays it on the page and saves',
+	async () => {
+		await page
+			.locator(
+				'.interface-pinned-items button[aria-label="Site Styles"]'
+			)
+			.click();
+		await page
+			.locator( '.sse-row.is-link', { hasText: 'Animations' } )
+			.click();
+		await page.locator( '.sse-anim-option', { hasText: 'Fade' } ).click();
+		const playing = await canvas
+			.locator( 'body' )
+			.evaluate( ( b ) => b.ownerDocument.getAnimations().length );
+		expect( playing > 0, 'nothing animated in the canvas' );
+		const animation = await select(
+			() =>
+				window.wp.data
+					.select( 'core' )
+					.getEditedEntityRecord(
+						'root',
+						'globalStyles',
+						window.wp.data
+							.select( 'core' )
+							.__experimentalGetCurrentGlobalStylesId()
+					).settings?.custom?.sse?.animation
+		);
+		expect( animation === 'fade', `animation is ${ animation }` );
+		await page.locator( '.sse-styles__back' ).click();
+		await select( () =>
+			window.wp.data
+				.dispatch( 'core/interface' )
+				.disableComplementaryArea( 'core' )
+		);
+	}
+);
+
 console.log( 'Saving' );
 await step( 'save, reload, still valid', async () => {
 	await save();
@@ -640,6 +697,18 @@ await step( 'save, reload, still valid', async () => {
 			`/page/${ pageId }`
 		) }&canvas=edit`
 	);
+	// The page's blocks load into its template a moment after the editor.
+	await page
+		.waitForFunction(
+			() => {
+				const be = window.wp.data.select( 'core/block-editor' );
+				const root = be.getBlocksByName( 'core/post-content' )[ 0 ];
+				return root && be.getBlockOrder( root ).length > 0;
+			},
+			null,
+			{ timeout: 30000 }
+		)
+		.catch( () => {} );
 	const [ total, invalid ] = await select( () => {
 		const be = window.wp.data.select( 'core/block-editor' );
 		const walk = ( id ) =>
@@ -840,6 +909,26 @@ for ( const [ width, name ] of [
 		await front.goto( `${ BASE }/?page_id=${ pageId }`, {
 			waitUntil: 'load',
 		} );
+		// Scroll to the bottom and back so every section has animated in.
+		await front.evaluate( async () => {
+			for ( let y = 0; y < document.body.scrollHeight; y += 500 ) {
+				window.scrollTo( 0, y );
+				await new Promise( ( r ) => setTimeout( r, 60 ) );
+			}
+			window.scrollTo( 0, 0 );
+		} );
+		await front.waitForTimeout( 1200 );
+		const animated = await front.evaluate( () => [
+			document.body.classList.contains( 'sse-animate-fade' ),
+			document.querySelectorAll( '.sse-anim' ).length,
+			document.querySelectorAll( '.sse-anim:not(.is-in)' ).length,
+		] );
+		expect( animated[ 0 ], 'animation not on the site' );
+		expect( animated[ 1 ] > 0, 'no section content marked to animate' );
+		expect(
+			animated[ 2 ] === 0,
+			`${ animated[ 2 ] } blocks never appeared`
+		);
 		const overflow = await front.evaluate(
 			() => document.documentElement.scrollWidth - window.innerWidth
 		);

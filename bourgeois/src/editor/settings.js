@@ -77,6 +77,9 @@ export function useSitePalette() {
 	}, [ user, base ] );
 }
 
+/** @return {Object<string,string>} Animations: slug => label. */
+export const getAnimations = () => settings.animations || {};
+
 /** @return {Object[]} Divider shapes: { slug, label, path }. */
 export const getDividerShapes = () => settings.dividers || [];
 
@@ -84,7 +87,7 @@ export const getDividerShapes = () => settings.dividers || [];
  * A section's divider, from its className.
  *
  * @param {string} className Block className attribute.
- * @return {{ shape: string|null, size: string, flip: boolean, width: number, offset: number, stroke: number }} Divider.
+ * @return {{ shape: string|null, size: string, flip: boolean, width: number, offset: number, stroke: number, strokeColor: string|null }} Divider.
  */
 export function getDivider( className = '' ) {
 	const classes = ( className || '' ).split( /\s+/ );
@@ -116,6 +119,10 @@ export function getDivider( className = '' ) {
 		width: number( 'sse-divider-w-', 100 ),
 		offset: number( 'sse-divider-x-', 0 ),
 		stroke: number( 'sse-divider-stroke-', 0 ),
+		strokeColor:
+			classes
+				.find( ( c ) => c.startsWith( 'sse-divider-sc-' ) )
+				?.slice( 'sse-divider-sc-'.length ) || null,
 	};
 }
 
@@ -123,7 +130,7 @@ export function getDivider( className = '' ) {
  * Returns className with its divider replaced.
  *
  * @param {string} className Current className.
- * @param {Object} divider   { shape, size, flip, width, offset, stroke };
+ * @param {Object} divider   { shape, size, flip, width, offset, stroke, strokeColor };
  *                           shape null removes it.
  * @return {string|undefined} New className.
  */
@@ -153,7 +160,42 @@ export function withDivider( className = '', divider ) {
 		}
 		if ( divider.stroke ) {
 			kept.push( `sse-divider-stroke-${ divider.stroke }` );
+			if ( divider.strokeColor ) {
+				kept.push( `sse-divider-sc-${ divider.strokeColor }` );
+			}
 		}
+	}
+	return kept.length ? kept.join( ' ' ) : undefined;
+}
+
+/**
+ * A value kept in a class name, such as "middle" in sse-valign-middle.
+ *
+ * @param {string} className Block className attribute.
+ * @param {string} prefix    Class prefix, e.g. "sse-valign-".
+ * @return {string|undefined} The value, if the class is there.
+ */
+export function getClassValue( className = '', prefix ) {
+	const found = ( className || '' )
+		.split( /\s+/ )
+		.find( ( c ) => c.startsWith( prefix ) );
+	return found ? found.slice( prefix.length ) : undefined;
+}
+
+/**
+ * Returns className with one prefixed value replaced, or removed.
+ *
+ * @param {string}           className Current className.
+ * @param {string}           prefix    Class prefix, e.g. "sse-valign-".
+ * @param {string|undefined} value     New value; empty removes it.
+ * @return {string|undefined} New className.
+ */
+export function withClassValue( className = '', prefix, value ) {
+	const kept = ( className || '' )
+		.split( /\s+/ )
+		.filter( ( c ) => c && ! c.startsWith( prefix ) );
+	if ( value !== undefined && value !== null && value !== '' ) {
+		kept.push( `${ prefix }${ value }` );
 	}
 	return kept.length ? kept.join( ' ' ) : undefined;
 }

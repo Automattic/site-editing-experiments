@@ -6,11 +6,11 @@ A phone-first take on the [Albers](../albers/) (section editing modes) mockup. O
 
 There's no hover on a phone, so everything starts with a tap, and the tools live at the bottom of the screen within thumb reach.
 
-- **Tap a section** to select it. It gets a blue outline and a name tab, and a toolbar docks at the bottom of the screen: **Layout**, **Content**, **Arrange**, **Add** and **More**.
+- **Tap a section** to select it. It gets a blue outline and a name tab, and a toolbar docks at the bottom of the screen: **Add**, **Layout**, **Content**, **Arrange** and **More**.
+- **Add** opens a sheet with things to add to the section (headings, paragraphs, buttons, images, cards, plans or questions, depending on the section) and a grid of section types to add below it.
 - **Layout** opens a bottom sheet over the lower half of the screen, so the section stays visible above it. You swipe sideways through live previews of the section's layouts, each labelled with a phone icon and its phone name and a desktop icon and its desktop arrangement, and a **Colours** row below switches palettes (Default, Sand, Sage, Sky, Clay and Night). **Reset** undoes changes made since the sheet opened, and **Done** closes it.
 - **Content** turns text into tap-to-type fields. Tapping a photo opens a sheet where you can choose a photo from your device, pick a sample photo, or remove it. The bin in the toolbar removes whichever item you're editing.
 - **Arrange** is drag and drop, in place of the free positioning in [Albers](../albers/). On a phone a swipe still scrolls, so you press and hold an item to pick it up; on a computer you just drag it. A copy of the item follows your finger or pointer, above everything else so nothing can cut it off, the others slide out of the way, and a dashed slot shows where it'll land. Dragging near the top or bottom of the screen scrolls, as far as the end of the items. Each move shows a message with **Undo**, and the toolbar's arrows and bin still move or remove the selected item.
-- **Add** opens a sheet with things to add to the section (headings, paragraphs, buttons, images, cards, plans or questions, depending on the section) and a grid of section types to add below it.
 - **More** moves the section up or down, duplicates it, or deletes it. Removing an item or deleting a section shows a message with **Undo**.
 
 **Phone | Desktop** in the top bar is for building a site on a phone that also looks good on a big screen. **Desktop** lays the same page out at desktop width, keeping every edit, layout and colour. Every mobile layout has a matching desktop arrangement, and the Layout sheet shows both on each option (for example, "Stacked cards" becomes three columns on desktop).

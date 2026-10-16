@@ -388,8 +388,8 @@
     var html = '';
     if (!state.mode) {
       html = '<div class="dock-row">' +
-        dockButton('mode-layout', 'layout', 'Layout', 'L') + dockButton('mode-content', 'content', 'Content', 'C') +
-        dockButton('mode-arrange', 'arrange', 'Arrange', 'A') + dockButton('sheet-add', 'add', 'Add') +
+        dockButton('sheet-add', 'add', 'Add') + dockButton('mode-layout', 'layout', 'Layout', 'L') +
+        dockButton('mode-content', 'content', 'Content', 'C') + dockButton('mode-arrange', 'arrange', 'Arrange', 'A') +
         dockButton('sheet-more', 'more', 'More') + '</div>';
     } else if (state.mode === 'content') {
       var canRemove = state.item && state.item.isConnected;

@@ -161,6 +161,38 @@ export function withDivider( className = '', divider ) {
 	return kept.length ? kept.join( ' ' ) : undefined;
 }
 
+/**
+ * A value kept in a class name, such as "middle" in sse-valign-middle.
+ *
+ * @param {string} className Block className attribute.
+ * @param {string} prefix    Class prefix, e.g. "sse-valign-".
+ * @return {string|undefined} The value, if the class is there.
+ */
+export function getClassValue( className = '', prefix ) {
+	const found = ( className || '' )
+		.split( /\s+/ )
+		.find( ( c ) => c.startsWith( prefix ) );
+	return found ? found.slice( prefix.length ) : undefined;
+}
+
+/**
+ * Returns className with one prefixed value replaced, or removed.
+ *
+ * @param {string}           className Current className.
+ * @param {string}           prefix    Class prefix, e.g. "sse-valign-".
+ * @param {string|undefined} value     New value; empty removes it.
+ * @return {string|undefined} New className.
+ */
+export function withClassValue( className = '', prefix, value ) {
+	const kept = ( className || '' )
+		.split( /\s+/ )
+		.filter( ( c ) => c && ! c.startsWith( prefix ) );
+	if ( value !== undefined && value !== null && value !== '' ) {
+		kept.push( `${ prefix }${ value }` );
+	}
+	return kept.length ? kept.join( ' ' ) : undefined;
+}
+
 function luminance( hex ) {
 	const value = ( hex || '' ).replace( '#', '' );
 	const full =

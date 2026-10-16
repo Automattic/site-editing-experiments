@@ -17,6 +17,7 @@ import {
 } from '@wordpress/block-editor';
 import {
 	Button,
+	FocalPointPicker,
 	RangeControl,
 	TabPanel,
 	TextControl,
@@ -28,11 +29,13 @@ import { minus } from '../shared/icons';
 import {
 	PALETTE_ROLES,
 	contrast,
+	getClassValue,
 	getDivider,
 	getDividerShapes,
 	getSectionThemes,
 	getThemeFromClassName,
 	useSitePalette,
+	withClassValue,
 	withDivider,
 	withTheme,
 } from './settings';
@@ -335,6 +338,37 @@ function DesignTab( { clientId, name, attributes } ) {
 		} );
 	};
 
+	// Where the content sits when the section is taller than it (Fill
+	// screen, a tall height). Cover has its own setting; a Group uses a
+	// class.
+	const COVER_POSITIONS = {
+		top: 'top center',
+		middle: 'center center',
+		bottom: 'bottom center',
+	};
+	let alignment = 'top';
+	if ( isCover ) {
+		alignment =
+			Object.keys( COVER_POSITIONS ).find(
+				( key ) =>
+					COVER_POSITIONS[ key ] ===
+					( attributes.contentPosition || 'center center' )
+			) || 'middle';
+	} else {
+		alignment =
+			getClassValue( attributes.className, 'sse-valign-' ) || 'top';
+	}
+	const setAlignment = ( value ) =>
+		isCover
+			? set( { contentPosition: COVER_POSITIONS[ value ] } )
+			: set( {
+					className: withClassValue(
+						attributes.className,
+						'sse-valign-',
+						value === 'top' ? undefined : value
+					),
+				} );
+
 	const canFillScreen =
 		isCover || !! getBlockSupport( name, 'dimensions.minHeight' );
 	const supportsAlign = getBlockSupport( name, 'align' );
@@ -467,6 +501,18 @@ function DesignTab( { clientId, name, attributes } ) {
 					</div>
 				</div>
 			) }
+			{ name !== FLUID && (
+				<Segmented
+					label={ __( 'Content alignment', 'section-site-editor' ) }
+					value={ alignment }
+					options={ [
+						[ 'top', __( 'Top', 'section-site-editor' ) ],
+						[ 'middle', __( 'Middle', 'section-site-editor' ) ],
+						[ 'bottom', __( 'Bottom', 'section-site-editor' ) ],
+					] }
+					onChange={ setAlignment }
+				/>
+			) }
 			<DividerControls
 				className={ attributes.className }
 				onChange={ ( className ) => set( { className } ) }
@@ -562,6 +608,9 @@ function ImageBackground( { clientId, name, attributes } ) {
 		);
 	}
 
+	const overlay = Number(
+		getClassValue( attributes.className, 'sse-overlay-' ) || 0
+	);
 	const setImage = ( media ) =>
 		updateBlockAttributes( clientId, {
 			style: {
@@ -599,16 +648,40 @@ function ImageBackground( { clientId, name, attributes } ) {
 				onSelect={ setImage }
 				render={ ( { open } ) =>
 					image?.url ? (
-						<button
-							type="button"
-							className="sse-dropzone has-image"
-							style={ { backgroundImage: `url(${ image.url })` } }
-							onClick={ open }
-						>
-							<span>
+						<>
+							<FocalPointPicker
+								__nextHasNoMarginBottom
+								label={ __(
+									'Focal point',
+									'section-site-editor'
+								) }
+								url={ image.url }
+								value={ parsePosition(
+									style.background?.backgroundPosition
+								) }
+								onChange={ ( point ) =>
+									updateBlockAttributes( clientId, {
+										style: {
+											...style,
+											background: {
+												...( style.background || {} ),
+												backgroundPosition: `${ Math.round(
+													point.x * 100
+												) }% ${ Math.round( point.y * 100 ) }%`,
+											},
+										},
+									} )
+								}
+							/>
+							<Button
+								__next40pxDefaultSize
+								variant="secondary"
+								className="sse-replace-media"
+								onClick={ open }
+							>
 								{ __( 'Replace image', 'section-site-editor' ) }
-							</span>
-						</button>
+							</Button>
+						</>
 					) : (
 						<button
 							type="button"
@@ -626,17 +699,57 @@ function ImageBackground( { clientId, name, attributes } ) {
 				}
 			/>
 			{ image?.url && (
-				<Button
-					__next40pxDefaultSize
-					variant="tertiary"
-					isDestructive
-					onClick={ () => setImage( null ) }
-				>
-					{ __( 'Remove image', 'section-site-editor' ) }
-				</Button>
+				<>
+					<SliderRow
+						label={ __( 'Overlay', 'section-site-editor' ) }
+						value={ `${ overlay }%` }
+					/>
+					<RangeControl
+						__nextHasNoMarginBottom
+						__next40pxDefaultSize
+						hideLabelFromVision
+						label={ __( 'Overlay', 'section-site-editor' ) }
+						help={ __(
+							'How much of the section colour shows over the image.',
+							'section-site-editor'
+						) }
+						aria-valuetext={ `${ overlay }%` }
+						value={ overlay }
+						min={ 0 }
+						max={ 90 }
+						step={ 10 }
+						withInputField={ false }
+						renderTooltipContent={ ( value ) => `${ value }%` }
+						onChange={ ( value ) =>
+							updateBlockAttributes( clientId, {
+								className: withClassValue(
+									attributes.className,
+									'sse-overlay-',
+									value ? value : undefined
+								),
+							} )
+						}
+					/>
+					<Button
+						__next40pxDefaultSize
+						variant="tertiary"
+						isDestructive
+						onClick={ () => setImage( null ) }
+					>
+						{ __( 'Remove image', 'section-site-editor' ) }
+					</Button>
+				</>
 			) }
 		</MediaUploadCheck>
 	);
+}
+
+// "30% 70%" (or a keyword) as a focal point, { x: 0.3, y: 0.7 }.
+function parsePosition( position ) {
+	const match = /^\s*([\d.]+)%\s+([\d.]+)%\s*$/.exec( position || '' );
+	return match
+		? { x: Number( match[ 1 ] ) / 100, y: Number( match[ 2 ] ) / 100 }
+		: { x: 0.5, y: 0.5 };
 }
 
 function VideoBackground( { clientId, name, attributes } ) {

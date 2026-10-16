@@ -324,6 +324,20 @@ await step(
 			! ( await topLevel() )[ 0 ].className.includes( 'sse-inset' ),
 			'Inset class not removed'
 		);
+		// Content alignment: Middle centres the content; Top is the default.
+		const alignment = page.getByRole( 'radiogroup', {
+			name: 'Content alignment',
+		} );
+		await alignment.getByRole( 'radio', { name: 'Middle' } ).click();
+		expect(
+			( await topLevel() )[ 0 ].className.includes( 'sse-valign-middle' ),
+			'alignment not set'
+		);
+		await alignment.getByRole( 'radio', { name: 'Top' } ).click();
+		expect(
+			! ( await topLevel() )[ 0 ].className.includes( 'sse-valign' ),
+			'alignment not cleared'
+		);
 		await page.keyboard.press( 'Escape' );
 	}
 );

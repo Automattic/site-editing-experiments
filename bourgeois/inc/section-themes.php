@@ -157,6 +157,14 @@ function sse_section_themes_css() {
 	$css .= "{$s}{background-color:var(--sse-bg);color:var(--sse-text);}";
 	$css .= ":where({$s}:not(.wp-block-template-part)){padding-block:var(--wp--custom--sse--section-padding,5rem);}";
 	// Coloured sections sit flush against each other.
+	// Content alignment, for a section taller than its content.
+	$css .= '.sse-valign-middle,.sse-valign-bottom{display:flex;flex-direction:column;}';
+	$css .= '.sse-valign-middle{justify-content:center;}.sse-valign-bottom{justify-content:flex-end;}';
+	// The image overlay: the section's own colour over its background image,
+	// as an inset shadow so it sits between the image and the content.
+	for ( $n = 10; $n <= 90; $n += 10 ) {
+		$css .= sprintf( '.sse-overlay-%1$d{box-shadow:inset 0 0 0 100vmax color-mix(in srgb,var(--sse-bg,#000) %1$d%%,transparent);}', $n );
+	}
 	// Inset: the section's background is a rounded panel in from the page
 	// edges. Clipping (rather than margins) leaves alignment and the
 	// content's own padding alone.

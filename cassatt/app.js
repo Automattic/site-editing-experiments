@@ -28,7 +28,7 @@
     hero: { title: 'Hero', layouts: [['stack', 'Image on top', 'image left, text right'], ['textfirst', 'Text on top', 'text left, image right'], ['overlay', 'Text over image', 'full-width image'], ['bleed', 'Edge-to-edge image', 'image fills the left half'], ['centered', 'Centred', 'centred text, wide image below'], ['textonly', 'Big text', 'large text, no image']],
       add: [['heading', 'Heading', '.hero-text'], ['paragraph', 'Paragraph', '.hero-text'], ['button', 'Button', '.hero-text'], ['image', 'Image', '.hero-media']] },
     features: { title: 'Features', layouts: [['stack', 'Stacked cards', 'three columns'], ['carousel', 'Swipe through', 'a row of cards'], ['list', 'Compact list', 'two-column list'], ['grid2', 'Two across', 'four across'], ['plain', 'Without boxes', 'three columns, no boxes'], ['zigzag', 'Image beside text', 'rows, images alternating sides']],
-      add: [['card', 'Card', '.cards'], ['heading', 'Heading', '.feat-head'], ['paragraph', 'Paragraph', '.feat-head']] },
+      add: [['card', 'Card', '.cards'], ['groupheading', 'Heading between cards', '.cards'], ['heading', 'Heading at the top', '.feat-head'], ['paragraph', 'Paragraph at the top', '.feat-head']] },
     gallery: { title: 'Gallery', layouts: [['grid2', 'Two across', 'three across'], ['single', 'One per row', 'two large across'], ['carousel', 'Swipe through', 'one long row'], ['mosaic', 'Mosaic', 'mosaic, big first photo'], ['grid3', 'Three across', 'four across']],
       add: [['image', 'Image', '.gal-grid'], ['heading', 'Heading', '.gal-head'], ['paragraph', 'Paragraph', '.gal-head']] },
     quote: { title: 'Quote', layouts: [['center', 'Centred', 'centred'], ['left', 'Left aligned', 'left aligned'], ['dark', 'Dark band', 'dark band'], ['large', 'Large type', 'very large type'], ['card', 'In a card', 'in a card'], ['accent', 'Accent band', 'accent band']],
@@ -75,6 +75,7 @@
     desktop: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>',
     phone: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="2"/><path d="M11 18h2"/></svg>',
     heading: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4v16M18 4v16M6 12h12"/></svg>',
+    groupheading: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16M4 19h16M8 9v6M16 9v6M8 12h8"/></svg>',
     paragraph: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 11h16M4 16h11"/></svg>',
     button: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="8" width="18" height="8" rx="4"/><path d="M9 12h6"/></svg>',
     image: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 17l-5-5-9 8"/></svg>',
@@ -195,6 +196,7 @@
     var d = ' data-item="' + key + '" data-added';
     switch (type) {
       case 'heading': return '<h2' + d + ' data-text>New heading</h2>';
+      case 'groupheading': return '<h3 class="cards-head"' + d + ' data-text>New group of cards</h3>';
       case 'paragraph': return '<p class="added-p"' + d + ' data-text>A new paragraph. Switch to Content to change this text.</p>';
       case 'button': return '<a href="#" class="btn"' + d + ' data-text>New button</a>';
       case 'link': return '<a href="#"' + d + ' data-text>New link</a>';
@@ -498,7 +500,9 @@
     wrap.innerHTML = itemHTML(spec[0], key);
     var el = wrap.firstChild;
     var into = sec.querySelector(spec[2]);
-    into.appendChild(el);
+    // Goes after the selected item when that's in the same place, otherwise at the end.
+    var after = state.item && state.item.isConnected && state.item.parentElement === into ? state.item : null;
+    into.insertBefore(el, after ? after.nextSibling : null);
     el.querySelectorAll('img[data-img]').forEach(function (img) { state.img[img.dataset.img] = addCount % IMAGES.length; });
     el.classList.add('fresh');
     setTimeout(function () { el.classList.remove('fresh'); }, 1000);
@@ -782,7 +786,7 @@
     var base = stage.getBoundingClientRect();
     if (drag) {
       var slot = handlesEl.querySelector('.slot');
-      var L = drag.self, pr = drag.parent.getBoundingClientRect();
+      var L = drag.self, pr = drag.sec.getBoundingClientRect();
       if (slot) {
         slot.style.left = (pr.left + L.x - base.left) + 'px'; slot.style.top = (pr.top + L.y - base.top) + 'px';
         slot.style.width = L.w + 'px'; slot.style.height = L.h + 'px';
@@ -796,11 +800,11 @@
 
   // Positions are kept relative to the items' container, so scrolling doesn't upset them.
   function measure() {
-    var pr = drag.parent.getBoundingClientRect();
+    var pr = drag.sec.getBoundingClientRect();
     var rel = function (r) { return { x: r.left - pr.left, y: r.top - pr.top, w: r.width, h: r.height }; };
     drag.self = rel(drag.it.getBoundingClientRect());
     drag.rects = new Map();
-    drag.sibs.forEach(function (n) { if (n !== drag.it) drag.rects.set(n, rel(n.getBoundingClientRect())); });
+    drag.others.forEach(function (n) { drag.rects.set(n, rel(n.getBoundingClientRect())); });
   }
 
   function surface(el) {
@@ -812,10 +816,21 @@
     return '#fff';
   }
 
+  // Headings, paragraphs and buttons can go anywhere in their section, including in between cards,
+  // plans, questions or photos. Cards, plans, questions and photos stay in their own group. The
+  // header and footer keep their structure, since they're on every page.
+  function loose(it) { return it.hasAttribute('data-text') && !typeOf(it.closest('.sec')).global; }
+  function dropTargets(it) {
+    if (!loose(it)) return itemSiblings(it).filter(function (n) { return n !== it; });
+    return Array.prototype.filter.call(it.closest('.sec').querySelectorAll('[data-item]'), function (n) {
+      return n !== it && !n.parentElement.closest('[data-item]');
+    });
+  }
+
   function beginDrag(it, x, y) {
     var r = it.getBoundingClientRect();
-    drag = { it: it, parent: it.parentElement, ox: x - r.left, oy: y - r.top, px: x, py: y, moved: false,
-      home: it.nextSibling, sibs: itemSiblings(it) };
+    drag = { it: it, sec: it.closest('.sec'), parent: it.parentElement, ox: x - r.left, oy: y - r.top, px: x, py: y, moved: false,
+      homeParent: it.parentElement, home: it.nextSibling, others: dropTargets(it), loose: loose(it) };
     state.item = it;
     render();
   }
@@ -866,7 +881,7 @@
   }
 
   function followPointer() {
-    var it = drag.it, L = drag.self, pr = drag.parent.getBoundingClientRect();
+    var it = drag.it, L = drag.self, pr = drag.sec.getBoundingClientRect();
     placeGhost();
     // Is the pointer over another item? Then the dragged one takes its place.
     var hit = null, after = false;
@@ -879,17 +894,19 @@
       after = across ? drag.px > x + R.w / 2 : drag.py > y + R.h / 2;
     });
     if (!hit) return;
-    var itFirst = !!(it.compareDocumentPosition(hit) & Node.DOCUMENT_POSITION_FOLLOWING);
-    if (after === itFirst) reorder(hit, after);
+    // Move only if that isn't already where it is.
+    var ref = after ? hit.nextSibling : hit;
+    if (ref === it || (it.parentNode === hit.parentNode && it.nextSibling === ref)) return;
+    reorder(hit, after);
   }
 
   function reorder(target, after) {
     var it = drag.it;
-    var others = drag.sibs.filter(function (n) { return n !== it; });
+    var others = drag.others;
     var first = others.map(function (n) { return n.getBoundingClientRect(); });
     others.forEach(function (n) { n.getAnimations().forEach(function (a) { a.cancel(); }); });
-    drag.parent.insertBefore(it, after ? target.nextSibling : target);
-    drag.sibs = itemSiblings(it);
+    target.parentNode.insertBefore(it, after ? target.nextSibling : target);
+    drag.parent = it.parentElement;
     measure();
     // Slide the others from where they were to where they are now.
     others.forEach(function (n, i) {
@@ -907,8 +924,8 @@
     var bottom = sr.bottom;
     if (!dock.hidden) { var dr = dock.getBoundingClientRect(); if (dr.top > sr.top + sr.height / 2) bottom = Math.min(bottom, dr.top); }
     var edge = 64, v = 0;
-    // Only as far as the items' container: once its end is in view, there's nowhere further to drop.
-    var pr = drag.parent.getBoundingClientRect();
+    // Only as far as the items it can go between: once their end is in view, there's nowhere further to drop.
+    var pr = (drag.loose ? drag.sec : drag.homeParent).getBoundingClientRect();
     if (drag.py < sr.top + edge && pr.top < sr.top + 16) v = -Math.min(Math.ceil((sr.top + edge - drag.py) / 5), sr.top + 16 - pr.top);
     else if (drag.py > bottom - edge && pr.bottom > bottom - 16) v = Math.min(Math.ceil((drag.py - (bottom - edge)) / 5), pr.bottom - bottom + 16);
     if (v) { screen.scrollTop += v; followPointer(); }
@@ -932,8 +949,8 @@
         it.classList.remove('dragging');
         positionHandles();
       }, 190);
-      if (it.nextSibling !== d.home) {
-        var parent = d.parent, home = d.home;
+      if (it.nextSibling !== d.home || it.parentElement !== d.homeParent) {
+        var parent = d.homeParent, home = d.home;
         toast('Item moved', 'Undo', function () {
           parent.insertBefore(it, home && home.parentNode === parent ? home : null);
           state.item = it;
@@ -947,7 +964,7 @@
   page.addEventListener('pointerdown', function (e) {
     if (!arranging() || e.button !== 0) return;
     var it = e.target.closest('[data-item]');
-    if (!it || !state.sel.contains(it) || itemSiblings(it).length < 2) return;
+    if (!it || !state.sel.contains(it) || !dropTargets(it).length) return;
     var start = function (x, y, held) { beginDrag(it, x, y); if (held) { liftDrag(); followPointer(); } };
     if (e.pointerType === 'mouse') { e.preventDefault(); start(e.clientX, e.clientY, false); return; }
     // Touch: press and hold to pick the item up, so a swipe still scrolls.

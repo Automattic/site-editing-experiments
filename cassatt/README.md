@@ -19,7 +19,7 @@ There's no hover on a phone, so everything starts with a tap, and the tools live
 - **On a computer**, the desktop view is a full-size editor using the same tools, in a bar at the bottom of the selected section. The section makes room for it, and it sticks to the bottom of the window while the end of a tall section is out of view:
   - Hovering a section outlines it and shows its name. Clicking selects it, and the bar names the section it's editing.
   - **L**, **C** and **A** switch to Layout, Content and Arrange. **Esc** steps back out.
-  - Layout opens a tray in place of the bar with every layout side by side, with the desktop name first.
+  - Layout opens a tray in place of the bar with the layouts side by side (scroll sideways for more), with the desktop name first.
   - Add, More and photo choices open as panels just above the bar. The Layout tray opens at the bottom of the window.
 
 The header and footer are shared across the whole site. Their tab reads **Header · shown on every page**, every sheet says **You're editing the header on every page of your site**, and they can't be moved, duplicated or deleted.
@@ -28,21 +28,21 @@ The header and footer are shared across the whole site. Their tab reads **Header
 
 ## Sections and layouts
 
-Each mobile layout is followed by its desktop arrangement in brackets.
+Each section has between four and six layouts. Each mobile layout is followed by its desktop arrangement in brackets.
 
 | Section | Layouts |
 | --- | --- |
-| Header | Links beside logo (logo left, links right), Links below logo (links under the logo), Centred (centred) |
-| Hero | Image on top (image left, text right), Text on top (text left, image right), Text over image (full-width image) |
-| Features | Stacked cards (three columns), Swipe through (a row of cards), Compact list (two-column list) |
-| Gallery | Two across (three across), One per row (two large across), Swipe through (one long row) |
-| Quote | Centred, Left aligned, Dark band |
-| Pricing | Stacked (side by side), Swipe through (side by side), Compact (rows) |
-| FAQ | Cards (two columns of cards), Plain list (one narrow column), Numbered (two numbered columns) |
-| Newsletter | Panel (text and form side by side), Plain (centred), Dark band (dark, side by side) |
-| Call to action | Panel (centred panel), Plain (centred), Dark banner (button on the right) |
-| Contact | Image on top (text left, image right), Image below (image left, text right), Card over image (card over a wide image) |
-| Footer | Stacked (columns in a row), Two columns (brand beside two columns), Centred (centred) |
+| Header | Links beside logo (logo left, links right), Links below logo (links under the logo), Centred (centred), Menu button (links tucked into a menu button), Dark bar (dark bar, links on the right) |
+| Hero | Image on top (image left, text right), Text on top (text left, image right), Text over image (full-width image), Edge-to-edge image (image fills the left half), Centred (centred text, wide image below), Big text (large text, no image) |
+| Features | Stacked cards (three columns), Swipe through (a row of cards), Compact list (two-column list), Two across (four across), Without boxes (three columns, no boxes), Image beside text (rows, images alternating sides) |
+| Gallery | Two across (three across), One per row (two large across), Swipe through (one long row), Mosaic (mosaic, big first photo), Three across (four across) |
+| Quote | Centred (centred), Left aligned (left aligned), Dark band (dark band), Large type (very large type), In a card (in a card), Accent band (accent band) |
+| Pricing | Stacked (side by side), Swipe through (side by side), Compact (rows), Highlight one (side by side, middle highlighted), Divided by lines (columns divided by lines) |
+| FAQ | Cards (two columns of cards), Plain list (one narrow column), Numbered (two numbered columns), Accent lines (heading beside the questions) |
+| Newsletter | Panel (text and form side by side), Plain (centred), Dark band (dark, side by side), Accent panel (accent panel, side by side), One line (centred, field and button on one line) |
+| Call to action | Panel (centred panel), Plain (centred), Dark banner (button on the right), Accent panel (accent panel, centred), Outlined (outlined, button on the right) |
+| Contact | Image on top (text left, image right), Image below (image left, text right), Card over image (card over a wide image), Small image beside (large image beside the text), Text only (text only, centred) |
+| Footer | Stacked (columns in a row), Two columns (brand beside two columns), Centred (centred), Light (light, columns in a row), Compact (everything on one row) |
 
 ## Running it
 

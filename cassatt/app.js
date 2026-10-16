@@ -23,27 +23,27 @@
 
   // Section types: name, mobile layouts and what can be added to them.
   var TYPES = {
-    header: { title: 'Header', global: true, layouts: [['inline', 'Links beside logo', 'logo left, links right'], ['stacked', 'Links below logo', 'links under the logo'], ['centered', 'Centred', 'centred']],
+    header: { title: 'Header', global: true, layouts: [['inline', 'Links beside logo', 'logo left, links right'], ['stacked', 'Links below logo', 'links under the logo'], ['centered', 'Centred', 'centred'], ['menu', 'Menu button', 'links tucked into a menu button'], ['dark', 'Dark bar', 'dark bar, links on the right']],
       add: [['link', 'Link', '.hnav'], ['button', 'Button', '.hnav']] },
-    hero: { title: 'Hero', layouts: [['stack', 'Image on top', 'image left, text right'], ['textfirst', 'Text on top', 'text left, image right'], ['overlay', 'Text over image', 'full-width image']],
+    hero: { title: 'Hero', layouts: [['stack', 'Image on top', 'image left, text right'], ['textfirst', 'Text on top', 'text left, image right'], ['overlay', 'Text over image', 'full-width image'], ['bleed', 'Edge-to-edge image', 'image fills the left half'], ['centered', 'Centred', 'centred text, wide image below'], ['textonly', 'Big text', 'large text, no image']],
       add: [['heading', 'Heading', '.hero-text'], ['paragraph', 'Paragraph', '.hero-text'], ['button', 'Button', '.hero-text'], ['image', 'Image', '.hero-media']] },
-    features: { title: 'Features', layouts: [['stack', 'Stacked cards', 'three columns'], ['carousel', 'Swipe through', 'a row of cards'], ['list', 'Compact list', 'two-column list']],
+    features: { title: 'Features', layouts: [['stack', 'Stacked cards', 'three columns'], ['carousel', 'Swipe through', 'a row of cards'], ['list', 'Compact list', 'two-column list'], ['grid2', 'Two across', 'four across'], ['plain', 'Without boxes', 'three columns, no boxes'], ['zigzag', 'Image beside text', 'rows, images alternating sides']],
       add: [['card', 'Card', '.cards'], ['heading', 'Heading', '.feat-head'], ['paragraph', 'Paragraph', '.feat-head']] },
-    gallery: { title: 'Gallery', layouts: [['grid2', 'Two across', 'three across'], ['single', 'One per row', 'two large across'], ['carousel', 'Swipe through', 'one long row']],
+    gallery: { title: 'Gallery', layouts: [['grid2', 'Two across', 'three across'], ['single', 'One per row', 'two large across'], ['carousel', 'Swipe through', 'one long row'], ['mosaic', 'Mosaic', 'mosaic, big first photo'], ['grid3', 'Three across', 'four across']],
       add: [['image', 'Image', '.gal-grid'], ['heading', 'Heading', '.gal-head'], ['paragraph', 'Paragraph', '.gal-head']] },
-    quote: { title: 'Quote', layouts: [['center', 'Centred', 'centred'], ['left', 'Left aligned', 'left aligned'], ['dark', 'Dark band', 'dark band']],
+    quote: { title: 'Quote', layouts: [['center', 'Centred', 'centred'], ['left', 'Left aligned', 'left aligned'], ['dark', 'Dark band', 'dark band'], ['large', 'Large type', 'very large type'], ['card', 'In a card', 'in a card'], ['accent', 'Accent band', 'accent band']],
       add: [['paragraph', 'Paragraph', '.quote-fig'], ['button', 'Button', '.quote-fig']] },
-    pricing: { title: 'Pricing', layouts: [['stack', 'Stacked', 'side by side'], ['carousel', 'Swipe through', 'side by side'], ['compact', 'Compact', 'rows']],
+    pricing: { title: 'Pricing', layouts: [['stack', 'Stacked', 'side by side'], ['carousel', 'Swipe through', 'side by side'], ['compact', 'Compact', 'rows'], ['featured', 'Highlight one', 'side by side, middle highlighted'], ['lines', 'Divided by lines', 'columns divided by lines']],
       add: [['plan', 'Plan', '.plans'], ['heading', 'Heading', '.price-head'], ['paragraph', 'Paragraph', '.price-head']] },
-    faq: { title: 'FAQ', layouts: [['cards', 'Cards', 'two columns of cards'], ['plain', 'Plain list', 'one narrow column'], ['numbered', 'Numbered', 'two numbered columns']],
+    faq: { title: 'FAQ', layouts: [['cards', 'Cards', 'two columns of cards'], ['plain', 'Plain list', 'one narrow column'], ['numbered', 'Numbered', 'two numbered columns'], ['side', 'Accent lines', 'heading beside the questions']],
       add: [['qa', 'Question', '.faq-list'], ['heading', 'Heading', '.faq-head'], ['paragraph', 'Paragraph', '.faq-head']] },
-    newsletter: { title: 'Newsletter', layouts: [['panel', 'Panel', 'text and form side by side'], ['plain', 'Plain', 'centred'], ['dark', 'Dark band', 'dark, side by side']],
+    newsletter: { title: 'Newsletter', layouts: [['panel', 'Panel', 'text and form side by side'], ['plain', 'Plain', 'centred'], ['dark', 'Dark band', 'dark, side by side'], ['accent', 'Accent panel', 'accent panel, side by side'], ['inline', 'One line', 'centred, field and button on one line']],
       add: [['heading', 'Heading', '.nl-text'], ['paragraph', 'Paragraph', '.nl-text']] },
-    cta: { title: 'Call to action', layouts: [['panel', 'Panel', 'centred panel'], ['plain', 'Plain', 'centred'], ['banner', 'Dark banner', 'button on the right']],
+    cta: { title: 'Call to action', layouts: [['panel', 'Panel', 'centred panel'], ['plain', 'Plain', 'centred'], ['banner', 'Dark banner', 'button on the right'], ['accent', 'Accent panel', 'accent panel, centred'], ['outline', 'Outlined', 'outlined, button on the right']],
       add: [['heading', 'Heading', '.cta-text'], ['paragraph', 'Paragraph', '.cta-text'], ['button', 'Button', '.cta-text']] },
-    contact: { title: 'Contact', layouts: [['imagetop', 'Image on top', 'text left, image right'], ['imagebottom', 'Image below', 'image left, text right'], ['card', 'Card over image', 'card over a wide image']],
+    contact: { title: 'Contact', layouts: [['imagetop', 'Image on top', 'text left, image right'], ['imagebottom', 'Image below', 'image left, text right'], ['card', 'Card over image', 'card over a wide image'], ['side', 'Small image beside', 'large image beside the text'], ['textonly', 'Text only', 'text only, centred']],
       add: [['heading', 'Heading', '.contact-text'], ['paragraph', 'Paragraph', '.contact-text'], ['button', 'Button', '.contact-text']] },
-    footer: { title: 'Footer', global: true, layouts: [['stacked', 'Stacked', 'columns in a row'], ['twocol', 'Two columns', 'brand beside two columns'], ['centered', 'Centred', 'centred']],
+    footer: { title: 'Footer', global: true, layouts: [['stacked', 'Stacked', 'columns in a row'], ['twocol', 'Two columns', 'brand beside two columns'], ['centered', 'Centred', 'centred'], ['light', 'Light', 'light, columns in a row'], ['compact', 'Compact', 'everything on one row']],
       add: [['fcol', 'Column', '.footer-cols'], ['paragraph', 'Paragraph', '.footer-base']] }
   };
   // Types that can be added as new sections, with a simple diagram for the picker: [x, y, w, h, kind]

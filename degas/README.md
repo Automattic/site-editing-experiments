@@ -8,7 +8,7 @@ Requires WordPress 6.8 or later. Developed and tested on WordPress 7.1 with Twen
 
 ## Try it
 
-**[Open Degas in WordPress Playground](https://playground.wordpress.net/?blueprint-url=https://raw.githubusercontent.com/Automattic/site-editing-experiments/trunk/degas/blueprint.json)**: a fresh, throwaway WordPress in your browser with Degas active and a sample page (Albers' Northfield Ceramics sections) open in the editor. Give it a minute to start, and use a desktop browser. Nothing is saved: closing or reloading the tab starts over.
+**[Try the live demo](https://automattic.github.io/site-editing-experiments/degas/)**, or **[open it full screen in WordPress Playground](https://playground.wordpress.net/?blueprint-url=https://raw.githubusercontent.com/Automattic/site-editing-experiments/trunk/degas/blueprint.json)**: a fresh, throwaway WordPress in your browser with Degas active and a sample page (Albers' Northfield Ceramics sections) open in the editor. Give it a minute to start, and use a desktop browser. Nothing is saved: closing or reloading the tab starts over.
 
 The link runs [`blueprint.json`](blueprint.json), which installs the plugin straight from this repo's `trunk`. On any site with Degas active, `/wp-admin/?degas-sample` makes the same sample page and opens it.
 

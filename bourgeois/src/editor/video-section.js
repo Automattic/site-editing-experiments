@@ -66,6 +66,22 @@ const SHARED = [
 	'ariaLabel',
 ];
 
+// Content alignment as Cover's content position.
+const COVER_POSITION = {
+	top: 'top center',
+	middle: 'center center',
+	bottom: 'bottom center',
+};
+
+function withoutValign( className ) {
+	return (
+		( className || '' )
+			.split( /\s+/ )
+			.filter( ( c ) => c && ! c.startsWith( 'sse-valign-' ) )
+			.join( ' ' ) || undefined
+	);
+}
+
 function withoutStash( metadata ) {
 	if ( ! metadata?.[ STASH ] ) {
 		return metadata;
@@ -127,6 +143,11 @@ export function withVideo( block, media, { overlay, dimRatio = 40, isDark } ) {
 	if ( attributes.backgroundColor ) {
 		stash.backgroundColor = attributes.backgroundColor;
 	}
+	// Cover places its content itself; a Group's alignment class becomes
+	// Cover's content position (and back again, below).
+	const valign = /(?:^|\s)sse-valign-(middle|bottom)(?:\s|$)/.exec(
+		attributes.className || ''
+	)?.[ 1 ];
 	const metadata = Object.keys( stash ).length
 		? { ...( attributes.metadata || {} ), [ STASH ]: stash }
 		: attributes.metadata;
@@ -139,6 +160,8 @@ export function withVideo( block, media, { overlay, dimRatio = 40, isDark } ) {
 			'core/cover',
 			{
 				...pick( attributes, SHARED ),
+				className: withoutValign( attributes.className ),
+				contentPosition: COVER_POSITION[ valign || 'top' ],
 				...( metadata ? { metadata } : {} ),
 				align: attributes.align || 'full',
 				style: sharedStyle( style ),
@@ -187,10 +210,23 @@ export function withoutVideo( block ) {
 		style.color = { ...( style.color || {} ), gradient: stash.gradient };
 	}
 	const metadata = withoutStash( attributes.metadata );
+	const position = Object.keys( COVER_POSITION ).find(
+		( key ) =>
+			COVER_POSITION[ key ] ===
+			( attributes.contentPosition || 'center center' )
+	);
+	const className =
+		[
+			withoutValign( attributes.className ),
+			position && position !== 'top' ? `sse-valign-${ position }` : '',
+		]
+			.filter( Boolean )
+			.join( ' ' ) || undefined;
 	return createBlock(
 		'core/group',
 		{
 			...pick( attributes, SHARED ),
+			className,
 			...( metadata ? { metadata } : {} ),
 			...( stash.backgroundColor
 				? { backgroundColor: stash.backgroundColor }

@@ -436,6 +436,15 @@ function DesignTab( { clientId, name, attributes } ) {
 					),
 				} );
 
+	// Only where it works: a Cover, or a Group that stacks its blocks (not a
+	// row or a grid).
+	const canAlign =
+		isCover ||
+		( name === 'core/group' &&
+			[ undefined, 'default', 'constrained' ].includes(
+				attributes.layout?.type
+			) );
+
 	const canFillScreen =
 		isCover || !! getBlockSupport( name, 'dimensions.minHeight' );
 	const supportsAlign = getBlockSupport( name, 'align' );
@@ -568,7 +577,7 @@ function DesignTab( { clientId, name, attributes } ) {
 					</div>
 				</div>
 			) }
-			{ name !== FLUID && (
+			{ canAlign && (
 				<Segmented
 					label={ __( 'Content alignment', 'section-site-editor' ) }
 					value={ alignment }
@@ -680,6 +689,16 @@ function ImageBackground( { clientId, name, attributes } ) {
 	);
 	const setImage = ( media ) =>
 		updateBlockAttributes( clientId, {
+			// The overlay only means something over an image.
+			...( media
+				? {}
+				: {
+						className: withClassValue(
+							attributes.className,
+							'sse-overlay-',
+							undefined
+						),
+					} ),
 			style: {
 				...style,
 				background: media

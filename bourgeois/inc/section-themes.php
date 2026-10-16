@@ -156,14 +156,17 @@ function sse_section_themes_css() {
 	$s    = '[class*="is-style-sse-"]';
 	$css .= "{$s}{background-color:var(--sse-bg);color:var(--sse-text);}";
 	$css .= ":where({$s}:not(.wp-block-template-part)){padding-block:var(--wp--custom--sse--section-padding,5rem);}";
-	// Coloured sections sit flush against each other.
 	// Content alignment, for a section taller than its content.
-	$css .= '.sse-valign-middle,.sse-valign-bottom{display:flex;flex-direction:column;}';
-	$css .= '.sse-valign-middle{justify-content:center;}.sse-valign-bottom{justify-content:flex-end;}';
+	// Flex would let core's centring margins shrink each block to its
+	// content, so blocks keep the full column width.
+	$valign = ':is(.sse-valign-middle,.sse-valign-bottom):not(.wp-block-cover)';
+	$css   .= "{$valign}{display:flex;flex-direction:column;}";
+	$css   .= ".sse-valign-middle:not(.wp-block-cover){justify-content:center;}.sse-valign-bottom:not(.wp-block-cover){justify-content:flex-end;}";
+	$css   .= "{$valign} > :not(.alignfull):not(.alignleft):not(.alignright){width:100%;}";
 	// The image overlay: the section's own colour over its background image,
 	// as an inset shadow so it sits between the image and the content.
 	for ( $n = 10; $n <= 90; $n += 10 ) {
-		$css .= sprintf( '.sse-overlay-%1$d{box-shadow:inset 0 0 0 100vmax color-mix(in srgb,var(--sse-bg,#000) %1$d%%,transparent);}', $n );
+		$css .= sprintf( '.sse-overlay-%1$d{box-shadow:inset 0 0 0 100vmax color-mix(in srgb,var(--sse-bg,var(--wp--preset--color--sse-lightest,#fff)) %1$d%%,transparent);}', $n );
 	}
 	// Inset: the section's background is a rounded panel in from the page
 	// edges. Clipping (rather than margins) leaves alignment and the
@@ -172,6 +175,7 @@ function sse_section_themes_css() {
 	// Cover sets its own 1em padding; give a Cover section (one with a
 	// background video or image) the same room as any other section.
 	$css .= "{$s}.wp-block-cover{padding-block:var(--wp--custom--sse--section-padding,5rem);padding-inline:var(--wp--style--root--padding-left,1rem) var(--wp--style--root--padding-right,1rem);}";
+	// Coloured sections sit flush against each other.
 	$css .= "{$s}+{$s}{margin-block-start:0;}";
 	$css .= "{$s} :is(h1,h2,h3,h4,h5,h6){color:var(--sse-heading);}";
 	$css .= "{$s} a:not(.wp-element-button):not(.wp-block-button__link){color:var(--sse-link);}";

@@ -41,8 +41,11 @@ function sse_current_animation() {
 
 /**
  * CSS for the animations. Nothing is hidden until the script has marked
- * what it will animate, so the page reads fine without JavaScript, and
- * people who ask for reduced motion see everything in place.
+ * what it will animate, so the page reads fine without JavaScript. It all
+ * sits in a screen-only, motion-friendly media query: printed pages and
+ * people who ask for reduced motion see everything in place. Once an item
+ * has appeared it's marked done and loses the transition, so its own hover
+ * effects aren't slowed down.
  *
  * @return string
  */
@@ -54,38 +57,45 @@ function sse_animation_css() {
 		'clip'  => 'clip-path:inset(0 0 100% 0);',
 		'flex'  => 'opacity:0;transform:translateY(2rem) scale(.96);',
 	);
-	$css = '.sse-anim{transition:opacity .7s ease,transform .8s cubic-bezier(.2,.7,.2,1),clip-path .9s cubic-bezier(.6,0,.2,1);transition-delay:var(--sse-anim-delay,0s);}';
+	$css = '.sse-anim:not(.is-done){transition:opacity .7s ease,transform .8s cubic-bezier(.2,.7,.2,1),clip-path .9s cubic-bezier(.6,0,.2,1);transition-delay:var(--sse-anim-delay,0s);}';
 	// Flex overshoots a little and settles, like something on a spring.
-	$css .= '.sse-animate-flex .sse-anim{transition-timing-function:ease,cubic-bezier(.3,1.6,.5,1),ease;}';
+	$css .= '.sse-animate-flex .sse-anim:not(.is-done){transition-timing-function:ease,cubic-bezier(.3,1.6,.5,1),ease;}';
 	foreach ( $hidden as $slug => $rule ) {
 		$css .= sprintf( '.sse-animate-%1$s .sse-anim:not(.is-in){%2$s}', $slug, $rule );
 	}
-	$css .= '@media (prefers-reduced-motion:reduce){.sse-anim{transition:none !important;opacity:1 !important;transform:none !important;clip-path:none !important;}}';
-	return $css;
+	return '@media screen and (prefers-reduced-motion:no-preference){' . $css . '}';
 }
 
 /**
  * Marks section content and reveals it as it scrolls into view. Kept small
- * and dependency-free; it runs on the front end only.
+ * and dependency-free; it runs on the front end only, and only on pages
+ * with page content (not archives or search results).
  *
  * @return string
  */
 function sse_animation_js() {
 	return <<<'JS'
 ( function () {
-	var root = document.querySelector( '.wp-block-post-content' ) || document.body;
-	var sections = Array.prototype.slice.call( root.children );
+	var root = document.querySelector( '.wp-block-post-content' );
+	if ( ! root || ! window.matchMedia( 'screen and (prefers-reduced-motion: no-preference)' ).matches ) {
+		return;
+	}
+	var BLOCK_TAGS = /^(P|H[1-6]|UL|OL|DL|FIGURE|BLOCKQUOTE|TABLE|FORM|DIV|SECTION|ARTICLE|ASIDE|HR|PRE|DETAILS|NAV)$/;
+	// Blocks only: never the links and emphasis inside a paragraph.
+	var content = function ( el ) {
+		return Array.prototype.filter.call( el.children, function ( child ) {
+			if ( child.matches( 'video, img.wp-block-cover__image-background, .wp-block-cover__background, style, script' ) ) {
+				return false;
+			}
+			return /(^|\s)wp-block-/.test( child.className ) || BLOCK_TAGS.test( child.tagName );
+		} );
+	};
 	var targets = [];
-	sections.forEach( function ( section ) {
+	Array.prototype.forEach.call( root.children, function ( section ) {
 		var parent =
 			section.querySelector( ':scope > .wp-block-cover__inner-container' ) ||
 			section.querySelector( ':scope > .wp-block-sse-fluid-section__grid' ) ||
 			section;
-		var content = function ( el ) {
-			return Array.prototype.filter.call( el.children, function ( child ) {
-				return ! child.matches( 'video, img.wp-block-cover__image-background, .wp-block-cover__background, style, script' );
-			} );
-		};
 		var items = content( parent );
 		// A lone wrapper (columns, a group) animates its contents instead.
 		for ( var depth = 0; depth < 3 && items.length === 1; depth++ ) {
@@ -99,7 +109,7 @@ function sse_animation_js() {
 			}
 			items = inner;
 		}
-		if ( parent === section && ! items.length ) {
+		if ( ! items.length ) {
 			items = [ section ];
 		}
 		items.forEach( function ( el, i ) {
@@ -108,19 +118,38 @@ function sse_animation_js() {
 			targets.push( el );
 		} );
 	} );
+	var reveal = function ( el ) {
+		if ( el.classList.contains( 'is-in' ) ) {
+			return;
+		}
+		el.classList.add( 'is-in' );
+		window.setTimeout( function () {
+			el.classList.add( 'is-done' );
+		}, 1500 );
+	};
 	if ( ! ( 'IntersectionObserver' in window ) ) {
-		targets.forEach( function ( el ) { el.classList.add( 'is-in' ); } );
+		targets.forEach( reveal );
 		return;
 	}
 	var observer = new IntersectionObserver( function ( entries ) {
 		entries.forEach( function ( entry ) {
 			if ( entry.isIntersecting ) {
-				entry.target.classList.add( 'is-in' );
+				reveal( entry.target );
 				observer.unobserve( entry.target );
 			}
 		} );
-	}, { rootMargin: '0px 0px -8% 0px' } );
+	} );
 	targets.forEach( function ( el ) { observer.observe( el ); } );
+	// At the very bottom of the page, show whatever's left: a short last
+	// item might never cross into view far enough to trigger.
+	var atBottom = function () {
+		if ( window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4 ) {
+			targets.forEach( reveal );
+			window.removeEventListener( 'scroll', atBottom );
+		}
+	};
+	window.addEventListener( 'scroll', atBottom, { passive: true } );
+	atBottom();
 } )();
 JS;
 }

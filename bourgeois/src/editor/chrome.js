@@ -251,10 +251,12 @@ export default function Chrome() {
 	// A new page starts with the big Add section button, which leads to the
 	// section picker. Core's own "Choose a pattern" dialog for new pages
 	// would cover it and offer whole-page patterns instead, so it's off.
-	const { set: setPreference } = useDispatch( 'core/preferences' );
+	// Only a default for this screen: it isn't saved, the post editor keeps
+	// its own behaviour, and anyone who has chosen a setting keeps it.
+	const { setDefaults } = useDispatch( 'core/preferences' );
 	useEffect( () => {
-		setPreference( 'core', 'enableChoosePatternModal', false );
-	}, [ setPreference ] );
+		setDefaults( 'core', { enableChoosePatternModal: false } );
+	}, [ setDefaults ] );
 
 	if ( ! isEditMode ) {
 		return <EditButton />;

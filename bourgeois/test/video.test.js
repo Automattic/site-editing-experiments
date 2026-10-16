@@ -178,4 +178,30 @@ describe( 'background video', () => {
 		expect( group.attributes.metadata ).toBeUndefined();
 		expect( allValid( reload( group ) ) ).toBe( true );
 	} );
+
+	it( 'carries content alignment over as the Cover content position', () => {
+		const middle = createBlock(
+			'core/group',
+			{
+				align: 'full',
+				className: 'is-style-sse-dark-1 sse-valign-middle',
+			},
+			[ createBlock( 'core/paragraph', { content: 'Hi' } ) ]
+		);
+		const { block } = withVideo( middle, media, {} );
+		expect( block.attributes.className ).toBe( 'is-style-sse-dark-1' );
+		expect( block.attributes.contentPosition ).toBe( 'center center' );
+
+		const group = withoutVideo( reload( block ) );
+		expect( group.attributes.className ).toBe(
+			'is-style-sse-dark-1 sse-valign-middle'
+		);
+
+		const top = withoutVideo(
+			reload( withVideo( section(), media, {} ).block )
+		);
+		expect( top.attributes.className ).toBe(
+			'is-style-sse-dark-1 sse-divider-wave'
+		);
+	} );
 } );

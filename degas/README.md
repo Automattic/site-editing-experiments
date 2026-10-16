@@ -6,6 +6,12 @@ Requires WordPress 6.8 or later. Developed and tested on WordPress 7.1 with Twen
 
 ![Hovering a section: its name, Add, the three modes and the section toolbar](docs/screenshots/01-hover.jpg)
 
+## Try it
+
+**[Open Degas in WordPress Playground](https://playground.wordpress.net/?blueprint-url=https://raw.githubusercontent.com/Automattic/site-editing-experiments/trunk/degas/blueprint.json)**: a fresh, throwaway WordPress in your browser with Degas active and a sample page (Albers' Northfield Ceramics sections) open in the editor. Give it a minute to start, and use a desktop browser. Nothing is saved: closing or reloading the tab starts over.
+
+The link runs [`blueprint.json`](blueprint.json), which installs the plugin straight from this repo's `trunk`. On any site with Degas active, `/wp-admin/?degas-sample` makes the same sample page and opens it.
+
 ## Sections
 
 Every top-level block on a page is a section (inside Post Content, when the page is shown in its template). Degas adds twelve section types, the same as Albers: Hero, Features, Call to action, Text, Image, Gallery, Quote, Contact, FAQ, Team, Newsletter and Pricing. Each is an ordinary group of core blocks (headings, paragraphs, buttons, images and groups), and its type, layout and colours are class names on the section, such as `degas-section degas-hero degas-layout-cover degas-palette-night`. They're in the inserter as patterns too, under **Degas sections**.

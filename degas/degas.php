@@ -22,6 +22,7 @@ define( 'DEGAS_URL', plugin_dir_url( __FILE__ ) );
 require_once DEGAS_DIR . 'inc/markup.php';
 require_once DEGAS_DIR . 'inc/sections.php';
 require_once DEGAS_DIR . 'inc/freeform.php';
+require_once DEGAS_DIR . 'inc/sample.php';
 
 /**
  * A file's version for cache busting: the plugin version and when it was built.

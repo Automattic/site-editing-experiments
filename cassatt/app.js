@@ -86,7 +86,7 @@
   };
 
   // ---------- State ----------
-  var state = { sel: null, mode: null, item: null, sheet: null, layout: {}, palette: {}, img: {}, free: {}, view: 'phone' };
+  var state = { sel: null, mode: null, item: null, sheet: null, layout: {}, palette: {}, img: {}, view: 'phone' };
   var page = document.getElementById('page');
   var stage = document.getElementById('stage');
   var deskbar = document.getElementById('deskbar');
@@ -245,7 +245,6 @@
       sec.dataset.mode = on && state.mode ? state.mode : '';
       var editing = on && state.mode === 'content';
       sec.querySelectorAll('[data-text]').forEach(function (el) { el.contentEditable = editing ? 'true' : 'false'; });
-      applyFree(sec);
     });
     page.querySelectorAll('.item-on').forEach(function (el) { el.classList.remove('item-on'); });
     if (state.item && state.item.isConnected) state.item.classList.add('item-on');
@@ -273,7 +272,7 @@
     state.mode = mode;
     state.item = null;
     if (mode === 'layout') {
-      state.sel._snap = { layout: layoutOf(state.sel), palette: paletteOf(state.sel), free: isFree(state.sel) ? JSON.parse(JSON.stringify(freeMap(state.sel))) : null };
+      state.sel._snap = { layout: layoutOf(state.sel), palette: paletteOf(state.sel) };
       openSheet('layout');
       scrollToSection(state.sel);
     } else {
@@ -400,23 +399,13 @@
         '<button type="button" class="dock-done" data-act="exit">Done</button></div>';
     } else if (state.mode === 'arrange') {
       var it = state.item && state.item.isConnected ? state.item : null;
-      var free = isFree(sec);
-      var hold = deskEdit() ? '' : 'Hold ';
-      var hint = free
-        ? (deskEdit() ? 'Drag anything anywhere. Drag a corner to resize.' : 'Hold and drag anything anywhere. Drag a corner to resize.')
-        : (deskEdit() ? (it ? 'Drag to move it, or use the arrows' : 'Drag an item to move it') : (it ? 'Hold and drag it, or use the arrows' : 'Hold an item, then drag it'));
-      html = '<div class="dock-seg" role="group" aria-label="How items are placed">' +
-        '<button type="button" data-act="arr-order" aria-pressed="' + !free + '">In order</button>' +
-        '<button type="button" data-act="arr-free" aria-pressed="' + free + '">Freeform</button></div>' +
-        '<div class="dock-bar"><span class="dock-hint">' + hint + '</span>';
-      if (!free) {
-        var prev = it && siblingItem(it, -1), next = it && siblingItem(it, 1);
-        html += '<button type="button" class="dock-icon" data-act="item-up" aria-label="Move item up"' + (prev ? '' : ' disabled') + '>' + ICON.up + '</button>' +
-          '<button type="button" class="dock-icon" data-act="item-down" aria-label="Move item down"' + (next ? '' : ' disabled') + '>' + ICON.down + '</button>';
-      }
-      html += '<button type="button" class="dock-icon" data-act="remove-item" aria-label="Remove item"' + (it ? '' : ' disabled') + '>' + ICON.bin + '</button>' +
+      var prev = it && siblingItem(it, -1), next = it && siblingItem(it, 1);
+      var hint = deskEdit() ? (it ? 'Drag to move it, or use the arrows' : 'Drag an item to move it') : (it ? 'Hold and drag it, or use the arrows' : 'Hold an item, then drag it');
+      html = '<div class="dock-bar"><span class="dock-hint">' + hint + '</span>' +
+        '<button type="button" class="dock-icon" data-act="item-up" aria-label="Move item up"' + (prev ? '' : ' disabled') + '>' + ICON.up + '</button>' +
+        '<button type="button" class="dock-icon" data-act="item-down" aria-label="Move item down"' + (next ? '' : ' disabled') + '>' + ICON.down + '</button>' +
+        '<button type="button" class="dock-icon" data-act="remove-item" aria-label="Remove item"' + (it ? '' : ' disabled') + '>' + ICON.bin + '</button>' +
         '<button type="button" class="dock-done" data-act="exit">Done</button></div>';
-      void hold;
     }
     if (deskEdit()) {
       html = '<div class="dock-name">' + (t.global ? ICON.globe + t.title + '<span class="tabnote"> · shown on every page</span>' : t.title) + '</div>' + html;
@@ -435,10 +424,7 @@
     var h = on ? dock.offsetHeight : 0;
     sections().forEach(function (s) {
       var pb = on && s === state.sel ? (h + gap * 2) + 'px' : '';
-      if (s.style.paddingBottom !== pb) {
-        s.style.paddingBottom = pb;
-        if (s.classList.contains('is-free')) applyFree(s);
-      }
+      if (s.style.paddingBottom !== pb) s.style.paddingBottom = pb;
     });
     positionHandles();
     if (!on) { dock.style.top = ''; sheet.style.bottom = sheet.style.maxHeight = ''; return; }
@@ -471,8 +457,6 @@
     else if (act === 'exit') exitMode();
     else if (act === 'remove-item') removeItem(state.item);
     else if (act === 'item-up' || act === 'item-down') moveItem(state.item, act === 'item-up' ? -1 : 1);
-    else if (act === 'arr-free') makeFree(state.sel);
-    else if (act === 'arr-order') makeOrdered(state.sel);
   });
   // Keep the dock's buttons from stealing focus from the text being edited.
   dock.addEventListener('pointerdown', function (e) { if (state.mode === 'content' && e.target.closest('button')) e.preventDefault(); });
@@ -552,15 +536,7 @@
     copy.querySelectorAll('[for]').forEach(function (n) { n.setAttribute('for', n.getAttribute('for').replace(old, id)); });
     state.layout[id] = layoutOf(sec);
     state.palette[id] = paletteOf(sec);
-    copy.style.paddingRight = copy.style.paddingBottom = copy.style.height = '';
-    var f = state.free[old];
-    if (f) {
-      state.free[id] = {};
-      Object.keys(f).forEach(function (v) {
-        state.free[id][v] = {};
-        Object.keys(f[v]).forEach(function (k) { state.free[id][v][k.replace(old, id)] = Object.assign({}, f[v][k]); });
-      });
-    }
+    copy.style.paddingBottom = '';
     page.insertBefore(copy, sec.nextSibling);
     closeSheet();
     state.sel = copy;
@@ -634,8 +610,6 @@
     copy.innerHTML = sec.innerHTML;
     copy.querySelectorAll('.sectab').forEach(function (n) { n.remove(); });
     copy.querySelectorAll('*').forEach(function (n) {
-      // Previews show the layout itself, so freeform positions don't come along.
-      if (n.hasAttribute('data-item')) n.style.left = n.style.top = n.style.width = n.style.height = n.style.zIndex = '';
       ['data-item', 'data-img', 'data-text', 'data-media', 'contenteditable', 'id', 'for'].forEach(function (a) { n.removeAttribute(a); });
       n.classList.remove('item-on', 'fresh');
     });
@@ -653,12 +627,11 @@
     var note = t.global ? '<p class="sheet-note">' + ICON.globe + 'You’re editing the ' + t.title.toLowerCase() + ' on every page of your site.</p>' : '';
 
     if (kind === 'layout') {
-      var changed = sec._snap && (sec._snap.layout !== layoutOf(sec) || sec._snap.palette !== paletteOf(sec) || !!sec._snap.free !== isFree(sec));
+      var changed = sec._snap && (sec._snap.layout !== layoutOf(sec) || sec._snap.palette !== paletteOf(sec));
       title.textContent = t.title + ' layout';
       actions.innerHTML = '<button type="button" class="sbtn-ghost" data-act="layout-reset"' + (changed ? '' : ' disabled') + '>Reset</button>' +
         '<button type="button" class="sbtn-primary" data-act="exit">Done</button>';
-      var freeNote = isFree(sec) ? '<p class="sheet-note sheet-note-plain">This section is freeform on ' + (state.view === 'desktop' ? 'desktop' : 'phones') + '. Picking a layout puts its items back in order.</p>' : '';
-      body.innerHTML = note + freeNote + '<div class="lay-row" role="group" aria-label="Layouts"></div>' +
+      body.innerHTML = note + '<div class="lay-row" role="group" aria-label="Layouts"></div>' +
         '<h3 class="sheet-sub">Colours</h3><div class="pal-row" role="group" aria-label="Colour palette">' +
         PALETTES.map(function (p) {
           return '<button type="button" class="pal" data-palette="' + p.id + '" aria-pressed="' + (paletteOf(sec) === p.id) + '">' +
@@ -741,11 +714,10 @@
     if (b.dataset.act === 'layout-reset') {
       state.layout[sec.dataset.id] = sec._snap.layout;
       state.palette[sec.dataset.id] = sec._snap.palette;
-      if (sec._snap.free) setFreeMap(sec, JSON.parse(JSON.stringify(sec._snap.free)));
       render();
       return;
     }
-    if (b.classList.contains('lay')) { setFreeMap(sec, null); state.layout[sec.dataset.id] = b.dataset.layout; render(); return; }
+    if (b.classList.contains('lay')) { state.layout[sec.dataset.id] = b.dataset.layout; render(); return; }
     if (b.classList.contains('pal')) { state.palette[sec.dataset.id] = b.dataset.palette; render(); return; }
     if (b.dataset.add) { addItem(sec, t.add[+b.dataset.add]); return; }
     if (b.dataset.new) { addSection(b.dataset.new, sec); return; }
@@ -787,18 +759,6 @@
     }
     var t = e.target;
     if (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || e.metaKey || e.ctrlKey || e.altKey) return;
-    // Arrow keys nudge the selected item in a freeform section (Shift for bigger steps).
-    if (state.mode === 'arrange' && state.sel && isFree(state.sel) && state.item && state.item.isConnected && /^Arrow/.test(e.key)) {
-      e.preventDefault();
-      var p = freeMap(state.sel)[state.item.dataset.item], step = e.shiftKey ? 10 : 1, sw = state.sel.clientWidth;
-      if (e.key === 'ArrowLeft') p.x = Math.max(0, p.x - step / sw);
-      if (e.key === 'ArrowRight') p.x = Math.min(1 - p.w, p.x + step / sw);
-      if (e.key === 'ArrowUp') p.y = Math.max(0, p.y - step);
-      if (e.key === 'ArrowDown') p.y += step;
-      applyFree(state.sel);
-      positionHandles();
-      return;
-    }
     if (!state.sel || state.mode || state.sheet) return;
     var k = e.key.toLowerCase();
     if (k === 'l') setMode('layout');
@@ -829,20 +789,7 @@
       }
       return;
     }
-    if (fdrag) { placeRz(); return; }
-    if (arranging() && isFree(state.sel) && state.item && state.item.isConnected) {
-      if (!handlesEl.querySelector('.rz')) handlesEl.innerHTML = '<button type="button" class="rz" aria-label="Drag to resize"></button>';
-      placeRz();
-      return;
-    }
     if (handlesEl.firstChild) handlesEl.innerHTML = '';
-  }
-  function placeRz() {
-    var rz = handlesEl.querySelector('.rz');
-    if (!rz || !state.item) return;
-    var base = stage.getBoundingClientRect(), r = state.item.getBoundingClientRect();
-    rz.style.left = Math.round(r.right - base.left) + 'px';
-    rz.style.top = Math.round(r.bottom - base.top) + 'px';
   }
   // Inner scrollers (like a carousel of cards) move items too.
   page.addEventListener('scroll', function () { if (arranging()) positionHandles(); }, true);
@@ -1000,12 +947,8 @@
   page.addEventListener('pointerdown', function (e) {
     if (!arranging() || e.button !== 0) return;
     var it = e.target.closest('[data-item]');
-    if (!it || !state.sel.contains(it)) return;
-    var free = isFree(state.sel);
-    if (!free && itemSiblings(it).length < 2) return;
-    var start = free
-      ? function (x, y) { startFree(it, 'move', x, y); }
-      : function (x, y, held) { beginDrag(it, x, y); if (held) { liftDrag(); followPointer(); } };
+    if (!it || !state.sel.contains(it) || itemSiblings(it).length < 2) return;
+    var start = function (x, y, held) { beginDrag(it, x, y); if (held) { liftDrag(); followPointer(); } };
     if (e.pointerType === 'mouse') { e.preventDefault(); start(e.clientX, e.clientY, false); return; }
     // Touch: press and hold to pick the item up, so a swipe still scrolls.
     it.classList.add('pressing');
@@ -1018,12 +961,6 @@
       if (navigator.vibrate) navigator.vibrate(10);
     }, 300) };
   });
-  handlesEl.addEventListener('pointerdown', function (e) {
-    if (!e.target.closest('.rz') || !state.item) return;
-    e.preventDefault();
-    e.stopPropagation();
-    startFree(state.item, 'resize', e.clientX, e.clientY);
-  });
   function cancelPress() {
     if (!press) return;
     clearTimeout(press.timer);
@@ -1034,7 +971,7 @@
     if (press && Math.abs(e.clientX - press.x) + Math.abs(e.clientY - press.y) > 8) cancelPress();
   });
   // Once an item is picked up, the finger moves it instead of scrolling the page.
-  document.addEventListener('touchmove', function (e) { if (drag || fdrag) e.preventDefault(); }, { passive: false });
+  document.addEventListener('touchmove', function (e) { if (drag) e.preventDefault(); }, { passive: false });
   page.addEventListener('contextmenu', function (e) { if (arranging() && e.target.closest('[data-item]')) e.preventDefault(); });
   document.addEventListener('pointermove', function (e) {
     if (!drag) return;
@@ -1045,216 +982,8 @@
     }
     followPointer();
   });
-  document.addEventListener('pointerup', function () { cancelPress(); if (drag) endDrag(); if (fdrag) endFree(); });
-  document.addEventListener('pointercancel', function () { cancelPress(); if (drag) endDrag(); if (fdrag) endFree(); });
-
-  // ---------- Freeform ----------
-  // A freeform section places each item exactly where you put it. Phones and desktop are too different
-  // for one arrangement to suit both, so each keeps its own: making a section freeform on a phone leaves
-  // its desktop layout alone until you make it freeform there too. Across is stored as a share of the
-  // section's width, so it fits any phone or any desktop window; down is stored in pixels.
-  var fdrag = null;
-  function viewKey() { return state.view === 'desktop' ? 'desktop' : 'phone'; }
-  function freeMap(sec) { var f = sec && state.free[sec.dataset.id]; return f && f[viewKey()]; }
-  function isFree(sec) { return !!freeMap(sec); }
-  function setFreeMap(sec, m) {
-    var id = sec.dataset.id;
-    state.free[id] = state.free[id] || {};
-    if (m) state.free[id][viewKey()] = m; else delete state.free[id][viewKey()];
-  }
-  function freeItems(sec) {
-    return Array.prototype.filter.call(sec.querySelectorAll('[data-item]'), function (n) { return !n.parentElement.closest('[data-item]'); });
-  }
-  function padTop(sec) { return parseFloat(sec.style.paddingTop) || 0; }
-
-  // Freeze the current layout as the starting point.
-  function snapshotFree(sec) {
-    var sr = sec.getBoundingClientRect(), sw = sec.clientWidth, m = {}, pt = padTop(sec);
-    freeItems(sec).forEach(function (it, i) {
-      var r = it.getBoundingClientRect();
-      m[it.dataset.item] = { x: (r.left - sr.left) / sw, y: Math.round(r.top - sr.top - pt), w: r.width / sw,
-        h: it.hasAttribute('data-media') ? Math.round(r.height) : 0, z: i + 1 };
-    });
-    return m;
-  }
-
-  var freeObserver = window.ResizeObserver ? new ResizeObserver(function (entries) {
-    var secs = [];
-    entries.forEach(function (en) { var s = en.target.closest('.sec'); if (s && secs.indexOf(s) < 0) secs.push(s); });
-    secs.forEach(fitFree);
-    if (!drag && !fdrag) placeDock();
-  }) : null;
-
-  function applyFree(sec) {
-    var m = freeMap(sec);
-    sec.classList.toggle('is-free', !!m);
-    var items = freeItems(sec);
-    if (!m) {
-      if (sec.style.height) {
-        sec.style.height = '';
-        items.forEach(function (it) { it.style.left = it.style.top = it.style.width = it.style.height = it.style.zIndex = ''; });
-      }
-      return;
-    }
-    var pt = padTop(sec), missing = [], z = 0;
-    items.forEach(function (it) {
-      var p = m[it.dataset.item];
-      if (!p) { missing.push(it); return; }
-      z = Math.max(z, p.z || 0);
-      it.style.left = (p.x * 100) + '%';
-      it.style.top = (p.y + pt) + 'px';
-      it.style.width = (p.w * 100) + '%';
-      it.style.height = p.h ? p.h + 'px' : '';
-      it.style.zIndex = p.z || '';
-      if (freeObserver) freeObserver.observe(it);
-    });
-    // Anything added while the section is freeform goes underneath what's there.
-    if (missing.length) {
-      var it = missing[0], bottom = 0;
-      items.forEach(function (o) { if (missing.indexOf(o) < 0) bottom = Math.max(bottom, o.offsetTop + o.offsetHeight - pt); });
-      var media = it.hasAttribute('data-media');
-      m[it.dataset.item] = { x: 0.06, y: Math.round(bottom + 16), w: media ? 0.5 : 0.6, h: media ? 200 : 0, z: z + 1 };
-      applyFree(sec);
-      return;
-    }
-    fitFree(sec);
-  }
-
-  // The section grows or shrinks to fit what's in it.
-  function fitFree(sec) {
-    if (!sec.classList.contains('is-free')) return;
-    var bottom = 0;
-    freeItems(sec).forEach(function (it) { bottom = Math.max(bottom, it.offsetTop + it.offsetHeight); });
-    var pad = state.view === 'desktop' ? 72 : 40;
-    sec.style.height = Math.max(160, Math.ceil(bottom + pad + (parseFloat(sec.style.paddingBottom) || 0))) + 'px';
-  }
-
-  function makeFree(sec) {
-    if (isFree(sec)) return;
-    setFreeMap(sec, snapshotFree(sec));
-    state.item = null;
-    render();
-    var here = state.view === 'desktop' ? 'desktop' : 'phones', there = state.view === 'desktop' ? 'Phones keep' : 'Desktop keeps';
-    toast('Freeform on ' + here + '. ' + there + ' the layout until you make it freeform there too.');
-  }
-  function makeOrdered(sec) {
-    if (!isFree(sec)) return;
-    var saved = freeMap(sec);
-    setFreeMap(sec, null);
-    state.item = null;
-    render();
-    toast('Items back in order', 'Undo', function () { setFreeMap(sec, saved); render(); });
-  }
-
-  // Guides: the section's edges and middle, and the edges and middles of the other items.
-  function guideLines(sec, it) {
-    var sw = sec.clientWidth, margin = state.view === 'desktop' ? Math.max(48, (sw - 1140) / 2 + 48) : 20, pt = padTop(sec);
-    var xs = [margin, sw / 2, sw - margin], ys = [];
-    freeItems(sec).forEach(function (o) {
-      if (o === it) return;
-      var l = o.offsetLeft, t = o.offsetTop - pt, w = o.offsetWidth, h = o.offsetHeight;
-      xs.push(l, l + w / 2, l + w);
-      ys.push(t, t + h / 2, t + h);
-    });
-    return { xs: xs, ys: ys };
-  }
-  function snap(vals, lines) {
-    // vals: the moving edges/middle; returns the shift needed to line one of them up, and where.
-    var best = null;
-    vals.forEach(function (v) {
-      lines.forEach(function (l) {
-        var d = l - v;
-        if (Math.abs(d) <= 6 && (!best || Math.abs(d) < Math.abs(best.d))) best = { d: d, at: l };
-      });
-    });
-    return best;
-  }
-  function showGuides(sec, gx, gy) {
-    handlesEl.querySelectorAll('.guide').forEach(function (g) { g.remove(); });
-    var base = stage.getBoundingClientRect(), r = sec.getBoundingClientRect(), pt = padTop(sec);
-    if (gx !== null) handlesEl.insertAdjacentHTML('beforeend', '<div class="guide gv" style="left:' + (r.left - base.left + gx) + 'px;top:' + (r.top - base.top) + 'px;height:' + r.height + 'px"></div>');
-    if (gy !== null) handlesEl.insertAdjacentHTML('beforeend', '<div class="guide gh" style="top:' + (r.top - base.top + pt + gy) + 'px;left:' + (r.left - base.left) + 'px;width:' + r.width + 'px"></div>');
-  }
-
-  function startFree(it, kind, x, y) {
-    var sec = state.sel, m = freeMap(sec), p = m[it.dataset.item];
-    if (!p) return;
-    if (kind === 'move') {
-      var top = 0;
-      Object.keys(m).forEach(function (k) { top = Math.max(top, m[k].z || 0); });
-      if ((p.z || 0) < top) p.z = top + 1;
-    }
-    fdrag = { it: it, sec: sec, kind: kind, x0: x, y0: y, px: x, py: y, st0: screen.scrollTop, moved: false,
-      before: Object.assign({}, p), p0: { x: p.x, y: p.y, w: p.w, h: p.h || it.offsetHeight } };
-    state.item = it;
-    render();
-    if (!handlesEl.querySelector('.rz')) handlesEl.insertAdjacentHTML('afterbegin', '<button type="button" class="rz" aria-label="Drag to resize"></button>');
-    fdrag.raf = requestAnimationFrame(freeTick);
-  }
-
-  function moveFree() {
-    var d = fdrag, it = d.it, sec = d.sec, p = freeMap(sec)[it.dataset.item], sw = sec.clientWidth;
-    var dx = d.px - d.x0, dy = d.py - d.y0 + (screen.scrollTop - d.st0);
-    if (!d.moved && Math.abs(dx) + Math.abs(dy) < 3) return;
-    if (!d.moved) { d.moved = true; it.classList.add('free-moving'); }
-    var g = guideLines(sec, it), gx = null, gy = null;
-    if (d.kind === 'move') {
-      var W = it.offsetWidth, H = it.offsetHeight;
-      var L = d.p0.x * sw + dx, T = d.p0.y + dy;
-      var sx = snap([L, L + W / 2, L + W], g.xs); if (sx) { L += sx.d; gx = sx.at; }
-      var sy = snap([T, T + H / 2, T + H], g.ys); if (sy) { T += sy.d; gy = sy.at; }
-      L = Math.max(0, Math.min(sw - W, L));
-      T = Math.max(0, T);
-      p.x = L / sw; p.y = Math.round(T);
-    } else {
-      var left = d.p0.x * sw;
-      var Wn = Math.max(40, d.p0.w * sw + dx);
-      var sr = snap([left + Wn], g.xs); if (sr) { Wn += sr.d; gx = sr.at; }
-      Wn = Math.min(Wn, sw - left);
-      p.w = Wn / sw;
-      if (it.hasAttribute('data-media')) {
-        var Hn = Math.max(40, d.p0.h + dy);
-        var sb = snap([p.y + Hn], g.ys); if (sb) { Hn += sb.d; gy = sb.at; }
-        p.h = Math.round(Hn);
-      }
-    }
-    applyFree(sec);
-    showGuides(sec, gx, gy);
-    placeRz();
-  }
-
-  // Dragging near the top or bottom of the screen scrolls; the section grows as you go down.
-  function freeTick() {
-    if (!fdrag) return;
-    var sr = screen.getBoundingClientRect(), bottom = sr.bottom;
-    if (!dock.hidden) { var dr = dock.getBoundingClientRect(); if (dr.top > sr.top + sr.height / 2) bottom = Math.min(bottom, dr.top); }
-    var v = 0;
-    if (fdrag.moved && fdrag.py < sr.top + 56) v = -Math.ceil((sr.top + 56 - fdrag.py) / 5);
-    else if (fdrag.moved && fdrag.py > bottom - 56) v = Math.ceil((fdrag.py - (bottom - 56)) / 5);
-    if (v) { screen.scrollTop += v; moveFree(); }
-    fdrag.raf = requestAnimationFrame(freeTick);
-  }
-
-  function endFree() {
-    var d = fdrag;
-    fdrag = null;
-    cancelAnimationFrame(d.raf);
-    d.it.classList.remove('free-moving');
-    handlesEl.querySelectorAll('.guide').forEach(function (g) { g.remove(); });
-    if (d.moved) {
-      var key = d.it.dataset.item, sec = d.sec, before = d.before;
-      toast(d.kind === 'move' ? 'Item moved' : 'Item resized', 'Undo', function () {
-        var m = freeMap(sec);
-        if (m) { m[key] = before; render(); }
-      });
-    }
-    render();
-  }
-  document.addEventListener('pointermove', function (e) {
-    if (!fdrag) return;
-    fdrag.px = e.clientX; fdrag.py = e.clientY;
-    moveFree();
-  });
+  document.addEventListener('pointerup', function () { cancelPress(); if (drag) endDrag(); });
+  document.addEventListener('pointercancel', function () { cancelPress(); if (drag) endDrag(); });
 
   // ---------- Toast ----------
   var toastTimer = null;

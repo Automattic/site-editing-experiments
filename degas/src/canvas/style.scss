@@ -1,0 +1,658 @@
+/**
+ * The section overlay's chrome inside the editor canvas, as in Albers.
+ * Everything sits in one layer over the page, positioned from the sections'
+ * own boxes; only the controls themselves take the pointer.
+ */
+$blue: #3858e9;
+$editor: #1e1e1e;
+$guide: #e5367e;
+$ink: #1a1a1a;
+
+.dg-layer {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 0;
+	height: 0;
+	z-index: 100000;
+	pointer-events: none;
+	font: 500 14px/1.3 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+	color: $ink;
+	text-align: left;
+	letter-spacing: normal;
+	text-transform: none;
+
+	button {
+		font: inherit;
+		letter-spacing: normal;
+		text-transform: none;
+		margin: 0;
+	}
+	svg {
+		display: block;
+		flex: none;
+	}
+}
+
+.dg-outline,
+.dg-ov,
+.dg-tab,
+.dg-tb,
+.dg-lp,
+.dg-bin,
+.dg-itemline,
+.dg-catcher,
+.dg-grid,
+.dg-guide,
+.dg-selbox,
+.dg-picker,
+.dg-empty {
+	position: absolute;
+	box-sizing: border-box;
+}
+
+/* ---------- Hover: outline, name tab and overlay ---------- */
+.dg-outline {
+	box-shadow: inset 0 0 0 2px $blue;
+}
+.dg-tab {
+	transform: translateY(-100%);
+	width: max-content;
+	padding: 4px 10px;
+	background: $blue;
+	color: #fff;
+	border-radius: 6px 6px 0 0;
+	font-size: 12px;
+	font-weight: 600;
+	white-space: nowrap;
+	z-index: 3;
+}
+.dg-ov {
+	padding: 0 16px;
+	background: rgba(17, 17, 17, 0.42);
+	pointer-events: auto;
+}
+.dg-ovbar {
+	position: absolute;
+	left: 16px;
+	right: 16px;
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+	align-items: center;
+	gap: 12px;
+	z-index: 2;
+}
+.dg-addwrap {
+	position: relative;
+	justify-self: start;
+}
+.dg-addtrig {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	min-height: 40px;
+	padding: 0 14px;
+	background: #fff;
+	color: $ink;
+	border: 0;
+	border-radius: 8px;
+	font-weight: 600 !important;
+	font-size: 13px !important;
+	cursor: pointer;
+	box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+
+	&:hover,
+	&:focus-visible,
+	&[aria-expanded="true"] {
+		outline: 2px solid $blue;
+		outline-offset: 2px;
+	}
+}
+.dg-addmenu {
+	position: absolute;
+	top: calc(100% + 6px);
+	left: 0;
+	z-index: 5;
+	display: flex;
+	flex-direction: column;
+	min-width: 180px;
+	padding: 6px;
+	background: #fff;
+	border-radius: 10px;
+	box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
+
+	button {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		min-height: 40px;
+		padding: 0 10px;
+		background: transparent;
+		color: $ink;
+		border: 0;
+		border-radius: 6px;
+		text-align: left;
+		cursor: pointer;
+
+		&:hover,
+		&:focus-visible {
+			background: #eef1fd;
+			color: $blue;
+			outline: none;
+		}
+	}
+}
+.dg-modebar {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	padding: 4px;
+	background: #fff;
+	border-radius: 10px;
+	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
+}
+.dg-ob {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	min-height: 44px;
+	padding: 0 14px;
+	background: transparent;
+	color: $ink;
+	border: 0;
+	border-radius: 6px;
+	cursor: pointer;
+	white-space: nowrap;
+	font-weight: 600 !important;
+
+	svg {
+		color: $blue;
+	}
+	&:hover,
+	&:focus-visible {
+		background: #eef1fd;
+		color: $blue;
+		outline: none;
+	}
+	&:focus-visible {
+		box-shadow: inset 0 0 0 2px $blue;
+	}
+}
+.dg-secctl {
+	justify-self: end;
+	display: flex;
+	gap: 2px;
+	padding: 3px;
+	background: #fff;
+	border-radius: 8px;
+	box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+}
+.dg-sbtn {
+	display: grid;
+	place-items: center;
+	width: 36px;
+	height: 36px;
+	padding: 0;
+	background: transparent;
+	color: $ink;
+	border: 0;
+	border-radius: 6px;
+	cursor: pointer;
+
+	&:hover:not(:disabled),
+	&:focus-visible {
+		background: #eef1fd;
+		color: $blue;
+		outline: none;
+	}
+	&.is-danger:hover:not(:disabled) {
+		background: #fde8ee;
+		color: #b3123f;
+	}
+	&:disabled {
+		opacity: 0.35;
+		cursor: default;
+	}
+}
+
+/* Add section, on the top and bottom edges */
+.dg-ins {
+	position: absolute;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	z-index: 3;
+
+	&.is-top {
+		top: 0;
+	}
+	&.is-bottom {
+		top: 100%;
+	}
+}
+.dg-insbtn {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	min-height: 36px;
+	padding: 0 14px;
+	background: $blue;
+	color: #fff;
+	border: 0;
+	border-radius: 999px;
+	font-weight: 600 !important;
+	font-size: 13px !important;
+	cursor: pointer;
+	pointer-events: auto;
+	box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+
+	&:focus-visible {
+		outline: 2px solid $ink;
+		outline-offset: 2px;
+	}
+}
+
+/* ---------- The bar for Edit content and Freeform ---------- */
+.dg-tb {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 6px 6px 6px 14px;
+	background: $editor;
+	color: #fff;
+	border-radius: 10px;
+	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+	pointer-events: auto;
+	z-index: 6;
+	box-sizing: border-box;
+}
+.dg-tbl {
+	font-weight: 700;
+	white-space: nowrap;
+}
+.dg-tbh {
+	color: #c7c7c7;
+	font-size: 13px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	min-width: 0;
+}
+.dg-spacer {
+	flex: 1;
+}
+.dg-tbb {
+	min-height: 36px;
+	padding: 0 12px;
+	background: transparent;
+	color: #fff;
+	border: 1px solid #5a5a5a;
+	border-radius: 6px;
+	font-size: 13px !important;
+	cursor: pointer;
+
+	&.is-on {
+		background: $blue;
+		border-color: $blue;
+	}
+}
+.dg-done {
+	min-height: 36px;
+	padding: 0 18px;
+	background: $blue;
+	color: #fff;
+	border: 0;
+	border-radius: 6px;
+	font-weight: 600 !important;
+	cursor: pointer;
+
+	&:focus-visible {
+		outline: 2px solid #fff;
+		outline-offset: 2px;
+	}
+}
+
+/* ---------- Bins on every item ---------- */
+.dg-bin {
+	display: grid;
+	place-items: center;
+	width: 28px;
+	height: 28px;
+	padding: 0;
+	background: #fff;
+	color: #b3123f;
+	border: 1px solid #e3b6c3;
+	border-radius: 50%;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+	cursor: pointer;
+	pointer-events: auto;
+	z-index: 7;
+
+	svg {
+		width: 14px;
+		height: 14px;
+	}
+	&:hover,
+	&:focus-visible {
+		background: #b3123f;
+		color: #fff;
+		border-color: #b3123f;
+		outline: none;
+	}
+}
+.dg-itemline {
+	outline: 1.5px dashed rgba(56, 88, 233, 0.5);
+	outline-offset: 4px;
+}
+.dg-doomed {
+	outline: 2px solid #b3123f !important;
+	outline-offset: 4px;
+	opacity: 0.55;
+}
+
+/* ---------- Layouts panel ---------- */
+.dg-lp {
+	transform: translateX(-50%);
+	width: max-content;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 12px;
+	max-width: min(720px, calc(100vw - 32px));
+	padding: 12px;
+	background: $editor;
+	color: #fff;
+	border-radius: 12px;
+	box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+	pointer-events: auto;
+	z-index: 8;
+}
+.dg-lphead {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 16px;
+	width: 100%;
+	padding-left: 4px;
+}
+.dg-lph {
+	font-size: 13px;
+	color: #e0e0e0;
+}
+.dg-lpactions {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+.dg-lpbtn {
+	min-height: 32px;
+	padding: 0 14px;
+	background: transparent;
+	color: #fff;
+	border: 1px solid #5a5a5a;
+	border-radius: 6px;
+	font-size: 13px !important;
+	cursor: pointer;
+
+	&:disabled {
+		opacity: 0.4;
+		cursor: default;
+	}
+}
+.dg-lpactions .dg-done {
+	min-height: 32px;
+	padding: 0 14px;
+}
+.dg-lpo,
+.dg-picko {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	gap: 8px;
+}
+.dg-lo {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 6px;
+	padding: 6px 6px 8px;
+	background: #2c2c2c;
+	color: #fff;
+	border: 1px solid #555;
+	border-radius: 8px;
+	font-size: 12px !important;
+	cursor: pointer;
+
+	&:hover {
+		border-color: #9aa8f0;
+	}
+	&[aria-pressed="true"] {
+		background: $blue;
+		border-color: $blue;
+	}
+	&.is-new::after {
+		content: "";
+		position: absolute;
+		top: 4px;
+		right: 4px;
+		width: 8px;
+		height: 8px;
+		border-radius: 50%;
+		background: #9db2ff;
+		box-shadow: 0 0 0 2px #2c2c2c;
+	}
+}
+.dg-mini {
+	position: relative;
+	display: block;
+	overflow: hidden;
+	border-radius: 4px;
+	background: var(--wp--preset--color--base, #fff);
+	pointer-events: none;
+}
+.dg-mini-stage {
+	position: absolute;
+	left: 0;
+	top: 0;
+	display: block;
+	transform-origin: 0 0;
+	pointer-events: none;
+	text-align: initial;
+	font: initial;
+	color: initial;
+	letter-spacing: initial;
+	font-family: var(--wp--preset--font-family--body, inherit);
+}
+.dg-lpsec {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 8px;
+	width: 100%;
+}
+.dg-lpnote {
+	margin: 0;
+	font-size: 13px;
+	color: #c7c7c7;
+}
+.dg-pals {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	gap: 8px;
+}
+.dg-pal {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 5px;
+	padding: 5px 5px 6px;
+	background: #2c2c2c;
+	color: #fff;
+	border: 1px solid #555;
+	border-radius: 8px;
+	font-size: 12px !important;
+	cursor: pointer;
+
+	&:hover {
+		border-color: #9aa8f0;
+	}
+	&[aria-pressed="true"] {
+		background: $blue;
+		border-color: $blue;
+	}
+}
+.dg-palsw {
+	display: flex;
+	width: 56px;
+	height: 28px;
+	border-radius: 5px;
+	overflow: hidden;
+	box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.15);
+
+	span {
+		flex: 1 1 0;
+	}
+	span:first-child {
+		flex: 2 1 0;
+	}
+}
+
+/* ---------- Freeform ---------- */
+.dg-catcher {
+	pointer-events: auto;
+	cursor: grab;
+	touch-action: none;
+	z-index: 4;
+}
+.dg-grid {
+	display: grid;
+	grid-template-columns: repeat(12, minmax(0, 1fr));
+	gap: 16px;
+	z-index: 3;
+
+	span {
+		background: rgba(229, 54, 126, 0.07);
+		box-shadow: inset 1px 0 rgba(229, 54, 126, 0.2), inset -1px 0 rgba(229, 54, 126, 0.2);
+	}
+	i {
+		position: absolute;
+		top: 0;
+		bottom: 0;
+		width: 1px;
+		background: rgba(229, 54, 126, 0.45);
+	}
+}
+.dg-guide {
+	background: $guide;
+	z-index: 9;
+
+	&.is-v {
+		width: 1px;
+	}
+	&.is-h {
+		height: 1px;
+	}
+}
+.dg-selbox {
+	outline: 2px solid $blue;
+	z-index: 5;
+}
+.dg-handle {
+	position: absolute;
+	width: 12px;
+	height: 12px;
+	margin: -6px 0 0 -6px;
+	background: #fff;
+	border: 2px solid $blue;
+	border-radius: 2px;
+	box-sizing: border-box;
+	pointer-events: auto;
+	touch-action: none;
+
+	&[data-h="nw"] { left: 0; top: 0; cursor: nwse-resize; }
+	&[data-h="n"] { left: 50%; top: 0; cursor: ns-resize; }
+	&[data-h="ne"] { left: 100%; top: 0; cursor: nesw-resize; }
+	&[data-h="e"] { left: 100%; top: 50%; cursor: ew-resize; }
+	&[data-h="se"] { left: 100%; top: 100%; cursor: nwse-resize; }
+	&[data-h="s"] { left: 50%; top: 100%; cursor: ns-resize; }
+	&[data-h="sw"] { left: 0; top: 100%; cursor: nesw-resize; }
+	&[data-h="w"] { left: 0; top: 50%; cursor: ew-resize; }
+}
+.dg-dim {
+	position: absolute;
+	left: 0;
+	top: calc(100% + 8px);
+	padding: 3px 7px;
+	background: $blue;
+	color: #fff;
+	font-size: 11px;
+	font-weight: 600;
+	border-radius: 4px;
+	white-space: nowrap;
+}
+.dg-bin.is-selected-bin {
+	position: absolute;
+	left: calc(100% + 6px);
+	top: -34px;
+}
+
+/* ---------- Add a section ---------- */
+.dg-picker {
+	transform: translate(-50%, -50%);
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 10px;
+	width: min(980px, calc(100vw - 32px));
+	padding: 14px;
+	background: $editor;
+	color: #fff;
+	border-radius: 12px;
+	box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+	pointer-events: auto;
+	z-index: 20;
+}
+.dg-pickh {
+	font-size: 13px;
+	color: #e0e0e0;
+}
+.dg-th {
+	position: relative;
+	display: block;
+	width: 72px;
+	height: 48px;
+	background: #111;
+	border-radius: 4px;
+
+	span {
+		position: absolute;
+		border-radius: 1px;
+	}
+}
+.dg-pickx {
+	min-height: 32px;
+	padding: 0 14px;
+	background: transparent;
+	color: #fff;
+	border: 1px solid #5a5a5a;
+	border-radius: 6px;
+	cursor: pointer;
+}
+.dg-empty {
+	width: max-content;
+	transform: translateX(-50%);
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 12px;
+	padding: 24px 32px;
+	background: #fff;
+	border: 1.5px dashed $blue;
+	border-radius: 12px;
+	pointer-events: auto;
+
+	p {
+		margin: 0;
+	}
+}

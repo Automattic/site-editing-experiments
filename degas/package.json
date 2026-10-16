@@ -1,0 +1,24 @@
+{
+	"name": "degas",
+	"version": "0.1.0",
+	"private": true,
+	"description": "Albers' section editing modes, on real blocks in the WordPress editor.",
+	"license": "GPL-2.0-or-later",
+	"scripts": {
+		"build": "wp-scripts build",
+		"start": "wp-scripts start",
+		"plugin-zip": "wp-scripts plugin-zip",
+		"test:e2e": "node e2e/smoke.mjs"
+	},
+	"files": [
+		"build",
+		"inc",
+		"patterns",
+		"degas.php",
+		"README.md"
+	],
+	"devDependencies": {
+		"@wordpress/scripts": "^36.1.0",
+		"playwright": "^1.64.1"
+	}
+}

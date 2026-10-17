@@ -183,12 +183,15 @@
 		var doc = win.document;
 		if ( adapterName === 'wordpress' ) {
 			countClicks( doc, clickStore );
+			// The editor canvas is usually in an iframe, but some browsers and
+			// editor versions draw it straight into the page.
 			var frame = doc.querySelector( 'iframe[name="editor-canvas"]' );
-			if ( ! frame || ! frame.contentDocument ) {
+			if ( frame && frame.contentDocument && frame.contentDocument.querySelector( '.is-root-container' ) ) {
+				win = frame.contentWindow;
+				doc = frame.contentDocument;
+			} else if ( ! doc.querySelector( '.is-root-container' ) ) {
 				return { ready: false, sections: [], clicks: clickStore.clicks };
 			}
-			win = frame.contentWindow;
-			doc = frame.contentDocument;
 		}
 		countClicks( doc, clickStore );
 		var sections = Array.prototype.map.call( adapter.sections( doc ), function ( el ) {

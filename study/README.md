@@ -97,6 +97,7 @@ Run the health check after changing any of the prototypes, since the study reads
 ```
 cd study
 npm install
+npx playwright install chromium
 npm run health                                      # the published study
 STUDY_URL=http://localhost:8000/study/ npm run health   # a local copy
 ```

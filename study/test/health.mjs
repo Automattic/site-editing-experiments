@@ -9,7 +9,8 @@
  *   STUDY_URL=http://localhost:8000/study/ node study/test/health.mjs
  *   EDITORS=albers,cassatt node study/test/health.mjs
  *
- * Needs Playwright (npm i playwright). Set STUDY_CHROME to use a particular
+ * Needs Playwright and its browser (npm install, then npx playwright install
+ * chromium). Set STUDY_CHROME to use a particular
  * Chrome or Chromium. The WordPress editors start in Playground, so allow a
  * few minutes.
  */
@@ -18,7 +19,8 @@ import { chromium } from 'playwright';
 const URL = process.env.STUDY_URL || 'https://automattic.github.io/site-editing-experiments/study/';
 const EDITORS = ( process.env.EDITORS || 'albers,cassatt,degas,bourgeois,gutenberg' ).split( ',' );
 
-const browser = await chromium.launch( process.env.STUDY_CHROME ? { executablePath: process.env.STUDY_CHROME } : {} );
+// The full browser rather than the headless shell: closer to what participants use.
+const browser = await chromium.launch( process.env.STUDY_CHROME ? { executablePath: process.env.STUDY_CHROME } : { channel: 'chromium' } );
 let failures = 0;
 
 for ( const editor of EDITORS ) {

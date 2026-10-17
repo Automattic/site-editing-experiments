@@ -386,8 +386,20 @@
 		var go = document.getElementById( 'go' );
 		var loading = document.getElementById( 'loading' );
 		var waited = Date.now();
+		var lastJson = '';
+		var stableSince = Date.now();
 		var timer = setInterval( function () {
-			if ( f.ready && modelOf( f ) && modelOf( f ).ready ) {
+			// Ready means the page is all there and has stopped changing: the top
+			// section's heading and photo are laid out, and nothing has moved for a
+			// moment. The checks compare against this, so it has to be complete.
+			var m = f.ready ? modelOf( f ) : null;
+			var json = m ? JSON.stringify( m.sections ) : '';
+			if ( json !== lastJson ) {
+				lastJson = json;
+				stableSince = Date.now();
+			}
+			var complete = m && m.ready && m.sections[ 0 ] && m.sections[ 0 ].headings.length && m.sections[ 0 ].images.length;
+			if ( complete && Date.now() - stableSince > 1500 ) {
 				clearInterval( timer );
 				go.disabled = false;
 				loading.innerHTML = '<span class="good">Ready</span>';

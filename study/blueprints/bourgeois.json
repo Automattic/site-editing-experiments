@@ -1,0 +1,54 @@
+{
+	"$schema": "https://playground.wordpress.net/blueprint-schema.json",
+	"meta": {
+		"title": "Site editing user test: Bourgeois",
+		"author": "Automattic",
+		"categories": [
+			"editor"
+		]
+	},
+	"landingPage": "/wp-admin/?study-open",
+	"preferredVersions": {
+		"php": "8.3",
+		"wp": "latest"
+	},
+	"login": true,
+	"steps": [
+		{
+			"step": "installPlugin",
+			"pluginData": {
+				"resource": "git:directory",
+				"url": "https://github.com/Automattic/site-editing-experiments",
+				"ref": "trunk",
+				"path": "bourgeois"
+			},
+			"options": {
+				"activate": true,
+				"targetFolderName": "bourgeois"
+			}
+		},
+		{
+			"step": "installPlugin",
+			"pluginData": {
+				"resource": "git:directory",
+				"url": "https://github.com/Automattic/site-editing-experiments",
+				"ref": "trunk",
+				"path": "study/wp"
+			},
+			"options": {
+				"activate": true,
+				"targetFolderName": "study-probe"
+			}
+		},
+		{
+			"step": "runPHP",
+			"code": "<?php\nrequire '/wordpress/wp-load.php';\nglobal $wpdb;\n// No welcome guides or pattern picker in the way.\nupdate_user_meta( 1, $wpdb->prefix . 'persisted_preferences', array(\n\t'core/edit-post' => array( 'welcomeGuide' => false ),\n\t'core/edit-site' => array( 'welcomeGuide' => false, 'welcomeGuidePage' => false, 'welcomeGuideTemplate' => false, 'welcomeGuideStyles' => false ),\n\t'core' => array( 'welcomeGuide' => false, 'enableChoosePatternModal' => false ),\n\t'_modified' => gmdate( 'c' ),\n) );\nupdate_option( 'study_variant', 'bourgeois' );\n$id = study_create_page();\nif ( $id ) {\n\tupdate_option( 'show_on_front', 'page' );\n\tupdate_option( 'page_on_front', $id );\n}\n"
+		},
+		{
+			"step": "setSiteOptions",
+			"options": {
+				"blogname": "Northfield Ceramics"
+			}
+		}
+	]
+}

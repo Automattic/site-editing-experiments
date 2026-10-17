@@ -1,0 +1,123 @@
+:root {
+  --ink: #1e1e1e;
+  --soft: #50575e;
+  --line: #dcdcde;
+  --ground: #f6f7f7;
+  --card: #ffffff;
+  --blue: #3858e9;
+  --blue-dark: #2145e6;
+  --good: #1a7f37;
+  --bar-h: 76px;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body {
+  background: var(--ground);
+  color: var(--ink);
+  font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+}
+h1, h2, h3 { line-height: 1.2; margin: 0 0 12px; }
+h1 { font-size: 30px; }
+h2 { font-size: 24px; }
+p { margin: 0 0 14px; }
+.noscript { padding: 24px; }
+
+/* ---------- Buttons ---------- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 44px; padding: 0 20px; border: 1px solid var(--blue); border-radius: 6px;
+  background: var(--blue); color: #fff; font: 600 15px/1 inherit; font-family: inherit; cursor: pointer;
+}
+.btn:hover:not(:disabled) { background: var(--blue-dark); }
+.btn:focus-visible { outline: 3px solid #9db2ff; outline-offset: 2px; }
+.btn:disabled { opacity: 0.45; cursor: default; }
+.btn.ghost { background: transparent; color: var(--blue); }
+.btn.ghost:hover:not(:disabled) { background: #eef1fd; }
+.btn.big { min-height: 52px; padding: 0 28px; font-size: 16px; }
+
+/* ---------- Screens ---------- */
+.screen {
+  position: fixed; inset: 0; z-index: 20; overflow: auto;
+  display: flex; align-items: flex-start; justify-content: center; padding: 56px 16px;
+  background: var(--ground);
+}
+.screen[hidden] { display: none; }
+/* Over an editor (questions after a task), the editor dims behind the card. */
+.screen.over { background: rgba(30, 30, 30, 0.45); align-items: center; padding-top: var(--bar-h); }
+.card {
+  width: 100%; max-width: 640px; padding: 36px 40px; background: var(--card); border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06), 0 12px 40px rgba(0, 0, 0, 0.08);
+}
+.card.wide { max-width: 760px; }
+.kicker { margin: 0 0 6px; color: var(--blue); font-size: 13px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+.lead { font-size: 18px; color: var(--soft); }
+.muted { color: var(--soft); font-size: 14px; }
+.actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 28px; }
+.actions .spacer { flex: 1; }
+.list { margin: 0 0 18px; padding-left: 20px; }
+.list li { margin: 4px 0; }
+.warn { padding: 12px 16px; border-radius: 8px; background: #fcf0d6; color: #4d3a00; font-size: 15px; }
+.good { color: var(--good); font-weight: 700; }
+
+/* ---------- Questions ---------- */
+fieldset { margin: 0 0 24px; padding: 0; border: 0; }
+legend { padding: 0; margin-bottom: 10px; font-weight: 600; }
+.choices { display: flex; flex-direction: column; gap: 6px; }
+.choice {
+  display: flex; align-items: center; gap: 10px; padding: 10px 14px; border: 1px solid var(--line); border-radius: 8px; cursor: pointer;
+}
+.choice:hover { border-color: #a7aaad; }
+.choice:has(input:checked) { border-color: var(--blue); background: #f0f3fe; }
+.choice input { margin: 0; accent-color: var(--blue); }
+.scale { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+.scale label {
+  display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0; border: 1px solid var(--line); border-radius: 8px;
+  cursor: pointer; font-weight: 600;
+}
+.scale label:hover { border-color: #a7aaad; }
+.scale label:has(input:checked) { border-color: var(--blue); background: var(--blue); color: #fff; }
+.scale input { position: absolute; opacity: 0; pointer-events: none; }
+.scale label:has(input:focus-visible) { outline: 3px solid #9db2ff; outline-offset: 2px; }
+.ends { display: flex; justify-content: space-between; margin-top: 6px; color: var(--soft); font-size: 13px; }
+textarea {
+  width: 100%; min-height: 96px; padding: 10px 12px; border: 1px solid #8c8f94; border-radius: 6px; font: inherit; resize: vertical;
+}
+textarea:focus { outline: 2px solid var(--blue); outline-offset: 0; border-color: var(--blue); }
+.consent { display: flex; gap: 10px; align-items: flex-start; margin: 20px 0 0; }
+.consent input { margin-top: 4px; accent-color: var(--blue); width: 18px; height: 18px; }
+
+/* ---------- Loading ---------- */
+.loading { display: flex; align-items: center; gap: 12px; color: var(--soft); }
+.spinner {
+  width: 22px; height: 22px; border-radius: 50%; border: 3px solid #dcdcde; border-top-color: var(--blue);
+  animation: spin 0.9s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spinner { animation: none; } }
+.progress { height: 6px; background: #e8e8e8; border-radius: 3px; overflow: hidden; margin: 0 0 28px; }
+.progress span { display: block; height: 100%; background: var(--blue); }
+
+/* ---------- Task bar and editors ---------- */
+.taskbar {
+  position: fixed; left: 0; right: 0; top: 0; z-index: 10; height: var(--bar-h);
+  display: flex; align-items: center; gap: 20px; padding: 0 20px; background: #1e1e1e; color: #fff;
+}
+.taskbar[hidden] { display: none; }
+.tb-step { flex: none; padding: 6px 10px; border-radius: 6px; background: #3c3c3c; font-size: 13px; font-weight: 700; white-space: nowrap; }
+.tb-task { flex: 1; min-width: 0; margin: 0; font-size: 17px; font-weight: 600; line-height: 1.35; }
+.tb-actions { flex: none; display: flex; gap: 10px; }
+.taskbar .btn.ghost { color: #fff; border-color: #6b6b6b; }
+.taskbar .btn.ghost:hover { background: #333; }
+.stage { position: fixed; left: 0; right: 0; top: var(--bar-h); bottom: 0; z-index: 1; background: #fff; }
+.stage iframe {
+  position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: #fff;
+}
+/* Editors that aren't in use stay laid out (so they can load) but out of sight. */
+.stage iframe.off { visibility: hidden; pointer-events: none; }
+.toast {
+  position: fixed; left: 50%; top: calc(var(--bar-h) + 16px); z-index: 30; transform: translateX(-50%);
+  padding: 10px 18px; border-radius: 999px; background: var(--good); color: #fff; font-weight: 700; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+.code { display: inline-block; padding: 8px 14px; border-radius: 6px; background: #f0f0f1; font: 700 20px/1.2 ui-monospace, Menlo, Consolas, monospace; letter-spacing: 0.08em; }
+/* Headings get focus when a screen changes, for screen readers; no ring needed. */
+[tabindex="-1"]:focus { outline: none; }

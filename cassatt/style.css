@@ -35,6 +35,8 @@ svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width:
   position: relative; flex: 0 0 auto; width: 390px; height: min(844px, calc(100vh - 32px)); overflow: hidden;
   background: var(--ground); border-radius: 44px; box-shadow: 0 0 0 10px #111, 0 30px 60px rgba(0, 0, 0, 0.3);
 }
+/* Embedded in the user test (?embed): just the phone, without the introduction. */
+.embed .intro { display: none; }
 @media (max-width: 760px) {
   body { display: block; padding: 0; }
   .intro { display: none; }

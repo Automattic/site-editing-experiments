@@ -1,6 +1,8 @@
 (function () {
   'use strict';
 
+  if (new URLSearchParams(location.search).has('embed')) document.documentElement.classList.add('embed');
+
   // ---------- Data ----------
   var IMG = '../albers/images/';
   var IMAGES = [

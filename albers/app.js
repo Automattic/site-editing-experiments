@@ -331,7 +331,8 @@
   // The site switcher in the editor bar.
   (function siteSwitcher() {
     var bar = document.querySelector('.editor-bar');
-    if (!bar) return;
+    // Embedded in the user test (?embed), the page is just the editor: no switching sites.
+    if (!bar || new URLSearchParams(location.search).has('embed')) return;
     var here = location.pathname.split('/').pop() || 'index.html';
     var wrap = document.createElement('label');
     wrap.className = 'sitepick';

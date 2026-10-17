@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Website editor study</title>
+<link rel="stylesheet" href="study.css">
+</head>
+<body>
+
+<!-- The task bar sits above the editor while a task is under way. -->
+<header class="taskbar" id="taskbar" hidden>
+  <div class="tb-step" id="tb-step"></div>
+  <p class="tb-task" id="tb-task"></p>
+  <div class="tb-actions">
+    <button type="button" class="btn ghost" id="tb-skip">Skip this task</button>
+    <button type="button" class="btn" id="tb-done">I’ve done it</button>
+  </div>
+</header>
+
+<!-- The editors, one frame each. Only the current one is shown. -->
+<div class="stage" id="stage"></div>
+
+<!-- Every other screen: welcome, introductions, questions, thanks. -->
+<main class="screen" id="screen" aria-live="polite"></main>
+
+<noscript><p class="noscript">This study needs JavaScript.</p></noscript>
+
+<script src="wp/probe.js"></script>
+<script src="tasks.js"></script>
+<script src="study.js"></script>
+</body>
+</html>

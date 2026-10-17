@@ -1,0 +1,416 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Website editor study · results</title>
+<link rel="stylesheet" href="study.css">
+<style>
+  body { padding: 40px 24px 80px; }
+  .wrap { max-width: 1120px; margin: 0 auto; }
+  .drop {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 22px; border: 2px dashed #a7aaad; border-radius: 12px; background: #fff;
+  }
+  .drop.over { border-color: var(--blue); background: #f0f3fe; }
+  .drop p { margin: 0; flex: 1; min-width: 240px; }
+  details { margin-top: 12px; }
+  summary { cursor: pointer; color: var(--blue); font-weight: 600; }
+  #paste { min-height: 120px; margin-top: 8px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px; }
+  section { margin-top: 40px; }
+  .stats { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 20px; }
+  .stat { flex: 1 1 160px; padding: 16px 18px; background: #fff; border-radius: 10px; border: 1px solid var(--line); }
+  .stat b { display: block; font-size: 28px; line-height: 1.1; }
+  .stat span { color: var(--soft); font-size: 14px; }
+  .tablewrap { overflow-x: auto; background: #fff; border: 1px solid var(--line); border-radius: 10px; }
+  table { width: 100%; border-collapse: collapse; font-size: 15px; font-variant-numeric: tabular-nums; }
+  th, td { padding: 10px 14px; text-align: right; border-bottom: 1px solid #ededee; white-space: nowrap; }
+  th:first-child, td:first-child { text-align: left; }
+  thead th { font-size: 13px; color: var(--soft); font-weight: 600; background: #fafafa; white-space: normal; vertical-align: bottom; line-height: 1.3; }
+  tbody tr:last-child td { border-bottom: 0; }
+  td small { display: block; color: var(--soft); font-size: 12px; }
+  .bar { display: inline-block; width: 60px; height: 8px; margin-left: 8px; border-radius: 4px; background: #ebeef9; vertical-align: middle; overflow: hidden; }
+  .bar i { display: block; height: 100%; background: var(--blue); }
+  .quotes { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; }
+  .quotes .q { padding: 16px 18px; background: #fff; border: 1px solid var(--line); border-radius: 10px; }
+  .quotes h3 { font-size: 16px; }
+  .quotes ul { margin: 0; padding-left: 18px; }
+  .quotes li { margin: 6px 0; }
+  .note { margin-top: 10px; }
+  .row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+  label.inline { display: inline-flex; gap: 8px; align-items: center; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="kicker">Website editor study</p>
+  <h1>Results</h1>
+  <p class="lead">Add participants’ answer files (or everything your endpoint collected) to see how each editor did. Nothing leaves this page.</p>
+
+  <div class="drop" id="drop">
+    <p>Drop answer files here (one JSON file per participant, a JSON list, or one JSON object per line).</p>
+    <label class="btn" for="files">Choose files</label>
+    <input type="file" id="files" accept=".json,.txt,.ndjson,application/json" multiple hidden>
+  </div>
+  <details>
+    <summary>Or paste the data</summary>
+    <textarea id="paste" placeholder='[{"study":"site-editing-experiments-study", ...}]'></textarea>
+    <div class="actions"><button type="button" class="btn" id="use-paste">Add</button></div>
+  </details>
+
+  <div id="out"></div>
+</div>
+
+<script>
+( function () {
+	'use strict';
+	var NAMES = { albers: 'Albers', cassatt: 'Cassatt', degas: 'Degas', bourgeois: 'Bourgeois', gutenberg: 'Gutenberg' };
+	var TASKS = [
+		[ 'heading', 'Change the heading' ],
+		[ 'swap', 'Swap photo and text' ],
+		[ 'colour', 'Change a background' ],
+		[ 'quote', 'Add a quote below the top' ],
+		[ 'remove', 'Remove the prices' ],
+	];
+	var people = {}; // pid -> data
+	var includeIncomplete = false;
+
+	function esc( s ) {
+		return String( s == null ? '' : s ).replace( /[&<>"']/g, function ( c ) {
+			return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ c ];
+		} );
+	}
+	function median( xs ) {
+		if ( ! xs.length ) {
+			return null;
+		}
+		var s = xs.slice().sort( function ( a, b ) {
+			return a - b;
+		} );
+		var m = Math.floor( s.length / 2 );
+		return s.length % 2 ? s[ m ] : ( s[ m - 1 ] + s[ m ] ) / 2;
+	}
+	function mean( xs ) {
+		return xs.length ? xs.reduce( function ( a, b ) {
+			return a + b;
+		}, 0 ) / xs.length : null;
+	}
+	function pct( n, d ) {
+		return d ? Math.round( ( n / d ) * 100 ) : null;
+	}
+	function fmt( v, unit, digits ) {
+		if ( v == null ) {
+			return '–';
+		}
+		return ( digits ? v.toFixed( digits ) : Math.round( v ) ) + ( unit || '' );
+	}
+	function bar( p ) {
+		return p == null ? '' : '<span class="bar" aria-hidden="true"><i style="width:' + p + '%"></i></span>';
+	}
+
+	// Accepts one object, a list, or one object per line.
+	function parse( text ) {
+		text = text.trim();
+		if ( ! text ) {
+			return [];
+		}
+		try {
+			var v = JSON.parse( text );
+			return Array.isArray( v ) ? v : [ v ];
+		} catch ( e ) {
+			return text.split( /\n+/ ).map( function ( line ) {
+				try {
+					return JSON.parse( line );
+				} catch ( err ) {
+					return null;
+				}
+			} ).filter( Boolean );
+		}
+	}
+
+	// Keeps each participant's most complete record (endpoints get one after each editor).
+	function add( records ) {
+		var n = 0;
+		records.forEach( function ( r ) {
+			if ( ! r || ! r.pid || ! Array.isArray( r.sessions ) ) {
+				return;
+			}
+			var old = people[ r.pid ];
+			var score = function ( x ) {
+				return ( x.complete ? 1000 : 0 ) + x.sessions.reduce( function ( a, s ) {
+					return a + ( s.tasks || [] ).length + ( s.umux ? 1 : 0 );
+				}, 0 );
+			};
+			if ( ! old || score( r ) >= score( old ) ) {
+				people[ r.pid ] = r;
+			}
+			n++;
+		} );
+		render();
+		return n;
+	}
+
+	function sessions() {
+		var out = [];
+		Object.keys( people ).forEach( function ( pid ) {
+			var p = people[ pid ];
+			if ( ! p.complete && ! includeIncomplete ) {
+				return;
+			}
+			p.sessions.forEach( function ( s ) {
+				if ( ( s.tasks || [] ).length ) {
+					out.push( { p: p, s: s } );
+				}
+			} );
+		} );
+		return out;
+	}
+
+	function render() {
+		var out = document.getElementById( 'out' );
+		var all = Object.keys( people ).map( function ( k ) {
+			return people[ k ];
+		} );
+		if ( ! all.length ) {
+			out.innerHTML = '';
+			return;
+		}
+		var complete = all.filter( function ( p ) {
+			return p.complete;
+		} );
+		var durations = complete.map( function ( p ) {
+			return ( new Date( p.finishedAt ) - new Date( p.startedAt ) ) / 60000;
+		} ).filter( function ( m ) {
+			return m > 0 && m < 600;
+		} );
+		var ss = sessions();
+		var editors = Object.keys( NAMES ).filter( function ( e ) {
+			return ss.some( function ( x ) {
+				return x.s.editor === e;
+			} );
+		} );
+
+		var html = '<section><div class="row"><h2 style="margin:0">Overview</h2><span class="spacer" style="flex:1"></span>' +
+			'<label class="inline"><input type="checkbox" id="inc"' + ( includeIncomplete ? ' checked' : '' ) + '> Include unfinished sessions</label>' +
+			'<button type="button" class="btn ghost" id="csv">Download CSV</button><button type="button" class="btn ghost" id="clear">Clear</button></div>' +
+			'<div class="stats">' +
+			'<div class="stat"><b>' + all.length + '</b><span>participants</span></div>' +
+			'<div class="stat"><b>' + complete.length + '</b><span>finished</span></div>' +
+			'<div class="stat"><b>' + fmt( median( durations ), ' min' ) + '</b><span>median time to finish</span></div>' +
+			'<div class="stat"><b>' + ss.length + '</b><span>editor sessions</span></div>' +
+			'</div></section>';
+
+		// ---- Per editor ----
+		html += '<section><h2>By editor</h2><div class="tablewrap"><table><thead><tr>' +
+			'<th>Editor</th><th>Sessions</th><th>Tasks done</th><th>Thought done, not seen</th><th>Gave up</th><th>Median time per task</th><th>Ease (1–7)</th><th>UMUX-Lite (0–100)</th><th>Preferred</th>' +
+			'</tr></thead><tbody>';
+		editors.forEach( function ( e ) {
+			var mine = ss.filter( function ( x ) {
+				return x.s.editor === e;
+			} );
+			var tasks = [];
+			mine.forEach( function ( x ) {
+				tasks = tasks.concat( x.s.tasks );
+			} );
+			var done = tasks.filter( function ( t ) {
+				return t.outcome === 'success' || t.outcome === 'done-earlier';
+			} );
+			var claimed = tasks.filter( function ( t ) {
+				return t.outcome === 'claimed';
+			} );
+			var gaveUp = tasks.filter( function ( t ) {
+				return t.outcome === 'skipped' || t.outcome === 'timeout';
+			} );
+			var times = tasks.filter( function ( t ) {
+				return t.outcome === 'success';
+			} ).map( function ( t ) {
+				return t.ms / 1000;
+			} );
+			var seq = tasks.map( function ( t ) {
+				return t.seq;
+			} ).filter( Boolean );
+			var umux = mine.map( function ( x ) {
+				return x.s.umuxScore;
+			} ).filter( function ( v ) {
+				return v != null;
+			} );
+			var shown = mine.filter( function ( x ) {
+				return x.p.preference;
+			} ).length;
+			var picked = mine.filter( function ( x ) {
+				return x.p.preference && x.p.preference.editor === e;
+			} ).length;
+			var pd = pct( done.length, tasks.length );
+			html += '<tr><td><strong>' + esc( NAMES[ e ] ) + '</strong></td><td>' + mine.length + '</td>' +
+				'<td>' + fmt( pd, '%' ) + bar( pd ) + '<small>' + done.length + ' of ' + tasks.length + '</small></td>' +
+				'<td>' + fmt( pct( claimed.length, tasks.length ), '%' ) + '</td>' +
+				'<td>' + fmt( pct( gaveUp.length, tasks.length ), '%' ) + '</td>' +
+				'<td>' + fmt( median( times ), ' s' ) + '</td>' +
+				'<td>' + fmt( mean( seq ), '', 1 ) + '</td>' +
+				'<td>' + fmt( mean( umux ), '', 0 ) + '</td>' +
+				'<td>' + fmt( pct( picked, shown ), '%' ) + '<small>' + picked + ' of ' + shown + ' who used it</small></td></tr>';
+		} );
+		html += '</tbody></table></div><p class="muted note">“Tasks done” counts tasks the study detected as done. “Thought done, not seen” is when someone chose I’ve done it but the page didn’t show the change: worth a look, as either they found another way or the editor misled them. Ease is the average answer to “how easy or difficult was this task?”.</p></section>';
+
+		// ---- Task by editor ----
+		html += '<section><h2>By task</h2><div class="tablewrap"><table><thead><tr><th>Task</th>';
+		editors.forEach( function ( e ) {
+			html += '<th>' + esc( NAMES[ e ] ) + '</th>';
+		} );
+		html += '</tr></thead><tbody>';
+		TASKS.forEach( function ( task ) {
+			html += '<tr><td>' + esc( task[ 1 ] ) + '</td>';
+			editors.forEach( function ( e ) {
+				var ts = [];
+				ss.forEach( function ( x ) {
+					if ( x.s.editor === e ) {
+						ts = ts.concat( x.s.tasks.filter( function ( t ) {
+							return t.id === task[ 0 ];
+						} ) );
+					}
+				} );
+				var ok = ts.filter( function ( t ) {
+					return t.outcome === 'success' || t.outcome === 'done-earlier';
+				} );
+				var times = ts.filter( function ( t ) {
+					return t.outcome === 'success';
+				} ).map( function ( t ) {
+					return t.ms / 1000;
+				} );
+				var seq = mean( ts.map( function ( t ) {
+					return t.seq;
+				} ).filter( Boolean ) );
+				var p = pct( ok.length, ts.length );
+				html += '<td>' + ( ts.length ? fmt( p, '%' ) + bar( p ) + '<small>' + fmt( median( times ), ' s' ) + ' · ease ' + fmt( seq, '', 1 ) + ' · n ' + ts.length + '</small>' : '–' ) + '</td>';
+			} );
+			html += '</tr>';
+		} );
+		html += '</tbody></table></div><p class="muted note">Each cell: tasks done, then the median time when done, average ease and how many tried it.</p></section>';
+
+		// ---- Words ----
+		html += '<section><h2>What people said</h2><div class="quotes">';
+		editors.forEach( function ( e ) {
+			var said = ss.filter( function ( x ) {
+				return x.s.editor === e && x.s.confusing;
+			} ).map( function ( x ) {
+				return x.s.confusing;
+			} );
+			var why = Object.keys( people ).map( function ( k ) {
+				return people[ k ];
+			} ).filter( function ( p ) {
+				return p.preference && p.preference.editor === e && p.preference.reason;
+			} ).map( function ( p ) {
+				return p.preference.reason;
+			} );
+			html += '<div class="q"><h3>' + esc( NAMES[ e ] ) + '</h3>' +
+				( said.length ? '<p class="muted">What got in the way</p><ul>' + said.map( function ( t ) {
+					return '<li>' + esc( t ) + '</li>';
+				} ).join( '' ) + '</ul>' : '<p class="muted">Nothing got in anyone’s way, or nobody said.</p>' ) +
+				( why.length ? '<p class="muted" style="margin-top:12px">Why people chose it</p><ul>' + why.map( function ( t ) {
+					return '<li>' + esc( t ) + '</li>';
+				} ).join( '' ) + '</ul>' : '' ) +
+				'</div>';
+		} );
+		var notes = all.filter( function ( p ) {
+			return p.comments;
+		} );
+		if ( notes.length ) {
+			html += '<div class="q"><h3>Anything else</h3><ul>' + notes.map( function ( p ) {
+				return '<li>' + esc( p.comments ) + '</li>';
+			} ).join( '' ) + '</ul></div>';
+		}
+		html += '</div></section>';
+
+		// ---- Who took part ----
+		var count = function ( key, val ) {
+			return all.filter( function ( p ) {
+				return p.background && p.background[ key ] === val;
+			} ).length;
+		};
+		html += '<section><h2>Who took part</h2><div class="tablewrap"><table><thead><tr><th>Uses WordPress</th><th>People</th><th>Has changed a site’s design</th><th>People</th></tr></thead><tbody>';
+		var wp = [ [ 'never', 'Never' ], [ 'tried', 'A few times' ], [ 'monthly', 'Monthly' ], [ 'weekly', 'Weekly' ], [ 'daily', 'Daily' ] ];
+		var dz = [ [ 'no', 'No' ], [ 'little', 'A little' ], [ 'often', 'Often' ] ];
+		for ( var i = 0; i < wp.length; i++ ) {
+			html += '<tr><td>' + wp[ i ][ 1 ] + '</td><td>' + count( 'wordpress', wp[ i ][ 0 ] ) + '</td><td>' + ( dz[ i ] ? dz[ i ][ 1 ] : '' ) + '</td><td>' + ( dz[ i ] ? count( 'design', dz[ i ][ 0 ] ) : '' ) + '</td></tr>';
+		}
+		html += '</tbody></table></div></section>';
+
+		out.innerHTML = html;
+		document.getElementById( 'inc' ).addEventListener( 'change', function ( e ) {
+			includeIncomplete = e.target.checked;
+			render();
+		} );
+		document.getElementById( 'csv' ).addEventListener( 'click', csv );
+		document.getElementById( 'clear' ).addEventListener( 'click', function () {
+			people = {};
+			render();
+		} );
+	}
+
+	// One row per task attempt, for a spreadsheet or stats package.
+	function csv() {
+		var rows = [ [ 'pid', 'complete', 'group', 'wordpress', 'design', 'editor', 'position', 'task', 'outcome', 'seconds', 'clicks', 'ease', 'umux_lite', 'preferred_this' ] ];
+		sessions().forEach( function ( x ) {
+			x.s.tasks.forEach( function ( t ) {
+				rows.push( [
+					x.p.pid, x.p.complete, x.p.group, ( x.p.background || {} ).wordpress, ( x.p.background || {} ).design,
+					x.s.editor, x.s.position, t.id, t.outcome, ( t.ms / 1000 ).toFixed( 1 ), t.clicks, t.seq, x.s.umuxScore,
+					x.p.preference ? x.p.preference.editor === x.s.editor : '',
+				] );
+			} );
+		} );
+		var text = rows.map( function ( r ) {
+			return r.map( function ( v ) {
+				v = v == null ? '' : String( v );
+				return /[",\n]/.test( v ) ? '"' + v.replace( /"/g, '""' ) + '"' : v;
+			} ).join( ',' );
+		} ).join( '\n' );
+		var a = document.createElement( 'a' );
+		a.href = URL.createObjectURL( new Blob( [ text ], { type: 'text/csv' } ) );
+		a.download = 'editor-study-results.csv';
+		document.body.appendChild( a );
+		a.click();
+		a.remove();
+	}
+
+	function readFiles( list ) {
+		Array.prototype.forEach.call( list, function ( file ) {
+			file.text().then( function ( t ) {
+				add( parse( t ) );
+			} );
+		} );
+	}
+	var drop = document.getElementById( 'drop' );
+	drop.addEventListener( 'dragover', function ( e ) {
+		e.preventDefault();
+		drop.classList.add( 'over' );
+	} );
+	drop.addEventListener( 'dragleave', function () {
+		drop.classList.remove( 'over' );
+	} );
+	drop.addEventListener( 'drop', function ( e ) {
+		e.preventDefault();
+		drop.classList.remove( 'over' );
+		readFiles( e.dataTransfer.files );
+	} );
+	document.getElementById( 'files' ).addEventListener( 'change', function ( e ) {
+		readFiles( e.target.files );
+	} );
+	document.getElementById( 'use-paste' ).addEventListener( 'click', function () {
+		add( parse( document.getElementById( 'paste' ).value ) );
+	} );
+	// ?data=URL loads results from a URL that serves JSON (with CORS).
+	var src = new URLSearchParams( location.search ).get( 'data' );
+	if ( src ) {
+		fetch( src ).then( function ( r ) {
+			return r.text();
+		} ).then( function ( t ) {
+			add( parse( t ) );
+		} );
+	}
+	window.studyResults = { add: add, people: function () {
+		return people;
+	} };
+} )();
+</script>
+</body>
+</html>

@@ -112,8 +112,11 @@ textarea:focus { outline: 2px solid var(--blue); outline-offset: 0; border-color
 .stage iframe {
   position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: #fff;
 }
-/* Editors that aren't in use stay laid out (so they can load) but out of sight. */
-.stage iframe.off { visibility: hidden; pointer-events: none; }
+/* Editors that aren't in use sit underneath the current one, still on screen: browsers
+   pause rendering in frames that are hidden, and the WordPress editors wouldn't finish
+   loading. They're inert, so they can't be clicked or focused. */
+.stage iframe { z-index: 1; }
+.stage iframe.off { z-index: 0; pointer-events: none; }
 .toast {
   position: fixed; left: 50%; top: calc(var(--bar-h) + 16px); z-index: 30; transform: translateX(-50%);
   padding: 10px 18px; border-radius: 999px; background: var(--good); color: #fff; font-weight: 700; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);

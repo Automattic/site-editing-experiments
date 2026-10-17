@@ -240,6 +240,7 @@
 		}
 		var el = document.createElement( 'iframe' );
 		el.className = 'off';
+		el.inert = true;
 		el.title = 'Website editor';
 		el.setAttribute( 'allow', 'clipboard-read; clipboard-write' );
 		var f = { key: key, el: el, kind: EDITORS[ key ].kind, ready: false, model: null, createdAt: Date.now(), readyAt: null };
@@ -309,7 +310,9 @@
 
 	function showFrame( key ) {
 		Object.keys( frames ).forEach( function ( k ) {
-			frames[ k ].el.classList.toggle( 'off', k !== key );
+			var off = k !== key;
+			frames[ k ].el.classList.toggle( 'off', off );
+			frames[ k ].el.inert = off;
 		} );
 	}
 

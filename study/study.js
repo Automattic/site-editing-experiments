@@ -389,7 +389,14 @@
 				go.disabled = false;
 				loading.innerHTML = '<span class="good">Ready</span>';
 				go.focus();
-			} else if ( Date.now() - waited > 180000 && ! document.getElementById( 'reload' ) ) {
+			} else if ( Date.now() - f.createdAt > 120000 && ! f.retried ) {
+				// Now and then Playground doesn't finish starting: start it again, once, quietly.
+				var retried = ( f.retries || 0 ) + 1;
+				unload( key );
+				f = load( key );
+				f.retried = true;
+				f.retries = retried;
+			} else if ( Date.now() - waited > 240000 && ! document.getElementById( 'reload' ) ) {
 				loading.insertAdjacentHTML( 'beforeend', ' <button type="button" class="btn ghost" id="reload">Try again</button>' );
 				document.getElementById( 'reload' ).addEventListener( 'click', function () {
 					unload( key );
@@ -404,6 +411,7 @@
 				editor: key,
 				position: i + 1,
 				loadMs: f.readyAt ? f.readyAt - f.createdAt : null,
+				loadRetries: f.retries || 0,
 				baseline: null,
 				tasks: [],
 				umux: null,
@@ -605,9 +613,28 @@
 		document.getElementById( 'dl' ).addEventListener( 'click', download );
 	}
 
-	// For tests and for the person running the study: the data so far.
+	// For tests and for the person running the study: the data so far, and
+	// what the study sees in an editor right now (is it ready, and which tasks
+	// would count as done against a baseline taken now or passed in).
 	window.studyData = function () {
 		return data;
+	};
+	window.studyCheck = function ( key, base ) {
+		var f = frames[ key || chosen[ 0 ] ];
+		var m = f && modelOf( f );
+		if ( ! m || ! m.ready ) {
+			return { ready: false };
+		}
+		base = base || m;
+		return {
+			ready: true,
+			model: m,
+			sections: m.sections.length,
+			pricing: window.StudyTasks.pricingCount( m ),
+			done: TASKS.map( function ( t ) {
+				return t.check( m, base );
+			} ),
+		};
 	};
 
 	// Start loading the first editor straight away, while they read the welcome.

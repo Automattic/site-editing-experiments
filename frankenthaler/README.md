@@ -4,9 +4,7 @@ Frankenthaler is a Gutenberg pull request rather than a static prototype: it cha
 
 ## Try it
 
-1. Open the PR in Playground: [playground.wordpress.net/?gutenberg-pr=85187](https://playground.wordpress.net/?gutenberg-pr=85187) (it works once the PR's plugin build has finished).
-2. Go to **Gutenberg > Experiments**, turn on **Block toolbar redesign** and save.
-3. Open any post or the site editor and select a block.
+**[Try it in Playground](https://playground.wordpress.net/?blueprint-url=https://raw.githubusercontent.com/Automattic/site-editing-experiments/trunk/frankenthaler/blueprint.json)**. It installs the PR's latest build with the **Block toolbar redesign** experiment already on, and opens a sample post. Select a block to see the new toolbar; the site editor has it too.
 
 Locally, check out the `try/block-toolbar-redesign` branch of Gutenberg, build it, and turn on the same experiment.
 

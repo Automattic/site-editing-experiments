@@ -1,0 +1,28 @@
+{
+	"$schema": "https://playground.wordpress.net/blueprint-schema.json",
+	"meta": {
+		"title": "Frankenthaler: block toolbar redesign",
+		"description": "Gutenberg PR #85187 with the Block toolbar redesign experiment turned on, opening a sample post.",
+		"author": "scruffian"
+	},
+	"landingPage": "/wp-admin/post.php?post=1000&action=edit",
+	"preferredVersions": {
+		"php": "8.3",
+		"wp": "latest"
+	},
+	"login": true,
+	"steps": [
+		{
+			"step": "installPlugin",
+			"pluginData": {
+				"resource": "url",
+				"url": "https://playground.wordpress.net/plugin-proxy.php?org=WordPress&repo=gutenberg&workflow=Build%20Gutenberg%20Plugin%20Zip&artifact=gutenberg.zip&pr=85187",
+				"caption": "Downloading Gutenberg PR 85187"
+			}
+		},
+		{
+			"step": "runPHP",
+			"code": "<?php require '/wordpress/wp-load.php'; update_option( 'gutenberg-experiments', array( 'gutenberg-block-toolbar-redesign' => 1 ) ); update_user_meta( 1, 'wp_persisted_preferences', array( 'core' => array( 'welcomeGuide' => false ), 'core/edit-post' => array( 'welcomeGuide' => false, 'welcomeGuideTemplate' => false ), 'core/edit-site' => array( 'welcomeGuide' => false, 'welcomeGuideStyles' => false, 'welcomeGuidePage' => false, 'welcomeGuideTemplate' => false ), '_modified' => gmdate( 'c' ) ) ); wp_insert_post( array( 'import_id' => 1000, 'post_title' => 'Try the new block toolbar', 'post_status' => 'publish', 'post_content' => '<!-- wp:paragraph --><p>Select this paragraph to see the new toolbar: the block name, movers, the options menu and delete. Select a few words to see the text toolbar.</p><!-- /wp:paragraph --><!-- wp:group {\"layout\":{\"type\":\"constrained\"}} --><div class=\"wp-block-group\"><!-- wp:heading --><h2 class=\"wp-block-heading\">A heading inside a group</h2><!-- /wp:heading --><!-- wp:paragraph --><p>Select this paragraph: its parent, the group, sits to the left of the toolbar, so the toolbar stays where it is.</p><!-- /wp:paragraph --><!-- wp:group {\"layout\":{\"type\":\"flex\",\"flexWrap\":\"nowrap\"}} --><div class=\"wp-block-group\"><!-- wp:paragraph --><p>A row:</p><!-- /wp:paragraph --><!-- wp:paragraph --><p>select it for Layout and +.</p><!-- /wp:paragraph --></div><!-- /wp:group --></div><!-- /wp:group -->' ) );"
+		}
+	]
+}

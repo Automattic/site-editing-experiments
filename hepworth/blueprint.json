@@ -1,0 +1,43 @@
+{
+	"$schema": "https://playground.wordpress.net/blueprint-schema.json",
+	"meta": {
+		"title": "Hepworth: writing and design toolbars",
+		"description": "Escher's two toolbars in the real editor: a Word-style writing toolbar where fonts and sizes are theme presets, and a PowerPoint-style design toolbar.",
+		"author": "Automattic",
+		"categories": [
+			"editor",
+			"design"
+		]
+	},
+	"landingPage": "/wp-admin/?hepworth-sample",
+	"preferredVersions": {
+		"php": "8.3",
+		"wp": "latest"
+	},
+	"login": true,
+	"steps": [
+		{
+			"step": "installPlugin",
+			"pluginData": {
+				"resource": "git:directory",
+				"url": "https://github.com/Automattic/site-editing-experiments",
+				"ref": "trunk",
+				"path": "hepworth"
+			},
+			"options": {
+				"activate": true,
+				"targetFolderName": "hepworth"
+			}
+		},
+		{
+			"step": "runPHP",
+			"code": "<?php\nrequire '/wordpress/wp-load.php';\nglobal $wpdb;\n// No welcome guides or pattern picker in the way.\nupdate_user_meta( 1, $wpdb->prefix . 'persisted_preferences', array(\n\t'core/edit-post' => array( 'welcomeGuide' => false ),\n\t'core/edit-site' => array( 'welcomeGuide' => false, 'welcomeGuidePage' => false, 'welcomeGuideTemplate' => false ),\n\t'core' => array( 'welcomeGuide' => false, 'enableChoosePatternModal' => false ),\n\t'_modified' => gmdate( 'c' ),\n) );\n// The sample page, as the home page too.\nif ( function_exists( 'hepworth_create_sample_page' ) ) {\n\t$id = hepworth_create_sample_page();\n\tif ( $id ) {\n\t\tupdate_option( 'show_on_front', 'page' );\n\t\tupdate_option( 'page_on_front', $id );\n\t}\n}\n"
+		},
+		{
+			"step": "setSiteOptions",
+			"options": {
+				"blogname": "Northfield Ceramics"
+			}
+		}
+	]
+}

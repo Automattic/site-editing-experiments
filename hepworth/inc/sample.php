@@ -20,8 +20,10 @@ function hepworth_sample_content() {
 	$sty = 'padding-top:var(--wp--preset--spacing--60);padding-bottom:var(--wp--preset--spacing--60)';
 
 	return <<<HTML
-<!-- wp:media-text {"align":"full","mediaPosition":"right","mediaType":"image","mediaUrl":"{$img}throwing.jpg","mediaAlt":"Hands shaping clay on a spinning wheel"} -->
-<div class="wp-block-media-text alignfull has-media-on-the-right is-stacked-on-mobile"><div class="wp-block-media-text__content"><!-- wp:heading {"level":4} -->
+<!-- wp:group {"align":"full","style":{"spacing":{"padding":{$pad}}},"layout":{"type":"constrained","wideSize":"1200px"}} -->
+<div class="wp-block-group alignfull" style="{$sty}"><!-- wp:columns {"verticalAlignment":"center","align":"wide"} -->
+<div class="wp-block-columns alignwide are-vertically-aligned-center"><!-- wp:column {"verticalAlignment":"center"} -->
+<div class="wp-block-column is-vertically-aligned-center"><!-- wp:heading {"level":4} -->
 <h4 class="wp-block-heading">Handmade in small batches</h4>
 <!-- /wp:heading -->
 
@@ -37,8 +39,16 @@ function hepworth_sample_content() {
 <div class="wp-block-buttons"><!-- wp:button -->
 <div class="wp-block-button"><a class="wp-block-button__link wp-element-button">Shop the collection</a></div>
 <!-- /wp:button --></div>
-<!-- /wp:buttons --></div><figure class="wp-block-media-text__media"><img src="{$img}throwing.jpg" alt="Hands shaping clay on a spinning wheel"/></figure></div>
-<!-- /wp:media-text -->
+<!-- /wp:buttons --></div>
+<!-- /wp:column -->
+
+<!-- wp:column {"verticalAlignment":"center"} -->
+<div class="wp-block-column is-vertically-aligned-center"><!-- wp:image {"sizeSlug":"large"} -->
+<figure class="wp-block-image size-large"><img src="{$img}throwing.jpg" alt="Hands shaping clay on a spinning wheel"/></figure>
+<!-- /wp:image --></div>
+<!-- /wp:column --></div>
+<!-- /wp:columns --></div>
+<!-- /wp:group -->
 
 <!-- wp:group {"align":"full","style":{"spacing":{"padding":{$pad}}},"backgroundColor":"accent-5","layout":{"type":"constrained"}} -->
 <div class="wp-block-group alignfull has-accent-5-background-color has-background" style="{$sty}"><!-- wp:columns -->
@@ -70,8 +80,16 @@ function hepworth_sample_content() {
 <!-- /wp:pullquote --></div>
 <!-- /wp:group -->
 
-<!-- wp:media-text {"align":"full","mediaType":"image","mediaUrl":"{$img}wheel-studio.jpg","mediaAlt":"A potter’s wheel surrounded by finished pots in a studio"} -->
-<div class="wp-block-media-text alignfull is-stacked-on-mobile"><figure class="wp-block-media-text__media"><img src="{$img}wheel-studio.jpg" alt="A potter’s wheel surrounded by finished pots in a studio"/></figure><div class="wp-block-media-text__content"><!-- wp:heading -->
+<!-- wp:group {"align":"full","style":{"spacing":{"padding":{$pad}}},"layout":{"type":"constrained","wideSize":"1200px"}} -->
+<div class="wp-block-group alignfull" style="{$sty}"><!-- wp:columns {"verticalAlignment":"center","align":"wide"} -->
+<div class="wp-block-columns alignwide are-vertically-aligned-center"><!-- wp:column {"verticalAlignment":"center"} -->
+<div class="wp-block-column is-vertically-aligned-center"><!-- wp:image {"sizeSlug":"large"} -->
+<figure class="wp-block-image size-large"><img src="{$img}wheel-studio.jpg" alt="A potter’s wheel surrounded by finished pots in a studio"/></figure>
+<!-- /wp:image --></div>
+<!-- /wp:column -->
+
+<!-- wp:column {"verticalAlignment":"center"} -->
+<div class="wp-block-column is-vertically-aligned-center"><!-- wp:heading -->
 <h2 class="wp-block-heading">Learn to throw</h2>
 <!-- /wp:heading -->
 
@@ -83,8 +101,10 @@ function hepworth_sample_content() {
 <div class="wp-block-buttons"><!-- wp:button {"className":"is-style-outline"} -->
 <div class="wp-block-button is-style-outline"><a class="wp-block-button__link wp-element-button">See class dates</a></div>
 <!-- /wp:button --></div>
-<!-- /wp:buttons --></div></div>
-<!-- /wp:media-text -->
+<!-- /wp:buttons --></div>
+<!-- /wp:column --></div>
+<!-- /wp:columns --></div>
+<!-- /wp:group -->
 
 <!-- wp:group {"align":"full","style":{"spacing":{"padding":{$pad}}},"layout":{"type":"constrained"}} -->
 <div class="wp-block-group alignfull" style="{$sty}"><!-- wp:heading {"textAlign":"center"} -->

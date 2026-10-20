@@ -287,17 +287,19 @@ await step( 'a section gets a background, and Every section', async () => {
 	);
 } );
 
-await step( 'Swap sides moves a media and text picture across', async () => {
-	await select( 'core/media-text' );
+await step( 'Swap sides moves the hero picture across', async () => {
+	await select( 'core/columns' );
 	await wait( 600 );
-	await page
-		.locator( '.hw-design-tools button[aria-label="Swap sides"]' )
-		.click();
+	const firstHasImage = () =>
+		page.evaluate( () => {
+			const be = window.wp.data.select( 'core/block-editor' );
+			const cols = be.getBlocksByName( 'core/columns' )[ 0 ];
+			return be.getBlock( be.getBlockOrder( cols )[ 0 ] ).innerBlocks.some( ( b ) => b.name === 'core/image' );
+		} );
+	expect( ! ( await firstHasImage() ), 'picture should start on the right' );
+	await page.locator( '.hw-design-tools button[aria-label="Swap sides"]' ).click();
 	await wait( 300 );
-	expect(
-		( await selected() ).attrs.mediaPosition === 'left',
-		'still on the right'
-	);
+	expect( await firstHasImage(), 'picture still on the right' );
 } );
 
 await step( 'a picture can be made a circle', async () => {

@@ -19,13 +19,13 @@ Locally, check out the `try/block-toolbar-redesign` branch of Gutenberg, build i
 
 ![The paragraph toolbar: Paragraph, movers, options and delete](screenshots/toolbar.png)
 
-The toolbar is always the same groups in the same order: **block name**, **movers**, **primary actions**, block controls from blocks and plugins, **options** (`⋮`) and **delete**.
+The toolbar is always the same groups in the same order: **block** (its icon), **movers**, **primary actions**, block controls from blocks and plugins, **options** (`⋮`) and **delete**.
 
-### Block name
+### Block
 
-![The block name menu with transforms and style presets](screenshots/block-name-menu.png)
+![The block menu with transforms and style presets](screenshots/block-name-menu.png)
 
-`Paragraph ⌄` shows what the block is and is the one place to change it: the three most used transforms, then More, then the block's style presets. A heading shows `Heading 2 ⌄`, and its levels are in this menu instead of a separate level dropdown.
+The block's icon (¶ for a paragraph, H2 for a level 2 heading) is the one place to change the block: the three most used transforms, then More, then the block's style presets. The block's name isn't on the toolbar; it's the button's tooltip. A heading's levels are in this menu instead of a separate level dropdown.
 
 ### Options menu
 

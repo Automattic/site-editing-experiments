@@ -21,8 +21,8 @@ Text blocks (paragraphs, headings, quotes, poems, code and lists) open in the wr
 
 Each toolbar hides the other's controls:
 
-- **Writing** hides the block switcher, the movers and the drag handle. Style, Font and Size do what the block switcher did, in words people know.
-- **Designing** hides bold, italic, links and the other text formatting.
+- **Writing** hides the movers, the drag handle and the parent selector. The editor's block switcher becomes the block's icon as a simple menu: the block's name (Heading 1, say), then the names of the blocks it can turn into. Style, Font and Size do the same job in words people know.
+- **Designing** hides bold, italic, links and the other text formatting, and the parent selector.
 
 The selected block's outline takes the toolbar's colour: Word blue for writing, PowerPoint orange for designing.
 

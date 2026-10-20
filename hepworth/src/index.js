@@ -4,8 +4,9 @@
  * Every block's toolbar gets a Write / Design switch at the start. Writing
  * shows Word-style text tools (and the editor's own bold, italic and links);
  * designing shows PowerPoint-style settings (and the editor's own movers).
- * Each toolbar hides the other's controls, including the block switcher in
- * the writing toolbar: there, Style, Font and Size do the transforming.
+ * Each toolbar hides the other's controls. In the writing toolbar the
+ * editor's block switcher becomes the block's icon as a simple menu of the
+ * blocks it can turn into; the design toolbar has no parent selector.
  */
 import './editor.scss';
 import { __ } from '@wordpress/i18n';
@@ -24,6 +25,7 @@ import { store, STORE, defaultMode, HAS_WORDS } from './store';
 import { canvasDocument } from './presets';
 import WriteTools from './write-tools';
 import DesignTools from './design-tools';
+import BlockMenu from './block-menu';
 
 function useMode( clientId, name ) {
 	const chosen = useSelect(
@@ -39,6 +41,11 @@ function Toolbars( { clientId, name } ) {
 	const canWrite = HAS_WORDS.includes( name );
 	return (
 		<>
+			{ mode === 'write' && (
+				<BlockControls group="parent">
+					<BlockMenu clientId={ clientId } />
+				</BlockControls>
+			) }
 			<BlockControls group="parent">
 				<ToolbarGroup className={ `hw-mode is-${ mode }` }>
 					<ToolbarButton
@@ -46,10 +53,7 @@ function Toolbars( { clientId, name } ) {
 						label={
 							canWrite
 								? __( 'Write', 'hepworth' )
-								: __(
-										'Write (this has no words)',
-										'hepworth'
-									)
+								: __( 'Write (this has no words)', 'hepworth' )
 						}
 						isPressed={ mode === 'write' }
 						disabled={ ! canWrite }

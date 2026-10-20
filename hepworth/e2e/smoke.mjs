@@ -115,7 +115,9 @@ await page.evaluate( () =>
 await wait( 2500 );
 // A fresh site may still show the welcome guide or the pattern picker.
 for ( let i = 0; i < 3; i++ ) {
-	const close = page.locator( '.components-modal__frame button[aria-label="Close"]' );
+	const close = page.locator(
+		'.components-modal__frame button[aria-label="Close"]'
+	);
 	if ( ! ( await close.count() ) ) {
 		break;
 	}
@@ -161,6 +163,44 @@ await step(
 			'block switcher showing'
 		);
 		await shot( '01-writing' );
+	}
+);
+
+await step(
+	'the block icon lists the heading and what it can turn into',
+	async () => {
+		const toggle = page.locator( '.hw-block-menu__toggle' );
+		expect( await toggle.isVisible(), 'no block icon' );
+		await toggle.click();
+		await wait( 300 );
+		const items = await page
+			.locator( '.hw-menu--blocks [role^=menuitem]' )
+			.allInnerTexts();
+		expect(
+			items[ 0 ].trim() === 'Heading 1',
+			`first item: ${ items[ 0 ] }`
+		);
+		expect(
+			items.some( ( t ) => t.trim() === 'Paragraph' ),
+			items.join( ', ' )
+		);
+		await shot( '01b-block-menu' );
+		await page
+			.locator( '.hw-menu--blocks [role=menuitem]', {
+				hasText: /^Paragraph$/,
+			} )
+			.click();
+		await wait( 500 );
+		expect(
+			( await selected() ).name === 'core/paragraph',
+			'not a paragraph'
+		);
+		await page.evaluate( () =>
+			window.wp.data.dispatch( 'core/editor' ).undo()
+		);
+		await wait( 500 );
+		await canvas.locator( 'h1.wp-block-heading' ).first().click();
+		await wait( 500 );
 	}
 );
 
@@ -235,6 +275,14 @@ await step( 'Design hides the text formatting', async () => {
 			.isVisible() ),
 		'Bold still showing'
 	);
+	expect(
+		! ( await page
+			.locator(
+				'.block-editor-block-toolbar .block-editor-block-parent-selector'
+			)
+			.isVisible() ),
+		'parent selector showing'
+	);
 } );
 
 await step(
@@ -294,10 +342,14 @@ await step( 'Swap sides moves the hero picture across', async () => {
 		page.evaluate( () => {
 			const be = window.wp.data.select( 'core/block-editor' );
 			const cols = be.getBlocksByName( 'core/columns' )[ 0 ];
-			return be.getBlock( be.getBlockOrder( cols )[ 0 ] ).innerBlocks.some( ( b ) => b.name === 'core/image' );
+			return be
+				.getBlock( be.getBlockOrder( cols )[ 0 ] )
+				.innerBlocks.some( ( b ) => b.name === 'core/image' );
 		} );
 	expect( ! ( await firstHasImage() ), 'picture should start on the right' );
-	await page.locator( '.hw-design-tools button[aria-label="Swap sides"]' ).click();
+	await page
+		.locator( '.hw-design-tools button[aria-label="Swap sides"]' )
+		.click();
 	await wait( 300 );
 	expect( await firstHasImage(), 'picture still on the right' );
 } );

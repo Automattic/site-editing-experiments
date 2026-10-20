@@ -8,13 +8,48 @@ $design-tint: #fbeae5;
 
 // ---------- Which of the editor's own controls each toolbar keeps ----------
 
-// Writing: the words are what matter, so no block switcher (Style, Font and
-// Size do that job) and no movers.
+// Writing: the words are what matter, so no movers or parent selector, and
+// the editor's block switcher gives way to the block's icon as a simple menu
+// (block-menu.js).
 body.hw-write .block-editor-block-toolbar {
 	.block-editor-block-switcher,
 	.block-editor-block-mover,
 	.block-editor-block-parent-selector {
 		display: none !important;
+	}
+}
+
+// Designing: no parent selector.
+body.hw-design .block-editor-block-toolbar .block-editor-block-parent-selector {
+	display: none !important;
+}
+
+.hw-block-menu__toggle.components-button {
+	gap: 2px;
+	padding: 0 4px 0 6px;
+
+	.block-editor-block-icon {
+		width: 24px;
+		height: 24px;
+	}
+}
+
+.hw-block-menu__chevron {
+	display: inline-flex;
+	color: #757575;
+
+	svg {
+		width: 18px;
+		height: 18px;
+	}
+}
+
+.hw-menu--blocks {
+	width: 220px;
+
+	.hw-block-menu__current {
+		font-weight: 600;
+		pointer-events: none;
 	}
 }
 

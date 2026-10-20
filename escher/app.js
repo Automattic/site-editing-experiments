@@ -59,6 +59,7 @@ const LAYOUTS = [
   { id: 'centred', name: 'Centred', ok: () => true },
   { id: 'split', name: 'Heading beside text', ok: (s) => leadingHeadings(s).length > 0 && s.blocks.length > leadingHeadings(s).length },
   { id: 'media-row', name: 'Pictures in a row', ok: (s) => count(s, isMedia) >= 2 },
+  { id: 'freeform', name: 'Freeform', ok: () => true },
 ];
 const BACKGROUNDS = [
   { id: 'paper', name: 'Paper' }, { id: 'sand', name: 'Sand' }, { id: 'sage', name: 'Sage' }, { id: 'sky', name: 'Sky' },
@@ -371,7 +372,6 @@ const $ = (q, el = document) => el.querySelector(q);
 const page = $('#page');
 const tb = $('#tb');
 const pop = $('#pop');
-const handle = $('#handle');
 const dropLine = $('#drop-line');
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 function h(tag, cls) { const el = document.createElement(tag); if (cls) el.className = cls; return el; }
@@ -397,6 +397,8 @@ const ICONS = {
   shape: '<rect x="3.5" y="3.5" width="10" height="10" rx="2"/><circle cx="15" cy="15" r="5.5"/>',
   parent: '<path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 6 6v5"/>',
   check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+  front: '<rect x="9" y="9" width="11" height="11" rx="1.5" fill="currentColor" stroke="none"/><path d="M15 5V4.5A1.5 1.5 0 0 0 13.5 3h-9A1.5 1.5 0 0 0 3 4.5v9A1.5 1.5 0 0 0 4.5 15H5"/>',
+  back: '<rect x="3" y="3" width="11" height="11" rx="1.5" fill="currentColor" stroke="none"/><rect x="9" y="9" width="11" height="11" rx="1.5"/>',
   swap: '<path d="M7 7h13M16 3l4 4-4 4M17 17H4M8 13l-4 4 4 4"/>',
   resize: '<path d="M4 9V4h5M20 15v5h-5M4 4l6 6M20 20l-6-6"/>',
   corner: '<path d="M5 19V11a6 6 0 0 1 6-6h8"/>',
@@ -412,6 +414,7 @@ const ic = (n) => `<svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[n]}</svg>
 
 function render() {
   page.replaceChildren(...state.sections.map(sectionEl));
+  fitFreeform();
   applySel();
   positionToolbar();
 }
@@ -431,6 +434,18 @@ function sectionEl(s) {
     const note = h('div', 'empty-note');
     note.textContent = 'This section is empty. Use Insert in the design toolbar to add something.';
     inner.append(note);
+  } else if (lay === 'freeform') {
+    // Everything sits exactly where it was put. Later items are in front.
+    const canvas = h('div', 'free-canvas');
+    for (const b of s.blocks) {
+      const bel = blockEl(b);
+      const f = b.attrs.free;
+      if (f) Object.assign(bel.style, { left: `${f.x}%`, top: `${f.y}px`, width: `${f.w}%` });
+      const btnEl = bel.querySelector('.btn');
+      if (btnEl) btnEl.style.width = '';
+      canvas.append(bel);
+    }
+    inner.append(canvas);
   } else if (lay === 'stacked' || lay === 'centred') {
     inner.append(col('col-all', s.blocks));
   } else if (lay === 'split') {
@@ -522,6 +537,10 @@ function setSel(next) {
 
 function applySel() {
   page.querySelectorAll('.rz').forEach((n) => n.remove());
+  // Show the freeform grid on the section you're designing.
+  page.querySelectorAll('.free-canvas.show-grid').forEach((c) => c.classList.remove('show-grid'));
+  const gridSec = sel && (sel.type === 'section' ? sectionNode(sel.id) : sel.mode === 'design' && blockNode(sel.id) && blockNode(sel.id).closest('.sec'));
+  if (gridSec) { const c = gridSec.querySelector('.free-canvas'); if (c) c.classList.add('show-grid'); }
   page.querySelectorAll('.sel-write, .sel-design, .sec.sel').forEach((el) => el.classList.remove('sel-write', 'sel-design', 'sel'));
   if (sel && sel.type === 'block') {
     const el = blockNode(sel.id);
@@ -546,7 +565,7 @@ function updateBar() {
   mode.className = `eb-mode ${writing ? 'write' : 'design'}`;
   mode.textContent = writing ? 'Writing' : 'Designing';
   if (writing) hint.textContent = 'Pick a size from your theme, or type your own. Press Esc to design this instead.';
-  else if (sel.type === 'block') hint.textContent = 'Drag the handle to move it, or use the arrows. Press Esc to select the whole section.';
+  else if (sel.type === 'block') hint.textContent = 'Drag it to move it, or use the arrows. Press Esc to select the whole section.';
   else hint.textContent = 'Hover a layout to preview it on the page. Press Esc to deselect.';
 }
 
@@ -606,8 +625,10 @@ page.addEventListener('input', (e) => {
   syncFromDom(ed.closest('.b').dataset.id);
   textDirty = true;
   updateUndo();
+  fitFreeform();
   positionToolbar();
 });
+page.addEventListener('load', () => { fitFreeform(); positionToolbar(); }, true); // pictures change height as they load
 
 function syncFromDom(id) {
   const f = findBlock(id);
@@ -856,6 +877,7 @@ function moveBlock(id, dir) {
   change(() => {
     const si = state.sections.indexOf(f.sec);
     const j = f.i + dir;
+    if (layoutOf(f.sec) === 'freeform' && (j < 0 || j >= f.sec.blocks.length)) return;
     if (j >= 0 && j < f.sec.blocks.length) {
       [f.sec.blocks[f.i], f.sec.blocks[j]] = [f.sec.blocks[j], f.sec.blocks[f.i]];
     } else {
@@ -871,11 +893,13 @@ function canMoveBlock(id, dir) {
   const f = findBlock(id);
   if (!f) return false;
   const si = state.sections.indexOf(f.sec);
+  if (layoutOf(f.sec) === 'freeform') return dir < 0 ? f.i > 0 : f.i < f.sec.blocks.length - 1;
   return dir < 0 ? f.i > 0 || si > 0 : f.i < f.sec.blocks.length - 1 || si < state.sections.length - 1;
 }
 function duplicateBlock(id) {
   const f = findBlock(id);
   const copy = withNewIds(f.b);
+  if (copy.attrs.free) copy.attrs.free = { ...copy.attrs.free, x: copy.attrs.free.x + 2, y: copy.attrs.free.y + 24 };
   change(() => { f.sec.blocks.splice(f.i + 1, 0, copy); sel = { type: 'block', id: copy.id, mode: 'design' }; }, { toast: 'Duplicated' });
 }
 function deleteBlock(id) {
@@ -935,11 +959,12 @@ function setSectionBg(id, v) {
 }
 function setSectionProp(id, key, v) {
   const s = findSection(id);
+  if (key === 'layout' && v === 'freeform') measureFree(s);
   change(() => {
     s[key] = v;
     // Picking a layout puts everything back in its usual column.
-    if (key === 'layout') s.blocks.forEach((b) => delete b.attrs.col);
-  });
+    if (key === 'layout') s.blocks.forEach((b) => { delete b.attrs.col; if (v !== 'freeform') delete b.attrs.free; });
+  }, key === 'layout' && v === 'freeform' ? { toast: 'Freeform: drag anything anywhere' } : {});
 }
 function moveSection(id, dir) {
   const i = state.sections.findIndex((s) => s.id === id);
@@ -1090,8 +1115,9 @@ function designTools(f) {
   }
   return `${sep}
     <button class="tbb grip" data-grip title="Drag to move" aria-label="Drag to move">${ic('grip')}</button>
-    ${btn('up', ic('up'), 'Move up (Alt+↑)', canMoveBlock(b.id, -1) ? '' : 'disabled')}
-    ${btn('down', ic('down'), 'Move down (Alt+↓)', canMoveBlock(b.id, 1) ? '' : 'disabled')}
+    ${isFree(b.id) ? `${btn('down', ic('front'), 'Bring forward (Alt+↑)', canMoveBlock(b.id, 1) ? '' : 'disabled')}
+    ${btn('up', ic('back'), 'Send backward (Alt+↓)', canMoveBlock(b.id, -1) ? '' : 'disabled')}` : `${btn('up', ic('up'), 'Move up (Alt+↑)', canMoveBlock(b.id, -1) ? '' : 'disabled')}
+    ${btn('down', ic('down'), 'Move down (Alt+↓)', canMoveBlock(b.id, 1) ? '' : 'disabled')}`}
     ${sep}${own}
     ${btn('dup', ic('dup'), 'Duplicate')}
     <button class="tbb danger" data-act="del" title="Delete (Delete key)" aria-label="Delete">${ic('trash')}</button>
@@ -1374,7 +1400,10 @@ pop.addEventListener('mouseover', (e) => {
   if (!target) return;
   const bag = el.dataset.act === 'sec-set' ? target : target.attrs;
   if (!popState.preview) popState.preview = { bag, prop, value: bag[prop] };
-  if (bag[prop] !== el.dataset.v) { bag[prop] = el.dataset.v; renderKeepingCaret(); }
+  if (bag[prop] !== el.dataset.v) {
+    if (prop === 'layout' && el.dataset.v === 'freeform') measureFree(target);
+    bag[prop] = el.dataset.v; renderKeepingCaret();
+  }
 });
 function renderKeepingCaret() {
   // Re-rendering replaces the text being edited, so put the caret back.
@@ -1455,6 +1484,7 @@ function thumb(id) {
     case 'text-media': inner = T(8, 14, 34, 5, 't-head') + lines(8, 23, 34) + T(54, 9, 38, 42, 't-img'); break;
     case 'media-text': inner = T(8, 9, 38, 42, 't-img') + T(58, 14, 34, 5, 't-head') + lines(58, 23, 34); break;
     case 'overlay': inner = T(0, 0, 100, 60, 't-img') + T(0, 30, 100, 30, 't-shade') + T(8, 38, 40, 5, 't-light') + T(8, 47, 54, 2, 't-light') + T(8, 52, 34, 2, 't-light'); break;
+    case 'freeform': inner = T(10, 8, 34, 5, 't-head') + T(58, 12, 32, 22, 't-img') + T(18, 22, 30, 2) + T(18, 27, 24, 2) + T(30, 38, 36, 16, 't-img') + T(72, 42, 18, 5, 't-head'); break;
     case 'stacked': inner = T(14, 9, 44, 5, 't-head') + lines(14, 18, 66) + T(14, 35, 72, 18, 't-img'); break;
     case 'centred': inner = T(28, 12, 44, 5, 't-head') + T(20, 22, 60, 2) + T(24, 27, 52, 2) + T(30, 32, 40, 2) + T(38, 41, 24, 6, 't-head'); break;
     case 'split': inner = T(8, 12, 30, 5, 't-head') + T(8, 20, 22, 5, 't-head') + lines(48, 12, 44, 4) + lines(48, 34, 44, 3); break;
@@ -1464,48 +1494,13 @@ function thumb(id) {
   return `<svg class="thumb" viewBox="0 0 100 60" aria-hidden="true">${inner}</svg>`;
 }
 
-/* ---------------------------------------------------------------- Hover handle and dragging */
+/* ---------------------------------------------------------------- Dragging */
 
-let hoverId = null;
-page.addEventListener('mousemove', (e) => {
-  if (drag) return;
-  const bel = e.target.closest('.b');
-  if (!bel) { if (!e.target.closest('#handle') && !nearHovered(e)) hideHandle(); return; }
-  if (bel.dataset.id === hoverId && !handle.hidden) return;
-  hoverId = bel.dataset.id;
-  placeHandle(bel);
-});
-page.addEventListener('mouseleave', (e) => { if (!e.relatedTarget || !e.relatedTarget.closest('#handle')) hideHandle(); });
-function placeHandle(bel) {
-  const r = bel.getBoundingClientRect();
-  handle.innerHTML = ic('grip');
-  handle.hidden = false;
-  const left = r.left - 32 < 4 ? r.left + 4 : r.left - 32;
-  handle.style.left = `${left + scrollX}px`;
-  handle.style.top = `${r.top + scrollY + Math.min(4, r.height / 2 - 15)}px`;
-}
-function hideHandle() { handle.hidden = true; hoverId = null; }
-// Keep the handle while the pointer crosses the gap between a block and its handle.
-function nearHovered(e) {
-  const el = hoverId && blockNode(hoverId);
-  if (!el || handle.hidden) return false;
-  const r = el.getBoundingClientRect();
-  const h = handle.getBoundingClientRect();
-  return e.clientX >= Math.min(r.left, h.left) - 6 && e.clientX <= r.right
-    && e.clientY >= Math.min(r.top, h.top) - 6 && e.clientY <= Math.max(r.bottom, h.bottom) + 6;
-}
-handle.addEventListener('mouseleave', (e) => {
-  if (drag) return;
-  const to = e.relatedTarget;
-  if (to && to.closest && to.closest(`.b[data-id="${hoverId}"]`)) return;
-  if (!nearHovered(e)) hideHandle();
-});
-handle.addEventListener('mousedown', (e) => e.preventDefault());
-handle.addEventListener('pointerdown', (e) => { if (hoverId) beginDrag(hoverId, e); });
+
 
 let drag = null;
-// Listens on the window rather than capturing the pointer on the handle: the handle and
-// toolbar hide once a drag starts, and a hidden element loses its pointer capture.
+// Listens on the window rather than capturing the pointer: the toolbar (with its grip)
+// hides once a drag starts, and a hidden element loses its pointer capture.
 function beginDrag(id, e, opts = {}) {
   e.preventDefault();
   if (drag) endDragListeners();
@@ -1526,7 +1521,8 @@ page.addEventListener('pointerdown', (e) => {
   if (!bel) return;
   const ed = e.target.closest('[data-edit]');
   const selectedForDesign = sel && sel.type === 'block' && sel.id === bel.dataset.id && sel.mode === 'design';
-  if (ed && ed.isContentEditable && !selectedForDesign) return; // clicking text writes, as before
+  // Clicking text writes, except in a freeform section, where the first click picks it up to move.
+  if (ed && ed.isContentEditable && !selectedForDesign && !isFree(bel.dataset.id)) return;
   // A second click on something already selected (text or a button) starts writing in it.
   beginDrag(bel.dataset.id, e, { clickToWrite: !!ed && selectedForDesign });
 });
@@ -1544,6 +1540,44 @@ function onDragMove(e) {
     drag.active = true;
     closePop();
     blurEditing();
+    const fel = blockNode(drag.id);
+    if (isFree(drag.id)) {
+      const canvas = fel.parentElement;
+      const cr = canvas.getBoundingClientRect();
+      drag.free = { el: fel, canvas, sec: fel.closest('.sec'), grabX: drag.x - (cr.left + fel.offsetLeft), grabY: drag.y - (cr.top + fel.offsetTop), x0: fel.offsetLeft, y0: fel.offsetTop, out: false, pos: null };
+      fel.classList.add('free-moving');
+      document.body.classList.add('dragging');
+      tb.hidden = true;
+    }
+  }
+  if (drag.free) {
+    const fd = drag.free;
+    const sr = fd.sec.getBoundingClientRect();
+    const inside = e.clientX > sr.left && e.clientX < sr.right && e.clientY > sr.top - 30 && e.clientY < sr.bottom + 30;
+    if (inside) {
+      if (fd.out) { fd.out = false; if (drag.ghost) drag.ghost.hidden = true; dropLine.hidden = true; fd.el.classList.remove('is-dragging'); fd.el.classList.add('free-moving'); }
+      const cr = fd.canvas.getBoundingClientRect();
+      const p = snapFree(fd.canvas, fd.el, e.clientX - cr.left - fd.grabX, e.clientY - cr.top - fd.grabY);
+      fd.el.style.left = `${p.x}px`;
+      fd.el.style.top = `${p.y}px`;
+      fd.pos = p;
+      const need = p.y + fd.el.offsetHeight;
+      if (need > fd.canvas.offsetHeight) fd.canvas.style.height = `${need}px`;
+      if (e.clientY < 90) scrollBy(0, -12); else if (e.clientY > innerHeight - 50) scrollBy(0, 12);
+      return;
+    }
+    // Dragged out of its section: back to moving it somewhere else on the page.
+    if (!fd.out) {
+      fd.out = true;
+      Object.assign(fd.el.style, { left: `${fd.x0}px`, top: `${fd.y0}px` });
+      fd.pos = null;
+      showGuides(fd.canvas, null, null);
+      fd.el.classList.remove('free-moving');
+    }
+    if (!drag.ghost) makeGhost(e, fd.el);
+    drag.ghost.hidden = false;
+    fd.el.classList.add('is-dragging');
+  } else if (!drag.ghost) {
     const el = blockNode(drag.id);
     const r = el.getBoundingClientRect();
     const g = el.cloneNode(true);
@@ -1561,14 +1595,30 @@ function onDragMove(e) {
     drag.dy = Math.min(e.clientY - r.top, 30);
     el.classList.add('is-dragging');
     document.body.classList.add('dragging');
-    hideHandle();
     tb.hidden = true;
   }
+  if (!drag.ghost) return;
   drag.ghost.style.left = `${e.clientX - drag.dx}px`;
   drag.ghost.style.top = `${e.clientY - drag.dy}px`;
   if (e.clientY < 90) scrollBy(0, -14); else if (e.clientY > innerHeight - 50) scrollBy(0, 14);
   drag.target = findDropTarget(e.clientX, e.clientY);
   showDropLine(drag.target);
+}
+function makeGhost(e, el) {
+  const r = el.getBoundingClientRect();
+  const g = el.cloneNode(true);
+  g.classList.add('ghost');
+  g.classList.remove('sel-design', 'sel-write', 'free-moving');
+  g.querySelectorAll('[contenteditable]').forEach((n) => n.removeAttribute('contenteditable'));
+  g.querySelectorAll('.rz').forEach((n) => n.remove());
+  Object.assign(g.style, { position: 'fixed', width: `${Math.min(r.width, el.classList.contains('k-image') ? 220 : 520)}px` });
+  const sec = el.closest('.sec');
+  g.className += ` ${[...sec.classList].filter((c) => c.startsWith('bg-')).join(' ')}`;
+  g.style.cssText += sec.style.cssText;
+  document.body.append(g);
+  drag.ghost = g;
+  drag.dx = Math.min(e.clientX - r.left, 40);
+  drag.dy = Math.min(e.clientY - r.top, 30);
 }
 function findDropTarget(x, y) {
   const under = document.elementFromPoint(x, y);
@@ -1577,6 +1627,14 @@ function findDropTarget(x, y) {
   if (!sec) return null;
   const swap = swapTarget(sec, x);
   if (swap) return swap;
+  const destSec = findSection(sec.dataset.id);
+  if (layoutOf(destSec) === 'freeform') {
+    const canvas = sec.querySelector('.free-canvas');
+    const cr = canvas.getBoundingClientRect();
+    const px = Math.max(0, x - cr.left - drag.dx);
+    const py = Math.max(0, y - cr.top - drag.dy);
+    return { secId: destSec.id, end: true, freeAt: { x: round1(px / cr.width * 100), y: Math.round(py) }, rect: { left: cr.left + px, top: cr.top + py, width: 160, height: 0, bottom: cr.top + py } };
+  }
   const candidates = [...sec.querySelectorAll('.b')].filter((b) => b.dataset.id !== drag.id && b.offsetParent);
   if (!candidates.length) return { secId: sec.dataset.id, end: true, rect: sec.querySelector('.sec-inner').getBoundingClientRect() };
   let best = null; let bestD = Infinity;
@@ -1632,6 +1690,10 @@ function showDropLine(t) {
     return;
   }
   dropLine.style.height = '';
+  if (t.freeAt) {
+    Object.assign(dropLine.style, { left: `${t.rect.left}px`, width: `${t.rect.width}px`, top: `${t.rect.top - 2}px` });
+    return;
+  }
   const r = t.rect;
   const y = t.end ? r.bottom - 40 : t.before ? r.top - 9 : r.bottom + 7;
   dropLine.style.left = `${r.left + (t.end ? 40 : 0)}px`;
@@ -1646,7 +1708,17 @@ function onDragEnd(e) {
   document.body.classList.remove('dragging');
   if (d.ghost) d.ghost.remove();
   const el = blockNode(d.id);
-  if (el) el.classList.remove('is-dragging');
+  if (el) el.classList.remove('is-dragging', 'free-moving');
+  if (d.free) showGuides(d.free.canvas, null, null);
+  if (d.active && d.free && !d.free.out) {
+    const f = findBlock(d.id);
+    const p = d.free.pos;
+    if (!p) { render(); return; }
+    const W = d.free.canvas.clientWidth;
+    sel = { type: 'block', id: d.id, mode: 'design' };
+    change(() => { f.b.attrs.free = { ...f.b.attrs.free, x: round1(p.x / W * 100), y: Math.round(p.y) }; }, { keepCaret: false });
+    return;
+  }
   if (!d.active) {
     if (e.type !== 'pointerup') return;
     if (d.clickToWrite) {
@@ -1675,6 +1747,11 @@ function onDragEnd(e) {
       const i = dest.blocks.findIndex((b) => b.id === t.id);
       dest.blocks.splice(t.before ? i : i + 1, 0, src.b);
     }
+    if (t.freeAt) {
+      const w = isMedia(src.b) ? 40 : src.b.name === 'core/buttons' ? 25 : 50;
+      src.b.attrs.free = { x: Math.max(0, Math.min(t.freeAt.x, 100 - w)), y: t.freeAt.y, w };
+      delete src.b.attrs.width;
+    } else delete src.b.attrs.free;
     // Keep it in the column it was dropped into.
     const natural = isMedia(src.b) ? 'media' : 'text';
     if (t.col && t.col !== natural) {
@@ -1710,15 +1787,15 @@ page.addEventListener('pointerdown', (e) => {
   e.stopPropagation();
   const el = hnd.closest('.b');
   const f = findBlock(el.dataset.id);
-  const target = f.b.name === 'core/buttons' ? el.querySelector('.btn') : el;
+  const free = layoutOf(f.sec) === 'freeform';
+  const target = f.b.name === 'core/buttons' && !free ? el.querySelector('.btn') : el;
   const col = el.parentElement.getBoundingClientRect();
   const r = target.getBoundingClientRect();
-  const centred = getComputedStyle(el.parentElement).alignItems === 'center' || f.b.name === 'core/buttons' && getComputedStyle(el).justifyContent === 'center';
-  rsz = { id: f.b.id, el, target, pos: hnd.dataset.pos, colW: col.width, left: r.left, right: r.right, mid: (r.left + r.right) / 2, centred, pct: null };
+  const centred = !free && (getComputedStyle(el.parentElement).alignItems === 'center' || f.b.name === 'core/buttons' && getComputedStyle(el).justifyContent === 'center');
+  rsz = { id: f.b.id, el, target, pos: hnd.dataset.pos, colW: col.width, left: r.left, right: r.right, mid: (r.left + r.right) / 2, centred, pct: null, free, rightOff: el.offsetLeft + el.offsetWidth, leftOff: el.offsetLeft };
   hnd.setPointerCapture(e.pointerId);
   document.body.classList.add('resizing');
   tb.hidden = true;
-  hideHandle();
 });
 page.addEventListener('pointermove', (e) => {
   if (!rsz) return;
@@ -1726,6 +1803,24 @@ page.addEventListener('pointermove', (e) => {
   let w;
   if (rsz.centred) w = Math.abs(e.clientX - rsz.mid) * 2;
   else w = west ? rsz.right - e.clientX : e.clientX - rsz.left;
+  if (rsz.free) {
+    // Freeform: any width, snapping to the edges and middles of other items.
+    let edge = west ? e.clientX : e.clientX;
+    const cr = rsz.el.parentElement.getBoundingClientRect();
+    const lines = [0, cr.width / 2, cr.width, ...gridLines(cr.width), ...[...rsz.el.parentElement.children].filter((c) => c.classList.contains('b') && c !== rsz.el).flatMap((o) => [o.offsetLeft, o.offsetLeft + o.offsetWidth / 2, o.offsetLeft + o.offsetWidth])];
+    let ex = edge - cr.left;
+    const hit = lines.find((l) => Math.abs(l - ex) <= SNAP);
+    if (hit != null) ex = hit;
+    showGuides(rsz.el.parentElement, hit, null);
+    const wpx = west ? rsz.rightOff - ex : ex - rsz.leftOff;
+    const pct = Math.max(5, Math.min(west ? rsz.rightOff / cr.width * 100 : 100 - rsz.leftOff / cr.width * 100 + 50, wpx / cr.width * 100));
+    rsz.pct = round1(pct);
+    rsz.el.style.width = `${rsz.pct}%`;
+    if (west) rsz.el.style.left = `${rsz.rightOff - rsz.pct / 100 * cr.width}px`;
+    fitFreeform();
+    sizeTip(e, `${Math.round(rsz.pct)}%`);
+    return;
+  }
   let pct = Math.max(12, Math.min(100, (w / rsz.colW) * 100));
   const near = SNAPS.find((x) => Math.abs(x - pct) < 2.5);
   pct = near || Math.round(pct);
@@ -1736,13 +1831,22 @@ page.addEventListener('pointermove', (e) => {
 });
 function endResize() {
   if (!rsz) return;
-  const { id, pct, el } = rsz;
+  const { id, pct, el, free, pos, rightOff } = rsz;
   rsz = null;
   document.body.classList.remove('resizing');
   sizeTip(null);
   el.style.marginLeft = '';
   if (pct == null) { renderToolbar(); return; }
   const f = findBlock(id);
+  if (free) {
+    const W = el.parentElement.clientWidth;
+    showGuides(el.parentElement, null, null);
+    change(() => {
+      f.b.attrs.free.w = pct;
+      if (pos.includes('w')) f.b.attrs.free.x = round1((rightOff / W) * 100 - pct);
+    }, { toast: `Resized to ${Math.round(pct)}%` });
+    return;
+  }
   change(() => {
     if (pct >= 100) delete f.b.attrs.width; else f.b.attrs.width = Math.round(pct * 100) / 100;
     if (f.b.name === 'core/buttons') f.b.attrs.wide = pct >= 100;
@@ -1759,6 +1863,112 @@ function sizeTip(e, text) {
   tip.style.left = `${e.clientX + 14}px`;
   tip.style.top = `${e.clientY + 16}px`;
 }
+
+/* ---------------------------------------------------------------- Freeform */
+
+// Positions are stored as x and width in % of the section's content width and y in px,
+// so a freeform section keeps its arrangement as the window gets wider or narrower.
+// On a phone (see style.css) a freeform section stacks its items in order instead.
+function freeFrame(secEl) {
+  const r = secEl.getBoundingClientRect();
+  const inner = secEl.querySelector('.sec-inner');
+  const cs = getComputedStyle(inner);
+  const full = Math.min(1180, r.width);
+  const padX = parseFloat(cs.paddingLeft);
+  return { left: r.left + (r.width - full) / 2 + padX, top: inner.getBoundingClientRect().top + parseFloat(cs.paddingTop), width: full - padX * 2 };
+}
+// Turning a section freeform starts from wherever things are now, so nothing jumps.
+function measureFree(s) {
+  const secEl = sectionNode(s.id);
+  if (!secEl) return;
+  const fr = freeFrame(secEl);
+  for (const b of s.blocks) {
+    const el = blockNode(b.id);
+    if (!el || !el.offsetParent) { delete b.attrs.free; continue; }
+    const target = b.name === 'core/buttons' ? el.querySelector('.btn') : el;
+    const r = target.getBoundingClientRect();
+    const x = Math.max(0, Math.min(95, (r.left - fr.left) / fr.width * 100));
+    b.attrs.free = { x: round1(x), y: Math.max(0, Math.round(r.top - fr.top)), w: round1(Math.min(100 - x, r.width / fr.width * 100)) };
+  }
+}
+const round1 = (n) => Math.round(n * 10) / 10;
+function fitFreeform() {
+  page.querySelectorAll('.free-canvas').forEach((canvas) => {
+    const s = findSection(canvas.closest('.sec').dataset.id);
+    let bottom = 0;
+    const els = [...canvas.children].filter((c) => c.classList.contains('b'));
+    for (const el of els) {
+      const b = findBlock(el.dataset.id).b;
+      if (b.attrs.free) bottom = Math.max(bottom, el.offsetTop + el.offsetHeight);
+    }
+    // Anything new (inserted, or dropped in without a spot) goes underneath.
+    for (const el of els) {
+      const b = findBlock(el.dataset.id).b;
+      if (b.attrs.free) continue;
+      const w = isMedia(b) ? 40 : b.name === 'core/buttons' ? 25 : 50;
+      b.attrs.free = { x: 0, y: bottom ? bottom + 24 : 0, w };
+      Object.assign(el.style, { left: '0%', top: `${b.attrs.free.y}px`, width: `${w}%` });
+      bottom = el.offsetTop + el.offsetHeight;
+    }
+    canvas.style.height = `${Math.max(bottom, 120)}px`;
+    void s;
+  });
+}
+const SNAP = 6;
+// A 12-column grid, shown while you work in a freeform section, and snapped to.
+const GRID_COLS = 12;
+const GRID_GAP = 24;
+function gridLines(W) {
+  const cw = (W - GRID_GAP * (GRID_COLS - 1)) / GRID_COLS;
+  const out = [];
+  for (let i = 0; i < GRID_COLS; i++) { const l = i * (cw + GRID_GAP); out.push(l, l + cw); }
+  return out;
+}
+function snapFree(canvas, el, x, y) {
+  const W = canvas.clientWidth;
+  const H = canvas.clientHeight;
+  const w = el.offsetWidth;
+  const hgt = el.offsetHeight;
+  const others = [...canvas.children].filter((c) => c.classList.contains('b') && c !== el);
+  const vx = [0, W / 2, W, ...gridLines(W)];
+  const hy = [0];
+  for (const o of others) {
+    vx.push(o.offsetLeft, o.offsetLeft + o.offsetWidth / 2, o.offsetLeft + o.offsetWidth);
+    hy.push(o.offsetTop, o.offsetTop + o.offsetHeight / 2, o.offsetTop + o.offsetHeight);
+  }
+  const best = (edges, lines) => {
+    let hit = null;
+    for (const [k, e] of edges.entries()) for (const l of lines) {
+      const dlt = l - e;
+      if (Math.abs(dlt) <= SNAP && (!hit || Math.abs(dlt) < Math.abs(hit.dlt))) hit = { dlt, line: l, k };
+    }
+    return hit;
+  };
+  const sx = best([x, x + w / 2, x + w], vx);
+  const sy = best([y, y + hgt / 2, y + hgt], hy);
+  if (sx) x += sx.dlt;
+  if (sy) y += sy.dlt;
+  x = Math.max(-w / 2, Math.min(W - w / 2, x));
+  y = Math.max(0, y);
+  showGuides(canvas, sx && sx.line, sy && sy.line, H);
+  return { x, y };
+}
+function showGuides(canvas, gx, gy) {
+  canvas.querySelectorAll('.guide').forEach((g) => g.remove());
+  if (gx != null) { const g = h('div', 'guide v'); g.style.left = `${gx}px`; canvas.append(g); }
+  if (gy != null) { const g = h('div', 'guide h'); g.style.top = `${gy}px`; canvas.append(g); }
+}
+function nudgeFree(id, dx, dy) {
+  const f = findBlock(id);
+  const el = blockNode(id);
+  if (!f || !f.b.attrs.free || !el) return;
+  const W = el.parentElement.clientWidth;
+  change(() => {
+    f.b.attrs.free.x = round1(Math.max(-50, Math.min(100, f.b.attrs.free.x + dx / W * 100)));
+    f.b.attrs.free.y = Math.max(0, f.b.attrs.free.y + dy);
+  });
+}
+function isFree(id) { const f = findBlock(id); return !!f && layoutOf(f.sec) === 'freeform'; }
 
 /* ---------------------------------------------------------------- Toast */
 
@@ -1807,8 +2017,13 @@ document.addEventListener('keydown', (e) => {
   if (sel.type === 'block') {
     if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); deleteBlock(sel.id); }
     else if (e.key === 'Enter') { e.preventDefault(); const f = findBlock(sel.id); if (f && isWritable(f.b)) startWriting(sel.id, f.b.name === 'core/buttons' ? 'all' : 'end'); }
-    else if (e.altKey && e.key === 'ArrowUp') { e.preventDefault(); moveBlock(sel.id, -1); }
-    else if (e.altKey && e.key === 'ArrowDown') { e.preventDefault(); moveBlock(sel.id, 1); }
+    else if (e.altKey && e.key === 'ArrowUp') { e.preventDefault(); moveBlock(sel.id, isFree(sel.id) ? 1 : -1); }
+    else if (e.altKey && e.key === 'ArrowDown') { e.preventDefault(); moveBlock(sel.id, isFree(sel.id) ? -1 : 1); }
+    else if (isFree(sel.id) && e.key.startsWith('Arrow')) {
+      e.preventDefault();
+      const step = e.shiftKey ? 10 : 1;
+      nudgeFree(sel.id, { ArrowLeft: -step, ArrowRight: step }[e.key] || 0, { ArrowUp: -step, ArrowDown: step }[e.key] || 0);
+    }
   } else if (sel.type === 'section') {
     if (e.altKey && e.key === 'ArrowUp') { e.preventDefault(); moveSection(sel.id, -1); }
     else if (e.altKey && e.key === 'ArrowDown') { e.preventDefault(); moveSection(sel.id, 1); }
@@ -1833,7 +2048,7 @@ $('#show-blocks').addEventListener('change', (e) => {
   positionToolbar();
 });
 
-addEventListener('scroll', () => { positionToolbar(); if (!drag) hideHandle(); }, { passive: true });
+addEventListener('scroll', () => { positionToolbar(); }, { passive: true });
 addEventListener('resize', () => positionToolbar());
 
 render();

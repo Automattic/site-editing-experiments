@@ -55,7 +55,7 @@ Buttons get a cut-down writing toolbar (bold and italic only), since their font 
 
 For a single thing, like PowerPoint's Arrange tools:
 
-- **Drag** it to move it anywhere on the page, including into another section: press on a picture or button, or on anything already selected for design, and drag, or use the handle that appears beside whatever you hover, or the dotted grip in the toolbar. A line shows where it'll land. Clicking selected text without dragging starts writing where you clicked.
+- **Drag** it to move it anywhere on the page, including into another section: press on a picture or button, or on anything already selected for design, and drag, or use the dotted grip in the toolbar. A line shows where it'll land. Clicking selected text without dragging starts writing where you clicked.
 - **In among the text:** in a section with a picture column, drop a picture between two pieces of text and it stays there, at half the column's width to start with. If that empties the picture column, the section becomes one column. Picking a layout puts everything back in its usual column.
 - **Swap sides** in a picture-and-text section: drag the picture into the margin beside the text, where **Move the picture to the left** (or right) appears, and let go; the picture and text swap sides. **Swap sides** in the picture's toolbar does the same.
 - **Resize** with the handles on its corners and sides. Width is a share of the column and snaps to a quarter, a third, half, two thirds, three quarters and full width (a label shows which), so things still line up and still fit on a phone. On a button the handles are on the button itself.
@@ -66,11 +66,25 @@ For a single thing, like PowerPoint's Arrange tools:
 
 For a section, like PowerPoint's Layout and Design tabs:
 
-- **Layout**, a gallery of layouts drawn as thumbnails: Text and picture, Picture and text, Text over picture, Stacked, Centred, Heading beside text and Pictures in a row. Layouts that don't suit the section's content are greyed out.
+- **Layout**, a gallery of layouts drawn as thumbnails: Text and picture, Picture and text, Text over picture, Stacked, Centred, Heading beside text, Pictures in a row and Freeform. Layouts that don't suit the section's content are greyed out.
 - **Background**, seven colour schemes or a colour of your own (the text switches between dark and light to stay readable), and **Spacing**, Compact, Comfortable or Spacious.
 - Hovering an option in any of these **previews it on the page**, as PowerPoint does; clicking keeps it.
 - **Insert** adds a heading, text, a list, a quote, a picture or a button.
 - **Move up**, **Move down**, **Duplicate** and **Delete**.
+
+### Freeform
+
+Choosing **Freeform** from a section's Layout menu frees everything in it to go anywhere, starting from exactly where it was, so nothing jumps.
+
+- **Clicking** anything in a freeform section, text included, selects it for design, so it's ready to drag; click selected text again to write in it.
+- A **12-column grid** shows over the section while you're designing it or anything in it, and goes away when you click off.
+- **Drag** anything to put it exactly where you let go. Pink guides snap it to the grid's columns, the section's edges and middle, and the edges and middles of the other items.
+- **Resize** from the side handles to any width, snapping to the same guides and columns.
+- The **arrow keys** nudge the selected item 1px at a time (10px with Shift).
+- Items can overlap. **Bring forward** and **Send backward** in the toolbar, or Alt+↑ and Alt+↓, change which is in front.
+- Dragging an item out of the section moves it somewhere else on the page as usual, and dragging something into a freeform section puts it where you drop it. Anything inserted goes underneath what's there.
+- Positions are a share of the section's width, so the arrangement keeps its shape as the window changes. On a phone a freeform section stacks its items in order.
+- Picking any other layout puts everything back in order.
 
 Moving, duplicating and deleting show a message with **Undo**. **Undo** and **Redo** in the top bar (Ctrl+Z and Ctrl+Shift+Z) cover everything, and **Reset** puts the page back as it started.
 

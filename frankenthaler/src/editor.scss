@@ -1,0 +1,262 @@
+// Frankenthaler: the two toolbars' look, and hiding each toolbar's
+// unrelated controls.
+
+$write: #2b579a; // Word blue
+$write-tint: #e8eef8;
+$design: #c43e1c; // PowerPoint orange
+$design-tint: #fbeae5;
+
+// ---------- Which of the editor's own controls each toolbar keeps ----------
+
+// Writing: the words are what matter, so no block switcher (Style, Font and
+// Size do that job) and no movers.
+body.fk-write .block-editor-block-toolbar {
+	.block-editor-block-switcher,
+	.block-editor-block-mover,
+	.block-editor-block-parent-selector {
+		display: none !important;
+	}
+}
+
+// Designing: no text formatting (see the marker in index.js).
+body.fk-design .block-editor-block-toolbar {
+	.components-toolbar-group:has(.fk-inline-marker),
+	.block-editor-block-toolbar__slot:has(.fk-inline-marker) {
+		display: none !important;
+	}
+}
+
+// ---------- The Write / Design switch ----------
+
+.fk-mode {
+	.components-button.is-pressed,
+	.components-button.is-pressed:hover {
+		color: #fff;
+	}
+	.fk-mode__write.is-pressed::before {
+		background: $write !important;
+	}
+	.fk-mode__design.is-pressed::before {
+		background: $design !important;
+	}
+	.fk-mode__write.is-pressed,
+	.fk-mode__design.is-pressed {
+		background: transparent;
+	}
+}
+
+// ---------- Word-style boxes ----------
+
+.fk-tools {
+	align-items: center;
+	gap: 2px;
+}
+
+.fk-box__toggle.components-button {
+	display: inline-flex;
+	justify-content: space-between;
+	gap: 6px;
+	height: 32px;
+	min-width: 0;
+	margin: 0 2px;
+	padding: 0 4px 0 8px;
+	border: 1px solid #ccc;
+	border-radius: 4px;
+	background: #fff;
+	color: #1e1e1e;
+	font-size: 13px;
+	white-space: nowrap;
+
+	&:hover {
+		border-color: #949494;
+	}
+	&[aria-expanded="true"] {
+		border-color: currentColor;
+	}
+	svg {
+		flex: none;
+		width: 20px;
+		height: 20px;
+	}
+}
+
+.fk-box__text {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	text-align: left;
+}
+
+.fk-box__chevron {
+	display: inline-flex;
+	color: #757575;
+}
+
+.fk-size.is-custom .fk-box__text::after {
+	content: "*";
+	margin-left: 1px;
+	color: $write;
+}
+
+.fk-step .fk-aa {
+	position: relative;
+	padding-right: 8px;
+	font: 600 16px/1 Georgia, serif;
+
+	small {
+		position: absolute;
+		top: -2px;
+		right: -2px;
+		font: 700 9px/1 sans-serif;
+	}
+
+	&.fk-aa--small {
+		font-size: 13px;
+	}
+}
+
+.fk-font-colour.components-button {
+	flex-direction: column;
+	justify-content: center;
+	gap: 2px;
+	min-width: 36px;
+}
+
+.fk-font-colour__a {
+	font: 600 15px/1 Georgia, serif;
+}
+
+.fk-font-colour__bar {
+	width: 18px;
+	height: 4px;
+	border-radius: 1px;
+	box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.15);
+}
+
+.fk-dot {
+	flex: none;
+	width: 16px;
+	height: 16px;
+	border-radius: 50%;
+	box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.2);
+	background-image: linear-gradient(45deg, transparent 45%, #cc1818 45%, #cc1818 55%, transparent 55%);
+}
+
+.fk-dot[style*="background: #"],
+.fk-dot[style*="background: rgb"] {
+	background-image: none;
+}
+
+// ---------- Menus ----------
+
+.fk-popover .components-popover__content {
+	min-width: 240px;
+}
+
+.fk-menu {
+	padding: 8px;
+	max-height: min(70vh, 560px);
+	overflow: auto;
+
+	.components-menu-item__button {
+		min-height: 40px;
+	}
+	.components-menu-item__button.is-selected,
+	.components-menu-item__button[aria-checked="true"] {
+		background: $write-tint;
+	}
+}
+
+.fk-menu--styles,
+.fk-menu--sizes {
+	width: 300px;
+}
+
+.fk-sample {
+	display: block;
+	overflow: hidden;
+	color: #1e1e1e;
+	line-height: 1.15;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.fk-px {
+	color: #757575;
+	font-variant-numeric: tabular-nums;
+}
+
+.fk-menu__foot {
+	margin: 8px 0 0;
+	padding: 8px 8px 0;
+	border-top: 1px solid #e0e0e0;
+	color: #757575;
+	font-size: 12px;
+	line-height: 1.45;
+}
+
+.fk-size-form {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 4px 4px 10px;
+	margin-bottom: 4px;
+	border-bottom: 1px solid #e0e0e0;
+
+	input {
+		flex: 1;
+		width: 0;
+		height: 32px;
+		padding: 0 8px;
+		border: 1px solid #949494;
+		border-radius: 2px;
+		font-size: 14px;
+		font-variant-numeric: tabular-nums;
+	}
+}
+
+.fk-unit {
+	color: #757575;
+	font-size: 12px;
+}
+
+.fk-colours {
+	width: 260px;
+	padding: 16px;
+}
+
+.fk-btn-row {
+	display: inline-flex;
+	align-items: center;
+	gap: 12px;
+}
+
+.fk-btn-sample {
+	display: inline-flex;
+	align-items: center;
+	height: 26px;
+	padding: 0 12px;
+	border-radius: 999px;
+	font-size: 11px;
+	font-weight: 600;
+
+	&.is-fill {
+		background: #1e1e1e;
+		color: #fff;
+	}
+	&.is-outline {
+		box-shadow: inset 0 0 0 1.5px #1e1e1e;
+		color: #1e1e1e;
+	}
+}
+
+.fk-shape {
+	display: inline-block;
+	width: 26px;
+	max-height: 26px;
+	background: #c9b8a4;
+}
+
+// The design toolbar's own controls are tinted orange when on.
+.fk-design-tools .components-button.is-pressed::before {
+	background: $design !important;
+}

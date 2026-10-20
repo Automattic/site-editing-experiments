@@ -1,10 +1,10 @@
 # Frankenthaler: one block toolbar, in a fixed order
 
-Frankenthaler is a Gutenberg pull request rather than a static prototype: it changes the real block toolbar, behind an experiment, so it can be tried on real blocks, real themes and real plugins. **[Gutenberg PR](PR_URL)**
+Frankenthaler is a Gutenberg pull request rather than a static prototype: it changes the real block toolbar, behind an experiment, so it can be tried on real blocks, real themes and real plugins. **[Gutenberg PR](https://github.com/WordPress/gutenberg/pull/85187)**
 
 ## Try it
 
-1. Open the PR in Playground: [playground.wordpress.net/?gutenberg-pr=PR_NUMBER](https://playground.wordpress.net/?gutenberg-pr=PR_NUMBER) (it works once the PR's plugin build has finished).
+1. Open the PR in Playground: [playground.wordpress.net/?gutenberg-pr=85187](https://playground.wordpress.net/?gutenberg-pr=85187) (it works once the PR's plugin build has finished).
 2. Go to **Gutenberg > Experiments**, turn on **Block toolbar redesign** and save.
 3. Open any post or the site editor and select a block.
 

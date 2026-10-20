@@ -24,6 +24,20 @@ body.hw-design .block-editor-block-toolbar .block-editor-block-parent-selector {
 	display: none !important;
 }
 
+// With the parent selector gone in both toolbars, its leftovers go too: the
+// space the toolbar keeps for it on the left, and (when writing, where the
+// block switcher and movers are hidden) their empty group and its border.
+body.hw-write,
+body.hw-design {
+	.block-editor-block-contextual-toolbar.has-parent {
+		margin-left: 0 !important;
+	}
+}
+
+body.hw-write .block-editor-block-toolbar .block-editor-block-toolbar__block-controls {
+	display: none !important;
+}
+
 .hw-block-menu__toggle.components-button {
 	gap: 2px;
 	padding: 0 4px 0 6px;

@@ -24,6 +24,8 @@ Each toolbar hides the other's controls:
 - **Writing** hides the movers, the drag handle and the parent selector. The editor's block switcher becomes the block's icon as a simple menu: the block's name (Heading 1, say), then the names of the blocks it can turn into. Style, Font and Size do the same job in words people know.
 - **Designing** hides bold, italic, links and the other text formatting, and the parent selector.
 
+Alignment is split between them. **Align text** (left, centre, right) is about the words, so it's only in the writing toolbar. Where a block sits (**Align**: wide, full width or floated), how a row of buttons is justified and how columns line up vertically are about the layout, so they're only in the design toolbar. Blocks add these controls themselves with no class of their own, so Hepworth finds them by their labels, using WordPress's own translations of those words.
+
 The selected block's outline takes the toolbar's colour: Word blue for writing, PowerPoint orange for designing.
 
 ## The writing toolbar

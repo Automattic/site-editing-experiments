@@ -19,6 +19,11 @@ body.hw-write .block-editor-block-toolbar {
 	}
 }
 
+// Alignment controls that belong to the other toolbar (see tidyToolbar).
+.block-editor-block-toolbar .hw-hidden {
+	display: none !important;
+}
+
 // Designing: no parent selector.
 body.hw-design .block-editor-block-toolbar .block-editor-block-parent-selector {
 	display: none !important;

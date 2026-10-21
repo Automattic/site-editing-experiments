@@ -113,6 +113,62 @@ body.hw-write { --wp-admin-theme-color: #2B579A; --wp-admin-theme-color-darker-1
 body.hw-design { --wp-admin-theme-color: #C43E1C; --wp-admin-theme-color-darker-10: #ab3518; --wp-admin-theme-color-darker-20: #922d14; }
 `;
 
+/*
+ * Alignment is split between the toolbars. Aligning text (left, centre,
+ * right) is about the words, so it's writing; where a block sits (wide, full,
+ * floated), how a row of buttons is justified and how columns line up
+ * vertically are about the layout, so they're design.
+ *
+ * Blocks add these controls themselves and they have no class of their own,
+ * so they're found by their labels, in the site's language: WordPress's own
+ * translations of the same words.
+ */
+const ALIGN_TEXT = [ __( 'Align text' ) ];
+const PLACEMENT = [
+	__( 'Align' ),
+	__( 'Change items justification' ),
+	__( 'Change vertical alignment' ),
+];
+
+/**
+ * Hides the other toolbar's alignment controls, and any group they leave empty.
+ *
+ * @param {string|null} mode 'write', 'design' or null.
+ */
+function tidyToolbar( mode ) {
+	const toolbar = document.querySelector( '.block-editor-block-toolbar' );
+	if ( ! toolbar ) {
+		return;
+	}
+	toolbar
+		.querySelectorAll( '.hw-hidden' )
+		.forEach( ( el ) => el.classList.remove( 'hw-hidden' ) );
+	let hide = [];
+	if ( mode === 'write' ) {
+		hide = PLACEMENT;
+	} else if ( mode === 'design' ) {
+		hide = ALIGN_TEXT;
+	}
+	toolbar.querySelectorAll( 'button[aria-label]' ).forEach( ( button ) => {
+		if ( hide.includes( button.getAttribute( 'aria-label' ) ) ) {
+			(
+				button.closest( '.components-dropdown' ) || button
+			).classList.add( 'hw-hidden' );
+		}
+	} );
+	toolbar
+		.querySelectorAll( '.components-toolbar-group' )
+		.forEach( ( group ) => {
+			const buttons = [ ...group.querySelectorAll( 'button' ) ];
+			if (
+				buttons.length &&
+				buttons.every( ( b ) => b.closest( '.hw-hidden' ) )
+			) {
+				group.classList.add( 'hw-hidden' );
+			}
+		} );
+}
+
 function ModeSync() {
 	const { clientId, name, chosen } = useSelect( ( select ) => {
 		const be = select( blockEditorStore );
@@ -148,7 +204,21 @@ function ModeSync() {
 		apply();
 		// The canvas can arrive (or be replaced) after the first paint.
 		const t = setTimeout( apply, 400 );
-		return () => clearTimeout( t );
+
+		// The toolbar redraws as blocks and modes change; tidy it each time.
+		let frame = 0;
+		const tidy = () => {
+			window.cancelAnimationFrame( frame );
+			frame = window.requestAnimationFrame( () => tidyToolbar( mode ) );
+		};
+		tidy();
+		const observer = new window.MutationObserver( tidy );
+		observer.observe( document.body, { childList: true, subtree: true } );
+		return () => {
+			clearTimeout( t );
+			window.cancelAnimationFrame( frame );
+			observer.disconnect();
+		};
 	}, [ mode, clientId ] );
 	return null;
 }

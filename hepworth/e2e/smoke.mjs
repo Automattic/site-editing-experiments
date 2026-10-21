@@ -204,6 +204,24 @@ await step(
 	}
 );
 
+await step(
+	'Align text is in the writing toolbar, not the design one',
+	async () => {
+		const alignText = page.locator(
+			'.block-editor-block-toolbar button[aria-label="Align text"]'
+		);
+		expect( await alignText.isVisible(), 'no Align text when writing' );
+		await page.locator( '.hw-mode__design' ).click();
+		await wait( 500 );
+		expect(
+			! ( await alignText.isVisible() ),
+			'Align text showing when designing'
+		);
+		await page.locator( '.hw-mode__write' ).click();
+		await wait( 500 );
+	}
+);
+
 await step( 'Style turns the heading into a paragraph and back', async () => {
 	await pick( '.hw-style', 'Normal' );
 	expect( ( await selected() ).name === 'core/paragraph', 'not a paragraph' );
@@ -332,6 +350,15 @@ await step( 'a section gets a background, and Every section', async () => {
 	expect(
 		new Set( colours ).size === 1 && colours[ 0 ],
 		colours.join( ', ' )
+	);
+} );
+
+await step( 'a section has its alignment in the design toolbar', async () => {
+	expect(
+		await page
+			.locator( '.block-editor-block-toolbar button[aria-label="Align"]' )
+			.isVisible(),
+		'no Align on a section'
 	);
 } );
 

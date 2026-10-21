@@ -82,6 +82,32 @@ body.hw-design .block-editor-block-toolbar {
 
 // ---------- The Write / Design switch ----------
 
+// The switch comes first in both toolbars, ahead of the editor's own block
+// switcher and movers. Our controls share one toolbar group with a slot inside
+// it; letting those two boxes step aside (display: contents) makes our groups
+// toolbar items in their own right, so the switch can be ordered first.
+body.hw-write,
+body.hw-design {
+	.block-editor-block-toolbar > .components-toolbar-group:has(> .block-editor-block-toolbar__slot > .hw-mode),
+	.block-editor-block-toolbar > .components-toolbar-group > .block-editor-block-toolbar__slot:has(> .hw-mode) {
+		display: contents;
+	}
+	.block-editor-block-toolbar .hw-mode {
+		order: -1;
+	}
+	// The dividers the editor gives its own groups, which ours no longer get
+	// now they aren't the toolbar's direct children.
+	.block-editor-block-contextual-toolbar .block-editor-block-toolbar {
+		.hw-mode,
+		.hw-block-menu,
+		.hw-tools {
+			height: 50px;
+			margin: -1px 0;
+			border-right: 1px solid #1e1e1e;
+		}
+	}
+}
+
 .hw-mode {
 	.components-button.is-pressed,
 	.components-button.is-pressed:hover {

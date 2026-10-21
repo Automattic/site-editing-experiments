@@ -41,11 +41,6 @@ function Toolbars( { clientId, name } ) {
 	const canWrite = HAS_WORDS.includes( name );
 	return (
 		<>
-			{ mode === 'write' && (
-				<BlockControls group="parent">
-					<BlockMenu clientId={ clientId } />
-				</BlockControls>
-			) }
 			<BlockControls group="parent">
 				<ToolbarGroup className={ `hw-mode is-${ mode }` }>
 					<ToolbarButton
@@ -69,6 +64,11 @@ function Toolbars( { clientId, name } ) {
 					/>
 				</ToolbarGroup>
 			</BlockControls>
+			{ mode === 'write' && (
+				<BlockControls group="parent">
+					<BlockMenu clientId={ clientId } />
+				</BlockControls>
+			) }
 			<BlockControls group="parent">
 				{ mode === 'write' ? (
 					<WriteTools clientId={ clientId } />

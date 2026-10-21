@@ -17,7 +17,7 @@ The link runs [`blueprint.json`](blueprint.json), which installs the plugin stra
 
 ## Which toolbar
 
-Text blocks (paragraphs, headings, quotes, poems, code and lists) open in the writing toolbar; everything else (buttons, pictures, groups and other sections) opens in the design one. The switch at the start of the toolbar changes it, with a pencil for writing and a layout icon for designing; hover either to see its name. The choice lasts while that block stays selected.
+Text blocks (paragraphs, headings, quotes, poems, code and lists) open in the writing toolbar; everything else (buttons, pictures, groups and other sections) opens in the design one. The switch, always the first thing in the toolbar, changes it, with a pencil for writing and a layout icon for designing; hover either to see its name. The choice lasts while that block stays selected.
 
 Each toolbar hides the other's controls:
 

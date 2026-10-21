@@ -204,6 +204,32 @@ await step(
 	}
 );
 
+const switchIsFirst = () =>
+	page.evaluate( () => {
+		const buttons = [
+			...document.querySelectorAll(
+				'.block-editor-block-toolbar button'
+			),
+		].filter( ( b ) => b.offsetParent );
+		const left = ( b ) => b.getBoundingClientRect().left;
+		const first = buttons.reduce( ( a, b ) =>
+			left( b ) < left( a ) ? b : a
+		);
+		return first.classList.contains( 'hw-mode__write' );
+	} );
+
+await step(
+	'the Write / Design switch comes first in both toolbars',
+	async () => {
+		expect( await switchIsFirst(), 'not first when writing' );
+		await page.locator( '.hw-mode__design' ).click();
+		await wait( 500 );
+		expect( await switchIsFirst(), 'not first when designing' );
+		await page.locator( '.hw-mode__write' ).click();
+		await wait( 500 );
+	}
+);
+
 await step(
 	'Align text is in the writing toolbar, not the design one',
 	async () => {

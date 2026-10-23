@@ -43,18 +43,15 @@ function Toolbars( { clientId, name } ) {
 		<>
 			<BlockControls group="parent">
 				<ToolbarGroup className={ `hw-mode is-${ mode }` }>
-					<ToolbarButton
-						icon={ pencil }
-						label={
-							canWrite
-								? __( 'Write', 'hepworth' )
-								: __( 'Write (this has no words)', 'hepworth' )
-						}
-						isPressed={ mode === 'write' }
-						disabled={ ! canWrite }
-						className="hw-mode__write"
-						onClick={ () => setMode( 'write', clientId ) }
-					/>
+					{ canWrite && (
+						<ToolbarButton
+							icon={ pencil }
+							label={ __( 'Write', 'hepworth' ) }
+							isPressed={ mode === 'write' }
+							className="hw-mode__write"
+							onClick={ () => setMode( 'write', clientId ) }
+						/>
+					) }
 					<ToolbarButton
 						icon={ layout }
 						label={ __( 'Design', 'hepworth' ) }
@@ -126,6 +123,7 @@ body.hw-design { --wp-admin-theme-color: #C43E1C; --wp-admin-theme-color-darker-
 const ALIGN_TEXT = [ __( 'Align text' ) ];
 const PLACEMENT = [
 	__( 'Align' ),
+	__( 'Align block' ), // Newer Gutenberg's name for it.
 	__( 'Change items justification' ),
 	__( 'Change vertical alignment' ),
 ];
@@ -141,8 +139,21 @@ function tidyToolbar( mode ) {
 		return;
 	}
 	toolbar
-		.querySelectorAll( '.hw-hidden' )
-		.forEach( ( el ) => el.classList.remove( 'hw-hidden' ) );
+		.querySelectorAll( '.hw-hidden, .hw-contents' )
+		.forEach( ( el ) => el.classList.remove( 'hw-hidden', 'hw-contents' ) );
+
+	// The Write / Design switch comes first. Our controls sit inside groups the
+	// editor makes; letting every box between the switch and the toolbar step
+	// aside (display: contents) makes the switch an item of the toolbar's own
+	// row, so it can be ordered first whatever wraps it in this version.
+	const modeGroup = toolbar.querySelector( '.hw-mode' );
+	for (
+		let el = modeGroup && modeGroup.parentElement;
+		el && el !== toolbar;
+		el = el.parentElement
+	) {
+		el.classList.add( 'hw-contents' );
+	}
 	let hide = [];
 	if ( mode === 'write' ) {
 		hide = PLACEMENT;

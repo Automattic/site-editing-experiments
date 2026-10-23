@@ -215,7 +215,7 @@ const switchIsFirst = () =>
 		const first = buttons.reduce( ( a, b ) =>
 			left( b ) < left( a ) ? b : a
 		);
-		return first.classList.contains( 'hw-mode__write' );
+		return first.closest( '.hw-mode' ) !== null;
 	} );
 
 await step(
@@ -330,6 +330,19 @@ await step( 'Design hides the text formatting', async () => {
 } );
 
 await step(
+	'a picture has no Write button, and Design comes first',
+	async () => {
+		await select( 'core/image' );
+		await wait( 600 );
+		expect(
+			! ( await page.locator( '.hw-mode__write' ).count() ),
+			'Write button showing'
+		);
+		expect( await switchIsFirst(), 'Design not first' );
+	}
+);
+
+await step(
 	'a button opens the design toolbar, and its settings work',
 	async () => {
 		await select( 'core/button' );
@@ -382,7 +395,7 @@ await step( 'a section gets a background, and Every section', async () => {
 await step( 'a section has its alignment in the design toolbar', async () => {
 	expect(
 		await page
-			.locator( '.block-editor-block-toolbar button[aria-label="Align"]' )
+			.locator( '.block-editor-block-toolbar :is(button[aria-label="Align"], button[aria-label="Align block"])' )
 			.isVisible(),
 		'no Align on a section'
 	);

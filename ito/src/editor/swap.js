@@ -46,7 +46,7 @@ const PICTURE_HOLDERS = new Set( [ 'core/cover', 'core/media-text' ] );
  *
  * @param {Object} block
  */
-function pictureOf( block ) {
+export function pictureOf( block ) {
 	const a = block.attributes || {};
 	if ( block.name === 'core/image' || block.name === 'core/cover' ) {
 		return a.url ? { url: a.url, alt: a.alt, id: a.id } : null;
@@ -91,7 +91,7 @@ function withPicture( block, picture ) {
  *
  * @param {Object} block
  */
-function roleOf( block ) {
+export function roleOf( block ) {
 	if ( SPACING.has( block.name ) ) {
 		return 'skip';
 	}

@@ -61,6 +61,8 @@ function expect( condition, message ) {
 		throw new Error( message );
 	}
 }
+const PATTERNS = '.ito-lprow.is-patterns .ito-lpi';
+const ARRANGED = '.ito-lprow.is-layouts .ito-lpi';
 const shot = ( name ) =>
 	SHOTS ? page.screenshot( { path: `${ SHOTS }/${ name }.png` } ) : null;
 const wait = ( ms ) => page.waitForTimeout( ms );
@@ -288,10 +290,10 @@ await step(
 	'picking a layout swaps the pattern and keeps the words, links and picture',
 	async () => {
 		const before = ( await sections() )[ 0 ];
-		const count = await page.locator( '.ito-lpi' ).count();
+		const count = await page.locator( PATTERNS ).count();
 		const seen = new Set( [ before.pattern ] );
 		for ( let i = 1; i < count; i++ ) {
-			await page.locator( '.ito-lpi' ).nth( i ).click();
+			await page.locator( PATTERNS ).nth( i ).click();
 			await wait( 400 );
 			const now = ( await sections() )[ 0 ];
 			expect(
@@ -322,13 +324,108 @@ await step(
 			);
 			expect(
 				( await page
-					.locator( '.ito-lpi' )
+					.locator( PATTERNS )
 					.nth( i )
 					.getAttribute( 'aria-pressed' ) ) === 'true',
 				'the picked layout isn’t marked'
 			);
 		}
 		await shot( '03-swapped' );
+	}
+);
+
+await step(
+	'picking a generated layout keeps every content block as it was',
+	async () => {
+		const count = await page.locator( ARRANGED ).count();
+		expect( count >= 3, `only ${ count } generated layouts for the hero` );
+		// The content blocks, whole, and the picture, wherever they are.
+		const content = () =>
+			page.evaluate( () => {
+				const be = window.wp.data.select( 'core/block-editor' );
+				const root =
+					be.getBlocksByName( 'core/post-content' )[ 0 ] || '';
+				const block = be.getBlock( be.getBlockOrder( root )[ 0 ] );
+				const layout = [
+					'core/group',
+					'core/columns',
+					'core/column',
+					'core/buttons',
+					'core/spacer',
+					'core/separator',
+					'core/cover',
+					'core/media-text',
+				];
+				const strip = ( b ) => [
+					b.name,
+					b.attributes,
+					b.innerBlocks.map( strip ),
+				];
+				// Attributes in a fixed order, as making a block can reorder
+				// them, and rich text as its HTML.
+				const sorted = ( v ) => {
+					if ( ! v || typeof v !== 'object' || Array.isArray( v ) ) {
+						return v;
+					}
+					if ( v.constructor !== Object ) {
+						return String( v );
+					}
+					return Object.fromEntries(
+						Object.keys( v )
+							.sort()
+							.map( ( k ) => [ k, sorted( v[ k ] ) ] )
+					);
+				};
+				const items = [];
+				const walk = ( b ) => {
+					const a = b.attributes;
+					if ( a.url || a.mediaUrl ) {
+						items.push( [
+							a.url || a.mediaUrl,
+							a.alt ?? a.mediaAlt,
+						] );
+					}
+					if ( layout.includes( b.name ) ) {
+						b.innerBlocks.forEach( walk );
+					} else if ( b.name !== 'core/image' ) {
+						items.push( strip( b ) );
+					}
+				};
+				walk( block );
+				const valid = ( b ) =>
+					b.isValid && b.innerBlocks.every( valid );
+				return {
+					items: items
+						.map( ( i ) =>
+							JSON.stringify( i, ( k, v ) => sorted( v ) )
+						)
+						.sort(),
+					// Saved and read back, it's still valid markup.
+					valid: window.wp.blocks
+						.parse( window.wp.blocks.serialize( block ) )
+						.every( valid ),
+				};
+			} );
+		await page.locator( PATTERNS ).first().click(); // as it was
+		await wait( 400 );
+		const before = await content();
+		for ( let i = 0; i < count; i++ ) {
+			const option = page.locator( ARRANGED ).nth( i );
+			const label = await option.textContent();
+			await option.click();
+			await wait( 400 );
+			const now = await content();
+			expect( now.valid, `${ label }: invalid blocks` );
+			expect(
+				JSON.stringify( now.items ) === JSON.stringify( before.items ),
+				`${ label }: the content changed`
+			);
+			expect(
+				( await option.getAttribute( 'aria-pressed' ) ) === 'true',
+				'the picked layout isn’t marked'
+			);
+			await shot( `04-arranged-${ i }` );
+		}
 	}
 );
 

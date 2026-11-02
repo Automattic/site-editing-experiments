@@ -204,3 +204,18 @@ $ink: #1a1a1a;
 .ito-panelhost .ito-lp {
 	position: fixed;
 }
+
+/* Each kind of layout in its own labelled row. */
+.ito-lprow {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	min-width: 0;
+}
+.ito-lprowh {
+	color: #bbb;
+	font-size: 12px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+}

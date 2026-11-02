@@ -39,7 +39,7 @@ It looks through the blocks that only arrange others (Group, Row, Stack, Columns
 
 A pattern can only be swapped to if it's a single top-level block and none of its content comes from the site: patterns with posts (Query Loop), the site title or logo, navigation, template parts or synced patterns are left out. The section's own pattern isn't offered again, since it's **As it was**.
 
-With Twenty Twenty-Five and core's patterns, about 130 can be swapped to, and they fall into nine groups with the same blocks. The biggest is five heroes made of a picture, a heading, a paragraph and a button.
+With Twenty Twenty-Five and core's patterns, 74 of the 130 can be swapped to, but most have blocks no other pattern shares. 22 have at least one other layout, in nine groups with the same blocks. The biggest is five heroes made of a picture, a heading, a paragraph and a button; the other eight are pairs or a trio.
 
 ## What moves across
 

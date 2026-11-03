@@ -54,7 +54,6 @@ $ink: #1a1a1a;
 	z-index: 3;
 }
 .ito-bar {
-	transform: translateX(-50%);
 	padding: 4px;
 	background: #fff;
 	border-radius: 10px;
@@ -102,9 +101,7 @@ $ink: #1a1a1a;
 
 /* ---------- Edit layout: the panel of patterns ---------- */
 .ito-lp {
-	transform: translateX(-50%);
 	width: max-content;
-	max-width: min(960px, calc(100vw - 32px));
 	display: flex;
 	flex-direction: column;
 	gap: 12px;

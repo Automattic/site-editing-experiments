@@ -287,38 +287,21 @@ const MOST_COLUMNS = 6;
 const kindOf = ( block ) => signature( block ).join( '|' );
 
 const isGrid = ( block ) =>
-	block.name === 'core/group' &&
-	block.attributes?.layout?.type === 'grid' &&
-	Number.isInteger( block.attributes.layout.columnCount );
+	block.name === 'core/group' && block.attributes?.layout?.type === 'grid';
 
 /**
  * Alike cards among a block's children, if there are some: Columns blocks
  * next to each other whose columns all hold the same kind of content (empty
- * columns aside), or a grid with a set number of columns whose cells all do.
+ * columns aside).
  *
  * @param {Object[]} children
- * @return {?Object} { start, end, count, cells }: where they are among the
- *                   children, how many columns they're in, and the cards.
+ * @return {?Object} { start, end, first, count, cells }: where they are among
+ *                   the children, the first row, how many columns they're
+ *                   in, and the cards.
  */
 function cardsIn( children ) {
 	for ( let start = 0; start < children.length; start++ ) {
 		const first = children[ start ];
-		if ( isGrid( first ) ) {
-			const kinds = new Set( first.innerBlocks.map( kindOf ) );
-			if (
-				first.innerBlocks.length >= 2 &&
-				kinds.size === 1 &&
-				! kinds.has( '' )
-			) {
-				return {
-					start,
-					end: start + 1,
-					count: first.attributes.layout.columnCount,
-					cells: first.innerBlocks,
-				};
-			}
-			continue;
-		}
 		const cells = [];
 		let end = start;
 		while ( children[ end ]?.name === 'core/columns' ) {
@@ -334,38 +317,44 @@ function cardsIn( children ) {
 			end++;
 		}
 		if ( cells.length >= 2 ) {
-			return { start, end, count: first.innerBlocks.length, cells };
+			return {
+				start,
+				end,
+				first,
+				count: first.innerBlocks.length,
+				cells,
+			};
 		}
 	}
 	return null;
 }
 
 /**
- * Cards in `n` columns: a grid with a new column count, or the cards in
- * rows of `n` like the first row, with the last filled up with empty
- * columns so every column keeps the same width.
+ * A grid among a block's children, if there's one with at least two cells.
  *
- * @param {Object[]} children    The blocks the cards are among.
+ * @param {Object[]} children
+ * @return {?Object} { start, end, grid }
+ */
+function gridIn( children ) {
+	const start = children.findIndex(
+		( x ) => isGrid( x ) && x.innerBlocks.length >= 2
+	);
+	return start < 0
+		? null
+		: { start, end: start + 1, grid: children[ start ] };
+}
+
+/**
+ * Cards in rows of `n` like the first row, with the last filled up with
+ * empty columns so every column keeps the same width.
+ *
  * @param {Object}   cards       From cardsIn().
- * @param {number}   cards.start Where they start among the children.
+ * @param {Object}   cards.first The first row.
  * @param {Object[]} cards.cells The cards.
  * @param {number}   n
- * @return {Object[]} The blocks in their place.
+ * @return {Object[]} The rows.
  */
-function inColumns( children, { start, cells }, n ) {
-	const first = children[ start ];
-	if ( isGrid( first ) ) {
-		const { layout } = first.attributes;
-		return [
-			{
-				...first,
-				attributes: {
-					...first.attributes,
-					layout: { ...layout, columnCount: n },
-				},
-			},
-		];
-	}
+function inColumns( { first, cells }, n ) {
 	const rows = [];
 	for ( let i = 0; i < cells.length; i += n ) {
 		// A width was meant for the old number of columns.
@@ -382,38 +371,56 @@ function inColumns( children, { start, cells }, n ) {
 }
 
 /**
- * The first alike cards in some blocks, looking at each level before the
- * one inside it, so cards inside the cards are left as they are.
+ * The first match in some blocks, looking at each level before the one
+ * inside it, so cards inside the cards are left as they are.
  *
- * @param {Object[]} children
- * @return {?Object} { count, rebuild( n ) }: how many columns they're in, and
- *                   the blocks with them in `n` columns.
+ * @param {Object[]}                        children
+ * @param {(children: Object[]) => ?Object} match    Finds { start, end, ... } among some children.
+ * @return {?Object} The match, with rebuild( blocks ): the children with
+ *                   `blocks` in its place.
  */
-function findCards( children ) {
-	const cards = cardsIn( children );
-	if ( cards ) {
+function findFirst( children, match ) {
+	const found = match( children );
+	if ( found ) {
 		return {
-			count: cards.count,
-			rebuild: ( n ) => [
-				...children.slice( 0, cards.start ),
-				...inColumns( children, cards, n ),
-				...children.slice( cards.end ),
+			...found,
+			rebuild: ( blocks ) => [
+				...children.slice( 0, found.start ),
+				...blocks,
+				...children.slice( found.end ),
 			],
 		};
 	}
 	for ( const [ i, child ] of children.entries() ) {
-		const found = findCards( child.innerBlocks || [] );
-		if ( found ) {
+		const inner = findFirst( child.innerBlocks || [], match );
+		if ( inner ) {
 			return {
-				count: found.count,
-				rebuild: ( n ) =>
+				...inner,
+				rebuild: ( blocks ) =>
 					children.map( ( x, j ) =>
-						j === i ? { ...x, innerBlocks: found.rebuild( n ) } : x
+						j === i
+							? { ...x, innerBlocks: inner.rebuild( blocks ) }
+							: x
 					),
 			};
 		}
 	}
 	return null;
+}
+
+/**
+ * Rebuilt blocks as the section: one block, with the attributes every
+ * section keeps.
+ *
+ * @param {Object[]} blocks
+ * @param {Object}   top
+ */
+function asSection( blocks, top ) {
+	// When the section was the columns, its rows need a group to be one section.
+	const block =
+		blocks.length === 1 ? blocks[ 0 ] : b( 'core/group', {}, blocks );
+	const { metadata, ...attributes } = block.attributes;
+	return { ...block, attributes: { ...attributes, ...top } };
 }
 
 /**
@@ -425,25 +432,172 @@ function findCards( children ) {
  * @return {Object[]} { key, label, block } for each.
  */
 function columnCounts( section, top ) {
-	const found = findCards( [ section ] );
+	const found = findFirst( [ section ], cardsIn );
 	if ( ! found ) {
 		return [];
 	}
 	return [ found.count - 1, found.count + 1 ]
 		.filter( ( n ) => n >= 1 && n <= MOST_COLUMNS )
-		.map( ( n ) => {
-			const blocks = found.rebuild( n );
-			// When the section was the columns, its rows need a group to be one section.
-			const block =
-				blocks.length === 1
-					? blocks[ 0 ]
-					: b( 'core/group', {}, blocks );
-			const { metadata, ...attributes } = block.attributes;
-			return {
-				key: 'ito:columns-' + n,
+		.map( ( n ) => ( {
+			key: 'ito:columns-' + n,
+			/* translators: %d: a number of columns. */
+			label: sprintf( _n( '%d column', '%d columns', n, 'ito' ), n ),
+			block: asSection( found.rebuild( inColumns( found, n ) ), top ),
+		} ) );
+}
+
+/**
+ * A grid cell without a span, if it's a group that has one. Other blocks are
+ * content, so they're left as they are.
+ *
+ * @param {Object} cell
+ */
+function unspanned( cell ) {
+	const { layout = {}, ...style } = cell.attributes?.style || {};
+	if (
+		cell.name !== 'core/group' ||
+		! ( 'columnSpan' in layout || 'rowSpan' in layout )
+	) {
+		return cell;
+	}
+	const { columnSpan, rowSpan, ...rest } = layout;
+	const next = {
+		...style,
+		...( Object.keys( rest ).length && { layout: rest } ),
+	};
+	const { style: _, ...attributes } = cell.attributes;
+	return {
+		...cell,
+		attributes: {
+			...attributes,
+			...( Object.keys( next ).length && { style: next } ),
+		},
+	};
+}
+
+/**
+ * A grid cell spanning more than one column or row. A content block goes in
+ * a group that spans, so the block itself doesn't change.
+ *
+ * @param {Object} cell
+ * @param {Object} span { columnSpan, rowSpan }
+ */
+function spanning( cell, span ) {
+	if ( cell.name !== 'core/group' ) {
+		return b( 'core/group', { style: { layout: span } }, [ cell ] );
+	}
+	const style = cell.attributes?.style || {};
+	return {
+		...cell,
+		attributes: {
+			...cell.attributes,
+			style: { ...style, layout: { ...style.layout, ...span } },
+		},
+	};
+}
+
+/**
+ * The shapes a grid of `count` cells can take: every number across (up to
+ * six), the first cell two by two among the rest, and the first cell as a
+ * banner over rows the rest fill.
+ *
+ * @param {number} count
+ * @return {Object[]} { key, label, across, span }
+ */
+function shapesFor( count ) {
+	const shapes = [];
+	for ( let n = 1; n <= Math.min( count, MOST_COLUMNS ); n++ ) {
+		shapes.push( {
+			key: String( n ),
+			label: sprintf(
+				/* translators: 1: rows, 2: columns. */
+				__( '%1$d × %2$d grid', 'ito' ),
+				Math.ceil( count / n ),
+				n
+			),
+			across: n,
+		} );
+	}
+	for ( const n of [ 3, 4 ] ) {
+		// Enough cells to fill the two rows beside the featured one.
+		if ( count >= 1 + 2 * ( n - 2 ) ) {
+			shapes.push( {
+				key: 'featured-' + n,
 				/* translators: %d: a number of columns. */
-				label: sprintf( _n( '%d column', '%d columns', n, 'ito' ), n ),
-				block: { ...block, attributes: { ...attributes, ...top } },
+				label: sprintf( __( 'Featured, %d across', 'ito' ), n ),
+				across: n,
+				span: { columnSpan: 2, rowSpan: 2 },
+			} );
+		}
+	}
+	for ( let n = 2; n <= MOST_COLUMNS; n++ ) {
+		if ( count - 1 >= n && ( count - 1 ) % n === 0 ) {
+			shapes.push( {
+				key: 'banner-' + n,
+				/* translators: %d: a number of columns. */
+				label: sprintf( __( 'Banner, then %d across', 'ito' ), n ),
+				across: n,
+				span: { columnSpan: n },
+			} );
+		}
+	}
+	return shapes;
+}
+
+/**
+ * The shape a grid has, as a key from shapesFor(), if it has a set number
+ * across.
+ *
+ * @param {Object} grid
+ */
+function shapeOf( grid ) {
+	const n = grid.attributes.layout.columnCount;
+	if ( ! n ) {
+		return null;
+	}
+	const first = grid.innerBlocks[ 0 ].attributes?.style?.layout || {};
+	if ( first.columnSpan === 2 && first.rowSpan === 2 ) {
+		return 'featured-' + n;
+	}
+	return first.columnSpan === n ? 'banner-' + n : String( n );
+}
+
+/**
+ * The section with its first grid in other shapes. Only the grid's number
+ * across and its first cell's span change.
+ *
+ * @param {Object} section
+ * @param {Object} top     The attributes every section keeps.
+ * @return {Object[]} { key, label, block } for each.
+ */
+function gridShapes( section, top ) {
+	const found = findFirst( [ section ], gridIn );
+	if ( ! found ) {
+		return [];
+	}
+	const { grid } = found;
+	const current = shapeOf( grid );
+	return shapesFor( grid.innerBlocks.length )
+		.filter( ( shape ) => shape.key !== current )
+		.map( ( shape ) => {
+			const cells = grid.innerBlocks.map( unspanned );
+			// A minimum width would let the grid show fewer across than the shape.
+			const { minimumColumnWidth, ...layout } = grid.attributes.layout;
+			if ( shape.span ) {
+				cells[ 0 ] = spanning( cells[ 0 ], shape.span );
+			}
+			const next = {
+				...grid,
+				attributes: {
+					...grid.attributes,
+					layout: { ...layout, columnCount: shape.across },
+				},
+				innerBlocks: cells,
+			};
+			return {
+				key: 'ito:grid-' + shape.key,
+				label: shape.label,
+				block: asSection( found.rebuild( [ next ] ), top ),
 			};
 		} );
 }
@@ -471,6 +625,7 @@ export function arrangements( section ) {
 	};
 	return [
 		...columnCounts( section, top ),
+		...gridShapes( section, top ),
 		...RECIPES.filter( ( r ) => r.applies( pictures, text, parts ) ).map(
 			( r ) => ( {
 				key: 'ito:' + r.key,

@@ -144,6 +144,13 @@ const SECTIONS = {
 	'three services': services( 3 ),
 	'two rows of quotes': quotes(),
 	'a grid of four': grid( 2, 4 ),
+	'a grid of pictures': group(
+		b(
+			'core/group',
+			{ layout: { type: 'grid', minimumColumnWidth: '10rem' } },
+			[ 'a', 'b', 'c', 'd', 'e' ].map( ( n ) => image( `${ n }.jpg` ) )
+		)
+	),
 	'columns on their own': b(
 		'core/columns',
 		{ align: 'wide' },
@@ -211,12 +218,19 @@ function quotes() {
  *
  * @param {number} count
  * @param {number} cells
+ * @param {Object} extra More of the grid's layout.
  */
-function grid( count, cells ) {
+function grid( count, cells, extra = {} ) {
 	return group(
 		b(
 			'core/group',
-			{ layout: { type: 'grid', columnCount: count } },
+			{
+				layout: {
+					type: 'grid',
+					...extra,
+					...( count && { columnCount: count } ),
+				},
+			},
 			Array.from( { length: cells }, ( _, i ) =>
 				group( heading( `Place ${ i + 1 }`, 3 ), para( 'Address' ) )
 			)
@@ -415,26 +429,8 @@ describe( 'column counts', () => {
 		);
 	} );
 
-	it( "changes only a grid's column count", () => {
-		const section = grid( 2, 4 );
-		expect( counts( section ) ).toEqual( [
-			'ito:columns-1',
-			'ito:columns-3',
-		] );
-		const before = section.innerBlocks[ 0 ];
-		const after = layout( section, 3 ).block.innerBlocks[ 0 ];
-		expect( after ).toEqual( {
-			...before,
-			attributes: {
-				layout: { type: 'grid', columnCount: 3 },
-			},
-		} );
-		expect( after.innerBlocks ).toBe( before.innerBlocks );
-	} );
-
-	it( 'leaves out a grid that sizes its own columns', () => {
-		const section = grid( undefined, 4 );
-		expect( counts( section ) ).toEqual( [] );
+	it( 'gives a grid its shapes instead', () => {
+		expect( counts( grid( 2, 4 ) ) ).toEqual( [] );
 	} );
 
 	it( 'wraps rows in a group when the section is the columns', () => {
@@ -449,5 +445,161 @@ describe( 'column counts', () => {
 			'core/columns',
 			'core/columns',
 		] );
+	} );
+} );
+
+describe( 'grid shapes', () => {
+	const shapes = ( section ) =>
+		arrangements( section )
+			.filter( ( l ) => l.key.startsWith( 'ito:grid-' ) )
+			.map( ( l ) => [ l.key, l.label ] );
+	const shape = ( section, key ) =>
+		arrangements( section ).find( ( l ) => l.key === 'ito:grid-' + key )
+			.block;
+	/**
+	 * The grid in a layout of a section made by grid().
+	 *
+	 * @param {Object} block
+	 */
+	const gridOf = ( block ) => block.innerBlocks[ 0 ];
+	const spanOf = ( cell ) => cell.attributes.style?.layout;
+
+	it( 'offers every number across, a featured cell and a banner', () => {
+		expect( shapes( grid( 2, 4 ) ) ).toEqual( [
+			[ 'ito:grid-1', '4 × 1 grid' ],
+			[ 'ito:grid-3', '2 × 3 grid' ],
+			[ 'ito:grid-4', '1 × 4 grid' ],
+			[ 'ito:grid-featured-3', 'Featured, 3 across' ],
+			[ 'ito:grid-banner-3', 'Banner, then 3 across' ],
+		] );
+	} );
+
+	it( 'goes up to six across, with a featured cell in three or four', () => {
+		// Eight cells, three across now; seven left for a banner fill no rows.
+		expect( shapes( grid( 3, 8 ) ).map( ( [ key ] ) => key ) ).toEqual( [
+			'ito:grid-1',
+			'ito:grid-2',
+			'ito:grid-4',
+			'ito:grid-5',
+			'ito:grid-6',
+			'ito:grid-featured-3',
+			'ito:grid-featured-4',
+		] );
+	} );
+
+	it( 'offers a banner only when the rest fill their rows', () => {
+		const keys = ( section ) => shapes( section ).map( ( [ key ] ) => key );
+		expect( keys( grid( 3, 7 ) ) ).toContain( 'ito:grid-banner-2' );
+		expect( keys( grid( 3, 7 ) ) ).toContain( 'ito:grid-banner-3' );
+		expect( keys( grid( 3, 7 ) ) ).toContain( 'ito:grid-banner-6' );
+		expect( keys( grid( 3, 6 ) ) ).toContain( 'ito:grid-banner-5' );
+		expect( keys( grid( 3, 6 ) ) ).not.toContain( 'ito:grid-banner-2' );
+	} );
+
+	it( 'changes only the number across, keeping the cells', () => {
+		const section = grid( 2, 4 );
+		const before = gridOf( section );
+		const after = gridOf( shape( section, '3' ) );
+		expect( after.attributes ).toEqual( {
+			layout: { type: 'grid', columnCount: 3 },
+		} );
+		expect( after.innerBlocks ).toEqual( before.innerBlocks );
+	} );
+
+	it( 'gives a grid that sizes its own columns a set number across, without a minimum width that would allow fewer', () => {
+		const section = grid( undefined, 6, { minimumColumnWidth: '12rem' } );
+		const keys = shapes( section ).map( ( [ key ] ) => key );
+		expect( keys ).toContain( 'ito:grid-2' );
+		expect( keys ).toContain( 'ito:grid-3' );
+		expect( gridOf( shape( section, '3' ) ).attributes.layout ).toEqual( {
+			type: 'grid',
+			columnCount: 3,
+		} );
+	} );
+
+	it( 'takes any cells, alike or not', () => {
+		const section = group(
+			b( 'core/group', { layout: { type: 'grid', columnCount: 4 } }, [
+				group( heading( 'Shop' ) ),
+				image( 'a.jpg' ),
+				image( 'b.jpg' ),
+				image( 'c.jpg' ),
+			] )
+		);
+		expect( shapes( section ).length ).toBeGreaterThan( 0 );
+	} );
+
+	it( 'makes the first cell two by two when featured, as it was otherwise', () => {
+		const section = grid( 2, 5 );
+		const cells = gridOf( shape( section, 'featured-3' ) ).innerBlocks;
+		expect(
+			gridOf( shape( section, 'featured-3' ) ).attributes.layout
+		).toEqual( { type: 'grid', columnCount: 3 } );
+		expect( spanOf( cells[ 0 ] ) ).toEqual( { columnSpan: 2, rowSpan: 2 } );
+		expect( cells[ 0 ].innerBlocks ).toBe(
+			gridOf( section ).innerBlocks[ 0 ].innerBlocks
+		);
+		expect( cells.slice( 1 ).map( spanOf ) ).toEqual( [
+			undefined,
+			undefined,
+			undefined,
+			undefined,
+		] );
+	} );
+
+	it( 'makes the first cell as wide as the grid for a banner', () => {
+		const cells = gridOf( shape( grid( 2, 5 ), 'banner-4' ) ).innerBlocks;
+		expect( spanOf( cells[ 0 ] ) ).toEqual( { columnSpan: 4 } );
+	} );
+
+	it( 'keeps the rest of a cell’s style when it spans', () => {
+		const section = group(
+			b( 'core/group', { layout: { type: 'grid', columnCount: 2 } }, [
+				b( 'core/group', { style: { border: { radius: '8px' } } }, [
+					para( 'One' ),
+				] ),
+				group( para( 'Two' ) ),
+				group( para( 'Three' ) ),
+			] )
+		);
+		const [ first ] = gridOf( shape( section, 'featured-3' ) ).innerBlocks;
+		expect( first.attributes.style ).toEqual( {
+			border: { radius: '8px' },
+			layout: { columnSpan: 2, rowSpan: 2 },
+		} );
+	} );
+
+	it( 'puts a content block that spans in a group, leaving the block as it was', () => {
+		const pic = image( 'a.jpg' );
+		const section = group(
+			b( 'core/group', { layout: { type: 'grid', columnCount: 3 } }, [
+				pic,
+				image( 'b.jpg' ),
+				image( 'c.jpg' ),
+			] )
+		);
+		const [ first ] = gridOf( shape( section, 'banner-2' ) ).innerBlocks;
+		expect( first.name ).toBe( 'core/group' );
+		expect( spanOf( first ) ).toEqual( { columnSpan: 2 } );
+		expect( first.innerBlocks ).toEqual( [ pic ] );
+	} );
+
+	it( 'takes away the spans of an earlier shape', () => {
+		const featured = shape( grid( 2, 5 ), 'featured-3' );
+		const plain = shape( featured, '5' );
+		expect( gridOf( plain ).innerBlocks.map( spanOf ) ).toEqual( [
+			undefined,
+			undefined,
+			undefined,
+			undefined,
+			undefined,
+		] );
+	} );
+
+	it( 'does not offer the shape the grid already has', () => {
+		const featured = shape( grid( 2, 5 ), 'featured-3' );
+		const keys = shapes( featured ).map( ( [ key ] ) => key );
+		expect( keys ).not.toContain( 'ito:grid-featured-3' );
+		expect( keys ).toContain( 'ito:grid-3' );
 	} );
 } );

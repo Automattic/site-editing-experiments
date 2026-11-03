@@ -477,9 +477,14 @@ await step(
 				.select( 'core/block-editor' )
 				.getSelectedBlockClientId()
 		);
-		await canvas
-			.locator( `#block-${ ( await sections() )[ 1 ].id }` )
-			.click( { position: { x: 20, y: 20 } } );
+		// Near the next section's far corner, clear of the panel.
+		const next = canvas.locator(
+			`#block-${ ( await sections() )[ 1 ].id }`
+		);
+		const box = await next.boundingBox();
+		await next.click( {
+			position: { x: box.width - 20, y: box.height - 20 },
+		} );
 		await wait( 200 );
 		expect(
 			( await page.locator( '.ito-lp' ).count() ) === 0,
@@ -556,23 +561,27 @@ await step( 'it reopens as valid blocks, as the new pattern', async () => {
 	);
 } );
 
+// Adds a registered pattern at the end of the page; returns its section's place.
+const addPattern = ( name ) =>
+	page.evaluate( ( n ) => {
+		const be = window.wp.data.select( 'core/block-editor' );
+		const pattern = be
+			.__experimentalGetAllowedPatterns()
+			.find( ( p ) => p.name === n );
+		const root = be.getBlocksByName( 'core/post-content' )[ 0 ] || '';
+		window.wp.data.dispatch( 'core/block-editor' ).insertBlocks(
+			pattern.blocks.map( ( b ) => window.wp.blocks.cloneBlock( b ) ),
+			undefined,
+			root
+		);
+		return be.getBlockOrder( root ).length - 1;
+	}, name );
+
 await step(
 	'a section of alike cards goes to one fewer or one more column, keeping its content',
 	async () => {
 		// Twenty Twenty-Five's three services, at the end of the page.
-		const index = await page.evaluate( () => {
-			const be = window.wp.data.select( 'core/block-editor' );
-			const pattern = be
-				.__experimentalGetAllowedPatterns()
-				.find( ( p ) => p.name === 'twentytwentyfive/services-3-col' );
-			const root = be.getBlocksByName( 'core/post-content' )[ 0 ] || '';
-			window.wp.data.dispatch( 'core/block-editor' ).insertBlocks(
-				pattern.blocks.map( ( b ) => window.wp.blocks.cloneBlock( b ) ),
-				undefined,
-				root
-			);
-			return be.getBlockOrder( root ).length - 1;
-		} );
+		const index = await addPattern( 'twentytwentyfive/services-3-col' );
 		// The number of columns in each row of the section.
 		const rows = () =>
 			page.evaluate( ( at ) => {
@@ -613,6 +622,52 @@ await step(
 		}
 	}
 );
+
+await step( 'a grid takes other shapes, keeping its content', async () => {
+	// Twenty Twenty-Five's team photos: a heading beside a 2 × 2 grid.
+	const index = await addPattern( 'twentytwentyfive/services-team-photos' );
+	// The grid as the canvas draws it: columns across, and the first
+	// cell's span.
+	const drawn = () =>
+		page.evaluate( ( at ) => {
+			const be = window.wp.data.select( 'core/block-editor' );
+			const root = be.getBlocksByName( 'core/post-content' )[ 0 ] || '';
+			const doc = document.querySelector(
+				'iframe[name="editor-canvas"]'
+			).contentDocument;
+			const grid = doc
+				.getElementById( 'block-' + be.getBlockOrder( root )[ at ] )
+				.querySelector( '.is-layout-grid' );
+			const first = window.getComputedStyle( grid.firstElementChild );
+			return [
+				window.getComputedStyle( grid ).gridTemplateColumns.split( ' ' )
+					.length,
+				first.gridColumnStart,
+				first.gridRowStart,
+			].join();
+		}, index );
+	const before = await contentAt( index );
+	for ( const [ label, want ] of [
+		[ '1 × 4 grid', '4,auto,auto' ],
+		[ 'Featured, 3 across', '3,span 2,span 2' ],
+		[ 'Banner, then 3 across', '3,span 3,auto' ],
+	] ) {
+		await openPanel( index );
+		await pick( page.locator( ARRANGED, { hasText: label } ) );
+		const now = await contentAt( index );
+		expect( now.valid, `${ label }: invalid blocks` );
+		expect(
+			JSON.stringify( now.items ) === JSON.stringify( before.items ),
+			`${ label }: the content changed`
+		);
+		expect(
+			( await drawn() ) === want,
+			`${ label }: drawn as ${ await drawn() }`
+		);
+		await shot( `06-${ label.replace( /\W+/g, '-' ) }` );
+		await undo();
+	}
+} );
 
 await step( 'no errors on the page', async () => {
 	expect( pageErrors.length === 0, pageErrors.join( ' | ' ) );

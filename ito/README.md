@@ -18,8 +18,8 @@ The link runs [`blueprint.json`](blueprint.json), which installs the plugin stra
 
 Every top-level block on a page is a section (inside Post Content, when the page is shown in its template).
 
-- **Hover a section** for a blue outline, its name in a tab above it (the pattern's title when it came from one) and **Edit layout** at the top, with how many other layouts there are.
-- **Edit layout** opens a panel at the top of the section, which stays in view as you scroll a tall one. Its first row shows the section **As it was**, then every matching pattern; its second row, **Arranged from your content**, the generated layouts. Each is a live preview of the section's own content.
+- **Hover a section** for a blue outline, its name in a tab above it (the pattern's title when it came from one) and **Edit layout** at its top left, with how many other layouts there are. When the section is selected, Edit layout sits just below the editor's block toolbar.
+- **Edit layout** opens a panel at the top left of the section, which stays in view as you scroll a tall one. Its first row shows the section **As it was**, then every matching pattern; its second row, **Arranged from your content**, the generated layouts. Each is a live preview of the section's own content.
 - **Pick a layout** and the section changes to it, and the panel closes. **As it was** leaves the section alone.
 - **Done**, Escape, or a click anywhere else on the page closes the panel without changing anything (a click on the page does nothing else).
 - Each swap is one step of the editor's undo, so undo takes it back.
@@ -47,7 +47,8 @@ Most patterns have blocks no other pattern shares, so Ito also makes layouts fro
 
 | Layout | When it's offered |
 | --- | --- |
-| One fewer, or one more, column | Alike cards: columns that all hold the same kind of content, such as three services or two rows of quotes, or a grid with a set number of columns. The section keeps its design; the cards wrap into rows of the new number, and the last row is filled up with empty columns. A grid just gets its new number. From 1 to 6 columns |
+| One fewer, or one more, column | Alike cards: Columns blocks whose columns all hold the same kind of content, such as three services or two rows of quotes. The section keeps its design; the cards wrap into rows of the new number, and the last row is filled up with empty columns. From 1 to 6 columns |
+| Grid shapes: every number across (*2 × 3 grid*), *Featured, 3 across* or *4 across*, and *Banner, then N across* | Any grid, whatever its cells. Only the grid changes: its number across, and the first cell's span (two by two for featured, the full width for a banner, over rows the rest fill exactly). A first cell that's a content block, such as an image, is put in a group that spans, so the block itself doesn't change. The grid's current shape isn't offered |
 | Stacked | Always: everything in one column, in order |
 | Centred | Always: the same, centred |
 | Picture first, or Picture last | One picture: moved to the other end |
@@ -56,7 +57,9 @@ Most patterns have blocks no other pattern shares, so Ito also makes layouts fro
 | Split in two | No pictures: the first heading on top, the rest in two columns |
 | Card | Always: in a rounded, tinted panel |
 
-Apart from the column counts, they're plainer than designed patterns, and take their spacing from the theme's sizes. A section with a generated layout is no longer a pattern, so it's named by its block.
+A grid shape sets the number across exactly, so it drops a grid's minimum column width, which would otherwise let it show fewer. Like any grid with a set number of columns in WordPress, it keeps that number on a narrow screen.
+
+Apart from the column counts and grid shapes, they're plainer than designed patterns, and take their spacing from the theme's sizes. A section with a generated layout is no longer a pattern, so it's named by its block.
 
 ## What moves across
 
@@ -105,7 +108,7 @@ The matching and the moving of content are in [`src/editor/swap.js`](src/editor/
 npm run test:unit
 ```
 
-The smoke test drives the real editor in a headless browser: the sample page, hovering, the previews, every swap of the hero (checking its heading, level, paragraph, button and photo each time), every generated layout of it (checking that its content blocks are unchanged and it saves as valid markup), that picking closes the panel, As it was, closing the panel, undo, publishing, reopening, and taking Twenty Twenty-Five's three services to two and four columns. It needs a WordPress site with Ito active and automatic login, which WordPress Playground gives you:
+The smoke test drives the real editor in a headless browser: the sample page, hovering, the previews, every swap of the hero (checking its heading, level, paragraph, button and photo each time), every generated layout of it (checking that its content blocks are unchanged and it saves as valid markup), that picking closes the panel, As it was, closing the panel, undo, publishing, reopening, taking Twenty Twenty-Five's three services to two and four columns, and its 2 × 2 team photos to 1 × 4, featured and banner shapes (checking the columns and spans the canvas draws). It needs a WordPress site with Ito active and automatic login, which WordPress Playground gives you:
 
 ```
 npx @wp-playground/cli server --login --port=9400 \

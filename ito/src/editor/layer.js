@@ -111,7 +111,7 @@ export function Layer( { doc, layerEl } ) {
 	const { replaceBlock } = useDispatch( blockEditorStore );
 	useCanvasTick( doc );
 
-	const { sections, patterns } = useSelect( ( select ) => {
+	const { sections, patterns, selected } = useSelect( ( select ) => {
 		const s = select( blockEditorStore );
 		const [ root = '' ] = s.getBlocksByName( 'core/post-content' );
 		// Asking for the patterns here loads them; the inserter would otherwise.
@@ -122,6 +122,7 @@ export function Layer( { doc, layerEl } ) {
 				.map( ( id ) => s.getBlock( id ) )
 				.filter( Boolean ),
 			patterns: s.__experimentalGetAllowedPatterns( root ) || [],
+			selected: s.getSelectedBlockClientId(),
 		};
 	}, [] );
 
@@ -281,17 +282,19 @@ export function Layer( { doc, layerEl } ) {
 	};
 
 	// ---------- Drawing ----------
-	// Where the panel goes in the editor's window: centred at the top of the
+	// Where the panel goes in the editor's window: at the top left of the
 	// section, and kept in view while you scroll a tall one.
 	const panelPosition = ( el ) => {
 		const frame = doc.defaultView.frameElement.getBoundingClientRect();
 		const r = el.getBoundingClientRect();
 		const h = 380;
+		const left = frame.left + Math.max( r.left, 0 ) + 12;
 		return {
 			top:
 				frame.top +
 				Math.max( r.top + 12, Math.min( 12, r.bottom - h - 12 ) ),
-			left: frame.left + r.left + r.width / 2,
+			left,
+			maxWidth: Math.min( 960, window.innerWidth - left - 16 ),
 		};
 	};
 	const shown = sections.filter(
@@ -331,8 +334,12 @@ export function Layer( { doc, layerEl } ) {
 					<div
 						className="ito-bar"
 						style={ {
-							left: r.left + r.width / 2,
-							top: stickTop( 44 ),
+							left: r.left + 12,
+							// Below the editor's toolbar, which takes the same
+							// corner when the section is selected.
+							top:
+								stickTop( 44 ) +
+								( section.clientId === selected ? 56 : 0 ),
 						} }
 					>
 						<button
@@ -392,6 +399,7 @@ export function Layer( { doc, layerEl } ) {
 function LayoutPanel( {
 	top,
 	left,
+	maxWidth,
 	snapshot,
 	options,
 	layouts,
@@ -449,7 +457,7 @@ function LayoutPanel( {
 				/* translators: %s: section name. */ __( '%s layouts', 'ito' ),
 				title
 			) }
-			style={ { top, left } }
+			style={ { top, left, maxWidth } }
 		>
 			<div className="ito-lphead">
 				<span className="ito-lph">{ __( 'Layouts', 'ito' ) }</span>

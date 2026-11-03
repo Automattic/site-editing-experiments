@@ -141,7 +141,88 @@ const SECTIONS = {
 	),
 	'an empty image': group( heading( 'Soon' ), image( undefined ) ),
 	'one paragraph': para( 'Just this.' ),
+	'three services': services( 3 ),
+	'two rows of quotes': quotes(),
+	'a grid of four': grid( 2, 4 ),
+	'columns on their own': b(
+		'core/columns',
+		{ align: 'wide' },
+		[ 1, 2, 3 ].map( ( i ) => card( `Plain ${ i }` ) )
+	),
 };
+
+/**
+ * A column holding one card: a picture, a heading and a paragraph.
+ *
+ * @param {string} title
+ * @param {Object} extra The column's attributes.
+ */
+function card( title, extra = {} ) {
+	return b( 'core/column', { width: '33.33%', ...extra }, [
+		image( `${ title }.jpg` ),
+		heading( title, 3 ),
+		para( `About ${ title }.` ),
+	] );
+}
+
+/**
+ * A styled section: a heading, then a row of `count` cards.
+ *
+ * @param {number} count
+ */
+function services( count ) {
+	return b(
+		'core/group',
+		{
+			align: 'full',
+			metadata: { name: 'Services', patternName: 'theme/services' },
+			style: { color: { background: '#eee' } },
+		},
+		[
+			heading( 'What we do' ),
+			b(
+				'core/columns',
+				{ align: 'wide', style: { spacing: { blockGap: '2rem' } } },
+				Array.from( { length: count }, ( _, i ) =>
+					card( `Service ${ i + 1 }`, { style: { border: '1px' } } )
+				)
+			),
+		]
+	);
+}
+
+/** Two rows of three quotes. */
+function quotes() {
+	const row = ( from ) =>
+		b(
+			'core/columns',
+			{ className: 'is-quotes' },
+			[ 0, 1, 2 ].map( ( i ) =>
+				b( 'core/column', {}, [
+					b( 'core/quote', {}, [ para( `Quote ${ from + i }` ) ] ),
+				] )
+			)
+		);
+	return group( heading( 'They said' ), row( 1 ), row( 4 ) );
+}
+
+/**
+ * A grid group of `cells` alike groups, `count` across.
+ *
+ * @param {number} count
+ * @param {number} cells
+ */
+function grid( count, cells ) {
+	return group(
+		b(
+			'core/group',
+			{ layout: { type: 'grid', columnCount: count } },
+			Array.from( { length: cells }, ( _, i ) =>
+				group( heading( `Place ${ i + 1 }`, 3 ), para( 'Address' ) )
+			)
+		)
+	);
+}
 
 describe( 'arrangements', () => {
 	it.each( Object.entries( SECTIONS ) )(
@@ -195,6 +276,177 @@ describe( 'arrangements', () => {
 		).find( ( l ) => l.key === 'ito:two-columns' );
 		expect( layout.block.innerBlocks.map( ( x ) => x.name ) ).toEqual( [
 			'core/heading',
+			'core/columns',
+		] );
+	} );
+} );
+
+describe( 'column counts', () => {
+	const counts = ( section ) =>
+		arrangements( section )
+			.map( ( l ) => l.key )
+			.filter( ( k ) => k.startsWith( 'ito:columns-' ) );
+	const layout = ( section, n ) =>
+		arrangements( section ).find( ( l ) => l.key === `ito:columns-${ n }` );
+	/**
+	 * The rows of columns in a services section's layout.
+	 *
+	 * @param {Object} l A layout.
+	 */
+	const rows = ( l ) => l.block.innerBlocks.slice( 1 );
+	const isEmptyColumn = ( x ) =>
+		x.name === 'core/column' && ! x.innerBlocks.length;
+
+	it( 'offers one fewer and one more column', () => {
+		expect( counts( services( 3 ) ) ).toEqual( [
+			'ito:columns-2',
+			'ito:columns-4',
+		] );
+		expect( counts( services( 4 ) ) ).toEqual( [
+			'ito:columns-3',
+			'ito:columns-5',
+		] );
+		expect( counts( services( 2 ) ) ).toEqual( [
+			'ito:columns-1',
+			'ito:columns-3',
+		] );
+	} );
+
+	it.each( Object.entries( SECTIONS ) )(
+		'gives each layout for %s a name of its own',
+		( _, section ) => {
+			const labels = arrangements( section ).map( ( l ) =>
+				l.label.toLowerCase().replace( 'two', '2' )
+			);
+			expect( new Set( labels ).size ).toBe( labels.length );
+		}
+	);
+
+	it( 'never goes past six columns', () => {
+		expect( counts( services( 6 ) ) ).toEqual( [ 'ito:columns-5' ] );
+	} );
+
+	it( 'labels each layout by its number of columns', () => {
+		expect( layout( services( 3 ), 4 ).label ).toBe( '4 columns' );
+		expect( layout( services( 2 ), 1 ).label ).toBe( '1 column' );
+	} );
+
+	it( 'leaves out columns that are not alike', () => {
+		expect( counts( SECTIONS[ 'text beside an image' ] ) ).toEqual( [] );
+		expect( counts( SECTIONS[ 'a hand-built mix' ] ) ).toEqual( [] );
+	} );
+
+	it( 'wraps the cards into rows, filling the last with empty columns', () => {
+		const two = rows( layout( services( 3 ), 2 ) );
+		expect( two.map( ( r ) => r.innerBlocks.length ) ).toEqual( [ 2, 2 ] );
+		expect( isEmptyColumn( two[ 1 ].innerBlocks[ 1 ] ) ).toBe( true );
+
+		const four = rows( layout( services( 3 ), 4 ) );
+		expect( four ).toHaveLength( 1 );
+		expect( four[ 0 ].innerBlocks ).toHaveLength( 4 );
+		expect( isEmptyColumn( four[ 0 ].innerBlocks[ 3 ] ) ).toBe( true );
+	} );
+
+	it( 'keeps the cards and the rows as the pattern styled them', () => {
+		const section = services( 3 );
+		const [ before ] = section.innerBlocks.slice( 1 );
+		const [ first, second ] = rows( layout( section, 2 ) );
+		for ( const row of [ first, second ] ) {
+			expect( row.name ).toBe( 'core/columns' );
+			expect( row.attributes ).toEqual( before.attributes );
+		}
+		// Each card is the same column, without a width meant for three.
+		const { width, ...kept } = before.innerBlocks[ 0 ].attributes;
+		expect( width ).toBe( '33.33%' );
+		expect( first.innerBlocks[ 0 ] ).toEqual( {
+			...before.innerBlocks[ 0 ],
+			attributes: kept,
+		} );
+		expect( second.innerBlocks[ 0 ].innerBlocks ).toBe(
+			before.innerBlocks[ 2 ].innerBlocks
+		);
+	} );
+
+	it( 'keeps the rest of the section, but not as the pattern it came from', () => {
+		const section = services( 3 );
+		const { block } = layout( section, 4 );
+		expect( block.name ).toBe( 'core/group' );
+		expect( block.attributes ).toEqual( {
+			align: 'full',
+			metadata: { name: 'Services' },
+			style: { color: { background: '#eee' } },
+		} );
+		expect( block.innerBlocks[ 0 ] ).toBe( section.innerBlocks[ 0 ] );
+	} );
+
+	it( 'treats rows of alike cards as one set', () => {
+		const section = quotes();
+		expect( counts( section ) ).toEqual( [
+			'ito:columns-2',
+			'ito:columns-4',
+		] );
+		const two = layout( section, 2 ).block.innerBlocks.slice( 1 );
+		expect( two.map( ( r ) => r.innerBlocks.length ) ).toEqual( [
+			2, 2, 2,
+		] );
+		expect( two.map( ( r ) => r.attributes.className ) ).toEqual( [
+			'is-quotes',
+			'is-quotes',
+			'is-quotes',
+		] );
+		const four = layout( section, 4 ).block.innerBlocks.slice( 1 );
+		expect( four.map( ( r ) => r.innerBlocks.length ) ).toEqual( [ 4, 4 ] );
+		expect( four[ 1 ].innerBlocks.filter( isEmptyColumn ) ).toHaveLength(
+			2
+		);
+	} );
+
+	it( 'counts a row it filled with empty columns at its full width', () => {
+		// After 3 cards went to 4 columns, the choice is 3 or 5.
+		const wrapped = layout( services( 3 ), 4 ).block;
+		expect( counts( wrapped ) ).toEqual( [
+			'ito:columns-3',
+			'ito:columns-5',
+		] );
+		const back = rows( layout( wrapped, 3 ) );
+		expect( back ).toHaveLength( 1 );
+		expect( back[ 0 ].innerBlocks.filter( isEmptyColumn ) ).toHaveLength(
+			0
+		);
+	} );
+
+	it( "changes only a grid's column count", () => {
+		const section = grid( 2, 4 );
+		expect( counts( section ) ).toEqual( [
+			'ito:columns-1',
+			'ito:columns-3',
+		] );
+		const before = section.innerBlocks[ 0 ];
+		const after = layout( section, 3 ).block.innerBlocks[ 0 ];
+		expect( after ).toEqual( {
+			...before,
+			attributes: {
+				layout: { type: 'grid', columnCount: 3 },
+			},
+		} );
+		expect( after.innerBlocks ).toBe( before.innerBlocks );
+	} );
+
+	it( 'leaves out a grid that sizes its own columns', () => {
+		const section = grid( undefined, 4 );
+		expect( counts( section ) ).toEqual( [] );
+	} );
+
+	it( 'wraps rows in a group when the section is the columns', () => {
+		const section = SECTIONS[ 'columns on their own' ];
+		const one = layout( section, 4 ).block;
+		expect( one.name ).toBe( 'core/columns' );
+		expect( one.innerBlocks ).toHaveLength( 4 );
+		const two = layout( section, 2 ).block;
+		expect( two.name ).toBe( 'core/group' );
+		expect( two.attributes ).toEqual( { align: 'wide' } );
+		expect( two.innerBlocks.map( ( r ) => r.name ) ).toEqual( [
+			'core/columns',
 			'core/columns',
 		] );
 	} );

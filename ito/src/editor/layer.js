@@ -157,7 +157,7 @@ export function Layer( { doc, layerEl } ) {
 	// The section being swapped: its ID now, how it was when the panel
 	// opened, the patterns it can swap to, the layouts made from its content,
 	// and which one it is now.
-	const [ active, setActive ] = useState( null ); // { id, snapshot, options, layouts, chosen }
+	const [ active, setActive ] = useState( null ); // { id, snapshot, options, layouts }
 
 	const elOf = ( id ) => doc.getElementById( 'block-' + id );
 	const layerRect = layerEl.getBoundingClientRect();
@@ -269,18 +269,15 @@ export function Layer( { doc, layerEl } ) {
 			snapshot: section,
 			options: swaps.get( section.clientId ) || [],
 			layouts: layouts.get( section.clientId ) || [],
-			chosen: null,
 		} );
 
-	// Swap to a layout ({ key, block }), or back to how the section was (null).
+	// Swap to a layout ({ key, block }) and close the panel. As it was (null)
+	// leaves the section alone.
 	const choose = ( item ) => {
-		const next = cloneBlock( item ? item.block : active.snapshot );
-		replaceBlock( active.id, next );
-		setActive( {
-			...active,
-			id: next.clientId,
-			chosen: item ? item.key : null,
-		} );
+		if ( item ) {
+			replaceBlock( active.id, cloneBlock( item.block ) );
+		}
+		setActive( null );
 	};
 
 	// ---------- Drawing ----------
@@ -381,7 +378,6 @@ export function Layer( { doc, layerEl } ) {
 							snapshot={ active.snapshot }
 							options={ active.options }
 							layouts={ active.layouts }
-							chosen={ active.chosen }
 							title={ sectionTitle( active.snapshot, patterns ) }
 							onChoose={ choose }
 							onDone={ () => setActive( null ) }
@@ -399,7 +395,6 @@ function LayoutPanel( {
 	snapshot,
 	options,
 	layouts,
-	chosen,
 	title,
 	onChoose,
 	onDone,
@@ -464,15 +459,6 @@ function LayoutPanel( {
 				<div className="ito-lpactions">
 					<button
 						type="button"
-						className="ito-lpbtn"
-						disabled={ chosen === null }
-						title={ __( 'Put the section back as it was', 'ito' ) }
-						onClick={ () => onChoose( null ) }
-					>
-						{ __( 'Reset', 'ito' ) }
-					</button>
-					<button
-						type="button"
 						className="ito-lpbtn is-primary"
 						onClick={ onDone }
 					>
@@ -495,13 +481,9 @@ function LayoutPanel( {
 									type="button"
 									className={
 										'ito-lpi' +
-										( ( chosen ?? '' ) === item.key
-											? ' is-on'
-											: '' )
+										( item.item ? '' : ' is-on' )
 									}
-									aria-pressed={
-										( chosen ?? '' ) === item.key
-									}
+									aria-pressed={ ! item.item }
 									onClick={ () => onChoose( item.item ) }
 								>
 									<span className="ito-lpthumb">

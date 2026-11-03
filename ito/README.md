@@ -1,6 +1,6 @@
 # Ito: swap a pattern, keep the content
 
-A WordPress plugin that tries out [Albers](../albers/)' Edit layout with real patterns. Hover a section of a page and choose **Edit layout** to see it in every other registered pattern that has the same blocks, and in layouts made from the section's own content, each previewed with the section's own words and pictures. Pick one and the section changes to it: the layout and styling change, and the content stays. No content block is ever added or removed, so every section has a choice, whether or not a pattern matches it.
+A WordPress plugin that tries out [Albers](../albers/)' Edit layout with real patterns. Hover a section of a page and choose **Edit layout** to see it in every other registered pattern that has the same blocks, and in layouts made from the section's own content, each previewed with the section's own words and pictures. Pick one and the section changes to it, and the panel closes: the layout and styling change, and the content stays. No content block is ever added or removed, so every section has a choice, whether or not a pattern matches it.
 
 Unlike [Degas](../degas/), whose layouts are class names on its own twelve section types, Ito works with whatever patterns the site has (core's, the theme's and plugins'), and a swap really changes the blocks.
 
@@ -20,9 +20,9 @@ Every top-level block on a page is a section (inside Post Content, when the page
 
 - **Hover a section** for a blue outline, its name in a tab above it (the pattern's title when it came from one) and **Edit layout** at the top, with how many other layouts there are.
 - **Edit layout** opens a panel at the top of the section, which stays in view as you scroll a tall one. Its first row shows the section **As it was**, then every matching pattern; its second row, **Arranged from your content**, the generated layouts. Each is a live preview of the section's own content.
-- **Pick a layout** and the section changes underneath, straight away. You can go through them all: each one starts from the section as it was when you opened the panel.
-- **Reset** puts the section back as it was. **Done**, Escape, or a click anywhere else on the page closes the panel (a click on the page does nothing else).
-- Each swap is one step of the editor's undo.
+- **Pick a layout** and the section changes to it, and the panel closes. **As it was** leaves the section alone.
+- **Done**, Escape, or a click anywhere else on the page closes the panel without changing anything (a click on the page does nothing else).
+- Each swap is one step of the editor's undo, so undo takes it back.
 
 Outside the panel, the page edits as usual: Ito only takes the pointer on its own controls.
 
@@ -47,15 +47,16 @@ Most patterns have blocks no other pattern shares, so Ito also makes layouts fro
 
 | Layout | When it's offered |
 | --- | --- |
+| One fewer, or one more, column | Alike cards: columns that all hold the same kind of content, such as three services or two rows of quotes, or a grid with a set number of columns. The section keeps its design; the cards wrap into rows of the new number, and the last row is filled up with empty columns. A grid just gets its new number. From 1 to 6 columns |
 | Stacked | Always: everything in one column, in order |
 | Centred | Always: the same, centred |
 | Picture first, or Picture last | One picture: moved to the other end |
 | Picture on the left, or on the right | One picture: in two columns, beside everything else |
 | Picture behind | One picture without a caption or link: as a Cover, with the rest over it |
-| Two columns | No pictures: the first heading on top, the rest in two columns |
+| Split in two | No pictures: the first heading on top, the rest in two columns |
 | Card | Always: in a rounded, tinted panel |
 
-They're plainer than designed patterns, and take their spacing from the theme's sizes. A section with a generated layout is no longer a pattern, so it's named by its block.
+Apart from the column counts, they're plainer than designed patterns, and take their spacing from the theme's sizes. A section with a generated layout is no longer a pattern, so it's named by its block.
 
 ## What moves across
 
@@ -104,7 +105,7 @@ The matching and the moving of content are in [`src/editor/swap.js`](src/editor/
 npm run test:unit
 ```
 
-The smoke test drives the real editor in a headless browser: the sample page, hovering, the previews, every swap of the hero (checking its heading, level, paragraph, button and photo each time), every generated layout of it (checking that its content blocks are unchanged and it saves as valid markup), Reset, closing the panel, undo, publishing, and reopening. It needs a WordPress site with Ito active and automatic login, which WordPress Playground gives you:
+The smoke test drives the real editor in a headless browser: the sample page, hovering, the previews, every swap of the hero (checking its heading, level, paragraph, button and photo each time), every generated layout of it (checking that its content blocks are unchanged and it saves as valid markup), that picking closes the panel, As it was, closing the panel, undo, publishing, reopening, and taking Twenty Twenty-Five's three services to two and four columns. It needs a WordPress site with Ito active and automatic login, which WordPress Playground gives you:
 
 ```
 npx @wp-playground/cli server --login --port=9400 \

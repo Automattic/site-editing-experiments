@@ -98,6 +98,68 @@ const sections = () =>
 		} );
 	} );
 
+// A section's content blocks, whole, and its pictures, wherever they are,
+// and whether it saves as valid markup.
+const contentAt = ( index ) =>
+	page.evaluate( ( at ) => {
+		const be = window.wp.data.select( 'core/block-editor' );
+		const root = be.getBlocksByName( 'core/post-content' )[ 0 ] || '';
+		const block = be.getBlock( be.getBlockOrder( root )[ at ] );
+		const layout = [
+			'core/group',
+			'core/columns',
+			'core/column',
+			'core/buttons',
+			'core/spacer',
+			'core/separator',
+			'core/cover',
+			'core/media-text',
+		];
+		const strip = ( b ) => [
+			b.name,
+			b.attributes,
+			b.innerBlocks.map( strip ),
+		];
+		// Attributes in a fixed order, as making a block can reorder
+		// them, and rich text as its HTML.
+		const sorted = ( v ) => {
+			if ( ! v || typeof v !== 'object' || Array.isArray( v ) ) {
+				return v;
+			}
+			if ( v.constructor !== Object ) {
+				return String( v );
+			}
+			return Object.fromEntries(
+				Object.keys( v )
+					.sort()
+					.map( ( k ) => [ k, sorted( v[ k ] ) ] )
+			);
+		};
+		const items = [];
+		const walk = ( b ) => {
+			const a = b.attributes;
+			if ( a.url || a.mediaUrl ) {
+				items.push( [ a.url || a.mediaUrl, a.alt ?? a.mediaAlt ] );
+			}
+			if ( layout.includes( b.name ) ) {
+				b.innerBlocks.forEach( walk );
+			} else if ( b.name !== 'core/image' ) {
+				items.push( strip( b ) );
+			}
+		};
+		walk( block );
+		const valid = ( b ) => b.isValid && b.innerBlocks.every( valid );
+		return {
+			items: items
+				.map( ( i ) => JSON.stringify( i, ( k, v ) => sorted( v ) ) )
+				.sort(),
+			// Saved and read back, it's still valid markup.
+			valid: window.wp.blocks
+				.parse( window.wp.blocks.serialize( block ) )
+				.every( valid ),
+		};
+	}, index );
+
 // Sets the first heading, paragraph and button in a section.
 const setContent = ( id, content ) =>
 	page.evaluate(
@@ -171,8 +233,10 @@ async function hover( id ) {
 		await wait( 250 );
 		box = await el.boundingBox();
 	}
+	// Near the left edge: in the middle, the pointer can land on the editor's
+	// line for inserting between blocks, which sits over the canvas.
 	await page.mouse.move(
-		box.x + box.width / 2,
+		box.x + 24,
 		box.y + Math.min( 120, box.height / 2 )
 	);
 	await wait( 250 );
@@ -286,15 +350,32 @@ await step(
 	}
 );
 
+// Picks a layout in the open panel and checks the panel closed.
+async function pick( option ) {
+	await option.click();
+	await wait( 400 );
+	expect(
+		( await page.locator( '.ito-lp' ).count() ) === 0,
+		'picking a layout didn’t close the panel'
+	);
+}
+const undo = async () => {
+	await page.evaluate( () =>
+		window.wp.data.dispatch( 'core/editor' ).undo()
+	);
+	await wait( 300 );
+};
+
 await step(
-	'picking a layout swaps the pattern and keeps the words, links and picture',
+	'picking a pattern swaps it, closes the panel and keeps the words, links and picture',
 	async () => {
 		const before = ( await sections() )[ 0 ];
 		const count = await page.locator( PATTERNS ).count();
+		await page.keyboard.press( 'Escape' );
 		const seen = new Set( [ before.pattern ] );
 		for ( let i = 1; i < count; i++ ) {
-			await page.locator( PATTERNS ).nth( i ).click();
-			await wait( 400 );
+			await openPanel( 0 );
+			await pick( page.locator( PATTERNS ).nth( i ) );
 			const now = ( await sections() )[ 0 ];
 			expect(
 				! seen.has( now.pattern ),
@@ -322,131 +403,62 @@ await step(
 				now.picture === before.picture,
 				`${ now.pattern }: picture is ${ now.picture }`
 			);
-			expect(
-				( await page
-					.locator( PATTERNS )
-					.nth( i )
-					.getAttribute( 'aria-pressed' ) ) === 'true',
-				'the picked layout isn’t marked'
-			);
+			await shot( `03-swapped-${ i }` );
+			await undo();
 		}
-		await shot( '03-swapped' );
 	}
 );
 
 await step(
 	'picking a generated layout keeps every content block as it was',
 	async () => {
+		const before = await contentAt( 0 );
+		await openPanel( 0 );
 		const count = await page.locator( ARRANGED ).count();
 		expect( count >= 3, `only ${ count } generated layouts for the hero` );
-		// The content blocks, whole, and the picture, wherever they are.
-		const content = () =>
-			page.evaluate( () => {
-				const be = window.wp.data.select( 'core/block-editor' );
-				const root =
-					be.getBlocksByName( 'core/post-content' )[ 0 ] || '';
-				const block = be.getBlock( be.getBlockOrder( root )[ 0 ] );
-				const layout = [
-					'core/group',
-					'core/columns',
-					'core/column',
-					'core/buttons',
-					'core/spacer',
-					'core/separator',
-					'core/cover',
-					'core/media-text',
-				];
-				const strip = ( b ) => [
-					b.name,
-					b.attributes,
-					b.innerBlocks.map( strip ),
-				];
-				// Attributes in a fixed order, as making a block can reorder
-				// them, and rich text as its HTML.
-				const sorted = ( v ) => {
-					if ( ! v || typeof v !== 'object' || Array.isArray( v ) ) {
-						return v;
-					}
-					if ( v.constructor !== Object ) {
-						return String( v );
-					}
-					return Object.fromEntries(
-						Object.keys( v )
-							.sort()
-							.map( ( k ) => [ k, sorted( v[ k ] ) ] )
-					);
-				};
-				const items = [];
-				const walk = ( b ) => {
-					const a = b.attributes;
-					if ( a.url || a.mediaUrl ) {
-						items.push( [
-							a.url || a.mediaUrl,
-							a.alt ?? a.mediaAlt,
-						] );
-					}
-					if ( layout.includes( b.name ) ) {
-						b.innerBlocks.forEach( walk );
-					} else if ( b.name !== 'core/image' ) {
-						items.push( strip( b ) );
-					}
-				};
-				walk( block );
-				const valid = ( b ) =>
-					b.isValid && b.innerBlocks.every( valid );
-				return {
-					items: items
-						.map( ( i ) =>
-							JSON.stringify( i, ( k, v ) => sorted( v ) )
-						)
-						.sort(),
-					// Saved and read back, it's still valid markup.
-					valid: window.wp.blocks
-						.parse( window.wp.blocks.serialize( block ) )
-						.every( valid ),
-				};
-			} );
-		await page.locator( PATTERNS ).first().click(); // as it was
-		await wait( 400 );
-		const before = await content();
+		await page.keyboard.press( 'Escape' );
 		for ( let i = 0; i < count; i++ ) {
+			await openPanel( 0 );
 			const option = page.locator( ARRANGED ).nth( i );
 			const label = await option.textContent();
-			await option.click();
-			await wait( 400 );
-			const now = await content();
+			await pick( option );
+			const now = await contentAt( 0 );
 			expect( now.valid, `${ label }: invalid blocks` );
 			expect(
 				JSON.stringify( now.items ) === JSON.stringify( before.items ),
 				`${ label }: the content changed`
 			);
-			expect(
-				( await option.getAttribute( 'aria-pressed' ) ) === 'true',
-				'the picked layout isn’t marked'
-			);
 			await shot( `04-arranged-${ i }` );
+			await undo();
 		}
 	}
 );
 
-await step( 'Reset puts the section back as it was', async () => {
-	await page.locator( '.ito-lpbtn', { hasText: 'Reset' } ).click();
-	await wait( 400 );
-	const now = ( await sections() )[ 0 ];
-	expect(
-		now.pattern === hero.pattern && now.name === hero.name,
-		`section is ${ now.name } ${ now.pattern }`
-	);
-	expect( now.heading === mine.heading, 'Reset lost the edited heading' );
-	expect(
-		await page.locator( '.ito-lpbtn', { hasText: 'Reset' } ).isDisabled(),
-		'Reset is still enabled'
-	);
-} );
+await step(
+	'As it was closes the panel and leaves the section alone',
+	async () => {
+		const before = ( await sections() )[ 0 ];
+		await openPanel( 0 );
+		expect(
+			( await page
+				.locator( PATTERNS )
+				.first()
+				.getAttribute( 'aria-pressed' ) ) === 'true',
+			'As it was isn’t marked as the current layout'
+		);
+		await pick( page.locator( PATTERNS ).first() );
+		const now = ( await sections() )[ 0 ];
+		expect(
+			now.id === before.id && now.pattern === hero.pattern,
+			`section is ${ now.name } ${ now.pattern }`
+		);
+	}
+);
 
 await step(
 	'Done, Escape and a click on the page close the panel',
 	async () => {
+		await openPanel( 0 );
 		await page.locator( '.ito-lpbtn', { hasText: 'Done' } ).click();
 		expect(
 			( await page.locator( '.ito-lp' ).count() ) === 0,
@@ -484,9 +496,7 @@ await step(
 
 await step( 'one undo takes back a swap', async () => {
 	await openPanel( 0 );
-	await page.locator( '.ito-lpi' ).nth( 1 ).click();
-	await wait( 300 );
-	await page.locator( '.ito-lpbtn', { hasText: 'Done' } ).click();
+	await pick( page.locator( '.ito-lpi' ).nth( 1 ) );
 	await page.evaluate( () =>
 		window.wp.data.dispatch( 'core/editor' ).undo()
 	);
@@ -500,10 +510,12 @@ await step( 'one undo takes back a swap', async () => {
 let swappedTo;
 await step( 'a swapped section saves and shows on the site', async () => {
 	await openPanel( 0 );
-	await page.locator( '.ito-lpi' ).nth( 1 ).click();
-	await wait( 300 );
-	await page.locator( '.ito-lpbtn', { hasText: 'Done' } ).click();
+	await pick( page.locator( '.ito-lpi' ).nth( 1 ) );
 	swappedTo = ( await sections() )[ 0 ].pattern;
+	// A save while the editor is autosaving does nothing.
+	await page.waitForFunction(
+		() => ! window.wp.data.select( 'core/editor' ).isSavingPost()
+	);
 	await page.evaluate( async () => {
 		window.wp.data
 			.dispatch( 'core/editor' )
@@ -543,6 +555,64 @@ await step( 'it reopens as valid blocks, as the new pattern', async () => {
 		'heading lost after reloading'
 	);
 } );
+
+await step(
+	'a section of alike cards goes to one fewer or one more column, keeping its content',
+	async () => {
+		// Twenty Twenty-Five's three services, at the end of the page.
+		const index = await page.evaluate( () => {
+			const be = window.wp.data.select( 'core/block-editor' );
+			const pattern = be
+				.__experimentalGetAllowedPatterns()
+				.find( ( p ) => p.name === 'twentytwentyfive/services-3-col' );
+			const root = be.getBlocksByName( 'core/post-content' )[ 0 ] || '';
+			window.wp.data.dispatch( 'core/block-editor' ).insertBlocks(
+				pattern.blocks.map( ( b ) => window.wp.blocks.cloneBlock( b ) ),
+				undefined,
+				root
+			);
+			return be.getBlockOrder( root ).length - 1;
+		} );
+		// The number of columns in each row of the section.
+		const rows = () =>
+			page.evaluate( ( at ) => {
+				const be = window.wp.data.select( 'core/block-editor' );
+				const root =
+					be.getBlocksByName( 'core/post-content' )[ 0 ] || '';
+				const out = [];
+				const walk = ( b ) =>
+					b.name === 'core/columns'
+						? out.push( b.innerBlocks.length )
+						: b.innerBlocks.forEach( walk );
+				walk( be.getBlock( be.getBlockOrder( root )[ at ] ) );
+				return out;
+			}, index );
+		expect(
+			( await rows() ).join() === '3',
+			`the services are in rows of ${ await rows() }`
+		);
+		const before = await contentAt( index );
+		for ( const [ label, want ] of [
+			[ '2 columns', '2,2' ],
+			[ '4 columns', '4' ],
+		] ) {
+			await openPanel( index );
+			await pick( page.locator( ARRANGED, { hasText: label } ) );
+			const now = await contentAt( index );
+			expect( now.valid, `${ label }: invalid blocks` );
+			expect(
+				JSON.stringify( now.items ) === JSON.stringify( before.items ),
+				`${ label }: the content changed`
+			);
+			expect(
+				( await rows() ).join() === want,
+				`${ label }: rows of ${ await rows() }`
+			);
+			await shot( `05-${ label.replace( ' ', '-' ) }` );
+			await undo();
+		}
+	}
+);
 
 await step( 'no errors on the page', async () => {
 	expect( pageErrors.length === 0, pageErrors.join( ' | ' ) );

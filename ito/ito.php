@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name:       Ito (experiment)
- * Description:       Swap a section for another pattern with the same blocks: the layout changes, the words and pictures stay.
+ * Description:       Lay a section out another way, from its own content: the layout changes, the words and pictures stay.
  * Version:           0.1.0
  * Requires at least: 6.8
  * Requires PHP:      7.4

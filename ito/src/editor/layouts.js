@@ -1,6 +1,5 @@
 /**
- * Layouts made from a section's own content, for when no pattern has the
- * same blocks (and alongside the patterns when some do).
+ * Layouts made from a section's own content.
  *
  * A section is taken apart into its content, in order: its pictures and its
  * content blocks (headings, paragraphs, buttons, lists, quotes and so on).
@@ -14,7 +13,7 @@
  */
 import { __, _n, sprintf } from '@wordpress/i18n';
 
-import { pictureOf, roleOf, signature } from './swap';
+import { pictureOf, roleOf, signature } from './content';
 
 const b = ( name, attributes = {}, innerBlocks = [] ) => ( {
 	name,

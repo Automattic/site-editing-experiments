@@ -2,11 +2,10 @@
  * The section overlay, drawn in the editor canvas over the page.
  *
  * Hover a section for its outline, its name and Edit layout. Edit layout
- * opens a panel of the other patterns with the same content blocks, and of
- * layouts made from the section's own content blocks, each previewed with the
- * section's own words and pictures. Picking one swaps the section for it;
- * Reset puts back the section as it was when the panel opened, and Done (or a
- * click elsewhere) closes the panel.
+ * opens a panel of layouts made from the section's own content blocks, each
+ * previewed with the section's own words and pictures. Picking one changes the
+ * section to it and closes the panel; Done (or a click elsewhere) closes the
+ * panel and leaves the section alone.
  *
  * The page's blocks stay editable as usual: the overlay only takes the
  * pointer on its own controls.
@@ -27,7 +26,6 @@ import {
 import { cloneBlock, createBlock, getBlockType } from '@wordpress/blocks';
 import { store as coreStore } from '@wordpress/core-data';
 
-import { findSwaps, transferContent } from './swap';
 import { arrangements } from './layouts';
 
 // Keeps re-rendering the layer as the canvas scrolls, resizes or changes.
@@ -73,21 +71,6 @@ function useCanvasTick( doc ) {
 	return tick;
 }
 
-// The section's content in a pattern's blocks, named as that pattern.
-function swapped( snapshot, pattern ) {
-	const block = transferContent( snapshot, pattern.blocks[ 0 ] );
-	return {
-		...block,
-		attributes: {
-			...block.attributes,
-			metadata: {
-				...block.attributes.metadata,
-				patternName: pattern.name,
-			},
-		},
-	};
-}
-
 // A generated layout as editor blocks.
 const toBlock = ( block ) =>
 	createBlock(
@@ -126,16 +109,6 @@ export function Layer( { doc, layerEl } ) {
 		};
 	}, [] );
 
-	const swaps = useMemo(
-		() =>
-			new Map(
-				sections.map( ( s ) => [
-					s.clientId,
-					findSwaps( s, patterns ),
-				] )
-			),
-		[ sections, patterns ]
-	);
 	const layouts = useMemo(
 		() =>
 			new Map(
@@ -155,10 +128,9 @@ export function Layer( { doc, layerEl } ) {
 		setPanelHost( el );
 		return () => el.remove();
 	}, [] );
-	// The section being swapped: its ID now, how it was when the panel
-	// opened, the patterns it can swap to, the layouts made from its content,
-	// and which one it is now.
-	const [ active, setActive ] = useState( null ); // { id, snapshot, options, layouts }
+	// The section being laid out: its ID now, how it was when the panel
+	// opened, and the layouts made from its content.
+	const [ active, setActive ] = useState( null ); // { id, snapshot, layouts }
 
 	const elOf = ( id ) => doc.getElementById( 'block-' + id );
 	const layerRect = layerEl.getBoundingClientRect();
@@ -268,15 +240,14 @@ export function Layer( { doc, layerEl } ) {
 		setActive( {
 			id: section.clientId,
 			snapshot: section,
-			options: swaps.get( section.clientId ) || [],
 			layouts: layouts.get( section.clientId ) || [],
 		} );
 
-	// Swap to a layout ({ key, block }) and close the panel. As it was (null)
-	// leaves the section alone.
-	const choose = ( item ) => {
-		if ( item ) {
-			replaceBlock( active.id, cloneBlock( item.block ) );
+	// Change to a layout (a block) and close the panel. As it was (null) leaves
+	// the section alone.
+	const choose = ( block ) => {
+		if ( block ) {
+			replaceBlock( active.id, cloneBlock( block ) );
 		}
 		setActive( null );
 	};
@@ -308,9 +279,7 @@ export function Layer( { doc, layerEl } ) {
 		}
 		const r = toLayer( el.getBoundingClientRect() );
 		const isActive = active?.id === section.clientId;
-		const count =
-			( swaps.get( section.clientId ) || [] ).length +
-			( layouts.get( section.clientId ) || [] ).length;
+		const count = ( layouts.get( section.clientId ) || [] ).length;
 		// Tools stick to the top of the window while you scroll a tall section.
 		const stickTop = ( h ) =>
 			Math.max(
@@ -383,7 +352,6 @@ export function Layer( { doc, layerEl } ) {
 						<LayoutPanel
 							{ ...panelPosition( el ) }
 							snapshot={ active.snapshot }
-							options={ active.options }
 							layouts={ active.layouts }
 							title={ sectionTitle( active.snapshot, patterns ) }
 							onChoose={ choose }
@@ -401,53 +369,26 @@ function LayoutPanel( {
 	left,
 	maxWidth,
 	snapshot,
-	options,
 	layouts,
 	title,
 	onChoose,
 	onDone,
 } ) {
 	// The previews only change when the panel opens on another section.
-	const rows = useMemo(
+	const items = useMemo(
 		() => [
 			{
-				key: 'patterns',
-				label: options.length
-					? __( 'Patterns with the same blocks', 'ito' )
-					: __( 'No other pattern has the same blocks', 'ito' ),
-				items: [
-					{
-						key: '',
-						label: __( 'As it was', 'ito' ),
-						item: null,
-						block: snapshot,
-					},
-					...options.map( ( p ) => {
-						const block = swapped( snapshot, p );
-						return {
-							key: p.name,
-							label: p.title,
-							item: { key: p.name, block },
-							block,
-						};
-					} ),
-				],
+				key: '',
+				label: __( 'As it was', 'ito' ),
+				choice: null,
+				block: snapshot,
 			},
-			{
-				key: 'layouts',
-				label: __( 'Arranged from your content', 'ito' ),
-				items: layouts.map( ( l ) => {
-					const block = toBlock( l.block );
-					return {
-						key: l.key,
-						label: l.label,
-						item: { key: l.key, block },
-						block,
-					};
-				} ),
-			},
+			...layouts.map( ( l ) => {
+				const block = toBlock( l.block );
+				return { key: l.key, label: l.label, choice: block, block };
+			} ),
 		],
-		[ snapshot, options, layouts ]
+		[ snapshot, layouts ]
 	);
 	return (
 		<div
@@ -474,40 +415,27 @@ function LayoutPanel( {
 					</button>
 				</div>
 			</div>
-			{ rows
-				.filter( ( row ) => row.items.length )
-				.map( ( row ) => (
-					<div
-						key={ row.key }
-						className={ 'ito-lprow is-' + row.key }
+			<div className="ito-lpo">
+				{ items.map( ( item ) => (
+					<button
+						key={ item.key }
+						type="button"
+						className={
+							'ito-lpi' + ( item.choice ? '' : ' is-on' )
+						}
+						aria-pressed={ ! item.choice }
+						onClick={ () => onChoose( item.choice ) }
 					>
-						<span className="ito-lprowh">{ row.label }</span>
-						<div className="ito-lpo">
-							{ row.items.map( ( item ) => (
-								<button
-									key={ item.key }
-									type="button"
-									className={
-										'ito-lpi' +
-										( item.item ? '' : ' is-on' )
-									}
-									aria-pressed={ ! item.item }
-									onClick={ () => onChoose( item.item ) }
-								>
-									<span className="ito-lpthumb">
-										<BlockPreview
-											blocks={ [ item.block ] }
-											viewportWidth={ 1200 }
-										/>
-									</span>
-									<span className="ito-lpl">
-										{ item.label }
-									</span>
-								</button>
-							) ) }
-						</div>
-					</div>
+						<span className="ito-lpthumb">
+							<BlockPreview
+								blocks={ [ item.block ] }
+								viewportWidth={ 1200 }
+							/>
+						</span>
+						<span className="ito-lpl">{ item.label }</span>
+					</button>
 				) ) }
+			</div>
 		</div>
 	);
 }

@@ -1,8 +1,8 @@
 {
 	"$schema": "https://playground.wordpress.net/blueprint-schema.json",
 	"meta": {
-		"title": "Ito: swap a pattern",
-		"description": "Hover a section for Edit layout: other patterns with the same blocks, showing the section's own content. Pick one and the layout changes, the words and pictures stay.",
+		"title": "Ito: change the layout, keep the content",
+		"description": "Hover a section for Edit layout: layouts made from the section's own content. Pick one and the layout changes, the words and pictures stay.",
 		"author": "Automattic",
 		"categories": [
 			"editor",

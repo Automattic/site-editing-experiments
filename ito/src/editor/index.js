@@ -1,5 +1,5 @@
 /**
- * Ito: swap a section for another pattern with the same blocks, so its layout
+ * Ito: lay a section out another way, from its own content, so its layout
  * changes and its words and pictures stay.
  */
 import { registerPlugin } from '@wordpress/plugins';

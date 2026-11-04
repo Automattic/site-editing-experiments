@@ -61,8 +61,8 @@ function expect( condition, message ) {
 		throw new Error( message );
 	}
 }
-const PATTERNS = '.ito-lprow.is-patterns .ito-lpi';
-const ARRANGED = '.ito-lprow.is-layouts .ito-lpi';
+const AS_IT_WAS = '.ito-lpi.is-on';
+const ARRANGED = '.ito-lpi:not(.is-on)';
 const shot = ( name ) =>
 	SHOTS ? page.screenshot( { path: `${ SHOTS }/${ name }.png` } ) : null;
 const wait = ( ms ) => page.waitForTimeout( ms );
@@ -241,8 +241,8 @@ async function hover( id ) {
 	);
 	await wait( 250 );
 }
-// Opens Edit layout on a section by its place on the page: swapping a
-// section replaces its block, so its ID changes.
+// Opens Edit layout on a section by its place on the page: changing a
+// section's layout replaces its block, so its ID changes.
 async function openPanel( index ) {
 	await hover( ( await sections() )[ index ].id );
 	await canvas.locator( '.ito-ob' ).click();
@@ -318,7 +318,7 @@ await step(
 );
 
 await step(
-	'Edit layout previews every matching pattern with the section’s own content',
+	'Edit layout previews every layout with the section’s own content',
 	async () => {
 		await setContent( hero.id, mine );
 		await openPanel( 0 );
@@ -367,50 +367,32 @@ const undo = async () => {
 };
 
 await step(
-	'picking a pattern swaps it, closes the panel and keeps the words, links and picture',
+	'it offers only layouts made from the content, and no registered patterns',
 	async () => {
-		const before = ( await sections() )[ 0 ];
-		const count = await page.locator( PATTERNS ).count();
+		const titles = await page.evaluate( () =>
+			window.wp.data
+				.select( 'core/block-editor' )
+				.__experimentalGetAllowedPatterns()
+				.map( ( p ) => p.title )
+		);
+		const labels = await page.locator( ARRANGED ).allTextContents();
+		const patterns = labels.filter( ( l ) => titles.includes( l ) );
+		expect(
+			patterns.length === 0,
+			`it offers patterns: ${ patterns.join( ', ' ) }`
+		);
 		await page.keyboard.press( 'Escape' );
-		const seen = new Set( [ before.pattern ] );
-		for ( let i = 1; i < count; i++ ) {
-			await openPanel( 0 );
-			await pick( page.locator( PATTERNS ).nth( i ) );
-			const now = ( await sections() )[ 0 ];
-			expect(
-				! seen.has( now.pattern ),
-				`option ${ i } didn’t change the pattern (${ now.pattern })`
-			);
-			seen.add( now.pattern );
-			expect( now.valid, `${ now.pattern } has invalid blocks` );
-			expect(
-				now.heading === mine.heading,
-				`${ now.pattern }: heading is “${ now.heading }”`
-			);
-			expect(
-				now.level === before.level,
-				`${ now.pattern }: heading level ${ now.level }, was ${ before.level }`
-			);
-			expect(
-				now.paragraph === mine.paragraph,
-				`${ now.pattern }: paragraph is “${ now.paragraph }”`
-			);
-			expect(
-				now.button === mine.button,
-				`${ now.pattern }: button is “${ now.button }”`
-			);
-			expect(
-				now.picture === before.picture,
-				`${ now.pattern }: picture is ${ now.picture }`
-			);
-			await shot( `03-swapped-${ i }` );
-			await undo();
-		}
+		await hover( ( await sections() )[ 0 ].id );
+		const count = await canvas.locator( '.ito-count' ).textContent();
+		expect(
+			parseInt( count, 10 ) === labels.length,
+			`Edit layout says “${ count }”, the panel has ${ labels.length }`
+		);
 	}
 );
 
 await step(
-	'picking a generated layout keeps every content block as it was',
+	'picking a layout closes the panel and keeps every content block as it was',
 	async () => {
 		const before = await contentAt( 0 );
 		await openPanel( 0 );
@@ -441,12 +423,12 @@ await step(
 		await openPanel( 0 );
 		expect(
 			( await page
-				.locator( PATTERNS )
+				.locator( '.ito-lpi' )
 				.first()
 				.getAttribute( 'aria-pressed' ) ) === 'true',
 			'As it was isn’t marked as the current layout'
 		);
-		await pick( page.locator( PATTERNS ).first() );
+		await pick( page.locator( AS_IT_WAS ) );
 		const now = ( await sections() )[ 0 ];
 		expect(
 			now.id === before.id && now.pattern === hero.pattern,
@@ -499,9 +481,9 @@ await step(
 	}
 );
 
-await step( 'one undo takes back a swap', async () => {
+await step( 'one undo takes back a change of layout', async () => {
 	await openPanel( 0 );
-	await pick( page.locator( '.ito-lpi' ).nth( 1 ) );
+	await pick( page.locator( ARRANGED ).first() );
 	await page.evaluate( () =>
 		window.wp.data.dispatch( 'core/editor' ).undo()
 	);
@@ -512,11 +494,11 @@ await step( 'one undo takes back a swap', async () => {
 	);
 } );
 
-let swappedTo;
-await step( 'a swapped section saves and shows on the site', async () => {
+let saved;
+await step( 'a new layout saves and shows on the site', async () => {
 	await openPanel( 0 );
-	await pick( page.locator( '.ito-lpi' ).nth( 1 ) );
-	swappedTo = ( await sections() )[ 0 ].pattern;
+	await pick( page.locator( ARRANGED ).first() );
+	saved = await contentAt( 0 );
 	// A save while the editor is autosaving does nothing.
 	await page.waitForFunction(
 		() => ! window.wp.data.select( 'core/editor' ).isSavingPost()
@@ -544,7 +526,7 @@ await step( 'a swapped section saves and shows on the site', async () => {
 	await site.close();
 } );
 
-await step( 'it reopens as valid blocks, as the new pattern', async () => {
+await step( 'it reopens as valid blocks, in the new layout', async () => {
 	await openEditor( `/wp-admin/post.php?post=${ created.id }&action=edit` );
 	const list = await sections();
 	expect(
@@ -552,36 +534,25 @@ await step( 'it reopens as valid blocks, as the new pattern', async () => {
 		'invalid blocks after reloading'
 	);
 	expect(
-		list[ 0 ].pattern === swappedTo,
-		`first section is ${ list[ 0 ].pattern }, saved as ${ swappedTo }`
+		list[ 0 ].pattern === undefined,
+		`first section still says it’s ${ list[ 0 ].pattern }`
 	);
 	expect(
-		list[ 0 ].heading === mine.heading,
-		'heading lost after reloading'
+		JSON.stringify( ( await contentAt( 0 ) ).items ) ===
+			JSON.stringify( saved.items ),
+		'the content changed after reloading'
 	);
 } );
 
-// Adds a registered pattern at the end of the page; returns its section's place.
-const addPattern = ( name ) =>
-	page.evaluate( ( n ) => {
-		const be = window.wp.data.select( 'core/block-editor' );
-		const pattern = be
-			.__experimentalGetAllowedPatterns()
-			.find( ( p ) => p.name === n );
-		const root = be.getBlocksByName( 'core/post-content' )[ 0 ] || '';
-		window.wp.data.dispatch( 'core/block-editor' ).insertBlocks(
-			pattern.blocks.map( ( b ) => window.wp.blocks.cloneBlock( b ) ),
-			undefined,
-			root
-		);
-		return be.getBlockOrder( root ).length - 1;
-	}, name );
+// A sample section's place on the page, by the pattern it came from.
+const placeOf = async ( name ) =>
+	( await sections() ).findIndex( ( s ) => s.pattern === name );
 
 await step(
 	'a section of alike cards goes to one fewer or one more column, keeping its content',
 	async () => {
-		// Twenty Twenty-Five's three services, at the end of the page.
-		const index = await addPattern( 'twentytwentyfive/services-3-col' );
+		// Twenty Twenty-Five's three services.
+		const index = await placeOf( 'twentytwentyfive/services-3-col' );
 		// The number of columns in each row of the section.
 		const rows = () =>
 			page.evaluate( ( at ) => {
@@ -625,7 +596,7 @@ await step(
 
 await step( 'a grid takes other shapes, keeping its content', async () => {
 	// Twenty Twenty-Five's team photos: a heading beside a 2 × 2 grid.
-	const index = await addPattern( 'twentytwentyfive/services-team-photos' );
+	const index = await placeOf( 'twentytwentyfive/services-team-photos' );
 	// The grid as the canvas draws it: columns across, and the first
 	// cell's span.
 	const drawn = () =>

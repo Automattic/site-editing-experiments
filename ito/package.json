@@ -2,7 +2,7 @@
 	"name": "ito",
 	"version": "0.1.0",
 	"private": true,
-	"description": "Swap a section for another pattern with the same blocks: the layout changes, the content stays.",
+	"description": "Lay a section out another way, from its own content: the layout changes, the content stays.",
 	"license": "GPL-2.0-or-later",
 	"scripts": {
 		"build": "wp-scripts build",

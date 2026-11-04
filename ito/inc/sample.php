@@ -1,7 +1,7 @@
 <?php
 /**
- * A sample page to try Ito on: Twenty Twenty-Five patterns that have other
- * patterns with the same blocks. The Playground blueprint makes it, and
+ * A sample page to try Ito on: Twenty Twenty-Five patterns that show the range
+ * of layouts it makes. The Playground blueprint makes it, and
  * /wp-admin/?ito-sample opens it in the editor.
  *
  * @package Ito
@@ -17,15 +17,15 @@ defined( 'ABSPATH' ) || exit;
 function ito_sample_patterns() {
 	return array(
 		'twentytwentyfive/hero-full-width-image',
-		'twentytwentyfive/heading-and-paragraph-with-image',
-		'twentytwentyfive/banner-cover-big-heading',
+		'twentytwentyfive/services-3-col',
+		'twentytwentyfive/services-team-photos',
 		'twentytwentyfive/cta-centered-heading',
 	);
 }
 
 /**
  * The sample page's block markup. Each section's top block says which
- * pattern it is, as the inserter does, so Edit layout leaves it out.
+ * pattern it is, as the inserter does, which is how Ito names it.
  *
  * @return string
  */
@@ -79,7 +79,7 @@ function ito_create_sample_page() {
 			'post_type'    => 'page',
 			'post_status'  => 'publish',
 			'post_author'  => get_current_user_id() ? get_current_user_id() : 1,
-			'post_title'   => __( 'Swap a pattern', 'ito' ),
+			'post_title'   => __( 'Change a layout', 'ito' ),
 			'post_content' => ito_sample_content(),
 			'meta_input'   => array( '_ito_sample' => 1 ),
 		)

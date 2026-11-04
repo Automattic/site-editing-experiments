@@ -99,7 +99,7 @@ $ink: #1a1a1a;
 	}
 }
 
-/* ---------- Edit layout: the panel of patterns ---------- */
+/* ---------- Edit layout: the panel of layouts ---------- */
 .ito-lp {
 	width: max-content;
 	display: flex;
@@ -200,19 +200,4 @@ $ink: #1a1a1a;
 /* The panel sits in the editor's own window, over the canvas. */
 .ito-panelhost .ito-lp {
 	position: fixed;
-}
-
-/* Each kind of layout in its own labelled row. */
-.ito-lprow {
-	display: flex;
-	flex-direction: column;
-	gap: 6px;
-	min-width: 0;
-}
-.ito-lprowh {
-	color: #bbb;
-	font-size: 12px;
-	font-weight: 600;
-	text-transform: uppercase;
-	letter-spacing: 0.04em;
 }

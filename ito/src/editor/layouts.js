@@ -104,6 +104,59 @@ function place( parts ) {
 const column = ( parts ) =>
 	b( 'core/column', { verticalAlignment: 'center' }, place( parts ) );
 
+/** The most content items a section can have for Centred or Card to suit it. */
+const SHORT = 6;
+
+const everyBlock = ( block ) => [
+	block,
+	...( block.innerBlocks || [] ).flatMap( everyBlock ),
+];
+
+/**
+ * Whether a block puts things next to each other, so stacking would change it.
+ *
+ * @param {Object} block
+ */
+function isSideBySide( block ) {
+	const { name, attributes, innerBlocks = [] } = block;
+	if ( name === 'core/media-text' || isGrid( block ) ) {
+		return true;
+	}
+	if ( name === 'core/columns' ) {
+		return innerBlocks.filter( ( c ) => c.innerBlocks?.length ).length > 1;
+	}
+	const layout = attributes?.layout;
+	return (
+		name === 'core/group' &&
+		layout?.type === 'flex' &&
+		layout.orientation !== 'vertical' &&
+		innerBlocks.length > 1
+	);
+}
+
+const hasSideBySide = ( section ) => everyBlock( section ).some( isSideBySide );
+const hasCover = ( section ) =>
+	everyBlock( section ).some(
+		( x ) => x.name === 'core/cover' && pictureOf( x )
+	);
+
+/**
+ * Whether a section has a background of its own, which a Card would lose.
+ *
+ * @param {Object} section
+ */
+function hasBackground( section ) {
+	const { backgroundColor, gradient, style } = section.attributes || {};
+	return !! (
+		section.name === 'core/cover' ||
+		backgroundColor ||
+		gradient ||
+		style?.color?.background ||
+		style?.color?.gradient ||
+		style?.background
+	);
+}
+
 /**
  * The layouts, each with when it applies and how it's built. `top` gives the
  * attributes every section keeps (its alignment and name).
@@ -112,7 +165,9 @@ const RECIPES = [
 	{
 		key: 'stacked',
 		label: () => __( 'Stacked', 'ito' ),
-		applies: () => true,
+		// Already one stack, it would only lose the section's styling.
+		applies: ( pictures, text, parts, section ) =>
+			hasSideBySide( section ) || hasCover( section ),
 		build: ( parts, top ) =>
 			b(
 				'core/group',
@@ -127,12 +182,15 @@ const RECIPES = [
 	{
 		key: 'centred',
 		label: () => __( 'Centred', 'ito' ),
-		applies: () => true,
+		applies: ( pictures, text, parts, section ) =>
+			parts.length <= SHORT && ! hasSideBySide( section ),
 		build: ( parts, top ) =>
 			b(
 				'core/group',
 				{
 					...top,
+					// The text inherits this; the blocks themselves stay as they are.
+					className: 'has-text-align-center',
 					layout: {
 						type: 'flex',
 						orientation: 'vertical',
@@ -244,7 +302,10 @@ const RECIPES = [
 	{
 		key: 'card',
 		label: () => __( 'Card', 'ito' ),
-		applies: () => true,
+		applies: ( pictures, text, parts, section ) =>
+			parts.length <= SHORT &&
+			! hasBackground( section ) &&
+			! hasCover( section ),
 		build: ( parts, top ) =>
 			b(
 				'core/group',
@@ -623,15 +684,20 @@ export function arrangements( section ) {
 		...( align && { align } ),
 		...( Object.keys( metadata ).length && { metadata } ),
 	};
-	return [
+	const fromRecipe = ( r ) => ( {
+		key: 'ito:' + r.key,
+		label: r.label( parts ),
+		block: r.build( parts, top, pictures, text ),
+	} );
+	const layouts = [
 		...columnCounts( section, top ),
 		...gridShapes( section, top ),
-		...RECIPES.filter( ( r ) => r.applies( pictures, text, parts ) ).map(
-			( r ) => ( {
-				key: 'ito:' + r.key,
-				label: r.label( parts ),
-				block: r.build( parts, top, pictures, text ),
-			} )
-		),
+		...RECIPES.filter( ( r ) =>
+			r.applies( pictures, text, parts, section )
+		).map( fromRecipe ),
 	];
+	// Every section has a choice: Stacked, if nothing else suits it.
+	return layouts.length
+		? layouts
+		: [ fromRecipe( RECIPES.find( ( r ) => r.key === 'stacked' ) ) ];
 }

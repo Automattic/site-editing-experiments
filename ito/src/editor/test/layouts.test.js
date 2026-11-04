@@ -603,3 +603,101 @@ describe( 'grid shapes', () => {
 		expect( keys ).toContain( 'ito:grid-3' );
 	} );
 } );
+
+describe( 'Stacked, Centred and Card', () => {
+	const keys = ( section ) => arrangements( section ).map( ( l ) => l.key );
+	const paras = ( count ) =>
+		Array.from( { length: count }, ( _, i ) => para( `Para ${ i + 1 }` ) );
+	const flexRow = ( ...inner ) =>
+		b( 'core/group', { layout: { type: 'flex' } }, inner );
+
+	it( 'offers Stacked only for what is not already one stack', () => {
+		expect( keys( SECTIONS[ 'text only' ] ) ).not.toContain(
+			'ito:stacked'
+		);
+		for ( const name of [
+			'a cover hero',
+			'text beside an image',
+			'a media & text section',
+			'a grid of four',
+			'three services',
+		] ) {
+			expect( keys( SECTIONS[ name ] ) ).toContain( 'ito:stacked' );
+		}
+		expect(
+			keys( group( flexRow( para( 'A' ), para( 'B' ) ) ) )
+		).toContain( 'ito:stacked' );
+	} );
+
+	it( 'does not count one filled column or a vertical stack as side by side', () => {
+		const oneColumn = group(
+			columns( [ heading( 'A' ), para( 'B' ) ], [] )
+		);
+		const vertical = group(
+			b(
+				'core/group',
+				{ layout: { type: 'flex', orientation: 'vertical' } },
+				[ heading( 'A' ), para( 'B' ) ]
+			)
+		);
+		expect( keys( oneColumn ) ).not.toContain( 'ito:stacked' );
+		expect( keys( vertical ) ).not.toContain( 'ito:stacked' );
+	} );
+
+	it( 'offers Centred for six items or fewer with nothing side by side', () => {
+		expect( keys( group( ...paras( 6 ) ) ) ).toContain( 'ito:centred' );
+		expect( keys( group( ...paras( 7 ) ) ) ).not.toContain( 'ito:centred' );
+		expect( keys( SECTIONS[ 'a cover hero' ] ) ).toContain( 'ito:centred' );
+		for ( const name of [
+			'text beside an image',
+			'a media & text section',
+			'a grid of four',
+		] ) {
+			expect( keys( SECTIONS[ name ] ) ).not.toContain( 'ito:centred' );
+		}
+	} );
+
+	it( 'offers Card for six items or fewer with no background or cover', () => {
+		expect( keys( group( ...paras( 6 ) ) ) ).toContain( 'ito:card' );
+		expect( keys( group( ...paras( 7 ) ) ) ).not.toContain( 'ito:card' );
+		expect( keys( SECTIONS[ 'text beside an image' ] ) ).toContain(
+			'ito:card'
+		);
+		expect( keys( SECTIONS[ 'a cover hero' ] ) ).not.toContain(
+			'ito:card'
+		);
+		expect(
+			keys( group( b( 'core/cover', { url: 'a.jpg' }, paras( 1 ) ) ) )
+		).not.toContain( 'ito:card' );
+		for ( const attributes of [
+			{ backgroundColor: 'accent-1' },
+			{ gradient: 'sunset' },
+			{ style: { color: { background: '#eee' } } },
+			{ style: { color: { gradient: 'linear-gradient(#fff,#000)' } } },
+			{ style: { background: { backgroundImage: { url: 'a.jpg' } } } },
+		] ) {
+			expect(
+				keys( b( 'core/group', attributes, paras( 2 ) ) )
+			).not.toContain( 'ito:card' );
+		}
+	} );
+
+	it( 'centres the text through the group, not the blocks in it', () => {
+		const section = group( heading( 'A' ), para( 'B' ) );
+		const { block } = arrangements( section ).find(
+			( l ) => l.key === 'ito:centred'
+		);
+		expect( block.attributes.className ).toBe( 'has-text-align-center' );
+		expect( block.innerBlocks ).toEqual( section.innerBlocks );
+	} );
+
+	it( 'falls back to Stacked when nothing else applies', () => {
+		const long = group(
+			image( 'a.jpg' ),
+			...paras( 3 ),
+			image( 'b.jpg' ),
+			...paras( 3 )
+		);
+		expect( keys( long ) ).toEqual( [ 'ito:stacked' ] );
+	} );
+} );

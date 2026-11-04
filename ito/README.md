@@ -49,13 +49,13 @@ Most patterns have blocks no other pattern shares, so Ito also makes layouts fro
 | --- | --- |
 | One fewer, or one more, column | Alike cards: Columns blocks whose columns all hold the same kind of content, such as three services or two rows of quotes. The section keeps its design; the cards wrap into rows of the new number, and the last row is filled up with empty columns. From 1 to 6 columns |
 | Grid shapes: every number across (*2 × 3 grid*), *Featured, 3 across* or *4 across*, and *Banner, then N across* | Any grid, whatever its cells. Only the grid changes: its number across, and the first cell's span (two by two for featured, the full width for a banner, over rows the rest fill exactly). A first cell that's a content block, such as an image, is put in a group that spans, so the block itself doesn't change. The grid's current shape isn't offered |
-| Stacked | Always: everything in one column, in order |
-| Centred | Always: the same, centred |
+| Stacked | When something is side by side or there's a cover: everything in one column, in order. Also when no other layout applies, so every section has a choice |
+| Centred | Six content items or fewer, with nothing side by side: the same, centred |
 | Picture first, or Picture last | One picture: moved to the other end |
 | Picture on the left, or on the right | One picture: in two columns, beside everything else |
 | Picture behind | One picture without a caption or link: as a Cover, with the rest over it |
 | Split in two | No pictures: the first heading on top, the rest in two columns |
-| Card | Always: in a rounded, tinted panel |
+| Card | Six content items or fewer, with no background or cover of its own: in a rounded, tinted panel |
 
 A grid shape sets the number across exactly, so it drops a grid's minimum column width, which would otherwise let it show fewer. Like any grid with a set number of columns in WordPress, it keeps that number on a narrow screen.
 

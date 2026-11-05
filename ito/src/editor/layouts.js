@@ -6,7 +6,8 @@
  * Each layout puts the same content back in new layout blocks: groups,
  * columns, button rows and covers. The content blocks themselves are used as
  * they are, so nothing is added, removed or changed; only how it's laid out,
- * and sometimes where a picture sits, is new.
+ * and sometimes where a picture sits, is new. The section keeps its own design:
+ * its colours, fonts, room and width stay on the block around the content.
  *
  * Works on plain { name, attributes, innerBlocks } objects and never changes
  * the blocks it's given.
@@ -32,7 +33,8 @@ const ROOMY = {
 /**
  * A section's content in order. Each part is a picture ({ picture, image }:
  * the picture, and the Image block when it was one) or a content block
- * ({ block }), whole with whatever is inside it.
+ * ({ block }), whole with whatever is inside it. A button also has its row's
+ * attributes ({ row }), so a new row is set out the same.
  *
  * @param {Object}   block
  * @param {Object[]} parts Collects the parts.
@@ -42,7 +44,11 @@ function partsOf( block, parts = [] ) {
 	const role = roleOf( block );
 	const inner = () =>
 		( block.innerBlocks || [] ).forEach( ( x ) => partsOf( x, parts ) );
-	if ( role === 'wrap' ) {
+	if ( block.name === 'core/buttons' ) {
+		for ( const button of block.innerBlocks || [] ) {
+			parts.push( { block: button, row: block.attributes } );
+		}
+	} else if ( role === 'wrap' ) {
 		inner();
 	} else if ( role === 'hold' ) {
 		parts.push( { picture: pictureOf( block ) } );
@@ -84,7 +90,7 @@ function place( parts ) {
 	for ( const part of parts ) {
 		if ( part.block?.name === 'core/button' ) {
 			if ( ! row ) {
-				row = b( 'core/buttons' );
+				row = b( 'core/buttons', part.row );
 				out.push( row );
 			}
 			row.innerBlocks.push( part.block );
@@ -139,63 +145,234 @@ const hasCover = ( section ) =>
 		( x ) => x.name === 'core/cover' && pictureOf( x )
 	);
 
+/** A Card's tint, which also says a section is one. */
+const TINT = 'color-mix(in srgb, currentColor 6%, transparent)';
+
+const isCard = ( block ) => block.attributes?.style?.color?.background === TINT;
+const hasCard = ( section ) => everyBlock( section ).some( isCard );
+
+/** What a block of another kind can hand on to a group around the content. */
+const DESIGN = [
+	'align',
+	'anchor',
+	'className',
+	'backgroundColor',
+	'textColor',
+	'gradient',
+	'fontSize',
+	'fontFamily',
+	'borderColor',
+	'style',
+];
+
+const CENTRED = 'has-text-align-center';
+
 /**
- * Whether a section has a background of its own, which a Card would lose.
+ * Attributes with undefined ones left out.
  *
- * @param {Object} section
+ * @param {Object} attributes
  */
-function hasBackground( section ) {
-	const { backgroundColor, gradient, style } = section.attributes || {};
-	return !! (
-		section.name === 'core/cover' ||
-		backgroundColor ||
-		gradient ||
-		style?.color?.background ||
-		style?.color?.gradient ||
-		style?.background
+const defined = ( attributes ) =>
+	Object.fromEntries(
+		Object.entries( attributes ).filter( ( [ , v ] ) => v !== undefined )
+	);
+
+/**
+ * Class names without Centred's, which belongs to one layout, and without the
+ * ones that `drop` matches.
+ *
+ * @param {string}  [className]
+ * @param {?RegExp} [drop]
+ * @return {string|undefined} The class names, if any are left.
+ */
+function keptClasses( className = '', drop = null ) {
+	return (
+		className
+			.split( /\s+/ )
+			.filter( ( c ) => c && c !== CENTRED && ! drop?.test( c ) )
+			.join( ' ' ) || undefined
 	);
 }
 
 /**
- * The layouts, each with when it applies and how it's built. `top` gives the
- * attributes every section keeps (its alignment and name).
+ * Attributes without the pattern they came from.
+ *
+ * @param {Object} attributes
+ */
+function notAsPattern( attributes ) {
+	const { metadata: { patternName, ...metadata } = {}, ...rest } = attributes;
+	return {
+		...rest,
+		...( Object.keys( metadata ).length && { metadata } ),
+	};
+}
+
+/** Block styles belong to one kind of block. */
+const BLOCK_STYLE = /^is-style-/;
+
+/**
+ * Where a section sits and what it's called, and its spacing: what it keeps
+ * whatever block it becomes.
+ *
+ * @param {Object} section
+ */
+function placeOf( section ) {
+	const { align, anchor, className, metadata, style } = notAsPattern(
+		section.attributes || {}
+	);
+	return defined( {
+		align,
+		anchor,
+		metadata,
+		className: keptClasses( className, BLOCK_STYLE ),
+		style: style?.spacing && { spacing: style.spacing },
+	} );
+}
+
+/**
+ * The design a block hands on to the group that replaces it.
+ *
+ * @param {Object} block
+ */
+function designOf( block ) {
+	const attributes = notAsPattern( block.attributes || {} );
+	if ( block.name === 'core/group' ) {
+		const { layout, ...rest } = attributes;
+		return defined( {
+			...rest,
+			className: keptClasses( rest.className ),
+		} );
+	}
+	if ( block.name === 'core/cover' ) {
+		return placeOf( block );
+	}
+	if ( roleOf( block ) === 'wrap' || roleOf( block ) === 'hold' ) {
+		const handed = Object.fromEntries(
+			DESIGN.map( ( key ) => [ key, attributes[ key ] ] )
+		);
+		return defined( {
+			...handed,
+			metadata: attributes.metadata,
+			className: keptClasses( attributes.className, BLOCK_STYLE ),
+		} );
+	}
+	// A content block's style stays on the block.
+	const { align, metadata } = attributes;
+	return defined( { align, metadata } );
+}
+
+const hasRoom = ( block ) => !! block.attributes?.style?.spacing?.padding;
+
+/**
+ * Attributes with room around the content, unless there's some already.
+ *
+ * @param {Object}  attributes
+ * @param {boolean} roomy      Whether there's some already.
+ */
+const withRoom = ( attributes, roomy ) =>
+	roomy
+		? attributes
+		: {
+				...attributes,
+				style: {
+					...attributes.style,
+					spacing: { ...attributes.style?.spacing, padding: ROOMY },
+				},
+			};
+
+/**
+ * The section's own design, for its layouts: the groups that only hold another
+ * group, which stay as they are, and the design for the block a layout makes
+ * inside them. A Card isn't kept, so that picking another layout leaves it.
+ *
+ * @param {Object} section
+ * @return {Object} { around, attributes, layout, cover }: the groups, the new
+ *                  block's attributes and its layout, and the attributes for
+ *                  a cover in place of them all.
+ */
+function ownDesign( section ) {
+	const around = [];
+	let inner = section;
+	while (
+		inner.name === 'core/group' &&
+		inner.innerBlocks?.length === 1 &&
+		inner.innerBlocks[ 0 ].name === 'core/group' &&
+		! isSideBySide( inner.innerBlocks[ 0 ] ) &&
+		! isCard( inner.innerBlocks[ 0 ] )
+	) {
+		around.push( inner );
+		inner = inner.innerBlocks[ 0 ];
+	}
+	const layout = inner.name === 'core/group' && inner.attributes?.layout;
+	return {
+		around,
+		attributes: withRoom(
+			designOf( inner ),
+			[ ...around, inner ].some( hasRoom )
+		),
+		layout:
+			layout?.type === 'constrained' ? layout : { type: 'constrained' },
+		cover: withRoom( placeOf( section ), hasRoom( section ) ),
+	};
+}
+
+/**
+ * A block in the groups around the content.
+ *
+ * @param {Object}   block
+ * @param {Object[]} around
+ */
+const inGroupsAround = ( block, around ) =>
+	around.reduceRight(
+		( inner, outer ) => ( {
+			...outer,
+			attributes: notAsPattern( outer.attributes ),
+			innerBlocks: [ inner ],
+		} ),
+		block
+	);
+
+/**
+ * A group with the section's design, holding some blocks.
+ *
+ * @param {Object}   own    From ownDesign().
+ * @param {Object[]} blocks
+ */
+const designedGroup = ( own, blocks ) =>
+	b( 'core/group', { ...own.attributes, layout: own.layout }, blocks );
+
+/**
+ * The layouts, each with when it applies and how it's built. `own` is the
+ * section's design, from ownDesign().
  */
 const RECIPES = [
 	{
 		key: 'stacked',
 		label: () => __( 'Stacked', 'ito' ),
-		// Already one stack, it would only lose the section's styling.
+		// Already one stack, it would look the same.
 		applies: ( pictures, text, parts, section ) =>
 			hasSideBySide( section ) || hasCover( section ),
-		build: ( parts, top ) =>
-			b(
-				'core/group',
-				{
-					...top,
-					layout: { type: 'constrained' },
-					style: { spacing: { padding: ROOMY } },
-				},
-				place( parts )
-			),
+		build: ( parts, own ) => designedGroup( own, place( parts ) ),
 	},
 	{
 		key: 'centred',
 		label: () => __( 'Centred', 'ito' ),
 		applies: ( pictures, text, parts, section ) =>
 			parts.length <= SHORT && ! hasSideBySide( section ),
-		build: ( parts, top ) =>
+		build: ( parts, own ) =>
 			b(
 				'core/group',
 				{
-					...top,
+					...own.attributes,
 					// The text inherits this; the blocks themselves stay as they are.
-					className: 'has-text-align-center',
+					className: [ own.attributes.className, CENTRED ]
+						.filter( Boolean )
+						.join( ' ' ),
 					layout: {
 						type: 'flex',
 						orientation: 'vertical',
 						justifyContent: 'center',
 					},
-					style: { spacing: { padding: ROOMY } },
 				},
 				place( parts )
 			),
@@ -207,14 +384,9 @@ const RECIPES = [
 				? __( 'Picture last', 'ito' )
 				: __( 'Picture first', 'ito' ),
 		applies: ( pictures, text ) => pictures.length === 1 && text.length > 0,
-		build: ( parts, top, [ picture ], text ) =>
-			b(
-				'core/group',
-				{
-					...top,
-					layout: { type: 'constrained' },
-					style: { spacing: { padding: ROOMY } },
-				},
+		build: ( parts, own, [ picture ], text ) =>
+			designedGroup(
+				own,
 				place(
 					isPicture( parts[ 0 ] )
 						? [ ...text, picture ]
@@ -229,23 +401,15 @@ const RECIPES = [
 				? __( 'Picture on the left', 'ito' )
 				: __( 'Picture on the right', 'ito' ),
 		applies: ( pictures, text ) => pictures.length === 1 && text.length > 0,
-		build: ( parts, top, [ picture ], text ) => {
+		build: ( parts, own, [ picture ], text ) => {
 			const cols = [ column( [ picture ] ), column( text ) ];
-			return b(
-				'core/group',
-				{
-					...top,
-					layout: { type: 'constrained' },
-					style: { spacing: { padding: ROOMY } },
-				},
-				[
-					b(
-						'core/columns',
-						{ align: 'wide', verticalAlignment: 'center' },
-						side === 'left' ? cols : cols.reverse()
-					),
-				]
-			);
+			return designedGroup( own, [
+				b(
+					'core/columns',
+					{ align: 'wide', verticalAlignment: 'center' },
+					side === 'left' ? cols : cols.reverse()
+				),
+			] );
 		},
 	} ) ),
 	{
@@ -255,17 +419,20 @@ const RECIPES = [
 			pictures.length === 1 &&
 			canCover( pictures[ 0 ] ) &&
 			text.length > 0,
-		build: ( parts, top, [ picture ], text ) =>
+		// The picture takes the place of the section's background, and of any
+		// groups around the content, which would only frame it. Dark text or a
+		// font of its own might not suit it.
+		alone: true,
+		build: ( parts, own, [ picture ], text ) =>
 			b(
 				'core/cover',
 				{
-					...top,
+					...own.cover,
 					...picture.picture,
 					dimRatio: 50,
 					minHeight: 480,
 					isDark: true,
 					layout: { type: 'constrained' },
-					style: { spacing: { padding: ROOMY } },
 				},
 				place( text )
 			),
@@ -277,25 +444,17 @@ const RECIPES = [
 		// above both columns.
 		applies: ( pictures, text ) =>
 			! pictures.length && text.length - !! headingOf( text ) >= 2,
-		build: ( parts, top ) => {
+		build: ( parts, own ) => {
 			const head = headingOf( parts );
 			const rest = parts.filter( ( p ) => p !== head );
 			const half = Math.ceil( rest.length / 2 );
-			return b(
-				'core/group',
-				{
-					...top,
-					layout: { type: 'constrained' },
-					style: { spacing: { padding: ROOMY } },
-				},
-				[
-					...place( head ? [ head ] : [] ),
-					b( 'core/columns', { align: 'wide' }, [
-						b( 'core/column', {}, place( rest.slice( 0, half ) ) ),
-						b( 'core/column', {}, place( rest.slice( half ) ) ),
-					] ),
-				]
-			);
+			return designedGroup( own, [
+				...place( head ? [ head ] : [] ),
+				b( 'core/columns', { align: 'wide' }, [
+					b( 'core/column', {}, place( rest.slice( 0, half ) ) ),
+					b( 'core/column', {}, place( rest.slice( half ) ) ),
+				] ),
+			] );
 		},
 	},
 	{
@@ -303,41 +462,30 @@ const RECIPES = [
 		label: () => __( 'Card', 'ito' ),
 		applies: ( pictures, text, parts, section ) =>
 			parts.length <= SHORT &&
-			! hasBackground( section ) &&
+			! hasCard( section ) &&
 			! hasCover( section ),
-		build: ( parts, top ) =>
-			b(
-				'core/group',
-				{
-					...top,
-					layout: { type: 'constrained' },
-					style: { spacing: { padding: ROOMY } },
-				},
-				[
-					b(
-						'core/group',
-						{
-							layout: { type: 'constrained' },
-							style: {
-								color: {
-									background:
-										'color-mix(in srgb, currentColor 6%, transparent)',
-								},
-								border: { radius: '16px' },
-								spacing: {
-									padding: {
-										top: 'var:preset|spacing|50',
-										bottom: 'var:preset|spacing|50',
-										left: 'var:preset|spacing|50',
-										right: 'var:preset|spacing|50',
-									},
+		build: ( parts, own ) =>
+			designedGroup( own, [
+				b(
+					'core/group',
+					{
+						layout: { type: 'constrained' },
+						style: {
+							color: { background: TINT },
+							border: { radius: '16px' },
+							spacing: {
+								padding: {
+									top: 'var:preset|spacing|50',
+									bottom: 'var:preset|spacing|50',
+									left: 'var:preset|spacing|50',
+									right: 'var:preset|spacing|50',
 								},
 							},
 						},
-						place( parts )
-					),
-				]
-			),
+					},
+					place( parts )
+				),
+			] ),
 	},
 ];
 
@@ -677,17 +825,17 @@ export function arrangements( section ) {
 	const text = parts.filter( ( p ) => ! isPicture( p ) );
 	// The section keeps its alignment and any name it was given, but it's no
 	// longer the pattern it came from.
-	const { align, metadata: { patternName, ...metadata } = {} } =
-		section.attributes || {};
-	const top = {
-		...( align && { align } ),
-		...( Object.keys( metadata ).length && { metadata } ),
+	const { align, metadata } = notAsPattern( section.attributes || {} );
+	const top = defined( { align, metadata } );
+	const own = ownDesign( section );
+	const fromRecipe = ( r ) => {
+		const block = r.build( parts, own, pictures, text );
+		return {
+			key: 'ito:' + r.key,
+			label: r.label( parts ),
+			block: r.alone ? block : inGroupsAround( block, own.around ),
+		};
 	};
-	const fromRecipe = ( r ) => ( {
-		key: 'ito:' + r.key,
-		label: r.label( parts ),
-		block: r.build( parts, top, pictures, text ),
-	} );
 	const layouts = [
 		...columnCounts( section, top ),
 		...gridShapes( section, top ),

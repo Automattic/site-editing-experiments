@@ -657,7 +657,7 @@ describe( 'Stacked, Centred and Card', () => {
 		}
 	} );
 
-	it( 'offers Card for six items or fewer with no background or cover', () => {
+	it( 'offers Card for six items or fewer with no cover', () => {
 		expect( keys( group( ...paras( 6 ) ) ) ).toContain( 'ito:card' );
 		expect( keys( group( ...paras( 7 ) ) ) ).not.toContain( 'ito:card' );
 		expect( keys( SECTIONS[ 'text beside an image' ] ) ).toContain(
@@ -669,17 +669,38 @@ describe( 'Stacked, Centred and Card', () => {
 		expect(
 			keys( group( b( 'core/cover', { url: 'a.jpg' }, paras( 1 ) ) ) )
 		).not.toContain( 'ito:card' );
-		for ( const attributes of [
+	} );
+
+	it( 'offers Card on a section with a background, which it keeps', () => {
+		const section = b(
+			'core/group',
 			{ backgroundColor: 'accent-1' },
-			{ gradient: 'sunset' },
-			{ style: { color: { background: '#eee' } } },
-			{ style: { color: { gradient: 'linear-gradient(#fff,#000)' } } },
-			{ style: { background: { backgroundImage: { url: 'a.jpg' } } } },
-		] ) {
-			expect(
-				keys( b( 'core/group', attributes, paras( 2 ) ) )
-			).not.toContain( 'ito:card' );
-		}
+			paras( 2 )
+		);
+		const { block } = arrangements( section ).find(
+			( l ) => l.key === 'ito:card'
+		);
+		expect( block.attributes.backgroundColor ).toBe( 'accent-1' );
+	} );
+
+	it( 'leaves a Card when another layout is picked', () => {
+		const { block } = arrangements(
+			group( heading( 'A' ), image( 'a.jpg' ) )
+		).find( ( l ) => l.key === 'ito:card' );
+		const moved = arrangements( block ).find(
+			( l ) => l.key === 'ito:picture-moved'
+		).block;
+		expect( moved.innerBlocks.map( ( x ) => x.name ) ).toEqual( [
+			'core/image',
+			'core/heading',
+		] );
+	} );
+
+	it( 'does not offer Card on a section that is already one', () => {
+		const { block } = arrangements( group( ...paras( 2 ) ) ).find(
+			( l ) => l.key === 'ito:card'
+		);
+		expect( keys( block ) ).not.toContain( 'ito:card' );
 	} );
 
 	it( 'centres the text through the group, not the blocks in it', () => {
@@ -699,5 +720,286 @@ describe( 'Stacked, Centred and Card', () => {
 			...paras( 3 )
 		);
 		expect( keys( long ) ).toEqual( [ 'ito:stacked' ] );
+	} );
+} );
+
+describe( 'the section’s own design', () => {
+	const layout = ( section, key ) =>
+		arrangements( section ).find( ( l ) => l.key === 'ito:' + key ).block;
+	const ROOMY = {
+		top: 'var:preset|spacing|60',
+		bottom: 'var:preset|spacing|60',
+		left: 'var:preset|spacing|50',
+		right: 'var:preset|spacing|50',
+	};
+	const DESIGN = {
+		align: 'full',
+		anchor: 'about',
+		tagName: 'section',
+		className: 'is-style-section-1 extra',
+		backgroundColor: 'accent-1',
+		textColor: 'base',
+		fontSize: 'large',
+		metadata: { name: 'About', patternName: 'theme/about' },
+		layout: { type: 'constrained', contentSize: '600px' },
+		style: {
+			border: { radius: '8px' },
+			spacing: { padding: { top: '1px', bottom: '2px' } },
+		},
+	};
+	const { metadata, layout: ownLayout, ...KEPT } = DESIGN;
+	const designed = b( 'core/group', DESIGN, [
+		heading( 'A' ),
+		para( 'B' ),
+		image( 'a.jpg' ),
+	] );
+
+	it.each( [ 'picture-moved', 'split-left', 'split-right', 'card' ] )(
+		'keeps the section’s design in %s',
+		( key ) => {
+			const block = layout( designed, key );
+			expect( block.name ).toBe( 'core/group' );
+			expect( block.attributes ).toEqual( {
+				...KEPT,
+				metadata: { name: 'About' },
+				layout: ownLayout,
+			} );
+		}
+	);
+
+	it( 'keeps the section’s design in Stacked and Split in two', () => {
+		const beside = b( 'core/group', DESIGN, [
+			columns( [ heading( 'A' ) ], [ para( 'B' ) ] ),
+		] );
+		expect( layout( beside, 'stacked' ).attributes ).toMatchObject( KEPT );
+		const text = b( 'core/group', DESIGN, [
+			heading( 'A' ),
+			para( 'B' ),
+			para( 'C' ),
+		] );
+		expect( layout( text, 'two-columns' ).attributes ).toMatchObject(
+			KEPT
+		);
+	} );
+
+	it( 'keeps the design and adds to the classes in Centred', () => {
+		const { attributes } = layout( designed, 'centred' );
+		expect( attributes ).toMatchObject( {
+			...KEPT,
+			className: 'is-style-section-1 extra has-text-align-center',
+		} );
+		expect( attributes.layout.type ).toBe( 'flex' );
+	} );
+
+	it( 'does not stay centred in another layout', () => {
+		const centred = layout( designed, 'centred' );
+		expect( layout( centred, 'split-left' ).attributes.className ).toBe(
+			'is-style-section-1 extra'
+		);
+		const plain = layout(
+			group( heading( 'A' ), image( 'a.jpg' ) ),
+			'centred'
+		);
+		expect( layout( plain, 'split-left' ).attributes ).not.toHaveProperty(
+			'className'
+		);
+	} );
+
+	it( 'gives room only to a section that has none of its own', () => {
+		const section = b(
+			'core/group',
+			{ style: { border: { radius: '8px' } } },
+			[ heading( 'A' ), image( 'a.jpg' ) ]
+		);
+		expect( layout( section, 'picture-moved' ).attributes.style ).toEqual( {
+			border: { radius: '8px' },
+			spacing: { padding: ROOMY },
+		} );
+	} );
+
+	it( 'does not add room again when a layout is changed again', () => {
+		const once = layout( designed, 'split-left' );
+		const twice = layout( once, 'picture-moved' );
+		expect( twice.attributes.style ).toEqual( DESIGN.style );
+	} );
+
+	it( 'keeps how a row of buttons was set out', () => {
+		const row = { layout: { type: 'flex', justifyContent: 'center' } };
+		const section = group(
+			heading( 'A' ),
+			b( 'core/buttons', row, [
+				button( 'One', '/1' ),
+				button( 'Two', '/2' ),
+			] )
+		);
+		const { block } = arrangements( section ).find(
+			( l ) => l.key === 'ito:card'
+		);
+		const [ , buttonRow ] = block.innerBlocks[ 0 ].innerBlocks;
+		expect( buttonRow.name ).toBe( 'core/buttons' );
+		expect( buttonRow.attributes ).toEqual( row );
+		expect( buttonRow.innerBlocks ).toHaveLength( 2 );
+	} );
+
+	describe( 'groups around the content', () => {
+		const inner = {
+			align: 'wide',
+			backgroundColor: 'accent-2',
+			layout: { type: 'constrained' },
+		};
+		const nested = b( 'core/group', { align: 'full', textColor: 'base' }, [
+			b( 'core/group', inner, [ heading( 'A' ), image( 'a.jpg' ) ] ),
+		] );
+
+		it( 'keeps each one, and only lays out inside the last', () => {
+			const block = layout( nested, 'split-left' );
+			expect( block.attributes ).toEqual( nested.attributes );
+			expect( block.innerBlocks ).toHaveLength( 1 );
+			expect( block.innerBlocks[ 0 ].attributes ).toMatchObject( inner );
+			expect( block.innerBlocks[ 0 ].innerBlocks[ 0 ].name ).toBe(
+				'core/columns'
+			);
+		} );
+
+		it( 'adds no room when an outer group has its own', () => {
+			const padded = b(
+				'core/group',
+				{ style: { spacing: { padding: { top: '9px' } } } },
+				[ b( 'core/group', {}, [ heading( 'A' ), image( 'a.jpg' ) ] ) ]
+			);
+			const block = layout( padded, 'picture-moved' );
+			expect( block.innerBlocks[ 0 ].attributes.style ).toBeUndefined();
+		} );
+
+		it( 'does not go into a grid or a row', () => {
+			const row = b( 'core/group', { backgroundColor: 'accent-1' }, [
+				b( 'core/group', { layout: { type: 'flex' } }, [
+					heading( 'A' ),
+					image( 'a.jpg' ),
+				] ),
+			] );
+			const block = layout( row, 'picture-moved' );
+			expect( block.attributes.backgroundColor ).toBe( 'accent-1' );
+			expect( block.innerBlocks.map( ( x ) => x.name ) ).toEqual( [
+				'core/image',
+				'core/heading',
+			] );
+		} );
+	} );
+
+	describe( 'Picture behind', () => {
+		it( 'becomes one cover, keeping where the section sits and its room', () => {
+			const block = layout( designed, 'cover' );
+			expect( block.name ).toBe( 'core/cover' );
+			expect( block.attributes ).toMatchObject( {
+				align: 'full',
+				anchor: 'about',
+				className: 'extra',
+				metadata: { name: 'About' },
+				style: { spacing: DESIGN.style.spacing },
+			} );
+		} );
+
+		it( 'leaves out colours and fonts, which would not suit a picture', () => {
+			const { attributes } = layout( designed, 'cover' );
+			for ( const key of [
+				'backgroundColor',
+				'textColor',
+				'fontSize',
+				'tagName',
+			] ) {
+				expect( attributes ).not.toHaveProperty( key );
+			}
+			expect( attributes.style ).not.toHaveProperty( 'border' );
+		} );
+
+		it( 'does not sit inside the groups around the content', () => {
+			const nested = group(
+				b( 'core/group', { backgroundColor: 'accent-2' }, [
+					heading( 'A' ),
+					image( 'a.jpg' ),
+				] )
+			);
+			const block = layout( nested, 'cover' );
+			expect( block.name ).toBe( 'core/cover' );
+			expect( block.innerBlocks.map( ( x ) => x.name ) ).toEqual( [
+				'core/heading',
+			] );
+		} );
+	} );
+
+	describe( 'when the section isn’t a group', () => {
+		const cover = b(
+			'core/cover',
+			{
+				url: 'a.jpg',
+				alt: '',
+				id: 1,
+				dimRatio: 40,
+				overlayColor: 'black',
+				minHeight: 500,
+				isDark: true,
+				align: 'full',
+				className: 'is-style-fancy extra',
+				layout: { type: 'constrained' },
+				style: { spacing: { padding: { top: '3px' } } },
+			},
+			[ heading( 'A' ) ]
+		);
+
+		it( 'takes only where a cover sits and its room', () => {
+			expect( layout( cover, 'picture-moved' ).attributes ).toEqual( {
+				align: 'full',
+				className: 'extra',
+				layout: { type: 'constrained' },
+				style: { spacing: { padding: { top: '3px' } } },
+			} );
+		} );
+
+		it( 'takes a media & text’s colours, but not its media', () => {
+			const section = b(
+				'core/media-text',
+				{
+					mediaUrl: 'a.jpg',
+					mediaType: 'image',
+					mediaPosition: 'right',
+					backgroundColor: 'accent-1',
+					align: 'wide',
+				},
+				[ heading( 'A' ) ]
+			);
+			expect( layout( section, 'stacked' ).attributes ).toEqual( {
+				backgroundColor: 'accent-1',
+				align: 'wide',
+				layout: { type: 'constrained' },
+				style: { spacing: { padding: ROOMY } },
+			} );
+		} );
+
+		it( 'takes a columns block’s colours, but not its alignment of columns', () => {
+			const section = b(
+				'core/columns',
+				{ textColor: 'base', verticalAlignment: 'center' },
+				[
+					b( 'core/column', {}, [ heading( 'A' ) ] ),
+					b( 'core/column', {}, [ image( 'a.jpg' ) ] ),
+				]
+			);
+			const { attributes } = layout( section, 'stacked' );
+			expect( attributes.textColor ).toBe( 'base' );
+			expect( attributes ).not.toHaveProperty( 'verticalAlignment' );
+		} );
+
+		it( 'leaves a content block’s style on the block', () => {
+			const section = para( 'A', {
+				align: 'wide',
+				textColor: 'base',
+				fontSize: 'large',
+			} );
+			const { attributes, innerBlocks } = layout( section, 'centred' );
+			expect( attributes ).not.toHaveProperty( 'textColor' );
+			expect( attributes ).not.toHaveProperty( 'fontSize' );
+			expect( innerBlocks ).toEqual( [ section ] );
+		} );
 	} );
 } );

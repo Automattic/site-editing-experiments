@@ -46,13 +46,17 @@ Ito takes the section apart into its content, in order, and puts the same blocks
 | Centred | Six content items or fewer, with nothing side by side: the same, centred |
 | Picture first, or Picture last | One picture: moved to the other end |
 | Picture on the left, or on the right | One picture: in two columns, beside everything else |
-| Picture behind | One picture without a caption or link: as a Cover, with the rest over it |
+| Picture behind | One picture without a caption or link: as a Cover, with the rest over it. The Cover keeps the section's alignment, name and spacing, but not its colours or fonts |
 | Split in two | No pictures: the first heading on top, the rest in two columns |
-| Card | Six content items or fewer, with no background or cover of its own: in a rounded, tinted panel |
+| Card | Six content items or fewer, with no cover, and not already a Card: in a rounded, tinted panel |
 
 A grid shape sets the number across exactly, so it drops a grid's minimum column width, which would otherwise let it show fewer. Like any grid with a set number of columns in WordPress, it keeps that number on a narrow screen.
 
-Apart from the column counts and grid shapes, they're plain, and take their spacing from the theme's sizes.
+### The section's own design
+
+A layout changes how the content is arranged, not how the section looks. The block around the content keeps the section's colours, fonts, border, spacing, content width, classes and name, and groups that only hold another group stay as they are, with the layout made inside the last one. A section with no padding of its own, in any of those groups, gets some from the theme's sizes.
+
+A section that isn't a group hands on what a group can use: a Columns or Media & Text block its colours, fonts and spacing, and a Cover only its alignment, classes, name and spacing, as its text was chosen to sit on its picture. Block styles are left behind, as they belong to one kind of block. A content block's own style stays on the block.
 
 ![After picking a layout: team photos as Featured, 3 across, with the first photo spanning two columns and two rows](docs/screenshots/03-new-layout.jpg)
 
@@ -62,7 +66,8 @@ A new layout replaces the section with new blocks, so it's saved as ordinary blo
 
 ## What it doesn't do yet
 
-- Generated layouts are plainer than designed patterns: most don't carry over the section's colours or spacing.
+- Generated layouts are arrangements, not designs: they keep the section's look, but don't add new styling of their own, other than Card's panel.
+- A Cover's height and overlay aren't kept when its picture moves out of it, so they don't come back if you put it behind again.
 - Headers, footers and the site editor's templates aren't sections.
 - The previews show at most five or so across; the rest scroll sideways.
 
@@ -85,7 +90,7 @@ The layouts are in [`src/editor/layouts.js`](src/editor/layouts.js) and reading 
 npm run test:unit
 ```
 
-The smoke test drives the real editor in a headless browser: the sample page, hovering, the previews, that no registered pattern is offered, every layout of the hero (checking that its content blocks are unchanged and it saves as valid markup), that picking closes the panel, As it was, closing the panel, undo, publishing, reopening, taking Twenty Twenty-Five's three services to two and four columns, and its 2 × 2 team photos to 1 × 4, featured and banner shapes (checking the columns and spans the canvas draws). It needs a WordPress site with Ito active and automatic login, which WordPress Playground gives you:
+The smoke test drives the real editor in a headless browser: the sample page, hovering, the previews, that no registered pattern is offered, every layout of the hero (checking that its content blocks are unchanged and it saves as valid markup), that picking closes the panel, As it was, closing the panel, undo, publishing, reopening, taking Twenty Twenty-Five's three services to two and four columns, its 2 × 2 team photos to 1 × 4, featured and banner shapes (checking the columns and spans the canvas draws), and that every layout of a section with a background still draws it. It needs a WordPress site with Ito active and automatic login, which WordPress Playground gives you:
 
 ```
 npx @wp-playground/cli server --login --port=9400 \

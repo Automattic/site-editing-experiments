@@ -640,6 +640,42 @@ await step( 'a grid takes other shapes, keeping its content', async () => {
 	}
 } );
 
+await step( 'a new layout keeps the section’s background', async () => {
+	const index = ( await sections() ).length - 1;
+	await page.evaluate(
+		( id ) =>
+			window.wp.data
+				.dispatch( 'core/block-editor' )
+				.updateBlockAttributes( id, { backgroundColor: 'accent-2' } ),
+		( await sections() )[ index ].id
+	);
+	const background = async () =>
+		canvas
+			.locator( `#block-${ ( await sections() )[ index ].id }` )
+			.evaluate(
+				( el ) =>
+					el.ownerDocument.defaultView.getComputedStyle( el )
+						.backgroundColor
+			);
+	const before = await background();
+	expect( before !== 'rgba(0, 0, 0, 0)', 'the background didn’t draw' );
+	await openPanel( index );
+	const count = await page.locator( ARRANGED ).count();
+	await page.keyboard.press( 'Escape' );
+	for ( let i = 0; i < count; i++ ) {
+		await openPanel( index );
+		const option = page.locator( ARRANGED ).nth( i );
+		const label = await option.textContent();
+		await pick( option );
+		expect(
+			( await background() ) === before,
+			`${ label }: the background is ${ await background() }, was ${ before }`
+		);
+		await shot( `07-background-${ i }` );
+		await undo();
+	}
+} );
+
 await step( 'no errors on the page', async () => {
 	expect( pageErrors.length === 0, pageErrors.join( ' | ' ) );
 } );

@@ -7,24 +7,11 @@ import { Button, SVG, Path } from '@wordpress/components';
 import { useLayoutEffect, useRef } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 
-import { place, placeAt, overlaps, union } from './place';
+import { place, placeAt, placeSheet, isSheet, overlaps, union } from './place';
 
 export const closeIcon = (
 	<SVG xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
 		<Path d="M12 13.06l3.712 3.713 1.061-1.06L13.061 12l3.712-3.712-1.06-1.06L12 10.938 8.288 7.227l-1.061 1.06L10.939 12l-3.712 3.712 1.06 1.061L12 13.061z" />
-	</SVG>
-);
-
-export const sidebarIcon = (
-	<SVG xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-		<Path d="M18 4H6c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-4 14.5H6c-.3 0-.5-.2-.5-.5V6c0-.3.2-.5.5-.5h8v13zm4.5-.5c0 .3-.2.5-.5.5h-2.5v-13H18c.3 0 .5.2.5.5v12z" />
-	</SVG>
-);
-
-export const floatIcon = (
-	<SVG xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-		<Path d="M18 4H6c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm.5 14c0 .3-.2.5-.5.5H6c-.3 0-.5-.2-.5-.5V6c0-.3.2-.5.5-.5h12c.3 0 .5.2.5.5v12z" />
-		<Path d="M11.5 8h5v8h-5z" />
 	</SVG>
 );
 
@@ -51,6 +38,19 @@ function visibleCanvas( iframe ) {
 			window.innerHeight
 		),
 	};
+	// Make room for the page's settings card, when it's open. When it fills
+	// the screen, as on phones, there's no room for anything else.
+	const card = document
+		.querySelector(
+			'.interface-interface-skeleton__sidebar .interface-complementary-area'
+		)
+		?.getBoundingClientRect();
+	if ( card?.width && card.left < c.right && card.right > c.left ) {
+		if ( card.left - c.left < 320 ) {
+			return null;
+		}
+		c.right = Math.min( c.right, card.left );
+	}
 	return c.right - c.left > 0 && c.bottom - c.top > 0 ? c : null;
 }
 
@@ -81,7 +81,6 @@ function blocksBox( iframe, clientIds ) {
  * @param {boolean}  props.isTyping  Whether you're typing in the canvas.
  * @param {Object}   props.offset    Where it's been dragged to, or null to follow the block.
  * @param {Function} props.setOffset Puts it somewhere, or null to follow the block again.
- * @param {Function} props.onDock    Puts the settings back in the sidebar.
  * @param {Function} props.onClose   Closes it until another block is selected.
  */
 export function FloatingPanel( {
@@ -89,7 +88,6 @@ export function FloatingPanel( {
 	isTyping,
 	offset,
 	setOffset,
-	onDock,
 	onClose,
 } ) {
 	const ref = useRef();
@@ -101,6 +99,7 @@ export function FloatingPanel( {
 	useLayoutEffect( () => {
 		let frame;
 		let last = '';
+		let shown = '';
 		const tick = () => {
 			frame = window.requestAnimationFrame( tick );
 			const el = ref.current;
@@ -117,16 +116,51 @@ export function FloatingPanel( {
 				offset: put,
 				isTyping: typing,
 			} = live.current;
-			const block = blocksBox( iframe, ids ) || {
+			const own = blocksBox( iframe, ids );
+			const sheet = isSheet( canvas );
+			// The block's toolbar counts as part of the block, so the panel
+			// doesn't cover it when it's wider than the block; not when the
+			// toolbar is docked at the top of the editor.
+			const toolbar = document
+				.querySelector( '.block-editor-block-contextual-toolbar' )
+				?.getBoundingClientRect();
+			const near =
+				own &&
+				toolbar?.width &&
+				toolbar.bottom >= own.top - 80 &&
+				toolbar.top <= own.bottom + 80;
+			const block = ( own &&
+				( ! sheet && near ? union( [ own, toolbar ] ) : own ) ) || {
 				left: canvas.right,
 				top: canvas.top,
 				right: canvas.right,
 				bottom: canvas.top,
 			};
+			el.classList.toggle( 'is-sheet', sheet );
 			const size = { width: el.offsetWidth, height: el.scrollHeight };
-			const p = put
-				? placeAt( { offset: put, canvas, panel: size } )
-				: place( { block, canvas, panel: size } );
+			let p;
+			if ( sheet ) {
+				p = placeSheet( { canvas, panel: size } );
+			} else if ( put ) {
+				p = placeAt( { offset: put, canvas, panel: size } );
+			} else {
+				p = place( { block, canvas, panel: size } );
+			}
+			// A sheet covers the bottom of the page: when a block is selected
+			// under it, scroll the block up above it.
+			const selection = ids.join();
+			if ( sheet && selection !== shown ) {
+				shown = selection;
+				const under = block.bottom > p.top - 8;
+				if ( under || block.top < canvas.top ) {
+					iframe.contentWindow?.scrollBy( {
+						top: block.top - canvas.top - 24,
+						behavior: 'smooth',
+					} );
+				}
+			} else if ( ! sheet ) {
+				shown = selection;
+			}
 			const box = {
 				left: p.left,
 				top: p.top,
@@ -134,12 +168,20 @@ export function FloatingPanel( {
 				bottom: p.top + Math.min( size.height, p.maxHeight ),
 			};
 			// Out of the way while you type, if it's over what you're typing.
-			const faded = typing && overlaps( box, block );
-			const key = [ p.left, p.top, p.maxHeight, p.side, faded ].join();
+			const faded = typing && !! own && overlaps( box, own );
+			const key = [
+				p.left,
+				p.top,
+				p.maxHeight,
+				p.side,
+				p.width,
+				faded,
+			].join();
 			if ( key === last ) {
 				return;
 			}
 			last = key;
+			el.style.width = p.width ? `${ Math.round( p.width ) }px` : '';
 			el.style.left = `${ Math.round( p.left ) }px`;
 			el.style.top = `${ Math.round( p.top ) }px`;
 			el.style.maxHeight = `${ Math.round( p.maxHeight ) }px`;
@@ -154,10 +196,14 @@ export function FloatingPanel( {
 	// Drag it by its top bar; it stays where you put it, for every block,
 	// until Follow block.
 	const onPointerDown = ( event ) => {
-		if ( event.button !== 0 || event.target.closest( 'button' ) ) {
+		const el = ref.current;
+		if (
+			event.button !== 0 ||
+			event.target.closest( 'button' ) ||
+			el?.classList.contains( 'is-sheet' )
+		) {
 			return;
 		}
-		const el = ref.current;
 		const iframe = canvasFrame();
 		const canvas = iframe && visibleCanvas( iframe );
 		if ( ! el || ! canvas ) {
@@ -212,12 +258,6 @@ export function FloatingPanel( {
 						{ __( 'Follow block', 'nevelson' ) }
 					</Button>
 				) }
-				<Button
-					size="small"
-					icon={ sidebarIcon }
-					label={ __( 'Move to the sidebar', 'nevelson' ) }
-					onClick={ onDock }
-				/>
 				<Button
 					size="small"
 					icon={ closeIcon }

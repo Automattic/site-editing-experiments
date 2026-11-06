@@ -2,8 +2,9 @@
 /**
  * End-to-end smoke test: drives the real editor in a headless browser through
  * Nevelson's floating panel: where it goes, following the block, changing a
- * setting, docking it in the sidebar and floating it again, dragging and
- * closing it, multiple blocks, and the site editor.
+ * setting, the page's settings card, blocks in patterns, dragging and
+ * closing it, multiple blocks, the sheet on a narrow screen, and the site
+ * editor.
  *
  * Needs a WordPress site with the plugin active, Twenty Twenty-Five and
  * automatic login, which WordPress Playground gives you:
@@ -133,6 +134,27 @@ const expectedTop = ( p, b ) =>
 		[ p, b ]
 	);
 
+// The box the panel lines up with: the block and, when it's beside the
+// block, its toolbar.
+const anchorBox = async ( clientId ) => {
+	const own = await blockBox( clientId );
+	const t = await page.evaluate( () =>
+		document
+			.querySelector( '.block-editor-block-contextual-toolbar' )
+			?.getBoundingClientRect()
+			.toJSON()
+	);
+	if ( ! t?.width || t.bottom < own.top - 80 || t.top > own.bottom + 80 ) {
+		return own;
+	}
+	return {
+		left: Math.min( own.left, t.left ),
+		top: Math.min( own.top, t.top ),
+		right: Math.max( own.right, t.right ),
+		bottom: Math.max( own.bottom, t.bottom ),
+	};
+};
+
 const select = ( clientId ) =>
 	page.evaluate(
 		( id ) =>
@@ -190,7 +212,7 @@ await step(
 		await canvas.locator( `#block-${ para.id }` ).click();
 		await wait( 400 );
 		const p = await panel();
-		const b = await blockBox( para.id );
+		const b = await anchorBox( para.id );
 		expect( p, 'no panel' );
 		expect( p.side === 'right', `side is ${ p.side }` );
 		expect( p.left > b.right, 'panel overlaps the block' );
@@ -220,7 +242,7 @@ await step( 'it follows the block as the page scrolls', async () => {
 	await select( list.id );
 	await wait( 400 );
 	const before = await panel();
-	const b0 = await blockBox( list.id );
+	const b0 = await anchorBox( list.id );
 	expect(
 		Math.abs( before.top - ( await expectedTop( before, b0 ) ) ) < 2,
 		'panel is not level with the list'
@@ -229,7 +251,7 @@ await step( 'it follows the block as the page scrolls', async () => {
 	await page.mouse.wheel( 0, 200 );
 	await wait( 500 );
 	const after = await panel();
-	const b1 = await blockBox( list.id );
+	const b1 = await anchorBox( list.id );
 	expect( b1.top < b0.top - 100, 'the page did not scroll' );
 	expect(
 		Math.abs( after.top - ( await expectedTop( after, b1 ) ) ) < 2,
@@ -287,59 +309,56 @@ await step( 'a full-width section gets it over the canvas edge', async () => {
 	await shot( '03-wide' );
 } );
 
-await step(
-	'opening the sidebar shows the page, with the block floating',
-	async () => {
-		await select( para.id );
-		await settingsToggle().click();
-		await wait( 600 );
-		expect(
-			( await area() ) === 'edit-post/document',
-			`sidebar is ${ await area() }`
-		);
-		expect( await panel(), 'the panel went away' );
-		await shot( '04-page-sidebar' );
-	}
-);
-
-await step(
-	'selecting a block with the sidebar open keeps it on the page',
-	async () => {
-		await page.evaluate( () =>
-			window.wp.data.dispatch( 'core/block-editor' ).clearSelectedBlock()
-		);
-		await wait( 200 );
-		await canvas.locator( `#block-${ paras[ 1 ].id }` ).click();
-		await wait( 800 );
-		expect(
-			( await area() ) === 'edit-post/document',
-			`sidebar is ${ await area() }`
-		);
-		expect( await panel(), 'no panel' );
-	}
-);
-
-await step( 'Move to the sidebar docks the settings', async () => {
-	await page
-		.locator( `${ PANEL } button[aria-label="Move to the sidebar"]` )
-		.click();
+await step( 'Settings opens the page in a card below the button', async () => {
+	await select( para.id );
+	await settingsToggle().click();
 	await wait( 600 );
 	expect(
-		( await area() ) === 'edit-post/block',
+		( await area() ) === 'edit-post/document',
 		`sidebar is ${ await area() }`
 	);
-	expect( ( await panel() ) === null, 'the panel is still there' );
-	const inSidebar = await page
-		.locator( '.editor-sidebar .block-editor-block-inspector' )
-		.count();
-	expect( inSidebar === 1, 'no inspector in the sidebar' );
-	await page.waitForSelector( '.nevelson-float', { timeout: 3000 } );
-	await shot( '05-docked' );
+	const r = await page.evaluate( () => {
+		const card = document
+			.querySelector( '.interface-interface-skeleton__sidebar' )
+			.getBoundingClientRect();
+		const button = document
+			.querySelector(
+				'.editor-header__settings [aria-controls^="edit-post"]'
+			)
+			.getBoundingClientRect();
+		const frame = document
+			.querySelector( 'iframe[name="editor-canvas"]' )
+			.getBoundingClientRect();
+		const tab = document.querySelector( '[data-tab-id="edit-post/block"]' );
+		return {
+			card: card.toJSON(),
+			button: button.toJSON(),
+			frameWidth: frame.width,
+			blockTab: !! tab && tab.offsetParent !== null,
+		};
+	} );
+	expect(
+		Math.abs( r.card.right - r.button.right ) < 2,
+		'card is not under the button'
+	);
+	expect(
+		r.card.top > r.button.bottom && r.card.top - r.button.bottom < 32,
+		'card is not just below the header'
+	);
+	expect( r.frameWidth === 1440, `the page is ${ r.frameWidth } wide` );
+	expect( ! r.blockTab, 'the Block tab shows' );
+	const p = await panel();
+	expect( p, 'the panel went away' );
+	expect(
+		p.right <= r.card.left || p.left >= r.card.right,
+		'the panel is under the card'
+	);
+	await shot( '04-page' );
 } );
 
-await step( 'Float floats them again', async () => {
-	await page.locator( '.nevelson-float' ).click();
-	await wait( 500 );
+await step( 'selecting a block keeps the card on the page', async () => {
+	await select( paras[ 1 ].id );
+	await wait( 600 );
 	expect(
 		( await area() ) === 'edit-post/document',
 		`sidebar is ${ await area() }`
@@ -347,21 +366,76 @@ await step( 'Float floats them again', async () => {
 	expect( await panel(), 'no panel' );
 } );
 
-await step( 'choosing the Block tab docks them too', async () => {
-	await page.getByRole( 'tab', { name: 'Block' } ).click();
-	await wait( 500 );
-	expect(
-		( await area() ) === 'edit-post/block',
-		`sidebar is ${ await area() }`
-	);
-	expect( ( await panel() ) === null, 'the panel is still there' );
-} );
-
-await step( 'closing the sidebar floats them', async () => {
-	await settingsToggle().click();
+await step( 'a click on the page closes the card', async () => {
+	await canvas.locator( `#block-${ paras[ 1 ].id }` ).click();
 	await wait( 500 );
 	expect( ( await area() ) === null, `sidebar is ${ await area() }` );
 	expect( await panel(), 'no panel' );
+} );
+
+// Clicks a block where you'd click it: near its top left.
+async function clickOn( locator ) {
+	const l = canvas.locator( locator ).first();
+	await l.scrollIntoViewIfNeeded();
+	await wait( 250 );
+	const b = await l.boundingBox();
+	await page.mouse.click(
+		b.x + Math.min( 30, b.width / 4 ),
+		b.y + Math.min( 15, b.height / 2 )
+	);
+	await wait( 900 );
+}
+const cards = () =>
+	page.evaluate( () =>
+		Array.from(
+			document.querySelectorAll(
+				'.nevelson-panel .block-editor-block-card__title'
+			)
+		).map( ( e ) => e.textContent )
+	);
+const selectedName = () =>
+	page.evaluate( () => {
+		const be = window.wp.data.select( 'core/block-editor' );
+		return be.getBlockName( be.getSelectedBlockClientId() );
+	} );
+
+await step(
+	'a click in a pattern shows that block, not the pattern',
+	async () => {
+		await clickOn( '.wp-block-cover .wp-block-heading' );
+		const c = await cards();
+		expect(
+			( await selectedName() ) === 'core/heading',
+			`selected ${ await selectedName() }`
+		);
+		expect(
+			c.at( -1 )?.startsWith( 'Heading' ),
+			`panel shows ${ c.join( ' > ' ) }`
+		);
+		await shot( '05-in-a-pattern' );
+	}
+);
+
+await step(
+	'a click in another pattern goes straight to that block',
+	async () => {
+		await clickOn( '.wp-block-columns .wp-block-image img' );
+		const c = await cards();
+		expect(
+			( await selectedName() ) === 'core/image',
+			`selected ${ await selectedName() }`
+		);
+		expect( c.at( -1 ) === 'Image', `panel shows ${ c.join( ' > ' ) }` );
+	}
+);
+
+await step( 'a click outside the patterns goes to that block', async () => {
+	await clickOn( 'li' );
+	expect(
+		( await selectedName() ) === 'core/list-item',
+		`selected ${ await selectedName() }`
+	);
+	expect( ( await cards() ).at( -1 ) === 'List Item', 'wrong panel' );
 } );
 
 await step( 'dragging puts it somewhere else, for every block', async () => {
@@ -385,14 +459,14 @@ await step( 'dragging puts it somewhere else, for every block', async () => {
 	expect( ( await panel() ).side !== 'put', 'Follow block did nothing' );
 } );
 
-await step( 'closing it hides it until another block is selected', async () => {
+await step( 'closed, it comes back with a click on the block', async () => {
 	await select( para.id );
 	await wait( 300 );
 	await page.locator( `${ PANEL } button[aria-label="Close"]` ).click();
 	await wait( 300 );
 	expect( ( await panel() ) === null, 'still there' );
-	await select( paras[ 1 ].id );
-	await wait( 300 );
+	await canvas.locator( `#block-${ para.id }` ).click();
+	await wait( 400 );
 	expect( await panel(), 'did not come back' );
 } );
 
@@ -413,12 +487,34 @@ await step( 'several blocks share one panel', async () => {
 	expect( multi > 0, 'no multi-selection card' );
 } );
 
+await step( 'on a narrow screen it is a sheet along the bottom', async () => {
+	await page.setViewportSize( { width: 600, height: 900 } );
+	await wait( 800 );
+	const list = all.find( ( b ) => b.name === 'core/list' );
+	await select( list.id );
+	await wait( 1200 );
+	const p = await panel();
+	expect( p, 'no panel' );
+	expect( p.side === 'sheet', `side is ${ p.side }` );
+	const frame = await page.evaluate( () =>
+		document
+			.querySelector( 'iframe[name="editor-canvas"]' )
+			.getBoundingClientRect()
+			.toJSON()
+	);
+	expect( Math.abs( p.left - frame.left ) < 2, 'not at the left edge' );
+	expect( Math.abs( p.right - frame.right ) < 2, 'not as wide as the page' );
+	const b = await blockBox( list.id );
+	expect( b.bottom <= p.top + 2, 'the block is under the sheet' );
+	await shot( '07-sheet' );
+	await page.setViewportSize( { width: 1440, height: 900 } );
+	await wait( 600 );
+} );
+
 await step( 'it works in the site editor', async () => {
 	await page.goto(
 		`${ BASE }/wp-admin/site-editor.php?p=%2Fwp_template%2Ftwentytwentyfive%2F%2Findex&canvas=edit`,
-		{
-			timeout: 120000,
-		}
+		{ timeout: 120000 }
 	);
 	await page.waitForSelector( 'iframe[name="editor-canvas"]', {
 		timeout: 120000,
@@ -427,22 +523,16 @@ await step( 'it works in the site editor', async () => {
 		() =>
 			window.wp.data
 				.select( 'core/block-editor' )
-				.getBlocksByName( 'core/query' ).length,
+				.getBlocksByName( 'core/site-title' ).length,
 		null,
 		{ timeout: 60000 }
 	);
 	await wait( 1500 );
-	await page.evaluate( () => {
-		const be = window.wp.data.select( 'core/block-editor' );
-		window.wp.data
-			.dispatch( 'core/block-editor' )
-			.selectBlock( be.getBlocksByName( 'core/query' )[ 0 ] );
-	} );
-	await wait( 600 );
-	const p = await panel();
-	expect( p, 'no panel' );
-	expect( p.title, 'the panel has no block card' );
-	await shot( '07-site-editor' );
+	await clickOn( '.wp-block-site-title' );
+	expect( await panel(), 'no panel' );
+	const c = await cards();
+	expect( c.at( -1 ) === 'Site Title', `panel shows ${ c.join( ' > ' ) }` );
+	await shot( '08-site-editor' );
 } );
 
 await step( 'no errors on the page', async () => {

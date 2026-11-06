@@ -80,8 +80,101 @@ $soft: #757575;
 	}
 }
 
-.nevelson-float-slot {
-	display: flex;
-	flex: none;
-	margin-left: auto;
+/* ---------- On a narrow canvas: a sheet along the bottom ---------- */
+
+.nevelson-panel.is-sheet {
+	border-radius: 12px 12px 0 0;
+	box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(0, 0, 0, 0.08);
+
+	.nevelson-head {
+		position: relative;
+		padding-top: 14px;
+		cursor: default;
+
+		// The sheet's grip.
+		&::before {
+			content: "";
+			position: absolute;
+			top: 6px;
+			left: 50%;
+			width: 36px;
+			height: 4px;
+			margin-left: -18px;
+			border-radius: 2px;
+			background: #ddd;
+		}
+	}
+}
+
+/* ---------- The page's settings: a card below the Settings button ---------- */
+
+// Only the page's tab: the block's settings are in the panel.
+body.nevelson [data-tab-id="edit-post/block"] {
+	display: none;
+}
+
+@media (min-width: 782px) {
+	body.nevelson .interface-interface-skeleton__sidebar {
+		// Core's layout rules for the sidebar are more specific.
+		position: fixed !important;
+		top: var(--nevelson-page-top, 104px) !important;
+		right: var(--nevelson-page-right, 12px) !important;
+		bottom: auto !important;
+		left: auto !important;
+		z-index: 32;
+		width: 300px !important;
+		height: auto !important;
+		max-height: calc(100vh - var(--nevelson-page-top, 104px) - 16px);
+		border: 0 !important;
+		border-radius: 12px;
+		background: #fff;
+		box-shadow: 0 16px 40px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(0, 0, 0, 0.08);
+		overflow: hidden;
+		display: flex;
+		flex-direction: column;
+
+		&:empty {
+			display: none;
+		}
+
+		> *,
+		.interface-complementary-area__fill,
+		.interface-complementary-area {
+			width: 100% !important;
+			min-width: 0 !important;
+			height: auto !important;
+			max-height: inherit;
+		}
+
+		.interface-complementary-area {
+			overflow: auto;
+		}
+
+		// The page's tab, alone, is the card's label, like the panel's.
+		[data-tab-id="edit-post/document"] {
+			padding-left: 16px;
+			font-size: 11px;
+			font-weight: 600;
+			text-transform: uppercase;
+			letter-spacing: 0.06em;
+			color: #757575;
+			pointer-events: none;
+
+			&::after {
+				display: none;
+			}
+		}
+
+		[role="tablist"]::after,
+		[role="tablist"] > :not([role="tab"]) {
+			display: none;
+		}
+
+		.interface-complementary-area-header {
+			position: sticky;
+			top: 0;
+			z-index: 1;
+			background: #fff;
+		}
+	}
 }

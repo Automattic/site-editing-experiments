@@ -1,9 +1,9 @@
 <?php
 /**
  * Plugin Name:       Nevelson (experiment)
- * Description:       The block inspector as a floating panel beside the selected block, as in Judd, with the sidebar left for the page's settings.
+ * Description:       The block inspector as a floating panel beside the selected block, as in Judd, and the page's settings in a card from the Settings button.
  * Version:           0.1.0
- * Requires at least: 6.8
+ * Requires at least: 7.0
  * Requires PHP:      7.4
  * Author:            Automattic
  * License:           GPL-2.0-or-later

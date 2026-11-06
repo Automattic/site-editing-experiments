@@ -3,7 +3,16 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { place, placeAt, overlaps, union, GAP, MARGIN } from '../place';
+import {
+	place,
+	placeAt,
+	placeSheet,
+	isSheet,
+	overlaps,
+	union,
+	GAP,
+	MARGIN,
+} from '../place';
 
 const canvas = { left: 0, top: 60, right: 1160, bottom: 900 };
 const panel = { width: 300, height: 400 };
@@ -78,5 +87,30 @@ describe( 'overlaps and union', () => {
 			union( [ box( 10, 10, 20, 20 ), box( 0, 30, 15, 40 ) ] )
 		).toEqual( box( 0, 10, 20, 40 ) );
 		expect( union( [] ) ).toBe( null );
+	} );
+} );
+
+describe( 'sheets', () => {
+	it( 'are for narrow canvases', () => {
+		expect( isSheet( canvas ) ).toBe( false );
+		expect( isSheet( { ...canvas, right: 600 } ) ).toBe( true );
+	} );
+
+	it( 'sit along the bottom, as wide as the canvas', () => {
+		const narrow = { left: 0, top: 100, right: 400, bottom: 900 };
+		const p = placeSheet( { canvas: narrow, panel: { height: 300 } } );
+		expect( p ).toMatchObject( {
+			left: 0,
+			width: 400,
+			top: 600,
+			side: 'sheet',
+		} );
+	} );
+
+	it( 'cover at most half the canvas', () => {
+		const narrow = { left: 0, top: 100, right: 400, bottom: 900 };
+		const p = placeSheet( { canvas: narrow, panel: { height: 2000 } } );
+		expect( p.maxHeight ).toBe( 400 );
+		expect( p.top ).toBe( 500 );
 	} );
 } );

@@ -9,8 +9,45 @@
 
 export const GAP = 16; // Between the block and the panel.
 export const MARGIN = 12; // Between the panel and the canvas' edges.
+export const SHEET_BELOW = 720; // Canvases narrower than this get a sheet.
+export const SHEET_SHARE = 0.5; // How much of the canvas a sheet may cover.
 
 const clamp = ( v, min, max ) => Math.min( Math.max( v, min ), max );
+
+/**
+ * Whether the canvas is too narrow for a panel beside anything, so the
+ * panel is a sheet along the bottom instead, as in Cassatt.
+ *
+ * @param {Object} canvas The visible part of the canvas.
+ * @return {boolean} Whether it is.
+ */
+export function isSheet( canvas ) {
+	return canvas.right - canvas.left < SHEET_BELOW;
+}
+
+/**
+ * A sheet along the bottom of the canvas, as wide as the canvas and as tall
+ * as its content, up to half the canvas.
+ *
+ * @param {Object} args
+ * @param {Object} args.canvas The visible part of the canvas.
+ * @param {Object} args.panel  The panel's { height }.
+ * @return {{left: number, top: number, width: number, maxHeight: number, side: string}} Where it goes.
+ */
+export function placeSheet( { canvas, panel } ) {
+	const maxHeight = Math.max(
+		160,
+		Math.round( ( canvas.bottom - canvas.top ) * SHEET_SHARE )
+	);
+	const height = Math.min( panel.height, maxHeight );
+	return {
+		left: canvas.left,
+		top: canvas.bottom - height,
+		width: canvas.right - canvas.left,
+		maxHeight,
+		side: 'sheet',
+	};
+}
 
 /**
  * @param {Object} args

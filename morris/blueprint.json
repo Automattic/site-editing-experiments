@@ -1,0 +1,28 @@
+{
+	"$schema": "https://playground.wordpress.net/blueprint-schema.json",
+	"meta": {
+		"title": "Morris: font and size in the block toolbar",
+		"description": "Gutenberg PR #86248 with the Typography toolbar experiment turned on, opening a sample post.",
+		"author": "scruffian"
+	},
+	"landingPage": "/wp-admin/post.php?post=1000&action=edit",
+	"preferredVersions": {
+		"php": "8.3",
+		"wp": "latest"
+	},
+	"login": true,
+	"steps": [
+		{
+			"step": "installPlugin",
+			"pluginData": {
+				"resource": "url",
+				"url": "https://playground.wordpress.net/plugin-proxy.php?org=WordPress&repo=gutenberg&workflow=Build%20Gutenberg%20Plugin%20Zip&artifact=gutenberg.zip&pr=86248",
+				"caption": "Downloading Gutenberg PR 86248"
+			}
+		},
+		{
+			"step": "runPHP",
+			"code": "<?php require '/wordpress/wp-load.php'; update_option( 'gutenberg-experiments', array( 'gutenberg-typography-toolbar' => 1 ) ); update_user_meta( 1, 'wp_persisted_preferences', array( 'core' => array( 'welcomeGuide' => false ), 'core/edit-post' => array( 'welcomeGuide' => false, 'welcomeGuideTemplate' => false ), 'core/edit-site' => array( 'welcomeGuide' => false, 'welcomeGuideStyles' => false, 'welcomeGuidePage' => false, 'welcomeGuideTemplate' => false ), '_modified' => gmdate( 'c' ) ) ); wp_insert_post( array( 'import_id' => 1000, 'post_title' => 'Font and size, on the toolbar', 'post_status' => 'publish', 'post_content' => '<!-- wp:heading --><h2 class=\"wp-block-heading\">Select this heading</h2><!-- /wp:heading --><!-- wp:paragraph --><p>The toolbar names the font and size this heading is shown in, taken from the theme. Pick another font or size from the toolbar, no sidebar needed.</p><!-- /wp:paragraph --><!-- wp:paragraph {\"fontSize\":\"large\"} --><p class=\"has-large-font-size\">This paragraph uses one of the theme\\'s sizes. Open Size to see them all, each shown at its real size, and Default to go back to the theme\\'s.</p><!-- /wp:paragraph --><!-- wp:paragraph {\"style\":{\"typography\":{\"fontSize\":\"22px\"}}} --><p style=\"font-size:22px\">This one has a size of its own, 22, marked with an asterisk. Type a size or drag the slider to change it.</p><!-- /wp:paragraph --><!-- wp:buttons --><div class=\"wp-block-buttons\"><!-- wp:button --><div class=\"wp-block-button\"><a class=\"wp-block-button__link wp-element-button\">Buttons get both</a></div><!-- /wp:button --></div><!-- /wp:buttons --><!-- wp:spacer {\"height\":\"40px\"} --><div style=\"height:40px\" aria-hidden=\"true\" class=\"wp-block-spacer\"></div><!-- /wp:spacer --><!-- wp:paragraph --><p>The spacer above has no text, so it gets neither.</p><!-- /wp:paragraph -->' ) );"
+		}
+	]
+}

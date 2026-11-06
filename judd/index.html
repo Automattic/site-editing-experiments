@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Judd · Making a website from first principles</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,700&family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body class="editing">
+
+<header class="topbar" id="topbar">
+  <div class="tb-brand">
+    <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor"/></svg>
+    <strong>Judd</strong>
+  </div>
+  <label class="tb-page">Page
+    <select id="page-select" aria-label="Page"></select>
+  </label>
+  <div class="tb-draft" id="tb-draft"></div>
+  <span class="spacer"></span>
+  <label class="tb-switch" title="Label what everything is made from">
+    <input type="checkbox" id="plumb"><span class="track" aria-hidden="true"></span>Show how it works
+  </label>
+  <label class="tb-switch" title="See the site as a visitor would, with nothing editable">
+    <input type="checkbox" id="preview"><span class="track" aria-hidden="true"></span>Visitor view
+  </label>
+  <button class="tb-btn" id="undo" title="Undo (Ctrl+Z)" disabled>Undo</button>
+  <button class="tb-btn" id="redo" title="Redo (Ctrl+Shift+Z)" disabled>Redo</button>
+  <button class="tb-btn" id="reset" title="Start again with the sample studio">Reset</button>
+</header>
+
+<div class="layout">
+  <aside class="panel" id="panel" aria-label="Your site"></aside>
+  <main class="stage" id="stage">
+    <div class="banner" id="banner" hidden></div>
+    <div id="site"></div>
+  </main>
+</div>
+
+<div class="cmd" id="cmd-wrap">
+  <div class="receipt" id="receipt" role="status" hidden></div>
+  <div class="suggest" id="suggest" hidden></div>
+  <form class="cmd-form" id="cmd" autocomplete="off">
+    <span class="cmd-icon" aria-hidden="true">✦</span>
+    <input id="cmd-input" aria-label="Say what you want to change" placeholder="Say what you want: “add a raku class on Saturday”, “make it calmer”…">
+    <kbd>/</kbd>
+    <button type="submit">Do it</button>
+  </form>
+</div>
+
+<div class="pill" id="pill" hidden></div>
+<div class="pop" id="pop" hidden></div>
+<div class="compare" id="compare" hidden></div>
+
+<script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,37 @@
+{
+	"$schema": "https://playground.wordpress.net/blueprint-schema.json",
+	"meta": {
+		"title": "Lowry: the site editor as WebMCP tools",
+		"description": "An agent edits the page through the site editor itself: live on the canvas, undoable, unsaved until you save. The tools for the selected block are made from its block type.",
+		"author": "Automattic",
+		"categories": [
+			"editor",
+			"design"
+		]
+	},
+	"preferredVersions": {
+		"php": "8.3",
+		"wp": "latest"
+	},
+	"login": true,
+	"steps": [
+		{
+			"step": "activatePlugin",
+			"pluginPath": "lowry/lowry.php"
+		},
+		{
+			"step": "activateTheme",
+			"themeFolderName": "twentytwentyfive"
+		},
+		{
+			"step": "runPHP",
+			"code": "<?php\nrequire '/wordpress/wp-load.php';\nglobal $wpdb;\n// No welcome guides or pattern picker in the way.\nupdate_user_meta( 1, $wpdb->prefix . 'persisted_preferences', array(\n\t'core/edit-post' => array( 'welcomeGuide' => false ),\n\t'core/edit-site' => array( 'welcomeGuide' => false, 'welcomeGuidePage' => false, 'welcomeGuideTemplate' => false, 'welcomeGuideStyles' => false ),\n\t'core' => array( 'welcomeGuide' => false, 'enableChoosePatternModal' => false ),\n\t'_modified' => gmdate( 'c' ),\n) );\n// The sample page, as the home page too.\nif ( function_exists( 'lowry_create_sample_page' ) ) {\n\t$id = lowry_create_sample_page();\n\tif ( $id ) {\n\t\tupdate_option( 'show_on_front', 'page' );\n\t\tupdate_option( 'page_on_front', $id );\n\t}\n}\n"
+		},
+		{
+			"step": "setSiteOptions",
+			"options": {
+				"blogname": "Lowry"
+			}
+		}
+	]
+}

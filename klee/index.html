@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Klee · A generated website you can edit by hand</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,700&family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="tb-brand">
+    <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="1.5" fill="currentColor"/><circle cx="17" cy="7" r="4" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M3 21l4-7 4 7z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><rect x="13" y="13" width="8" height="8" rx="4" fill="currentColor" opacity=".55"/></svg>
+    <strong>Klee</strong>
+  </div>
+  <div class="pipe" id="pipe" aria-label="How this page was made"></div>
+  <span class="spacer"></span>
+  <label class="tb-switch" title="Underline the text you've written yourself and badge pinned sections">
+    <input type="checkbox" id="sources"><span class="track" aria-hidden="true"></span>Show what's yours
+  </label>
+  <button class="tb-btn" id="takes" title="See three other takes on the same inputs">Other takes</button>
+  <button class="tb-btn" id="undo" title="Undo (Ctrl+Z)" disabled>Undo</button>
+  <button class="tb-btn" id="redo" title="Redo (Ctrl+Shift+Z)" disabled>Redo</button>
+  <button class="tb-btn" id="reset" title="Start again with the sample bakery">Reset</button>
+</header>
+
+<div class="layout">
+  <aside class="panel" id="panel" aria-label="What the site is made from"></aside>
+  <main class="stage" id="stage">
+    <div class="review" id="review" hidden></div>
+    <div id="site"></div>
+  </main>
+</div>
+
+<div class="cmd" id="cmd-wrap">
+  <div class="suggest" id="suggest" hidden></div>
+  <div class="cmd-scope" id="cmd-scope"></div>
+  <form class="cmd-form" id="cmd" autocomplete="off">
+    <span class="cmd-icon" aria-hidden="true">✦</span>
+    <input id="cmd-input" aria-label="Say what you think of the site" placeholder="Say what you think: “calmer”, “too busy”, “no testimonials”, “make it green”…">
+    <kbd>/</kbd>
+    <button type="submit" id="cmd-go">Tell it</button>
+  </form>
+  <div class="cmd-read" id="cmd-read" aria-live="polite"></div>
+</div>
+
+<div class="pop" id="pop" hidden></div>
+<div class="modal" id="modal" hidden></div>
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script src="app.js"></script>
+</body>
+</html>

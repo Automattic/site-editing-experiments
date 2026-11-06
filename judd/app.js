@@ -473,6 +473,34 @@ const TYPES = {
 };
 const ADDABLE = ['hero', 'upcoming', 'pieces', 'news', 'about', 'visit', 'cta', 'newsletter', 'quote', 'pagehead'];
 
+/* What a new page is for decides which views it starts with. */
+const KITS = [
+  { id: 'blank', name: 'Just a title', about: 'Start empty and add sections yourself', types: [], intro: 'A line about what’s on this page.' },
+  { id: 'about', name: 'About you', about: 'Your story and a few words from someone', types: ['about', 'quote'], intro: 'Who we are and how we work.', words: /about|story|us|team|who/ },
+  { id: 'classes', name: 'Classes or events', about: 'Your classes, soonest first, and a way to book', types: ['upcoming', 'cta'], intro: 'What’s coming up in the studio.', words: /class|course|event|workshop|what.?s on|book/ },
+  { id: 'shop', name: 'Things to buy', about: 'Pieces from your shop', types: ['pieces'], intro: 'Made here in small batches.', words: /shop|store|gallery|work|pieces|buy|sale|seconds/ },
+  { id: 'news', name: 'News', about: 'Your latest news', types: ['news'], intro: 'What’s new in the studio.', words: /news|blog|journal|update|diary/ },
+  { id: 'contact', name: 'Contact and visiting', about: 'Hours, address, contact and a sign-up', types: ['visit', 'newsletter'], intro: 'Come and see us, or get in touch.', words: /contact|visit|find|hours|location|get in touch/ },
+];
+const kitFor = name => KITS.find(k => k.words && k.words.test(name.toLowerCase())) || KITS[0];
+function makePage(name, kitId) {
+  const kit = KITS.find(k => k.id === kitId) || KITS[0];
+  const sec = type => {
+    const base = { id: uid('s-'), type, ...TYPES[type].make() };
+    if (type === 'upcoming') Object.assign(base, { heading: '', count: 0 });
+    if (type === 'pieces') Object.assign(base, { heading: '', count: 0 });
+    if (type === 'news') Object.assign(base, { heading: '', count: 0 });
+    return base;
+  };
+  return { id: uid('pg-'), title: name, sections: [{ id: uid('s-'), type: 'pagehead', heading: name, text: kit.intro }, ...kit.types.map(sec)] };
+}
+function renamePage(d, id, name) {
+  const p = pageOf(d, id);
+  const head = p.sections.find(s => s.type === 'pagehead' || s.type === 'hero');
+  if (head && head.type === 'pagehead' && head.heading === p.title) head.heading = name; // keep the title in step if it was
+  p.title = name;
+}
+
 function plumbLabel(s) {
   switch (s.type) {
     case 'upcoming': return `View of your classes · ${s.count ? `next ${s.count}` : 'all of them'}${s.past ? ', including past ones' : ' coming up'}`;
@@ -701,6 +729,7 @@ function renderTop() {
   const sel = $('#page-select');
   sel.innerHTML = d.pages.map(p => `<option value="${p.id}"${p.id === app.pageId ? ' selected' : ''}>${esc(p.title)}</option>`).join('');
   sel.disabled = app.stage !== 'site';
+  $('#page-edit').disabled = app.stage !== 'site';
   $('#undo').disabled = !app.past.length;
   $('#redo').disabled = !app.future.length;
   $('#undo').title = app.past.length ? `Undo: ${app.past[app.past.length - 1].label} (Ctrl+Z)` : 'Nothing to undo';
@@ -803,8 +832,8 @@ function panelContent() {
   </section>
   <section class="pn-sec">
     <h3>Pages <button class="pn-add" data-addpage>+ Add</button></h3>
-    <p class="pn-hint">Each page is a few views of the things above. The menu is made from this list.</p>
-    ${d.pages.map(p => `<button class="row page-row${p.id === app.pageId ? ' on' : ''}" data-goto="${p.id}"><span class="row-t"><b>${esc(p.title)}</b><small>${p.sections.map(s => TYPES[s.type].name).join(' · ')}</small></span></button>`).join('')}
+    <p class="pn-hint">Each page is a few views of the things above. The menu is made from this list, in this order.</p>
+    ${d.pages.map(p => `<div class="page-line"><button class="row page-row${p.id === app.pageId ? ' on' : ''}" data-goto="${p.id}"><span class="row-t"><b>${esc(p.title)}</b><small>${p.sections.map(s => TYPES[s.type].name).join(' · ')}</small></span></button><button class="page-edit" data-pageedit="${p.id}" title="Rename, move or delete ${esc(p.title)}">Edit</button></div>`).join('')}
   </section>`;
 }
 
@@ -915,6 +944,7 @@ function openPop(anchor, html, cls = '') {
   const p = pop();
   p.className = 'pop ' + cls;
   p.innerHTML = html;
+  for (const k of ['_item', '_hours', '_pic', '_settings', '_page', '_addpage', '_kitPicked']) p[k] = null;
   p.hidden = false;
   p._anchor = anchor;
   placePop(anchor);
@@ -1031,6 +1061,38 @@ function openSettings(secId, anchor) {
   if (t.view) body += `<p class="pop-where">This section is a view: it shows your ${t.view === 'pieces' ? 'shop' : t.view} and keeps up with them by itself. To change what’s in it, change the ${t.view === 'pieces' ? 'pieces' : t.view}.</p>`;
   const p = openPop(anchor, `<div class="pop-head"><span class="pop-kind">${t.name} on ${esc(page.title)}</span><button class="x" data-close>×</button></div><div class="pop-body">${body}</div>`, 'pop-settings');
   p._settings = secId;
+}
+
+function openAddPage(anchor, name = '') {
+  const kit = name ? kitFor(name) : KITS[0];
+  const p = openPop(anchor, `<div class="pop-head"><span class="pop-kind">Add a page</span><button class="x" data-close>×</button></div>
+    <form class="pop-body" data-newpage>
+      <label class="fld"><span>Name</span><input data-pagename value="${esc(name)}" placeholder="For example: About us" required></label>
+      <div class="fld"><span>What’s it for?</span><div class="kits">${KITS.map(k => `<label class="kit"><input type="radio" name="kit" value="${k.id}"${k.id === kit.id ? ' checked' : ''}><b>${k.name}</b><small>${k.about}</small></label>`).join('')}</div></div>
+      <p class="pop-note">It goes at the end of the menu, on every page. You can rename it, move it or delete it later.</p>
+      <div class="pop-foot pop-foot-in"><span class="spacer"></span><button type="button" data-close>Cancel</button><button class="primary" type="submit">Add page</button></div>
+    </form>`, 'pop-page');
+  p._addpage = true;
+  p.querySelector('[data-pagename]').focus();
+}
+function addPage(name, kitId) {
+  const page = makePage(name, kitId);
+  commit(`Added a ${name} page`, d => d.pages.push(page));
+  go(page.id);
+  receipt(`Added ${name}. It’s at the end of the menu on every page.`, { undo: true });
+}
+function openPageSettings(id, anchor) {
+  const d = doc();
+  const page = pageOf(d, id);
+  const i = d.pages.indexOf(page);
+  const p = openPop(anchor, `<div class="pop-head"><span class="pop-kind">Page</span><button class="x" data-close>×</button></div>
+    <div class="pop-body">
+      <label class="fld"><span>Name</span><input data-rename value="${esc(page.title)}"></label>
+      <p class="pop-note">The name is what the menu says, on every page.</p>
+      <div class="fld"><span>Place in the menu</span><div class="seg"><button type="button" data-pagemove="-1"${i === 0 ? ' disabled' : ''}>← Earlier</button><button type="button" data-pagemove="1"${i === d.pages.length - 1 ? ' disabled' : ''}>Later →</button></div></div>
+    </div>
+    <div class="pop-foot">${id === 'home' ? '<span class="pop-note-sm">Home can’t be deleted</span>' : '<button data-pagedel>Delete page</button>'}<span class="spacer"></span><button class="primary" data-close>Done</button></div>`, 'pop-page');
+  p._page = id;
 }
 
 function openAddSection(anchor) {
@@ -1268,8 +1330,17 @@ function interpret(raw) {
   // Pages
   if ((m = t.match(/^(?:add|make|create) (?:a )?(?:new )?page (?:called |named |for |about )?(.+)$/i))) {
     const name = cap(m[1].replace(/^["“']|["”']$/g, ''));
-    const id = uid('pg-');
-    return { label: `Added a ${name} page`, fn: x => x.pages.push({ id, title: name, sections: [{ id: uid('s-'), type: 'pagehead', heading: name, text: 'A line about what’s on this page.' }, { id: uid('s-'), type: 'cta', ...TYPES.cta.make() }] }), say: `Added a ${name} page; it’s in the menu on every page`, nav: id };
+    const page = makePage(name, kitFor(name).id);
+    return { label: `Added a ${name} page`, fn: x => x.pages.push(page), say: `Added a ${name} page; it’s in the menu on every page`, nav: page.id };
+  }
+  if ((m = t.match(/^(?:rename|call) (?:the |my |our )?(.+?) page (?:to |as )?["“']?(.+?)["”']?$/i))) {
+    const p = d.pages.find(x => x.title.toLowerCase() === m[1].toLowerCase());
+    if (p) { const name = cap(m[2]); return { label: `Renamed ${p.title} to ${name}`, fn: x => renamePage(x, p.id, name), say: `${p.title} is now ${name}, in the menu on every page` }; }
+  }
+  if ((m = s.match(/^(?:delete|remove|get rid of) (?:the |my |our )?(.+?) page$/))) {
+    const p = d.pages.find(x => x.title.toLowerCase() === m[1]);
+    if (p && p.id === 'home') return { say: 'Home can’t be deleted', nothing: true };
+    if (p) return { label: `Deleted the ${p.title} page`, fn: x => { x.pages = x.pages.filter(q => q.id !== p.id); }, say: `Deleted ${p.title}. It’s gone from the menu` };
   }
 
   // News
@@ -1548,6 +1619,24 @@ document.addEventListener('mousedown', e => {
 pop().addEventListener('click', e => {
   const p = pop();
   if (e.target.closest('[data-close]')) { closePop(); return; }
+  if (p._page) {
+    const id = p._page;
+    const mv = e.target.closest('[data-pagemove]');
+    if (mv && !mv.disabled) {
+      const dir = Number(mv.dataset.pagemove);
+      commit(`Moved ${pageOf(doc(), id).title} ${dir < 0 ? 'earlier' : 'later'} in the menu`, d => { const i = d.pages.findIndex(q => q.id === id); const j = i + dir; [d.pages[i], d.pages[j]] = [d.pages[j], d.pages[i]]; });
+      openPageSettings(id, $(`#panel [data-pageedit="${id}"]`) || p._anchor);
+      return;
+    }
+    if (e.target.closest('[data-pagedel]')) {
+      const title = pageOf(doc(), id).title;
+      closePop();
+      commit(`Deleted the ${title} page`, d => { d.pages = d.pages.filter(q => q.id !== id); });
+      if (app.pageId === id) go('home');
+      receipt(`Deleted ${title}. It’s gone from the menu.`, { undo: true });
+    }
+    return;
+  }
   if (p._item) {
     const { coll, id } = p._item;
     const it = itemOf(doc(), coll, id);
@@ -1577,6 +1666,13 @@ pop().addEventListener('click', e => {
 });
 pop().addEventListener('change', e => {
   const p = pop();
+  if (e.target.name === 'kit') p._kitPicked = true;
+  if (p._page && e.target.matches('[data-rename]')) {
+    const id = p._page, v = e.target.value.trim(), old = pageOf(doc(), id).title;
+    if (v && v !== old) { commit(`Renamed ${old} to ${v}`, d => renamePage(d, id, v)); receipt(`${old} is now ${v}, in the menu on every page`, { undo: true }); }
+    else e.target.value = old;
+    return;
+  }
   const f = e.target.closest('[data-f]');
   if (f && p._item) { changeItem(p._item.coll, p._item.id, f.dataset.f, f.value); return; }
   if (p._settings && e.target.matches('[data-toggle]')) {
@@ -1591,7 +1687,27 @@ pop().addEventListener('change', e => {
     if (t.matches('[data-holiday]')) changeHours(s => { s.holiday = t.value.trim(); }, t.value.trim() ? 'Added a holiday note to your hours' : 'Removed the holiday note');
   }
 });
-pop().addEventListener('keydown', e => { if (e.key === 'Escape') closePop(); });
+pop().addEventListener('keydown', e => {
+  if (e.key === 'Escape') closePop();
+  if (e.key === 'Enter' && e.target.matches('[data-rename]')) { e.preventDefault(); e.target.blur(); }
+});
+pop().addEventListener('submit', e => {
+  e.preventDefault();
+  const f = e.target.closest('[data-newpage]');
+  if (!f) return;
+  const name = cap(f.querySelector('[data-pagename]').value.trim());
+  if (!name) { f.querySelector('[data-pagename]').focus(); return; }
+  if (doc().pages.some(p => p.title.toLowerCase() === name.toLowerCase())) { const n = f.querySelector('[data-pagename]'); n.setCustomValidity(`There’s already a page called ${name}`); n.reportValidity(); n.addEventListener('input', () => n.setCustomValidity(''), { once: true }); return; }
+  closePop();
+  addPage(name, f.querySelector('input[name="kit"]:checked')?.value);
+});
+// Suggest what a page is for from its name, until someone picks
+pop().addEventListener('input', e => {
+  if (!e.target.matches('[data-pagename]') || pop()._kitPicked) return;
+  const k = kitFor(e.target.value);
+  const r = pop().querySelector(`input[name="kit"][value="${k.id}"]`);
+  if (r) r.checked = true;
+});
 
 // Pill (scope)
 pill().addEventListener('click', e => {
@@ -1617,7 +1733,9 @@ panel.addEventListener('click', e => {
   if (t.closest('[data-hours]')) { openHours(t.closest('[data-hours]')); return; }
   const g = t.closest('[data-goto]');
   if (g) { go(g.dataset.goto); return; }
-  if (t.closest('[data-addpage]')) { runCommand('add a page called Gallery'); return; }
+  if (t.closest('[data-addpage]')) { openAddPage(t.closest('[data-addpage]')); return; }
+  const pe = t.closest('[data-pageedit]');
+  if (pe) { openPageSettings(pe.dataset.pageedit, pe); return; }
   const pr = t.closest('[data-preset]');
   if (pr) { const p = PRESETS.find(x => x.id === pr.dataset.preset); commit(`Changed the look to ${p.name}`, d => { d.taste = { ...p.taste }; }); return; }
   const ty = t.closest('[data-type]');
@@ -1684,6 +1802,8 @@ $('#banner').addEventListener('click', e => {
 
 // Top bar
 $('#page-select').addEventListener('change', e => go(e.target.value));
+$('#page-edit').addEventListener('click', e => openPageSettings(app.pageId, e.currentTarget));
+$('#page-add').addEventListener('click', e => openAddPage(e.currentTarget));
 $('#plumb').addEventListener('change', e => { app.plumbing = e.target.checked; render(); });
 $('#preview').addEventListener('change', e => { app.preview = e.target.checked; closePop(); render(); });
 $('#undo').addEventListener('click', undo);

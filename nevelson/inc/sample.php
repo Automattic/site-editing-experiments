@@ -11,7 +11,7 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * The sample page's block markup: a few blocks in the content width, then
- * Twenty Twenty-Five patterns that fill the page.
+ * Twenty Twenty-Five patterns that fill the page, each a section.
  *
  * @return string
  */
@@ -22,11 +22,11 @@ function nevelson_sample_content() {
 <!-- /wp:heading -->
 
 <!-- wp:paragraph -->
-<p>Select any block on this page. Its settings open in a panel beside it, not in the sidebar, and follow it as you scroll. The sidebar keeps the page’s own settings.</p>
+<p>Select any block on this page. Its settings open in a panel beside it, not in a sidebar, and follow it as you scroll. The page’s own settings are under the Settings button at the top.</p>
 <!-- /wp:paragraph -->
 
 <!-- wp:paragraph -->
-<p>Drag the panel by its top bar to put it somewhere else, and choose Follow block to bring it back. Move to the sidebar puts the settings back where they usually are.</p>
+<p>Drag the panel by its top bar to put it somewhere else, and choose Follow block to bring it back. The sections below are patterns: click anything in one, and the panel has that block’s settings, not the pattern’s.</p>
 <!-- /wp:paragraph -->
 
 <!-- wp:list -->
@@ -50,9 +50,26 @@ HTML;
 	$registry = WP_Block_Patterns_Registry::get_instance();
 	foreach ( array( 'twentytwentyfive/hero-full-width-image', 'twentytwentyfive/services-3-col', 'twentytwentyfive/cta-centered-heading' ) as $name ) {
 		$pattern = $registry->get_registered( $name );
-		if ( $pattern ) {
-			$out[] = $pattern['content'];
+		if ( ! $pattern ) {
+			continue;
 		}
+		// Each pattern says which it is, as the inserter does, which makes it
+		// a section in WordPress 7.
+		$blocks = array_values(
+			array_filter(
+				parse_blocks( $pattern['content'] ),
+				function ( $block ) {
+					return ! empty( $block['blockName'] );
+				}
+			)
+		);
+		if ( 1 === count( $blocks ) ) {
+			$blocks[0]['attrs']['metadata'] = array_merge(
+				isset( $blocks[0]['attrs']['metadata'] ) ? (array) $blocks[0]['attrs']['metadata'] : array(),
+				array( 'patternName' => $name )
+			);
+		}
+		$out[] = serialize_blocks( $blocks );
 	}
 	return implode( "\n\n", $out );
 }

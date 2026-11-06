@@ -1,0 +1,203 @@
+/**
+ * The section overlay's chrome inside the editor canvas, as in Albers and
+ * Degas. Everything sits in one layer over the page, positioned from the
+ * sections' own boxes; only the controls themselves take the pointer.
+ */
+$blue: #3858e9;
+$editor: #1e1e1e;
+$ink: #1a1a1a;
+
+.ito-layer {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 0;
+	height: 0;
+	z-index: 100000;
+	pointer-events: none;
+	font: 500 14px/1.3 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+	color: $ink;
+	text-align: left;
+	letter-spacing: normal;
+	text-transform: none;
+
+	button {
+		font: inherit;
+		letter-spacing: normal;
+		text-transform: none;
+		margin: 0;
+	}
+}
+
+.ito-outline,
+.ito-tab,
+.ito-bar,
+.ito-lp {
+	position: absolute;
+	box-sizing: border-box;
+}
+
+/* ---------- Hover: outline, name tab and Edit layout ---------- */
+.ito-outline {
+	box-shadow: inset 0 0 0 2px $blue;
+}
+.ito-tab {
+	transform: translateY(-100%);
+	width: max-content;
+	padding: 4px 10px;
+	background: $blue;
+	color: #fff;
+	border-radius: 6px 6px 0 0;
+	font-size: 12px;
+	font-weight: 600;
+	white-space: nowrap;
+	z-index: 3;
+}
+.ito-bar {
+	padding: 4px;
+	background: #fff;
+	border-radius: 10px;
+	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
+	pointer-events: auto;
+	z-index: 2;
+}
+.ito-ob {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	min-height: 36px;
+	padding: 0 14px;
+	background: transparent;
+	color: $ink;
+	border: 0;
+	border-radius: 6px;
+	cursor: pointer;
+	white-space: nowrap;
+	font-weight: 600 !important;
+
+	&:hover:not(:disabled),
+	&:focus-visible {
+		background: rgba($blue, 0.1);
+		color: $blue;
+	}
+	&:disabled {
+		cursor: default;
+		color: #757575;
+	}
+}
+.ito-count {
+	padding: 2px 8px;
+	background: rgba($blue, 0.12);
+	color: $blue;
+	border-radius: 999px;
+	font-size: 12px;
+	font-weight: 600;
+
+	.ito-ob:disabled & {
+		background: #f0f0f0;
+		color: #757575;
+	}
+}
+
+/* ---------- Edit layout: the panel of layouts ---------- */
+.ito-lp {
+	width: max-content;
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	padding: 12px;
+	background: $editor;
+	color: #fff;
+	border-radius: 12px;
+	box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+	pointer-events: auto;
+	z-index: 8;
+}
+.ito-lphead {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+}
+.ito-lph {
+	font-weight: 600;
+}
+.ito-lpnote {
+	color: #bbb;
+	font-size: 13px;
+}
+.ito-lpactions {
+	display: flex;
+	gap: 6px;
+	margin-left: auto;
+}
+.ito-lpbtn {
+	min-height: 32px;
+	padding: 0 12px;
+	background: rgba(255, 255, 255, 0.1);
+	color: #fff;
+	border: 0;
+	border-radius: 6px;
+	cursor: pointer;
+
+	&:hover:not(:disabled) {
+		background: rgba(255, 255, 255, 0.18);
+	}
+	&:disabled {
+		opacity: 0.4;
+		cursor: default;
+	}
+	&.is-primary {
+		background: $blue;
+	}
+}
+.ito-lpo {
+	display: flex;
+	gap: 10px;
+	overflow-x: auto;
+	padding-bottom: 2px;
+}
+.ito-lpi {
+	flex: none;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	width: 200px;
+	padding: 6px;
+	background: transparent;
+	color: #ddd;
+	border: 0;
+	border-radius: 8px;
+	cursor: pointer;
+	text-align: left;
+
+	&:hover,
+	&:focus-visible {
+		background: rgba(255, 255, 255, 0.08);
+	}
+	&.is-on {
+		color: #fff;
+
+		.ito-lpthumb {
+			box-shadow: 0 0 0 2px $editor, 0 0 0 4px $blue;
+		}
+	}
+}
+.ito-lpthumb {
+	display: block;
+	height: 130px;
+	overflow: hidden;
+	background: #fff;
+	border-radius: 6px;
+	pointer-events: none;
+}
+.ito-lpl {
+	overflow: hidden;
+	font-size: 12px;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+}
+
+/* The panel sits in the editor's own window, over the canvas. */
+.ito-panelhost .ito-lp {
+	position: fixed;
+}

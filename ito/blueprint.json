@@ -1,0 +1,47 @@
+{
+	"$schema": "https://playground.wordpress.net/blueprint-schema.json",
+	"meta": {
+		"title": "Ito: change the layout, keep the content",
+		"description": "Hover a section for Edit layout: layouts made from the section's own content. Pick one and the layout changes, the words and pictures stay.",
+		"author": "Automattic",
+		"categories": [
+			"editor",
+			"design"
+		]
+	},
+	"landingPage": "/wp-admin/?ito-sample",
+	"preferredVersions": {
+		"php": "8.3",
+		"wp": "latest"
+	},
+	"login": true,
+	"steps": [
+		{
+			"step": "installPlugin",
+			"pluginData": {
+				"resource": "git:directory",
+				"url": "https://github.com/Automattic/site-editing-experiments",
+				"ref": "trunk",
+				"path": "ito"
+			},
+			"options": {
+				"activate": true,
+				"targetFolderName": "ito"
+			}
+		},
+		{
+			"step": "activateTheme",
+			"themeFolderName": "twentytwentyfive"
+		},
+		{
+			"step": "runPHP",
+			"code": "<?php\nrequire '/wordpress/wp-load.php';\nglobal $wpdb;\n// No welcome guides or pattern picker in the way.\nupdate_user_meta( 1, $wpdb->prefix . 'persisted_preferences', array(\n\t'core/edit-post' => array( 'welcomeGuide' => false ),\n\t'core/edit-site' => array( 'welcomeGuide' => false, 'welcomeGuidePage' => false, 'welcomeGuideTemplate' => false ),\n\t'core' => array( 'welcomeGuide' => false, 'enableChoosePatternModal' => false ),\n\t'_modified' => gmdate( 'c' ),\n) );\n// The sample page, as the home page too.\nif ( function_exists( 'ito_create_sample_page' ) ) {\n\t$id = ito_create_sample_page();\n\tif ( $id ) {\n\t\tupdate_option( 'show_on_front', 'page' );\n\t\tupdate_option( 'page_on_front', $id );\n\t}\n}\n"
+		},
+		{
+			"step": "setSiteOptions",
+			"options": {
+				"blogname": "Ito"
+			}
+		}
+	]
+}

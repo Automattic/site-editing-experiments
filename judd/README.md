@@ -49,7 +49,8 @@ The bar along the bottom (press `/`) takes plain sentences, and changes the same
 - "Mark the tea bowl as sold", "hide sold pieces"
 - "We're closed on Mondays", "open Sundays 11 to 4", "We're closed 24 December to 2 January"
 - "Add a booking section", "remove the shop section"
-- "Post: Seconds sale this weekend", "Add a page called Gallery", "Rename the studio to …"
+- "Post: Seconds sale this weekend", "Rename the studio to …"
+- "Add a page called About us", "rename the classes page to Workshops", "delete the about us page"
 - "Go to classes", "show me the newsletter", "undo"
 
 It's a small rule-based interpreter standing in for a language model; it doesn't call one. The point isn't the parsing: it's that words and direct manipulation share one model, so you can say roughly what you want and then fix the details by hand.
@@ -86,6 +87,7 @@ A website is one way of showing your content. **Everywhere** shows four others m
 
 ## Other things to try
 
+- **Pages**: **+ Page** in the top bar (or + Add under Pages in Content) asks for a name and what the page is for (about you, classes or events, things to buy, news, contact and visiting, or just a title), suggests one from the name, and starts the page with the right views. **Edit page** (or Edit beside any page) renames it, moves it earlier or later in the menu, or deletes it; renaming changes the menu on every page, and the page title too if it matched. You can also say "add a page called About us", "rename the classes page to Workshops" or "delete the sale page".
 - **Hover a section** for its name, Settings (how many items a view shows, whether it includes past classes or sold pieces, and its background), move up and down, and Remove. **+ Add a section** at the bottom of each page.
 - **Click a class, piece or news post** on the page to edit it in place, **click opening hours** anywhere to change them, and **click a big picture** to swap it.
 - **Visitor view** turns editing off so the menu and buttons work like a real site.

@@ -22,7 +22,7 @@ function nevelson_sample_content() {
 <!-- /wp:heading -->
 
 <!-- wp:paragraph -->
-<p>Select any block on this page. Its settings open in a panel beside it, not in a sidebar, and follow it as you scroll. The page’s own settings are under the Settings button at the top.</p>
+<p>Select any block on this page and press the settings button (two sliders) in its toolbar. Its settings open in a panel beside it, not in a sidebar, and follow it as you scroll, from block to block, until you close them. The page’s own settings are under the Settings button at the top.</p>
 <!-- /wp:paragraph -->
 
 <!-- wp:paragraph -->

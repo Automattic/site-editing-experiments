@@ -71,6 +71,9 @@ const shot = ( name ) =>
 		: null;
 const wait = ( ms ) => page.waitForTimeout( ms );
 const PANEL = '.nevelson-panel';
+const BUTTON = '.block-editor-block-toolbar .nevelson-toolbar-button';
+const pressed = () =>
+	page.locator( BUTTON ).first().getAttribute( 'aria-pressed' );
 
 // ---------- Helpers that read the editor's state ----------
 
@@ -206,14 +209,22 @@ await step( 'the editor opens without its sidebar', async () => {
 	);
 } );
 
+await step( 'selecting a block doesn’t open the panel', async () => {
+	await canvas.locator( `#block-${ para.id }` ).click();
+	await wait( 500 );
+	expect( ( await panel() ) === null, 'the panel opened by itself' );
+	expect( ( await pressed() ) === 'false', 'the button is pressed' );
+} );
+
 await step(
-	'selecting a paragraph floats its settings to its right',
+	'the toolbar’s settings button opens it, to the right of the block',
 	async () => {
-		await canvas.locator( `#block-${ para.id }` ).click();
+		await page.locator( BUTTON ).first().click();
 		await wait( 400 );
 		const p = await panel();
 		const b = await anchorBox( para.id );
 		expect( p, 'no panel' );
+		expect( ( await pressed() ) === 'true', 'the button isn’t pressed' );
 		expect( p.side === 'right', `side is ${ p.side }` );
 		expect( p.left > b.right, 'panel overlaps the block' );
 		expect(
@@ -225,6 +236,14 @@ await step(
 		await shot( '01-beside' );
 	}
 );
+
+await step( 'it stays open for the next block', async () => {
+	await canvas.locator( `#block-${ paras[ 1 ].id }` ).click();
+	await wait( 400 );
+	expect( await panel(), 'it closed' );
+	await canvas.locator( `#block-${ para.id }` ).click();
+	await wait( 400 );
+} );
 
 await step( 'a setting in the panel changes the block', async () => {
 	await page
@@ -459,15 +478,23 @@ await step( 'dragging puts it somewhere else, for every block', async () => {
 	expect( ( await panel() ).side !== 'put', 'Follow block did nothing' );
 } );
 
-await step( 'closed, it comes back with a click on the block', async () => {
+await step( 'closed, it stays closed until the button opens it', async () => {
 	await select( para.id );
 	await wait( 300 );
 	await page.locator( `${ PANEL } button[aria-label="Close"]` ).click();
 	await wait( 300 );
 	expect( ( await panel() ) === null, 'still there' );
-	await canvas.locator( `#block-${ para.id }` ).click();
+	await canvas.locator( `#block-${ paras[ 1 ].id }` ).click();
 	await wait( 400 );
-	expect( await panel(), 'did not come back' );
+	expect( ( await panel() ) === null, 'it came back by itself' );
+	await page.locator( BUTTON ).first().click();
+	await wait( 400 );
+	expect( await panel(), 'the button didn’t open it' );
+	await page.locator( BUTTON ).first().click();
+	await wait( 400 );
+	expect( ( await panel() ) === null, 'the button didn’t close it' );
+	await page.locator( BUTTON ).first().click();
+	await wait( 400 );
 } );
 
 await step( 'several blocks share one panel', async () => {
@@ -529,6 +556,9 @@ await step( 'it works in the site editor', async () => {
 	);
 	await wait( 1500 );
 	await clickOn( '.wp-block-site-title' );
+	expect( ( await panel() ) === null, 'the panel opened by itself' );
+	await page.locator( BUTTON ).first().click();
+	await wait( 500 );
 	expect( await panel(), 'no panel' );
 	const c = await cards();
 	expect( c.at( -1 ) === 'Site Title', `panel shows ${ c.join( ' > ' ) }` );

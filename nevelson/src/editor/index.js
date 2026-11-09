@@ -2,6 +2,8 @@
  * Nevelson: the block inspector as a floating panel beside the selected
  * block, as Judd's settings are, instead of in the sidebar.
  *
+ * - The panel opens from a settings button in the block toolbar, and stays
+ *   open from block to block until it's closed.
  * - The block's settings are only ever in the panel. It's always the
  *   selected block's own settings, even in a pattern or template part.
  * - The page's settings aren't in a sidebar either: the Settings button opens
@@ -21,6 +23,7 @@ import {
 
 import { FloatingPanel } from './panel';
 import { createSectionEntry } from './sections';
+import { store as nevelsonStore } from './toolbar';
 import './style.scss';
 
 const SCOPE = 'core';
@@ -186,10 +189,13 @@ function Nevelson() {
 		} );
 	}, [ registry, sections ] );
 
-	// Closed with ×, the panel comes back with the next click on a block,
-	// the same one included, or the next selection.
-	const [ closed, setClosed ] = useState( false );
-	useEffect( () => setClosed( false ), [ key ] );
+	// The panel opens from the block toolbar's settings button, and stays
+	// open from block to block until it's closed.
+	const open = useSelect(
+		( select ) => select( nevelsonStore ).isOpen(),
+		[]
+	);
+	const { setOpen } = useDispatch( nevelsonStore );
 
 	const doc = useCanvasDocument();
 	useEffect( () => {
@@ -201,7 +207,6 @@ function Nevelson() {
 				event.preventDefault();
 				event.stopImmediatePropagation();
 			}
-			setClosed( false );
 			// The page's card closes when you go back to the page, as
 			// Judd's popovers do.
 			const { getActiveComplementaryArea } =
@@ -250,7 +255,7 @@ function Nevelson() {
 
 	const [ offset, setOffset ] = useState( null );
 
-	if ( ! key || hidden || closed ) {
+	if ( ! key || hidden || ! open ) {
 		return null;
 	}
 	return createPortal(
@@ -259,7 +264,7 @@ function Nevelson() {
 			isTyping={ isTyping }
 			offset={ offset }
 			setOffset={ setOffset }
-			onClose={ () => setClosed( true ) }
+			onClose={ () => setOpen( false ) }
 		/>,
 		document.body
 	);

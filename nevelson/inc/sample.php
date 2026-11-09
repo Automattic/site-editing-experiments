@@ -18,24 +18,24 @@ defined( 'ABSPATH' ) || exit;
 function nevelson_sample_content() {
 	$intro = <<<'HTML'
 <!-- wp:heading {"level":1} -->
-<h1 class="wp-block-heading">Settings beside the block</h1>
+<h1 class="wp-block-heading">One panel for the block</h1>
 <!-- /wp:heading -->
 
 <!-- wp:paragraph -->
-<p>Select any block on this page and press the settings button (two sliders) in its toolbar. Its settings open in a panel beside it, not in a sidebar, and follow it as you scroll, from block to block, until you close them. The page’s own settings are under the Settings button at the top.</p>
+<p>Select any block on this page and press the settings button (two sliders) in its toolbar. The toolbar and the block’s settings become one floating panel, pinned to the right, which stays open from block to block until you press the button again. The page’s own settings are under the Settings button at the top.</p>
 <!-- /wp:paragraph -->
 
 <!-- wp:paragraph -->
-<p>Drag the panel by its top bar to put it somewhere else, and choose Follow block to bring it back. The sections below are patterns: click anything in one, and the panel has that block’s settings, not the pattern’s.</p>
+<p>The panel is as tall as the block’s controls. The sections below are patterns: click anything in one, and the panel has that block’s settings, not the pattern’s.</p>
 <!-- /wp:paragraph -->
 
 <!-- wp:list -->
 <ul class="wp-block-list"><!-- wp:list-item -->
-<li>Narrow blocks, like this list, have room for the panel on the right.</li>
+<li>A list item has few settings, so its panel is short.</li>
 <!-- /wp:list-item -->
 
 <!-- wp:list-item -->
-<li>Full-width sections don’t, so it sits over the right edge of the page.</li>
+<li>Full-width sections go under the panel, which floats over them.</li>
 <!-- /wp:list-item --></ul>
 <!-- /wp:list -->
 

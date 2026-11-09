@@ -337,66 +337,78 @@ await step( 'it stays open for the next block', async () => {
 } );
 
 await step(
-	'with the panel open, its header is the block’s name, with the tools the toolbar doesn’t have',
+	'with the panel open, its header is the block, and alignment is in panels',
 	async () => {
 		await select( para.id );
-		await wait( 500 );
-		const header = await page
-			.locator( `${ PANEL } .nevelson-head .nevelson-kind` )
-			.textContent();
-		expect( header === 'Paragraph', `the header says ${ header }` );
-		const r = await page.evaluate( () => {
-			const band = document
-				.querySelector( '.nevelson-panel .nevelson-band' )
-				.getBoundingClientRect();
-			const moved = [ ...document.querySelectorAll( '.nevelson-moved' ) ];
-			const labels = moved.flatMap( ( m ) =>
-				[ ...m.querySelectorAll( 'button' ) ].map(
-					( b ) => b.getAttribute( 'aria-label' ) || b.textContent
-				)
-			);
-			const inBand = moved.every( ( m ) => {
-				const x = m.getBoundingClientRect();
-				return (
-					x.left >= band.left &&
-					x.right <= band.right &&
-					x.top >= band.top &&
-					x.bottom <= band.bottom
-				);
-			} );
-			return { labels, inBand };
+		await wait( 600 );
+		const head = await page.evaluate( () => {
+			const k = document.querySelector( '.nevelson-head .nevelson-kind' );
+			return {
+				name: k.querySelector( '.nevelson-kind-name' )?.textContent,
+				icon: !! k.querySelector( '.block-editor-block-icon' ),
+				title: k.getAttribute( 'title' ),
+				card: [
+					...document.querySelectorAll(
+						'.nevelson-body .block-editor-block-card'
+					),
+				].some( ( c ) => c.offsetParent !== null ),
+				optionsInPanel: !! [
+					...document.querySelectorAll(
+						'.nevelson-panel .block-editor-block-settings-menu, .nevelson-moved .block-editor-block-settings-menu'
+					),
+				].find( ( e ) => e.offsetParent !== null ),
+				dropdownsInBand: [
+					...document.querySelectorAll( '.nevelson-moved button' ),
+				]
+					.filter( ( e ) => e.offsetParent !== null )
+					.map( ( e ) => e.getAttribute( 'aria-label' ) ),
+			};
 		} );
+		expect( head.name === 'Paragraph', `the header says ${ head.name }` );
+		expect( head.icon, 'no icon in the header' );
 		expect(
-			MOVED.every( ( l ) => r.labels.includes( l ) ),
-			`the panel has ${ r.labels.join( ', ' ) }`
+			head.title?.startsWith( 'Start with the basic building block' ),
+			`the header's title is ${ head.title }`
 		);
-		expect( r.inBand, 'the tools aren’t in the panel’s band' );
+		expect( ! head.card, 'the block card is still in the settings' );
+		expect( ! head.optionsInPanel, 'the options menu is in the panel' );
+		expect(
+			! MOVED.some( ( l ) => head.dropdownsInBand.includes( l ) ),
+			`alignment dropdowns are in the band: ${ head.dropdownsInBand.join( ', ' ) }`
+		);
+		await page
+			.locator( '.nevelson-text-alignment button[aria-label="Center"]' )
+			.click();
+		await page
+			.locator( '.nevelson-alignment button[aria-label="Wide width"]' )
+			.click();
+		await wait( 400 );
+		const a = await page.evaluate(
+			( id ) =>
+				window.wp.data
+					.select( 'core/block-editor' )
+					.getBlockAttributes( id ),
+			para.id
+		);
+		expect(
+			a.align === 'wide' && a.style?.typography?.textAlign === 'center',
+			`attributes are ${ JSON.stringify( a ) }`
+		);
+		await shot( '01b-alignment' );
+		await page.keyboard.press( 'ControlOrMeta+z' );
+		await page.keyboard.press( 'ControlOrMeta+z' );
+		await wait( 300 );
 		const t = await toolbar();
 		expect(
 			t && ! MOVED.some( ( l ) => t.labels.includes( l ) ),
 			'the toolbar by the block has more than the basics'
 		);
 		expect(
-			[ 'Drag', 'Bold', 'Block settings' ].every( ( l ) =>
+			[ 'Drag', 'Bold', 'Block settings', 'Options' ].every( ( l ) =>
 				t.labels.includes( l )
 			),
 			'the basics aren’t by the block'
 		);
-		// The options menu stays by the block, and opens from there.
-		await page
-			.locator(
-				'.block-editor-block-contextual-toolbar button[aria-label="Options"]:not(.nevelson-moved *)'
-			)
-			.first()
-			.click();
-		await wait( 500 );
-		const menu = await page
-			.locator( '.block-editor-block-settings-menu__popover' )
-			.count();
-		expect( menu > 0, 'the options menu didn’t open' );
-		await page.keyboard.press( 'Escape' );
-		await wait( 300 );
-		await shot( '01b-tools-in-panel' );
 	}
 );
 

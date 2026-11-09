@@ -2,12 +2,17 @@
  * The floating panel: the editor's own block inspector, in a card beside the
  * selected block that follows it as the page scrolls and changes.
  */
-import { BlockInspector, BlockTitle } from '@wordpress/block-editor';
+import {
+	BlockIcon,
+	BlockInspector,
+	useBlockDisplayInformation,
+} from '@wordpress/block-editor';
 import { Button, SVG, Path } from '@wordpress/components';
 import { useLayoutEffect, useRef } from '@wordpress/element';
 import { __, sprintf } from '@wordpress/i18n';
 
 import { place, placeAt, placeSheet, isSheet, overlaps, union } from './place';
+import { AlignmentPanels, coreAlignLabels } from './alignment';
 
 export const closeIcon = (
 	<SVG xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
@@ -55,7 +60,14 @@ function movedTools( toolbar ) {
 function unmark( marked, keep ) {
 	for ( const tool of marked ) {
 		if ( ! keep.has( tool ) ) {
-			tool.classList.remove( 'nevelson-moved', 'nevelson-unhidden' );
+			tool.classList.remove(
+				'nevelson-moved',
+				'nevelson-unhidden',
+				'nevelson-empty'
+			);
+			tool.querySelectorAll( '.nevelson-replaced' ).forEach( ( r ) =>
+				r.classList.remove( 'nevelson-replaced' )
+			);
 			tool.style.removeProperty( 'left' );
 			tool.style.removeProperty( 'top' );
 			marked.delete( tool );
@@ -102,10 +114,31 @@ function placeTools( panel, marked ) {
 	const right = area.right - BAND_PAD;
 	let x = left;
 	let row = 0;
+	// Core's alignment dropdowns are panels in the settings now.
+	const replaced = coreAlignLabels();
+	let any = false;
 	for ( const tool of tools ) {
 		tool.classList.add( 'nevelson-moved' );
 		marked.add( tool );
-		const width = tool.offsetWidth;
+		tool.querySelectorAll( '.components-dropdown' ).forEach( ( d ) => {
+			const label = d
+				.querySelector( '.components-dropdown-menu__toggle' )
+				?.getAttribute( 'aria-label' );
+			d.classList.toggle(
+				'nevelson-replaced',
+				replaced.includes( label )
+			);
+		} );
+		// Nothing left in it, once the alignment dropdowns are out.
+		const empty = ! [
+			...tool.querySelectorAll( '[data-toolbar-item], button' ),
+		].some( ( item ) => ! item.closest( '.nevelson-replaced' ) );
+		tool.classList.toggle( 'nevelson-empty', empty );
+		const width = empty ? 0 : tool.offsetWidth;
+		if ( ! width ) {
+			continue;
+		}
+		any = true;
 		if ( x > left && x + width > right ) {
 			x = left;
 			row++;
@@ -116,7 +149,7 @@ function placeTools( panel, marked ) {
 		) }px`;
 		x += width;
 	}
-	return tools.length ? row + 1 : 0;
+	return any ? row + 1 : 0;
 }
 
 const canvasFrame = () =>
@@ -177,6 +210,37 @@ function blocksBox( iframe, clientIds ) {
 			bottom: frame.top + r.bottom,
 		} ) );
 	return union( rects );
+}
+
+/**
+ * The panel's heading: the block's icon and name, with its description as
+ * the heading's title text, or how many blocks are selected.
+ *
+ * @param {Object}   props
+ * @param {string[]} props.clientIds The selected blocks.
+ */
+function Heading( { clientIds } ) {
+	const info = useBlockDisplayInformation( clientIds[ 0 ] );
+	if ( clientIds.length > 1 ) {
+		return (
+			<span className="nevelson-kind">
+				{ sprintf(
+					/* translators: %d: how many blocks are selected. */
+					__( '%d blocks', 'nevelson' ),
+					clientIds.length
+				) }
+			</span>
+		);
+	}
+	return (
+		<span
+			className="nevelson-kind"
+			title={ info?.description || undefined }
+		>
+			{ info?.icon && <BlockIcon icon={ info.icon } /> }
+			<span className="nevelson-kind-name">{ info?.title }</span>
+		</span>
+	);
 }
 
 /**
@@ -356,17 +420,7 @@ export function FloatingPanel( {
 			style={ { visibility: 'hidden' } }
 		>
 			<div className="nevelson-head" onPointerDown={ onPointerDown }>
-				<span className="nevelson-kind">
-					{ clientIds.length > 1 ? (
-						sprintf(
-							/* translators: %d: how many blocks are selected. */
-							__( '%d blocks', 'nevelson' ),
-							clientIds.length
-						)
-					) : (
-						<BlockTitle clientId={ clientIds[ 0 ] } />
-					) }
-				</span>
+				<Heading clientIds={ clientIds } />
 				{ offset && (
 					<Button
 						size="small"
@@ -394,6 +448,9 @@ export function FloatingPanel( {
 				<div className="nevelson-band-bar" />
 			</div>
 			<div className="nevelson-body">
+				{ clientIds.length === 1 && (
+					<AlignmentPanels clientId={ clientIds[ 0 ] } />
+				) }
 				<BlockInspector />
 			</div>
 		</div>

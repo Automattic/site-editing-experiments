@@ -40,6 +40,7 @@ $soft: #757575;
 	align-items: center;
 	gap: 2px;
 	flex: none;
+	min-height: 48px;
 	padding: 6px 6px 6px 16px;
 	border-bottom: 1px solid #f0f0f0;
 	cursor: grab;
@@ -56,10 +57,43 @@ $soft: #757575;
 }
 
 .nevelson-head .nevelson-kind {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	min-width: 0;
 	font-size: 13px;
 	text-transform: none;
 	letter-spacing: 0;
 	color: $ink;
+
+	.block-editor-block-icon {
+		flex: none;
+	}
+
+	.nevelson-kind-name {
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+}
+
+// The block's name, icon and description are in the heading: not again in
+// the settings. (A block in a section keeps the row for its parent.)
+.nevelson-body .block-editor-block-card:not(.is-parent) {
+	display: none;
+}
+
+// Core's alignment dropdowns are panels in the settings now; a tool with
+// nothing else in it goes too.
+.nevelson-moved .nevelson-replaced,
+.block-editor-block-contextual-toolbar .block-editor-block-toolbar .nevelson-moved.nevelson-empty.nevelson-empty.nevelson-empty {
+	display: none !important;
+}
+
+// The alignment panels, matching the inspector's.
+.nevelson-alignment,
+.nevelson-text-alignment {
+	border-top: 0;
 }
 
 .nevelson-kind {

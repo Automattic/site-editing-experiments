@@ -16,7 +16,7 @@
  * the drop line, the move arrows, the options menu, undo. So differences in a
  * test come from the handle alone.
  *
- * Add ?notes to the address for the facilitator panel: the tasks tick
+ * Add ?notes (or #notes) to the address for the facilitator panel: the tasks tick
  * themselves, and every move (and every try at dragging something that
  * can't be dragged) is logged with the time since the page opened.
  */
@@ -24,7 +24,7 @@
   'use strict';
 
   const CONFIG = Object.assign({ handle: 'today' }, window.PROTOTYPE || {});
-  const NOTES = new URLSearchParams(location.search).has('notes');
+  const NOTES = new URLSearchParams(location.search).has('notes') || location.hash === '#notes';
   const LETTER = { today: 'A', edge: 'B', toolbar: 'C' }[CONFIG.handle];
   const PAGES = [
     { letter: 'A', href: 'today.html' },
@@ -134,7 +134,7 @@
   if (NOTES) {
     const sw = $('nav', { class: 'switcher', 'aria-label': 'Prototypes' });
     PAGES.forEach((p) => {
-      const a = $('a', { href: p.href + '?notes', text: p.letter });
+      const a = $('a', { href: p.href + (location.hash === '#notes' ? '#notes' : '?notes'), text: p.letter });
       if (p.letter === LETTER) a.setAttribute('aria-current', 'page');
       sw.append(a);
     });

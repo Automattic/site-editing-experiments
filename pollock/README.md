@@ -31,7 +31,7 @@ What's the same in all three:
 
 ## Facilitator notes
 
-Add `?notes` to the address (`today.html?notes`) for a panel on the right that participants shouldn't see. It has:
+Add `?notes` or `#notes` to the address (`today.html?notes`) for a panel on the right that participants shouldn't see. It has:
 
 - the four tasks, ticked off as the page reaches each one, with the time,
 - counts of moves by dragging, by the arrows and by the keyboard, of drags on things that aren't handles, and of looks at Move to or List View, plus the time of the first drag from a handle,

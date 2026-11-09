@@ -181,18 +181,107 @@ body.nevelson [data-tab-id="edit-post/block"] {
 
 /* ---------- The block toolbar ---------- */
 
-// By the block, the toolbar keeps only the basics: formatting text (bold,
-// italic, link and the rest, marked by Nevelson) and the pencil. Everything
-// else is in the panel.
-body:not(.nevelson-open) .block-editor-block-contextual-toolbar .block-editor-block-toolbar {
-	> :not(:has(.nevelson-inline-marker, .nevelson-toolbar-button)) {
-		display: none !important;
+// By the block, the toolbar keeps only the basics: the drag handle and the
+// movers, the block's icon and its name, formatting text (bold, italic, link
+// and the rest, marked by Nevelson) and the pencil. Everything else is in the
+// panel.
+body:not(.nevelson-open) .block-editor-block-contextual-toolbar {
+	overflow: visible;
+
+	.block-editor-block-toolbar {
+		position: relative;
+		overflow: visible;
+
+		> :not(:has(.block-editor-block-toolbar__block-controls, .nevelson-block-name, .nevelson-inline-marker, .nevelson-toolbar-button)) {
+			display: none !important;
+		}
+
+		// The pencil's group is last by the block: no divider after it, next
+		// to the toolbar's own border. (Core's would be followed by the
+		// options menu, which is in the panel.)
+		> :has(.nevelson-toolbar-button),
+		> :has(.nevelson-toolbar-button) .components-toolbar-group {
+			border-right: 0 !important;
+		}
+
+		// Other blocks' buttons can share the groups Nevelson keeps, such as
+		// Replace by the pencil.
+		.block-editor-block-toolbar__slot:has(> .nevelson-toolbar-button) > :not(.nevelson-toolbar-button, .nevelson-block-name),
+		.block-editor-block-toolbar__slot:has(> .nevelson-block-name) > :not(.nevelson-block-name, .nevelson-toolbar-button) {
+			display: none !important;
+		}
 	}
 
-	// Other blocks' buttons can share the pencil's group, such as Replace.
-	.block-editor-block-toolbar__slot:has(> .nevelson-toolbar-button) > :not(.nevelson-toolbar-button) {
-		display: none !important;
+	// The drag handle and the movers sit just left of the block, apart from
+	// the toolbar, where the parent block's button was, with the handle on the
+	// far left.
+	.block-editor-block-mover {
+		position: absolute !important;
+		top: -1px;
+		right: calc(100% + 9px);
+		left: auto !important;
+		height: calc(100% + 2px);
+		display: flex;
+		align-items: center;
+		margin: 0;
+		padding: 0;
+		background: #fff;
+		border: 1px solid #1e1e1e;
+		border-radius: 2px;
 	}
+
+	.block-editor-block-toolbar__block-controls,
+	.block-editor-block-toolbar__block-controls .components-toolbar-group:not(.block-editor-block-mover),
+	.block-editor-block-toolbar > :has(.block-editor-block-toolbar__block-controls) {
+		position: static !important;
+		border-right: 0;
+	}
+}
+
+// The parent block's button doesn't help: the panel shows the parent, and
+// selects it.
+.block-editor-block-parent-selector {
+	display: none !important;
+}
+
+// The block's name, after its icon.
+.nevelson-block-name {
+	display: flex;
+	align-items: center;
+	padding: 0 12px 0 0;
+	font-size: 13px;
+	font-weight: 500;
+	white-space: nowrap;
+}
+
+// The name in the pencil's group is for sections, whose toolbar has no other
+// place for it.
+.block-editor-block-toolbar:has(.nevelson-block-name.is-first) .nevelson-block-name.is-fallback {
+	display: none !important;
+}
+
+// In the panel, the block's card has its name already.
+body.nevelson-open .nevelson-block-name {
+	display: none !important;
+}
+
+body.nevelson-open .block-editor-block-toolbar > :has(.nevelson-block-name.is-first) {
+	display: none !important;
+}
+
+// With no room left of the block, as for a full-width block, the handle and
+// the movers go back in the toolbar, at its far left.
+body.nevelson-movers-inside:not(.nevelson-open) .block-editor-block-contextual-toolbar .block-editor-block-mover {
+	position: static !important;
+	order: -1;
+	height: auto;
+	border: 0;
+	border-right: 1px solid #1e1e1e;
+	border-radius: 0;
+}
+
+body.nevelson-movers-inside:not(.nevelson-open) .block-editor-block-toolbar__block-controls {
+	display: flex;
 }
 
 // The formatting group's marker makes an empty group in blocks without text.
@@ -224,11 +313,6 @@ body.nevelson-open .block-editor-block-popover:has(.block-editor-block-contextua
 	transform: none !important;
 	translate: none !important;
 	z-index: 33; // Over the panel.
-
-	// The panel's card shows the parent block already, and selects it.
-	.block-editor-block-parent-selector {
-		display: none !important;
-	}
 
 	// A white bar of its own in the band, as wide as the panel, wrapping onto
 	// more rows if it needs to, its groups set apart by space.

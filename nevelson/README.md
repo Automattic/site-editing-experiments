@@ -1,12 +1,12 @@
 # Nevelson: block settings beside the block
 
-A WordPress plugin that tries out [Judd](../judd/)'s popovers in the real editor. In Judd, when you click something on the page, its settings open in a card beside it. Nevelson does the same with the block's toolbar and inspector. By the block, the toolbar keeps only the basics: formatting text, and a pencil. The pencil opens a floating panel next to the block with everything else: the whole toolbar along its top, and the block's settings below. It follows the block as you scroll. There's no sidebar: the page's own settings open in a card from the Settings button, as Judd's Edit page does.
+A WordPress plugin that tries out [Judd](../judd/)'s popovers in the real editor. In Judd, when you click something on the page, its settings open in a card beside it. Nevelson does the same with the block's toolbar and inspector. By the block, the toolbar keeps only the basics: the drag handle and movers, the block's icon and name, formatting text, and a pencil. The pencil opens a floating panel next to the block with everything else: the whole toolbar along its top, and the block's settings below. It follows the block as you scroll. There's no sidebar: the page's own settings open in a card from the Settings button, as Judd's Edit page does.
 
 It's the editor's own block inspector, moved, not a copy: every panel, tab and control is the same, including those added by other plugins.
 
 Requires WordPress 7.0 or later (for sections). Developed and tested on WordPress 7.1 with Twenty Twenty-Five, in the post editor and the site editor.
 
-![A paragraph selected, its toolbar down to bold, italic, link, more and a pencil](docs/screenshots/00-basics.jpg)
+![A paragraph selected: the drag handle and movers just left of the block, then a toolbar with the paragraph's icon and name, bold, italic, link, more and a pencil](docs/screenshots/00-basics.jpg)
 
 ![With the pencil pressed: a white card to the paragraph's right, the whole toolbar in a band along its top, and Styles, Typography and Background below; no toolbar by the block](docs/screenshots/01-beside.jpg)
 
@@ -18,9 +18,8 @@ The link runs [`blueprint.json`](blueprint.json), which installs the plugin stra
 
 ## The floating panel
 
-- **By the block, the toolbar has only the basics:** formatting text (bold, italic, link and the formatting menu, for blocks with text) and a **pencil**. Everything else that's usually in the toolbar (the block's type, moving it, alignment, the block's own tools such as Replace, and the options menu) is in the panel.
+- **By the block, the toolbar has only the basics.** The **drag handle** (on the far left) and the **movers** sit just outside the block's left edge, apart from the toolbar; with no room there, as for a full-width block, they go back in the toolbar, at its far left. The toolbar has the **block's icon and name**, **formatting text** (bold, italic, link and the formatting menu, for blocks with text) and a **pencil**. Everything else that's usually in the toolbar (alignment, the block's own tools such as Replace, and the options menu) is in the panel. The parent block's button is gone: it doesn't help, and the panel shows the parent block anyway.
 - **The pencil opens the panel**, with the whole toolbar in a band along its top, and the block's settings below. While the panel's open, there's no toolbar by the block: it's all in the panel. It's the block's own toolbar, every button and menu working as before, wrapping onto a second row to fit. Close the panel with × or the pencil, and the basics are back by the block. The panel stays open as you go from block to block, and isn't remembered: every visit starts with it closed.
-- **In a pattern**, the toolbar's button for the parent block is hidden: the panel shows the parent above the block's name, and selects it.
 - **Beside the block:** on the right if there's room, on the left if not, and over the right edge of the page for full-width blocks. Its top is level with the block's (or its toolbar's), unless that would take it off the screen, so it moves up for a block low on the page and stays in view when the block scrolls away. It never covers the block's toolbar.
 - **It follows the block** as the page scrolls, as you type, and as things above it change size. If it's over the text you're typing in, it fades until you stop.
 - **Drag it** by its top bar to put it somewhere else. It stays there for every block, until **Follow block** puts it back beside the selected one.
@@ -55,7 +54,7 @@ When the canvas is narrower than 720px, there's no room beside anything, so the 
 
 ## How it works
 
-The pencil is a `BlockControls` fill added to every block with the `editor.BlockEdit` filter, and whether the panel is open is in a small data store of Nevelson's own. Core's toolbar groups have no names in the page, so Nevelson also adds a hidden marker to the formatting group; by the block, CSS hides every group but that one and the pencil's. While the panel's open, the toolbar's popover is pinned into the panel's band with CSS, over core's inline position, and wraps to the panel's width. The panel is rendered in the editor's content area, which is a stacking context of its own, so the popover can go over it.
+The pencil is a `BlockControls` fill added to every block with the `editor.BlockEdit` filter, and whether the panel is open is in a small data store of Nevelson's own. Core's toolbar groups have no names in the page, so Nevelson also adds a hidden marker to the formatting group, and the block's name (core's `BlockTitle`) in the group after the icon; by the block, CSS hides every group but those, the icon and movers' group, and the pencil's, and moves the movers out to the left. A section's toolbar has only the pencil's group, so the name is in that group too, shown only when the other isn't there. While the panel's open, the toolbar's popover is pinned into the panel's band with CSS, over core's inline position, and wraps to the panel's width. The panel is rendered in the editor's content area, which is a stacking context of its own, so the popover can go over it.
 
 The plugin renders the editor's [`BlockInspector`](https://github.com/WordPress/gutenberg/tree/trunk/packages/block-editor/src/components/block-inspector) in a fixed card over the editor, through a portal from a registered plugin, so it's inside the editor's providers and every `InspectorControls` fill finds it. The sidebar's Block tab is hidden, and whenever the editor switches to it, Nevelson switches back to the page's tab, so there's only ever one inspector.
 

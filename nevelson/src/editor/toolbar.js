@@ -3,9 +3,10 @@
  * block's toolbar shows it, and it stays open from block to block until you
  * close it, with × or the pencil again.
  *
- * The toolbar by the block keeps only the basics, formatting text and the
- * pencil; everything else is in the panel, which has the whole toolbar along
- * its top while it's open.
+ * The toolbar by the block keeps only the basics: the drag handle and the
+ * movers, just left of the block; the block's icon and name; formatting text;
+ * and the pencil. Everything else is in the panel, which has the whole
+ * toolbar along its top while it's open.
  */
 import {
 	createReduxStore,
@@ -13,7 +14,7 @@ import {
 	useSelect,
 	useDispatch,
 } from '@wordpress/data';
-import { BlockControls } from '@wordpress/block-editor';
+import { BlockControls, BlockTitle } from '@wordpress/block-editor';
 import { ToolbarButton, SVG, Path } from '@wordpress/components';
 import { createHigherOrderComponent } from '@wordpress/compose';
 import { addFilter } from '@wordpress/hooks';
@@ -40,17 +41,28 @@ const pencilIcon = (
 	</SVG>
 );
 
-function SettingsButton() {
+function SettingsButton( { clientId } ) {
 	const open = useSelect( ( select ) => select( store ).isOpen(), [] );
 	const { setOpen } = useDispatch( store );
 	return (
 		<>
+			{ /* The block's name, after its icon. A section's toolbar only has
+			   the "other" group, so the name is there too, shown only when
+			   the first isn't. */ }
+			<BlockControls group="parent">
+				<span className="nevelson-block-name is-first">
+					<BlockTitle clientId={ clientId } />
+				</span>
+			</BlockControls>
 			{ /* Marks the toolbar's formatting group (bold, italic, link), the
 			   only one that stays by the block: the rest are in the panel. */ }
 			<BlockControls group="inline">
 				<span className="nevelson-inline-marker" hidden />
 			</BlockControls>
 			<BlockControls group="other">
+				<span className="nevelson-block-name is-fallback">
+					<BlockTitle clientId={ clientId } />
+				</span>
 				<ToolbarButton
 					className="nevelson-toolbar-button"
 					icon={ pencilIcon }
@@ -71,7 +83,9 @@ addFilter(
 		( BlockEdit ) => ( props ) => (
 			<>
 				<BlockEdit { ...props } />
-				{ props.isSelected && <SettingsButton /> }
+				{ props.isSelected && (
+					<SettingsButton clientId={ props.clientId } />
+				) }
 			</>
 		),
 		'withNevelsonSettingsButton'

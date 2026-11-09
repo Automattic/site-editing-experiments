@@ -22,7 +22,7 @@ function nevelson_sample_content() {
 <!-- /wp:heading -->
 
 <!-- wp:paragraph -->
-<p>Select any block on this page: its toolbar has only the basics, formatting text and a pencil. Press the pencil and the whole toolbar and the block’s settings open in a panel beside it, not in a sidebar, which follows it as you scroll, from block to block, until you close it. The page’s own settings are under the Settings button at the top.</p>
+<p>Select any block on this page: its toolbar has only the basics, moving it, its name, formatting text and a pencil. Press the pencil and the whole toolbar and the block’s settings open in a panel beside it, not in a sidebar, which follows it as you scroll, from block to block, until you close it. The page’s own settings are under the Settings button at the top.</p>
 <!-- /wp:paragraph -->
 
 <!-- wp:paragraph -->

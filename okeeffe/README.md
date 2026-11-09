@@ -24,7 +24,13 @@ What every prototype has:
 - **The ⋮ menu on each row**: move up and down, into or out of a dropdown, view on site, publish a draft, and move to trash. Trash lists the menus the page is in, and Undo puts it back where it was. In an automatic menu, moving changes page order, since that's what a Page List sorts by.
 - **Undo** on every change, in the message at the bottom.
 
-There's no drag and drop. Ordering is done from the ⋮ menu so that all six behave the same in a test; the real thing would have both.
+**Drag and drop** works with a mouse or a finger. Touch drags start from the ⠿ handle on each row, so the page still scrolls; a mouse can drag a row from anywhere but its buttons.
+
+- **A, C and D**: drag to reorder the menu. Drop onto the middle of a page, or drag further right, to put it in that page's dropdown. Drag a page down among the pages that aren't in a menu to take it out, or up into the menu to add it. In C, drag between header and footer items to move a page from one menu to the other.
+- **B (automatic)**: dragging changes page order, since that's what an automatic menu sorts by. It doesn't nest, because an automatic menu builds dropdowns from parent pages. Dragging a page out of the menu asks the same question as taking it out from its popover.
+- **E and F**: their page lists aren't in menu order, so each has a separate list to drag: **Menus** in E's Pages | Menus switch, and **Menu order** under F's switches.
+
+The drop line, a highlighted page or a tinted area shows where it will land, and the label beside the pointer says what will happen ("Into the About dropdown", "Take out of the menu"). Anything that can't happen, like nesting a page that already has a dropdown, shows no line. Every drop can be undone, and the ⋮ menu still has Move up, Move down and the dropdown options for keyboard users.
 
 ## Running a test
 

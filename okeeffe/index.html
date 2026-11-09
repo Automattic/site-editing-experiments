@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>O'Keeffe · Pages and menus</title>
+<style>
+  body { margin: 0; background: #F4F2EE; color: #1A1A1A; font-family: system-ui, sans-serif; }
+  main { max-width: 720px; margin: 0 auto; padding: 64px 24px; }
+  h1 { margin: 0 0 8px; font-size: 32px; }
+  p { margin: 0 0 16px; color: #3A3A3A; line-height: 1.5; }
+  .lede { margin-bottom: 32px; }
+  ul { list-style: none; margin: 0 0 32px; padding: 0; display: grid; gap: 12px; }
+  a.card { display: block; padding: 20px; background: #fff; border-radius: 10px; color: inherit; text-decoration: none; border: 1px solid #E2DED6; }
+  a.card:hover, a.card:focus-visible { border-color: #3858E9; }
+  strong { display: block; font-size: 18px; margin-bottom: 4px; }
+  em { display: block; margin: -2px 0 6px; font-style: normal; font-weight: 600; font-size: 14px; color: #3A3A3A; }
+  span { color: #4A4A4A; font-size: 15px; line-height: 1.5; }
+  a { color: #3858E9; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Pages and menus</h1>
+  <p class="lede">Most people with a simple site think "I have pages, and some of them are in my menu", or that the menu <em style="display:inline;margin:0;font-weight:400;font-size:inherit">is</em> their pages. These prototypes test ways for the Pages screen to show that directly, with the site beside it, including the automatic Page List menus WordPress makes today. Each one starts the same way every time; <strong style="display:inline;font-size:inherit">Reset</strong> puts it back.</p>
+  <ul>
+    <li><a class="card" href="one-list.html"><strong>A · One list of pages</strong><em>The recommended direction</em><span>Every page in one list. A marker on each says whether it's in the header menu; click it for what that means and the one action that changes it.</span></a></li>
+    <li><a class="card" href="automatic.html"><strong>B · Automatic menu</strong><em>What most block-theme sites have today</em><span>The same list on a site whose menu shows every page automatically. Taking a page out switches the menu to one you choose, after a single confirm.</span></a></li>
+    <li><a class="card" href="two-menus.html"><strong>C · Header and footer menus</strong><em>More than one menu</em><span>The same list on a site with two menus. The marker's popover becomes a checklist of menus, so the list never splits.</span></a></li>
+    <li><a class="card" href="sections.html"><strong>D · Menu and other pages</strong><em>Comparison: two sections</em><span>The earlier take: "In your menu" and "Other pages" as two groups, with add and remove buttons.</span></a></li>
+    <li><a class="card" href="page-settings.html"><strong>E · Menu in page settings</strong><em>Control: decide on the page</em><span>Close to WordPress today: a table of pages with a Menu column, an "Add to menu" switch when creating a page, and menu settings inside each page.</span></a></li>
+  </ul>
+  <p>Test scripts, tasks and what to watch for are in the <a href="https://github.com/Automattic/site-editing-experiments/tree/trunk/okeeffe">README</a>. The bakery and its pages are placeholders.</p>
+</main>
+</body>
+</html>

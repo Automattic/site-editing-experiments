@@ -4,9 +4,11 @@ Frankenthaler is a Gutenberg pull request rather than a static prototype: it cha
 
 ## Try it
 
-**[Try it in Playground](https://playground.wordpress.net/?blueprint-url=https://raw.githubusercontent.com/Automattic/site-editing-experiments/trunk/frankenthaler/blueprint.json)**. It installs the PR's latest build with the **Block toolbar redesign** experiment already on, and opens a sample post. Select a block to see the new toolbar; the site editor has it too.
+**[Try it in Playground](https://playground.wordpress.net/?blueprint-url=https://raw.githubusercontent.com/Automattic/site-editing-experiments/trunk/frankenthaler/blueprint.json)**. It installs a build of the PR with the **Block toolbar redesign** experiment already on, and opens a sample post. Select a block to see the new toolbar; the site editor has it too.
 
 Locally, check out the `try/block-toolbar-redesign` branch of Gutenberg, build it, and turn on the same experiment.
+
+The build is `gutenberg.zip` in this folder, made from the PR at `3247b32`, because the PR's own builds expire after 14 days. When the PR changes, rebuild it: check out the branch, run `npm ci` and `NO_CHECKS=true npm run build:plugin-zip`, and replace `gutenberg.zip` with the result.
 
 ## Design principles
 

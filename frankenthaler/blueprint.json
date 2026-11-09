@@ -16,7 +16,7 @@
 			"step": "installPlugin",
 			"pluginData": {
 				"resource": "url",
-				"url": "https://playground.wordpress.net/plugin-proxy.php?org=WordPress&repo=gutenberg&workflow=Build%20Gutenberg%20Plugin%20Zip&artifact=gutenberg.zip&pr=85187",
+				"url": "https://raw.githubusercontent.com/Automattic/site-editing-experiments/trunk/frankenthaler/gutenberg.zip",
 				"caption": "Downloading Gutenberg PR 85187"
 			}
 		},

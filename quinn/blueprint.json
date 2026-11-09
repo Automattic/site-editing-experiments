@@ -1,0 +1,36 @@
+{
+	"$schema": "https://playground.wordpress.net/blueprint-schema.json",
+	"meta": {
+		"title": "Quinn: reorder and hide pages in a Page List menu",
+		"description": "Gutenberg PR #86525: a Pages panel for a Page List inside a Navigation block, to reorder pages and switch them on or off without converting the menu to links.",
+		"author": "scruffian",
+		"categories": [
+			"editor",
+			"navigation"
+		]
+	},
+	"landingPage": "/wp-admin/site-editor.php?p=%2Fwp_template_part%2Ftwentytwentyfive%2F%2Fheader&canvas=edit",
+	"preferredVersions": {
+		"php": "8.3",
+		"wp": "latest"
+	},
+	"login": true,
+	"steps": [
+		{
+			"step": "installPlugin",
+			"pluginData": {
+				"resource": "url",
+				"url": "https://raw.githubusercontent.com/Automattic/site-editing-experiments/trunk/quinn/gutenberg.zip",
+				"caption": "Downloading Gutenberg PR 86525"
+			}
+		},
+		{
+			"step": "activateTheme",
+			"themeFolderName": "twentytwentyfive"
+		},
+		{
+			"step": "runPHP",
+			"code": "<?php\nrequire '/wordpress/wp-load.php';\nglobal $wpdb;\n// No welcome guides in the way.\nupdate_user_meta( 1, $wpdb->prefix . 'persisted_preferences', array(\n\t'core' => array( 'welcomeGuide' => false, 'enableChoosePatternModal' => false ),\n\t'core/edit-post' => array( 'welcomeGuide' => false, 'welcomeGuideTemplate' => false ),\n\t'core/edit-site' => array( 'welcomeGuide' => false, 'welcomeGuideStyles' => false, 'welcomeGuidePage' => false, 'welcomeGuideTemplate' => false ),\n\t'_modified' => gmdate( 'c' ),\n) );\nupdate_option( 'blogname', \"Rosa's Bakery\" );\nupdate_option( 'blogdescription', 'Bread, cakes and coffee on Mill Street' );\n// Only the bakery's pages.\nwp_delete_post( 2, true );\n$add_page = function ( $title, $order, $parent = 0 ) {\n\treturn wp_insert_post( array(\n\t\t'post_type'    => 'page',\n\t\t'post_status'  => 'publish',\n\t\t'post_title'   => $title,\n\t\t'menu_order'   => $order,\n\t\t'post_parent'  => $parent,\n\t\t'post_content' => '<!-- wp:paragraph --><p>' . esc_html( $title ) . ' at Rosa\\'s Bakery.</p><!-- /wp:paragraph -->',\n\t) );\n};\n$home = $add_page( 'Home', 0 );\n$about = $add_page( 'About', 1 );\n$add_page( 'Our story', 0, $about );\n$add_page( 'Team', 1, $about );\n$add_page( 'Menu', 2 );\n$add_page( 'Catering', 3 );\n$add_page( 'Visit us', 4 );\n$add_page( 'Thank you for your order', 5 );\nupdate_option( 'show_on_front', 'page' );\nupdate_option( 'page_on_front', $home );\n// The header's Navigation block falls back to the newest menu: one Page List.\nwp_insert_post( array(\n\t'post_type'    => 'wp_navigation',\n\t'post_status'  => 'publish',\n\t'post_title'   => 'Header navigation',\n\t'post_content' => '<!-- wp:page-list /-->',\n) );\n"
+		}
+	]
+}

@@ -266,7 +266,10 @@ function Nevelson() {
 			setOffset={ setOffset }
 			onClose={ () => setOpen( false ) }
 		/>,
-		document.body
+		// In the editor's content area, which is a stacking context of its
+		// own, so the block toolbar can go over the panel.
+		document.querySelector( '.interface-interface-skeleton__content' ) ||
+			document.body
 	);
 }
 

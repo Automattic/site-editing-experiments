@@ -15,6 +15,18 @@ export const closeIcon = (
 	</SVG>
 );
 
+// The block toolbar's popover, when it's by the block (not docked at the top
+// of the editor, as on phones).
+const toolbarPopover = () =>
+	document
+		.querySelector(
+			'.block-editor-block-popover .block-editor-block-contextual-toolbar'
+		)
+		?.closest( '.block-editor-block-popover' );
+
+// The room around the toolbar in its band.
+const BAND_PAD = 6;
+
 const canvasFrame = () =>
 	document.querySelector( 'iframe[name="editor-canvas"]' );
 
@@ -100,6 +112,7 @@ export function FloatingPanel( {
 		let frame;
 		let last = '';
 		let shown = '';
+		const heights = {};
 		const tick = () => {
 			frame = window.requestAnimationFrame( tick );
 			const el = ref.current;
@@ -118,24 +131,34 @@ export function FloatingPanel( {
 			} = live.current;
 			const own = blocksBox( iframe, ids );
 			const sheet = isSheet( canvas );
-			// The block's toolbar counts as part of the block, so the panel
-			// doesn't cover it when it's wider than the block; not when the
-			// toolbar is docked at the top of the editor.
-			const toolbar = document
-				.querySelector( '.block-editor-block-contextual-toolbar' )
-				?.getBoundingClientRect();
-			const near =
-				own &&
-				toolbar?.width &&
-				toolbar.bottom >= own.top - 80 &&
-				toolbar.top <= own.bottom + 80;
-			const block = ( own &&
-				( ! sheet && near ? union( [ own, toolbar ] ) : own ) ) || {
+			const block = own || {
 				left: canvas.right,
 				top: canvas.top,
 				right: canvas.right,
 				bottom: canvas.top,
 			};
+
+			// The block toolbar is in the panel's band while it's open. Keep
+			// the band as tall as the toolbar (it wraps to the panel's width)
+			// while the toolbar is hidden as you type, so the panel doesn't
+			// jump.
+			const popover = toolbarPopover();
+			const bar = popover?.querySelector(
+				'.block-editor-block-contextual-toolbar'
+			);
+			let inset = 0;
+			let shift = 0;
+			if ( bar ) {
+				const b = bar.getBoundingClientRect();
+				const pop = popover.getBoundingClientRect();
+				inset = b.top - pop.top;
+				shift = b.left - pop.left;
+				heights[ ids.join() ] = bar.offsetHeight;
+			}
+			el.style.setProperty(
+				'--nevelson-band',
+				`${ heights[ ids.join() ] || 48 }px`
+			);
 			el.classList.toggle( 'is-sheet', sheet );
 			const size = { width: el.offsetWidth, height: el.scrollHeight };
 			let p;
@@ -161,6 +184,23 @@ export function FloatingPanel( {
 			} else if ( ! sheet ) {
 				shown = selection;
 			}
+			// Where the toolbar goes: in the band, below the panel's header.
+			const band = el.querySelector( '.nevelson-band' );
+			const bandTop = band ? band.offsetTop : 0;
+			const body = document.body.style;
+			body.setProperty(
+				'--nevelson-toolbar-left',
+				`${ Math.round( p.left + BAND_PAD - shift ) }px`
+			);
+			body.setProperty(
+				'--nevelson-toolbar-top',
+				`${ Math.round( p.top + bandTop + BAND_PAD - inset ) }px`
+			);
+			body.setProperty(
+				'--nevelson-toolbar-width',
+				`${ el.offsetWidth - BAND_PAD * 2 }px`
+			);
+
 			const box = {
 				left: p.left,
 				top: p.top,
@@ -188,9 +228,19 @@ export function FloatingPanel( {
 			el.style.visibility = '';
 			el.dataset.side = p.side;
 			el.classList.toggle( 'is-faded', faded );
+			document.body.classList.toggle( 'nevelson-faded', faded );
 		};
 		tick();
-		return () => window.cancelAnimationFrame( frame );
+		return () => {
+			window.cancelAnimationFrame( frame );
+			document.body.classList.remove( 'nevelson-faded' );
+		};
+	}, [] );
+
+	// While the panel's open, the block toolbar is in it, not by the block.
+	useLayoutEffect( () => {
+		document.body.classList.add( 'nevelson-open' );
+		return () => document.body.classList.remove( 'nevelson-open' );
 	}, [] );
 
 	// Drag it by its top bar; it stays where you put it, for every block,
@@ -239,7 +289,6 @@ export function FloatingPanel( {
 			aria-label={ __( 'Block settings', 'nevelson' ) }
 			style={ { visibility: 'hidden' } }
 		>
-			{  }
 			<div className="nevelson-head" onPointerDown={ onPointerDown }>
 				<span className="nevelson-kind">
 					{ __( 'Block settings', 'nevelson' ) }
@@ -265,6 +314,8 @@ export function FloatingPanel( {
 					onClick={ onClose }
 				/>
 			</div>
+			{ /* The block toolbar, all of it, sits in this band. */ }
+			<div className="nevelson-band" />
 			<div className="nevelson-body">
 				<BlockInspector />
 			</div>

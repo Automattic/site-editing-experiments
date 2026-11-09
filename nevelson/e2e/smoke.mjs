@@ -137,26 +137,28 @@ const expectedTop = ( p, b ) =>
 		[ p, b ]
 	);
 
-// The box the panel lines up with: the block and, when it's beside the
-// block, its toolbar.
-const anchorBox = async ( clientId ) => {
-	const own = await blockBox( clientId );
-	const t = await page.evaluate( () =>
-		document
-			.querySelector( '.block-editor-block-contextual-toolbar' )
-			?.getBoundingClientRect()
-			.toJSON()
-	);
-	if ( ! t?.width || t.bottom < own.top - 80 || t.top > own.bottom + 80 ) {
-		return own;
-	}
-	return {
-		left: Math.min( own.left, t.left ),
-		top: Math.min( own.top, t.top ),
-		right: Math.max( own.right, t.right ),
-		bottom: Math.max( own.bottom, t.bottom ),
-	};
-};
+// The block toolbar's box, and the labels of the buttons you can see in it.
+const toolbar = () =>
+	page.evaluate( () => {
+		const t = document.querySelector(
+			'.block-editor-block-popover .block-editor-block-contextual-toolbar'
+		);
+		if ( ! t ) {
+			return null;
+		}
+		const r = t.getBoundingClientRect();
+		const labels = [ ...t.querySelectorAll( 'button' ) ]
+			.filter( ( b ) => b.offsetParent !== null )
+			.map( ( b ) => b.getAttribute( 'aria-label' ) || b.textContent );
+		return {
+			left: r.left,
+			top: r.top,
+			right: r.right,
+			bottom: r.bottom,
+			labels,
+		};
+	} );
+const BASICS = [ 'Bold', 'Italic', 'Link', 'More', 'Block settings' ];
 
 const select = ( clientId ) =>
 	page.evaluate(
@@ -209,20 +211,30 @@ await step( 'the editor opens without its sidebar', async () => {
 	);
 } );
 
-await step( 'selecting a block doesn’t open the panel', async () => {
-	await canvas.locator( `#block-${ para.id }` ).click();
-	await wait( 500 );
-	expect( ( await panel() ) === null, 'the panel opened by itself' );
-	expect( ( await pressed() ) === 'false', 'the button is pressed' );
-} );
+await step(
+	'selecting a block doesn’t open the panel; its toolbar has only the basics',
+	async () => {
+		await canvas.locator( `#block-${ para.id }` ).click();
+		await wait( 500 );
+		expect( ( await panel() ) === null, 'the panel opened by itself' );
+		expect( ( await pressed() ) === 'false', 'the button is pressed' );
+		const t = await toolbar();
+		expect(
+			t.labels.length === BASICS.length &&
+				t.labels.every( ( l ) => BASICS.includes( l ) ),
+			`the toolbar has ${ t.labels.join( ', ' ) }`
+		);
+		await shot( '00-basics' );
+	}
+);
 
 await step(
-	'the toolbar’s settings button opens it, to the right of the block',
+	'the pencil opens it, to the right of the block',
 	async () => {
 		await page.locator( BUTTON ).first().click();
 		await wait( 400 );
 		const p = await panel();
-		const b = await anchorBox( para.id );
+		const b = await blockBox( para.id );
 		expect( p, 'no panel' );
 		expect( ( await pressed() ) === 'true', 'the button isn’t pressed' );
 		expect( p.side === 'right', `side is ${ p.side }` );
@@ -245,6 +257,30 @@ await step( 'it stays open for the next block', async () => {
 	await wait( 400 );
 } );
 
+await step( 'with the panel open, the whole toolbar is in it', async () => {
+	await select( para.id );
+	await wait( 400 );
+	const p = await panel();
+	const t = await toolbar();
+	expect( t, 'no toolbar' );
+	expect(
+		t.left >= p.left && t.right <= p.right && t.top > p.top,
+		'the toolbar isn’t in the panel'
+	);
+	const band = await page.evaluate( () =>
+		document
+			.querySelector( '.nevelson-panel .nevelson-band' )
+			.getBoundingClientRect()
+			.toJSON()
+	);
+	expect( t.top >= band.top && t.bottom <= band.bottom, 'not in its band' );
+	expect(
+		t.labels.includes( 'Options' ) && t.labels.includes( 'Drag' ),
+		`only ${ t.labels.join( ', ' ) }`
+	);
+	await shot( '01b-toolbar-in-panel' );
+} );
+
 await step( 'a setting in the panel changes the block', async () => {
 	await page
 		.locator( `${ PANEL } [role="radio"][aria-label="Large"]` )
@@ -261,7 +297,7 @@ await step( 'it follows the block as the page scrolls', async () => {
 	await select( list.id );
 	await wait( 400 );
 	const before = await panel();
-	const b0 = await anchorBox( list.id );
+	const b0 = await blockBox( list.id );
 	expect(
 		Math.abs( before.top - ( await expectedTop( before, b0 ) ) ) < 2,
 		'panel is not level with the list'
@@ -270,7 +306,7 @@ await step( 'it follows the block as the page scrolls', async () => {
 	await page.mouse.wheel( 0, 200 );
 	await wait( 500 );
 	const after = await panel();
-	const b1 = await anchorBox( list.id );
+	const b1 = await blockBox( list.id );
 	expect( b1.top < b0.top - 100, 'the page did not scroll' );
 	expect(
 		Math.abs( after.top - ( await expectedTop( after, b1 ) ) ) < 2,
@@ -484,6 +520,16 @@ await step( 'closed, it stays closed until the button opens it', async () => {
 	await page.locator( `${ PANEL } button[aria-label="Close"]` ).click();
 	await wait( 300 );
 	expect( ( await panel() ) === null, 'still there' );
+	const t = await toolbar();
+	const b = await blockBox( para.id );
+	expect(
+		t && ( t.bottom <= b.top + 1 || t.top >= b.bottom - 1 ),
+		'the toolbar isn’t back by the block'
+	);
+	expect(
+		t.labels.every( ( l ) => BASICS.includes( l ) ),
+		`by the block: ${ t.labels.join( ', ' ) }`
+	);
 	await canvas.locator( `#block-${ paras[ 1 ].id }` ).click();
 	await wait( 400 );
 	expect( ( await panel() ) === null, 'it came back by itself' );

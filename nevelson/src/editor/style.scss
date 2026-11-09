@@ -12,7 +12,7 @@ $soft: #757575;
 	z-index: 31; // Over the canvas and the editor's chrome; under popovers.
 	display: flex;
 	flex-direction: column;
-	width: 300px;
+	width: 320px;
 	box-sizing: border-box;
 	background: #fff;
 	border-radius: 12px;
@@ -35,28 +35,58 @@ $soft: #757575;
 	}
 }
 
-.nevelson-head {
+// The grip along the top, to drag the panel by.
+.nevelson-grip {
+	position: relative;
 	display: flex;
+	justify-content: flex-end;
 	align-items: center;
-	gap: 2px;
 	flex: none;
-	padding: 6px 6px 6px 16px;
-	border-bottom: 1px solid #f0f0f0;
+	height: 14px;
 	cursor: grab;
-	user-select: none;
 	touch-action: none;
+
+	&::before {
+		content: "";
+		position: absolute;
+		top: 5px;
+		left: 50%;
+		width: 32px;
+		height: 4px;
+		margin-left: -16px;
+		border-radius: 2px;
+		background: #e0e0e0;
+	}
+
+	&:hover::before {
+		background: #bbb;
+	}
 
 	.is-dragging & {
 		cursor: grabbing;
 	}
 
-	.components-button {
-		cursor: pointer;
+	.is-sheet & {
+		cursor: default;
 	}
 }
 
+// The row the block toolbar sits over. While the toolbar is hidden, as when
+// you're typing, it says what the panel is.
+.nevelson-toolbar-row {
+	display: flex;
+	align-items: center;
+	flex: none;
+	height: var(--nevelson-row, 48px);
+	padding: 0 16px;
+	border-bottom: 1px solid #f0f0f0;
+}
+
+.has-toolbar .nevelson-kind {
+	visibility: hidden;
+}
+
 .nevelson-kind {
-	flex: 1;
 	font-size: 11px;
 	font-weight: 600;
 	text-transform: uppercase;
@@ -65,7 +95,53 @@ $soft: #757575;
 }
 
 .nevelson-follow.components-button {
-	font-size: 12px;
+	position: relative;
+	z-index: 1;
+	height: 14px;
+	min-height: 0;
+	margin-right: 8px;
+	padding: 0 4px;
+	font-size: 11px;
+}
+
+/* ---------- The block toolbar, in the panel ---------- */
+
+// While the panel's open, the block toolbar's popover sits in the panel's
+// toolbar row, not above the block. Core places the popover with inline
+// styles, hence !important.
+body.nevelson-open .block-editor-block-popover:has(.block-editor-block-contextual-toolbar) {
+	position: fixed !important;
+	top: var(--nevelson-toolbar-top) !important;
+	left: var(--nevelson-toolbar-left) !important;
+	transform: none !important;
+	translate: none !important;
+	z-index: 33; // Over the panel.
+
+	// The panel's card shows the parent block already, and selects it.
+	.block-editor-block-parent-selector {
+		display: none !important;
+	}
+
+	// As wide as the panel, wrapping onto more rows if it needs to.
+	.block-editor-block-contextual-toolbar {
+		width: var(--nevelson-toolbar-width, 300px);
+		max-width: none;
+		border: 0 !important;
+		border-radius: 0;
+		box-shadow: none !important;
+		background: transparent;
+
+		.block-editor-block-toolbar {
+			flex-wrap: wrap;
+			width: 100%;
+			overflow: visible;
+		}
+	}
+}
+
+body.nevelson-open.nevelson-faded .block-editor-block-popover:has(.block-editor-block-contextual-toolbar) {
+	opacity: 0.25;
+	pointer-events: none;
 }
 
 .nevelson-body {
@@ -85,25 +161,6 @@ $soft: #757575;
 .nevelson-panel.is-sheet {
 	border-radius: 12px 12px 0 0;
 	box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(0, 0, 0, 0.08);
-
-	.nevelson-head {
-		position: relative;
-		padding-top: 14px;
-		cursor: default;
-
-		// The sheet's grip.
-		&::before {
-			content: "";
-			position: absolute;
-			top: 6px;
-			left: 50%;
-			width: 36px;
-			height: 4px;
-			margin-left: -18px;
-			border-radius: 2px;
-			background: #ddd;
-		}
-	}
 }
 
 /* ---------- The page's settings: a card below the Settings button ---------- */

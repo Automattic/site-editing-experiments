@@ -137,27 +137,6 @@ const expectedTop = ( p, b ) =>
 		[ p, b ]
 	);
 
-// The box the panel lines up with: the block and, when it's beside the
-// block, its toolbar.
-const anchorBox = async ( clientId ) => {
-	const own = await blockBox( clientId );
-	const t = await page.evaluate( () =>
-		document
-			.querySelector( '.block-editor-block-contextual-toolbar' )
-			?.getBoundingClientRect()
-			.toJSON()
-	);
-	if ( ! t?.width || t.bottom < own.top - 80 || t.top > own.bottom + 80 ) {
-		return own;
-	}
-	return {
-		left: Math.min( own.left, t.left ),
-		top: Math.min( own.top, t.top ),
-		right: Math.max( own.right, t.right ),
-		bottom: Math.max( own.bottom, t.bottom ),
-	};
-};
-
 const select = ( clientId ) =>
 	page.evaluate(
 		( id ) =>
@@ -222,7 +201,7 @@ await step(
 		await page.locator( BUTTON ).first().click();
 		await wait( 400 );
 		const p = await panel();
-		const b = await anchorBox( para.id );
+		const b = await blockBox( para.id );
 		expect( p, 'no panel' );
 		expect( ( await pressed() ) === 'true', 'the button isn’t pressed' );
 		expect( p.side === 'right', `side is ${ p.side }` );
@@ -245,6 +224,61 @@ await step( 'it stays open for the next block', async () => {
 	await wait( 400 );
 } );
 
+// The block toolbar's box, with all its parts.
+const toolbarBox = () =>
+	page.evaluate( () => {
+		const c = document.querySelector(
+			'.block-editor-block-popover:has(.block-editor-block-contextual-toolbar) .components-popover__content'
+		);
+		if ( ! c ) {
+			return null;
+		}
+		const parts = [ ...c.querySelectorAll( ':scope > *, :scope > * > *' ) ]
+			.map( ( e ) => e.getBoundingClientRect() )
+			.filter( ( r ) => r.width && r.height );
+		return {
+			left: Math.min( ...parts.map( ( r ) => r.left ) ),
+			top: Math.min( ...parts.map( ( r ) => r.top ) ),
+			right: Math.max( ...parts.map( ( r ) => r.right ) ),
+			bottom: Math.max( ...parts.map( ( r ) => r.bottom ) ),
+		};
+	} );
+
+await step( 'the block toolbar is the top of the panel', async () => {
+	const p = await panel();
+	const t = await toolbarBox();
+	expect( t, 'no toolbar' );
+	expect(
+		Math.abs( t.left - p.left ) < 2,
+		`toolbar at ${ t.left }, panel at ${ p.left }`
+	);
+	expect( t.right <= p.right + 1, 'the toolbar sticks out of the panel' );
+	expect(
+		t.top > p.top && t.top - p.top < 24,
+		'the toolbar isn’t at the top'
+	);
+	const settings = await page.evaluate( () =>
+		document
+			.querySelector( '.nevelson-panel .nevelson-body' )
+			.getBoundingClientRect()
+			.toJSON()
+	);
+	expect( settings.top >= t.bottom - 1, 'the toolbar covers the settings' );
+	// It's the real toolbar: its button is the one that opened the panel.
+	const inside = await page.evaluate( () => {
+		const b = document
+			.querySelector( '.nevelson-toolbar-button' )
+			.getBoundingClientRect();
+		const card = document
+			.querySelector( '.nevelson-panel' )
+			.getBoundingClientRect();
+		return (
+			b.left >= card.left && b.right <= card.right && b.top >= card.top
+		);
+	} );
+	expect( inside, 'the settings button isn’t in the panel' );
+} );
+
 await step( 'a setting in the panel changes the block', async () => {
 	await page
 		.locator( `${ PANEL } [role="radio"][aria-label="Large"]` )
@@ -261,7 +295,7 @@ await step( 'it follows the block as the page scrolls', async () => {
 	await select( list.id );
 	await wait( 400 );
 	const before = await panel();
-	const b0 = await anchorBox( list.id );
+	const b0 = await blockBox( list.id );
 	expect(
 		Math.abs( before.top - ( await expectedTop( before, b0 ) ) ) < 2,
 		'panel is not level with the list'
@@ -270,7 +304,7 @@ await step( 'it follows the block as the page scrolls', async () => {
 	await page.mouse.wheel( 0, 200 );
 	await wait( 500 );
 	const after = await panel();
-	const b1 = await anchorBox( list.id );
+	const b1 = await blockBox( list.id );
 	expect( b1.top < b0.top - 100, 'the page did not scroll' );
 	expect(
 		Math.abs( after.top - ( await expectedTop( after, b1 ) ) ) < 2,
@@ -458,7 +492,7 @@ await step( 'a click outside the patterns goes to that block', async () => {
 } );
 
 await step( 'dragging puts it somewhere else, for every block', async () => {
-	const head = page.locator( `${ PANEL } .nevelson-kind` );
+	const head = page.locator( `${ PANEL } .nevelson-grip` );
 	const h = await head.boundingBox();
 	await page.mouse.move( h.x + 10, h.y + 5 );
 	await page.mouse.down();
@@ -481,9 +515,15 @@ await step( 'dragging puts it somewhere else, for every block', async () => {
 await step( 'closed, it stays closed until the button opens it', async () => {
 	await select( para.id );
 	await wait( 300 );
-	await page.locator( `${ PANEL } button[aria-label="Close"]` ).click();
+	await page.locator( BUTTON ).first().click();
 	await wait( 300 );
 	expect( ( await panel() ) === null, 'still there' );
+	const t = await toolbarBox();
+	const b = await blockBox( para.id );
+	expect(
+		t && t.bottom <= b.top + 1 && Math.abs( t.left - b.left ) < 80,
+		'the toolbar isn’t back above the block'
+	);
 	await canvas.locator( `#block-${ paras[ 1 ].id }` ).click();
 	await wait( 400 );
 	expect( ( await panel() ) === null, 'it came back by itself' );

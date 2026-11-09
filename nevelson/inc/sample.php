@@ -22,11 +22,11 @@ function nevelson_sample_content() {
 <!-- /wp:heading -->
 
 <!-- wp:paragraph -->
-<p>Select any block on this page and press the settings button (two sliders) in its toolbar. Its settings open in a panel beside it, not in a sidebar, and follow it as you scroll, from block to block, until you close them. The page’s own settings are under the Settings button at the top.</p>
+<p>Select any block on this page and press the settings button (two sliders) in its toolbar. The toolbar and the block’s settings become one panel beside it, not in a sidebar, which follows it as you scroll, from block to block, until you press the button again. The page’s own settings are under the Settings button at the top.</p>
 <!-- /wp:paragraph -->
 
 <!-- wp:paragraph -->
-<p>Drag the panel by its top bar to put it somewhere else, and choose Follow block to bring it back. The sections below are patterns: click anything in one, and the panel has that block’s settings, not the pattern’s.</p>
+<p>Drag the panel by the grip along its top to put it somewhere else, and choose Follow block to bring it back. The sections below are patterns: click anything in one, and the panel has that block’s settings, not the pattern’s.</p>
 <!-- /wp:paragraph -->
 
 <!-- wp:list -->

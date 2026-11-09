@@ -1,12 +1,12 @@
 # Nevelson: block settings beside the block
 
-A WordPress plugin that tries out [Judd](../judd/)'s popovers in the real editor. In Judd, when you click something on the page, its settings open in a card beside it. Nevelson does the same with the block inspector: a settings button in the block's toolbar opens its settings in a floating panel next to it, which follows it as you scroll. There's no sidebar: the page's own settings open in a card from the Settings button, as Judd's Edit page does.
+A WordPress plugin that tries out [Judd](../judd/)'s popovers in the real editor. In Judd, when you click something on the page, its settings open in a card beside it. Nevelson does the same with the block toolbar and the block inspector: a settings button in the block's toolbar opens one panel beside the block, with the toolbar along its top and the block's settings below, which follows the block as you scroll. There's no sidebar: the page's own settings open in a card from the Settings button, as Judd's Edit page does.
 
 It's the editor's own block inspector, moved, not a copy: every panel, tab and control is the same, including those added by other plugins.
 
 Requires WordPress 7.0 or later (for sections). Developed and tested on WordPress 7.1 with Twenty Twenty-Five, in the post editor and the site editor.
 
-![A paragraph selected, with the settings button pressed in its toolbar: its settings in a white card to its right, with Styles, Typography and Background, and no sidebar](docs/screenshots/01-beside.jpg)
+![A paragraph selected: one white card to its right with the paragraph's toolbar in two rows along the top, its settings button pressed, and Styles, Typography and Background below](docs/screenshots/01-beside.jpg)
 
 ## Try it
 
@@ -16,10 +16,13 @@ The link runs [`blueprint.json`](blueprint.json), which installs the plugin stra
 
 ## The floating panel
 
-- **Selecting a block doesn't open anything.** The block's toolbar has a **Block settings** button (two sliders), just before its options menu. Press it and the block's settings open in a card beside it. It stays open as you go from block to block, until you close it with × or the button again. It isn't remembered: every visit starts with it closed.
-- **Beside the block:** on the right if there's room, on the left if not, and over the right edge of the page for full-width blocks. Its top is level with the block's (or its toolbar's), unless that would take it off the screen, so it moves up for a block low on the page and stays in view when the block scrolls away. It never covers the block's toolbar.
+- **Selecting a block doesn't open anything.** The block's toolbar is above it as usual, with a **Block settings** button (two sliders) just before its options menu.
+- **Press it, and the toolbar and the settings become one panel** beside the block: the toolbar moves into the panel's top row, wrapping onto a second row to fit, and the block's settings are below it. It's the block's own toolbar, every button and menu working as before. Press the button again to close the panel, and the toolbar goes back above the block. The panel stays open as you go from block to block, and isn't remembered: every visit starts with it closed.
+- **While you type**, the toolbar hides as it always does, and the panel's top row keeps its place.
+- **In a pattern**, the toolbar's button for the parent block is hidden: the panel shows the parent above the block's name, and selects it.
+- **Beside the block:** on the right if there's room, on the left if not, and over the right edge of the page for full-width blocks. Its top is level with the block's, unless that would take it off the screen, so it moves up for a block low on the page and stays in view when the block scrolls away.
 - **It follows the block** as the page scrolls, as you type, and as things above it change size. If it's over the text you're typing in, it fades until you stop.
-- **Drag it** by its top bar to put it somewhere else. It stays there for every block, until **Follow block** puts it back beside the selected one.
+- **Drag it** by the grip along its top to put it somewhere else. It stays there for every block, until **Follow block** puts it back beside the selected one.
 - **Several blocks** selected share one panel.
 - **Pop-ups** in the panel, such as colour pickers, open over it.
 
@@ -29,11 +32,11 @@ The link runs [`blueprint.json`](blueprint.json), which installs the plugin stra
 
 In WordPress 7, blocks from a pattern or a template part are in a *section*. Click something in one and the editor selects the section, or shows the section's settings, until you choose to edit the section. That makes sense with settings in a sidebar, but not with them beside the block you clicked.
 
-So Nevelson always shows the settings of the block you clicked. Click a heading in a pattern and the panel, and the toolbar, are the heading's: Nevelson opens the section for you, as Edit section would, and selects the heading. The panel shows which section it's in above the block's name, with core's **Exit pattern**.
+So Nevelson always shows the settings of the block you clicked. Click a heading in a pattern and the panel is the heading's, toolbar and all: Nevelson opens the section for you, as Edit section would, and selects the heading. The panel shows which section it's in above the block's name, with core's **Exit pattern**.
 
 While a section is open, core dims the rest of the page, and a click outside the section would only close it. Nevelson makes that click select what you clicked instead, opening its section if it's in one, so you can click from block to block across the page as if there were no sections.
 
-![A heading in the hero pattern selected: the panel shows Cover, then Heading 2, with the heading's own settings, and the rest of the page dimmed](docs/screenshots/03-in-a-pattern.jpg)
+![A heading in the hero pattern selected: the panel has the heading's toolbar along its top, then Cover and Heading 2, with the heading's own settings](docs/screenshots/03-in-a-pattern.jpg)
 
 ## The page's settings
 
@@ -45,11 +48,13 @@ The editor opens with the card closed.
 
 ## On a narrow screen
 
-When the canvas is narrower than 720px, there's no room beside anything, so the panel is a sheet along the bottom, as in [Cassatt](../cassatt/), up to half the screen tall and scrolling inside. Selecting a block under the sheet scrolls it up above it. Below 782px wide, WordPress shows the page's settings full screen, as usual.
+When the canvas is narrower than 720px, there's no room beside anything, so the panel is a sheet along the bottom, as in [Cassatt](../cassatt/), up to half the screen tall and scrolling inside. On a narrow screen the editor docks the block toolbar along the top, so there it stays, apart from the settings. Selecting a block under the sheet scrolls it up above it. Below 782px wide, WordPress shows the page's settings full screen, as usual.
 
 ![On a phone-sized screen: the list selected near the top, and its settings in a sheet along the bottom](docs/screenshots/05-sheet.jpg)
 
 ## How it works
+
+The toolbar is the editor's own: while the panel's open, Nevelson pins the toolbar's popover into the panel's top row with CSS, over core's inline position, and lets it wrap to the panel's width. The panel is rendered in the editor's content area, which is a stacking context of its own, so the toolbar's popover can go over it.
 
 The button is a `BlockControls` fill added to every block with the `editor.BlockEdit` filter, and whether the panel is open is in a small data store of Nevelson's own.
 

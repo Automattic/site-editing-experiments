@@ -724,6 +724,23 @@
     </div>`;
   }
 
+  // ---------- Switching between prototypes ----------
+
+  // Plain links, so they work served from the repo and from a published copy alike.
+  const PROTOTYPES = [
+    ['A', 'one-list.html', 'One list of pages'],
+    ['B', 'automatic.html', 'Automatic menu'],
+    ['C', 'two-menus.html', 'Header and footer menus'],
+    ['D', 'sections.html', 'Menu and other pages'],
+    ['E', 'page-settings.html', 'Menu in page settings']
+  ];
+
+  function switcherHtml() {
+    const here = (location.pathname.split('/').pop() || '').toLowerCase();
+    return `<nav class="switcher" aria-label="Prototypes"><span class="switcher-label">Prototype</span>${PROTOTYPES.map(([letter, file, name]) =>
+      `<a href="${file}" title="${esc(name)}" aria-label="${letter}: ${esc(name)}"${here === file ? ' aria-current="page"' : ''}>${letter}</a>`).join('')}</nav>`;
+  }
+
   // ---------- Render ----------
 
   const root = document.getElementById('app');
@@ -741,6 +758,7 @@
       <div class="app">
         <div class="topbar">
           <div class="topbar-left"><span class="site-icon" aria-hidden="true">R</span><span class="topbar-title">Pages</span><span class="topbar-sub">Rosa's Bakery</span></div>
+          ${switcherHtml()}
           <div class="topbar-right">
             <button type="button" class="switch" aria-pressed="${ui.preview}" data-action="toggle-preview" data-focus="toggle-preview">Site preview <span class="switch-track"></span></button>
             ${btn('reset', 'Reset', {}, 'btn-small btn-ghost')}

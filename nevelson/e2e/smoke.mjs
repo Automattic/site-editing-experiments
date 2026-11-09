@@ -147,8 +147,12 @@ const toolbar = () =>
 			return null;
 		}
 		const r = t.getBoundingClientRect();
+		// What's by the block: not the tools placed in the panel.
 		const labels = [ ...t.querySelectorAll( 'button' ) ]
-			.filter( ( b ) => b.offsetParent !== null )
+			.filter(
+				( b ) =>
+					b.offsetParent !== null && ! b.closest( '.nevelson-moved' )
+			)
 			.map( ( b ) => b.getAttribute( 'aria-label' ) || b.textContent );
 		return {
 			left: r.left,
@@ -331,29 +335,65 @@ await step( 'it stays open for the next block', async () => {
 	await wait( 400 );
 } );
 
-await step( 'with the panel open, the whole toolbar is in it', async () => {
-	await select( para.id );
-	await wait( 400 );
-	const p = await panel();
-	const t = await toolbar();
-	expect( t, 'no toolbar' );
-	expect(
-		t.left >= p.left && t.right <= p.right && t.top > p.top,
-		'the toolbar isn’t in the panel'
-	);
-	const band = await page.evaluate( () =>
-		document
-			.querySelector( '.nevelson-panel .nevelson-band' )
-			.getBoundingClientRect()
-			.toJSON()
-	);
-	expect( t.top >= band.top && t.bottom <= band.bottom, 'not in its band' );
-	expect(
-		t.labels.includes( 'Options' ) && t.labels.includes( 'Drag' ),
-		`only ${ t.labels.join( ', ' ) }`
-	);
-	await shot( '01b-toolbar-in-panel' );
-} );
+await step(
+	'with the panel open, its header is the block’s name, with the tools the toolbar doesn’t have',
+	async () => {
+		await select( para.id );
+		await wait( 500 );
+		const header = await page
+			.locator( `${ PANEL } .nevelson-head .nevelson-kind` )
+			.textContent();
+		expect( header === 'Paragraph', `the header says ${ header }` );
+		const r = await page.evaluate( () => {
+			const band = document
+				.querySelector( '.nevelson-panel .nevelson-band' )
+				.getBoundingClientRect();
+			const moved = [ ...document.querySelectorAll( '.nevelson-moved' ) ];
+			const labels = moved.flatMap( ( m ) =>
+				[ ...m.querySelectorAll( 'button' ) ].map(
+					( b ) => b.getAttribute( 'aria-label' ) || b.textContent
+				)
+			);
+			const inBand = moved.every( ( m ) => {
+				const x = m.getBoundingClientRect();
+				return (
+					x.left >= band.left &&
+					x.right <= band.right &&
+					x.top >= band.top &&
+					x.bottom <= band.bottom
+				);
+			} );
+			return { labels, inBand };
+		} );
+		expect(
+			MOVED.every( ( l ) => r.labels.includes( l ) ),
+			`the panel has ${ r.labels.join( ', ' ) }`
+		);
+		expect( r.inBand, 'the tools aren’t in the panel’s band' );
+		const t = await toolbar();
+		expect(
+			t && ! MOVED.some( ( l ) => t.labels.includes( l ) ),
+			'the toolbar by the block has more than the basics'
+		);
+		expect(
+			[ 'Drag', 'Bold', 'Block settings' ].every( ( l ) =>
+				t.labels.includes( l )
+			),
+			'the basics aren’t by the block'
+		);
+		await page
+			.locator( '.nevelson-moved button[aria-label="Options"]' )
+			.click();
+		await wait( 500 );
+		const menu = await page
+			.locator( '.block-editor-block-settings-menu__popover' )
+			.count();
+		expect( menu > 0, 'the options menu didn’t open from the panel' );
+		await page.keyboard.press( 'Escape' );
+		await wait( 300 );
+		await shot( '01b-tools-in-panel' );
+	}
+);
 
 await step( 'a setting in the panel changes the block', async () => {
 	await page

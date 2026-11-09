@@ -1,7 +1,7 @@
 {
 	"$schema": "https://playground.wordpress.net/blueprint-schema.json",
 	"meta": {
-		"title": "Nevelson: block settings beside the block",
+		"title": "Nevelson option: the block toolbar and settings in one pinned panel",
 		"description": "Select a block and its settings open in a floating panel beside it, as in Judd, with the sidebar left for the page's settings.",
 		"author": "Automattic",
 		"categories": [
@@ -21,7 +21,7 @@
 			"pluginData": {
 				"resource": "git:directory",
 				"url": "https://github.com/Automattic/site-editing-experiments",
-				"ref": "trunk",
+				"ref": "option/nevelson-pinned-panel",
 				"path": "nevelson"
 			},
 			"options": {

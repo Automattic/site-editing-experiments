@@ -326,15 +326,15 @@ body.nevelson-movers-inside .block-editor-block-toolbar__block-controls {
 	display: none !important;
 }
 
-// The panel's band, where the tools that aren't in the block's toolbar sit:
-// rows of them in a white bar. The tools themselves are core's, in the
-// block toolbar's popover, placed over the band by Nevelson.
+// The panel's band, where the tools that aren't in the block's toolbar sit,
+// as a list of settings, each with its icon and name. The tools themselves
+// are core's, in the block toolbar's popover, placed over the band by
+// Nevelson.
 .nevelson-band {
 	display: none;
 	flex: none;
 	padding: 6px;
-	background: #f4f4f4;
-	border-bottom: 1px solid #e4e4e4;
+	border-bottom: 1px solid #f0f0f0;
 
 	.has-tools:not(.is-sheet) > & {
 		display: block;
@@ -342,11 +342,7 @@ body.nevelson-movers-inside .block-editor-block-toolbar__block-controls {
 }
 
 .nevelson-band-bar {
-	box-sizing: border-box;
-	height: calc(var(--nevelson-band-rows, 1) * 48px);
-	background: #fff;
-	border: 1px solid #e0e0e0;
-	border-radius: 8px;
+	height: var(--nevelson-band-height, 0);
 }
 
 // While the panel's open, the toolbar's popover goes over the panel, so the
@@ -355,13 +351,60 @@ body.nevelson-open .block-editor-block-popover:has(.block-editor-block-contextua
 	z-index: 33;
 }
 
-// A tool placed in the panel's band. (Specific enough to beat the rules that
-// hide it by the block.)
+// A tool placed in the panel's band: a list of settings, not a toolbar.
+// (Specific enough to beat the rules that hide it by the block.)
 .block-editor-block-contextual-toolbar .block-editor-block-toolbar .nevelson-moved.nevelson-moved.nevelson-moved {
 	display: flex !important;
 	position: absolute !important;
-	height: 48px;
+	flex-direction: column;
+	align-items: stretch;
+	height: auto;
+	padding: 0;
 	border: 0 !important;
+	background: #fff;
+
+	.block-editor-block-toolbar__slot,
+	.components-toolbar-group,
+	.components-toolbar,
+	.components-dropdown {
+		display: flex;
+		flex-direction: column;
+		align-items: stretch;
+		width: 100%;
+		height: auto;
+		padding: 0;
+		border: 0 !important;
+	}
+
+	.components-button {
+		justify-content: flex-start;
+		gap: 8px;
+		width: 100%;
+		height: 40px;
+		padding: 0 8px !important;
+		border-radius: 4px;
+		font-size: 13px;
+
+		&:hover:not(:disabled) {
+			background: #f0f0f0;
+		}
+
+		// A button's own pressed and focus backdrop is drawn for a square
+		// icon button; fill the row instead.
+		&::before {
+			left: 0 !important;
+			right: 0 !important;
+			width: auto !important;
+		}
+	}
+
+	// The tool's name beside its icon.
+	[data-nevelson-label]::after {
+		content: attr(data-nevelson-label);
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
 }
 
 // With the toolbar docked at the top of the editor, as on phones, the tools

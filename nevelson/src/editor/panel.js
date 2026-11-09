@@ -25,9 +25,8 @@ export const closeIcon = (
 const KEPT =
 	'.block-editor-block-toolbar__block-controls, .nevelson-inline-marker, .nevelson-toolbar-button, .block-editor-block-settings-menu';
 
-// The room around the tools in the panel's band, and the height of a row.
+// The room around the tools in the panel's band.
 const BAND_PAD = 6;
-const ROW = 48;
 
 /**
  * The tools the block's toolbar doesn't show: whole groups (alignment, the
@@ -40,6 +39,10 @@ const ROW = 48;
 function movedTools( toolbar ) {
 	const tools = [];
 	for ( const group of toolbar.children ) {
+		// The parent block's button isn't helpful anywhere.
+		if ( group.matches( '.block-editor-block-parent-selector' ) ) {
+			continue;
+		}
 		if ( ! group.querySelector( KEPT ) ) {
 			tools.push( group );
 		} else if ( group.querySelector( '.nevelson-toolbar-button' ) ) {
@@ -70,20 +73,24 @@ function unmark( marked, keep ) {
 			);
 			tool.style.removeProperty( 'left' );
 			tool.style.removeProperty( 'top' );
+			tool.style.removeProperty( 'width' );
+			tool.querySelectorAll( '[data-nevelson-label]' ).forEach( ( b ) =>
+				b.removeAttribute( 'data-nevelson-label' )
+			);
 			marked.delete( tool );
 		}
 	}
 }
 
 /**
- * Puts the tools the block's toolbar doesn't show into the panel's band, in
- * rows, from the left. They stay core's own, in the block toolbar's
+ * Puts the tools the block's toolbar doesn't show into the panel's band, as
+ * a list of settings, one under another, each with its name. They stay core's own, in the block toolbar's
  * popover, positioned over the panel. When the toolbar is docked at the top
  * of the editor, as on phones, they're shown there instead.
  *
  * @param {Element} panel  The panel.
  * @param {Set}     marked The tools Nevelson has moved.
- * @return {number|null} How many rows of tools there are, or null when the toolbar's hidden.
+ * @return {number|null} How tall the list is, or null when the toolbar's hidden.
  */
 function placeTools( panel, marked ) {
 	const toolbar = document.querySelector(
@@ -110,13 +117,10 @@ function placeTools( panel, marked ) {
 	}
 	const from = toolbar.getBoundingClientRect();
 	const area = band.getBoundingClientRect();
-	const left = area.left + BAND_PAD;
-	const right = area.right - BAND_PAD;
-	let x = left;
-	let row = 0;
+	const width = Math.round( area.width - BAND_PAD * 2 );
+	let y = area.top + BAND_PAD;
 	// Core's alignment dropdowns are panels in the settings now.
 	const replaced = coreAlignLabels();
-	let any = false;
 	for ( const tool of tools ) {
 		tool.classList.add( 'nevelson-moved' );
 		marked.add( tool );
@@ -129,27 +133,29 @@ function placeTools( panel, marked ) {
 				replaced.includes( label )
 			);
 		} );
+		// A setting, not a toolbar button: its name beside its icon, when
+		// it has only an icon.
+		tool.querySelectorAll( 'button' ).forEach( ( button ) => {
+			const label = button.getAttribute( 'aria-label' );
+			if ( label && ! button.textContent.trim() ) {
+				button.dataset.nevelsonLabel = label;
+			}
+		} );
 		// Nothing left in it, once the alignment dropdowns are out.
 		const empty = ! [
 			...tool.querySelectorAll( '[data-toolbar-item], button' ),
 		].some( ( item ) => ! item.closest( '.nevelson-replaced' ) );
 		tool.classList.toggle( 'nevelson-empty', empty );
-		const width = empty ? 0 : tool.offsetWidth;
-		if ( ! width ) {
+		if ( empty ) {
 			continue;
 		}
-		any = true;
-		if ( x > left && x + width > right ) {
-			x = left;
-			row++;
-		}
-		tool.style.left = `${ Math.round( x - from.left ) }px`;
-		tool.style.top = `${ Math.round(
-			area.top + BAND_PAD + row * ROW - from.top
-		) }px`;
-		x += width;
+		// One under another, as wide as the panel.
+		tool.style.width = `${ width }px`;
+		tool.style.left = `${ Math.round( area.left + BAND_PAD - from.left ) }px`;
+		tool.style.top = `${ Math.round( y - from.top ) }px`;
+		y += tool.offsetHeight;
 	}
-	return any ? row + 1 : 0;
+	return Math.round( y - ( area.top + BAND_PAD ) );
 }
 
 const canvasFrame = () =>
@@ -268,7 +274,7 @@ export function FloatingPanel( {
 		let frame;
 		let last = '';
 		let shown = '';
-		const bandRows = {};
+		const bandHeights = {};
 		const marked = new Set();
 		const tick = () => {
 			frame = window.requestAnimationFrame( tick );
@@ -322,13 +328,16 @@ export function FloatingPanel( {
 			}
 			// The tools that aren't in the block's toolbar any more go in the
 			// panel's band, below its header.
-			const rows = placeTools( el, marked );
-			if ( rows !== null ) {
-				bandRows[ ids.join() ] = rows;
+			const height = placeTools( el, marked );
+			if ( height !== null ) {
+				bandHeights[ ids.join() ] = height;
 			}
-			const shownRows = bandRows[ ids.join() ] ?? 0;
-			el.classList.toggle( 'has-tools', shownRows > 0 );
-			el.style.setProperty( '--nevelson-band-rows', shownRows );
+			const shownHeight = bandHeights[ ids.join() ] ?? 0;
+			el.classList.toggle( 'has-tools', shownHeight > 0 );
+			el.style.setProperty(
+				'--nevelson-band-height',
+				`${ shownHeight }px`
+			);
 
 			const box = {
 				left: p.left,

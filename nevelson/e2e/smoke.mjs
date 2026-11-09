@@ -626,6 +626,41 @@ await step(
 	}
 );
 
+await step(
+	'an image’s other tools are a list of settings, each with its name',
+	async () => {
+		await wait( 300 );
+		const r = await page.evaluate( () => {
+			const band = document
+				.querySelector( '.nevelson-panel .nevelson-band' )
+				.getBoundingClientRect();
+			const rows = [
+				...document.querySelectorAll( '.nevelson-moved button' ),
+			].filter( ( b ) => b.offsetParent !== null );
+			return {
+				names: rows.map(
+					( b ) => b.dataset.nevelsonLabel || b.textContent.trim()
+				),
+				fullWidth: rows.every(
+					( b ) => b.getBoundingClientRect().width > band.width - 30
+				),
+				parent: rows.some( ( b ) =>
+					b.closest( '.block-editor-block-parent-selector' )
+				),
+			};
+		} );
+		expect(
+			[ 'Link', 'Add caption', 'Replace' ].every( ( n ) =>
+				r.names.includes( n )
+			),
+			`the list has ${ r.names.join( ', ' ) }`
+		);
+		expect( r.fullWidth, 'the tools aren’t rows as wide as the panel' );
+		expect( ! r.parent, 'the parent block’s button is in the list' );
+		await shot( '05b-image-tools' );
+	}
+);
+
 await step( 'a click outside the patterns goes to that block', async () => {
 	await clickOn( 'li' );
 	expect(

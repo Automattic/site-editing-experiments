@@ -190,8 +190,8 @@ body.nevelson [data-tab-id="edit-post/block"] {
 
 // By the block, the toolbar keeps only the basics: the drag handle and the
 // movers, the block's icon and its name, formatting text (bold, italic, link
-// and the rest, marked by Nevelson) and the pencil. Everything else is in the
-// panel.
+// and the rest, marked by Nevelson), the pencil and the options menu.
+// Everything else is in the panel.
 .block-editor-block-contextual-toolbar {
 	overflow: visible;
 
@@ -199,16 +199,8 @@ body.nevelson [data-tab-id="edit-post/block"] {
 		position: relative;
 		overflow: visible;
 
-		> :not(:has(.block-editor-block-toolbar__block-controls, .nevelson-inline-marker, .nevelson-toolbar-button)) {
+		> :not(:has(.block-editor-block-toolbar__block-controls, .nevelson-inline-marker, .nevelson-toolbar-button, .block-editor-block-settings-menu)) {
 			display: none !important;
-		}
-
-		// The pencil's group is last by the block: no divider after it, next
-		// to the toolbar's own border. (Core's would be followed by the
-		// options menu, which is in the panel.)
-		> :has(.nevelson-toolbar-button),
-		> :has(.nevelson-toolbar-button) .components-toolbar-group {
-			border-right: 0 !important;
 		}
 
 		// Other blocks' buttons can share the groups Nevelson keeps, such as

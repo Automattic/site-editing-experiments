@@ -16,9 +16,9 @@ export const closeIcon = (
 );
 
 // What stays in the block's toolbar: the icon and movers' group, the
-// formatting group (marked by Nevelson) and the pencil.
+// formatting group (marked by Nevelson), the pencil and the options menu.
 const KEPT =
-	'.block-editor-block-toolbar__block-controls, .nevelson-inline-marker, .nevelson-toolbar-button';
+	'.block-editor-block-toolbar__block-controls, .nevelson-inline-marker, .nevelson-toolbar-button, .block-editor-block-settings-menu';
 
 // The room around the tools in the panel's band, and the height of a row.
 const BAND_PAD = 6;
@@ -26,8 +26,8 @@ const ROW = 48;
 
 /**
  * The tools the block's toolbar doesn't show: whole groups (alignment, the
- * block's own tools, the options menu) and anything sharing the pencil's
- * group (such as Replace).
+ * block's own tools) and anything sharing the pencil's group (such as
+ * Replace).
  *
  * @param {Element} toolbar The block toolbar.
  * @return {Element[]} The tools, in the toolbar's order.

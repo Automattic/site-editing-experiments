@@ -172,8 +172,9 @@ const KEPT = [
 	'Link',
 	'More',
 	'Block settings',
+	'Options',
 ];
-const MOVED = [ 'Options', 'Align', 'Align text' ];
+const MOVED = [ 'Align', 'Align text' ];
 // The handle and movers' box, the block name shown in the toolbar, and
 // whether the parent block's button shows.
 const extras = () =>
@@ -381,14 +382,18 @@ await step(
 			),
 			'the basics aren’t by the block'
 		);
+		// The options menu stays by the block, and opens from there.
 		await page
-			.locator( '.nevelson-moved button[aria-label="Options"]' )
+			.locator(
+				'.block-editor-block-contextual-toolbar button[aria-label="Options"]:not(.nevelson-moved *)'
+			)
+			.first()
 			.click();
 		await wait( 500 );
 		const menu = await page
 			.locator( '.block-editor-block-settings-menu__popover' )
 			.count();
-		expect( menu > 0, 'the options menu didn’t open from the panel' );
+		expect( menu > 0, 'the options menu didn’t open' );
 		await page.keyboard.press( 'Escape' );
 		await wait( 300 );
 		await shot( '01b-tools-in-panel' );

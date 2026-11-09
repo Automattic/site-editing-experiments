@@ -196,6 +196,14 @@ body:not(.nevelson-open) .block-editor-block-contextual-toolbar {
 			display: none !important;
 		}
 
+		// The pencil's group is last by the block: no divider after it, next
+		// to the toolbar's own border. (Core's would be followed by the
+		// options menu, which is in the panel.)
+		> :has(.nevelson-toolbar-button),
+		> :has(.nevelson-toolbar-button) .components-toolbar-group {
+			border-right: 0 !important;
+		}
+
 		// Other blocks' buttons can share the groups Nevelson keeps, such as
 		// Replace by the pencil.
 		.block-editor-block-toolbar__slot:has(> .nevelson-toolbar-button) > :not(.nevelson-toolbar-button, .nevelson-block-name),

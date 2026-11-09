@@ -65,7 +65,7 @@
     return {
       pop: null, more: null, dialog: null, current: 'home', device: 'desktop',
       phoneMenu: false, preview: true, flash: null, focus: null,
-      selected: null, filter: 'all', freshLink: null
+      selected: null, filter: 'all', freshLink: null, view: 'pages'
     };
   }
 
@@ -432,12 +432,28 @@
     return b;
   }
 
+  // ---------- Drag handles ----------
+
+  const GRIP = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg>';
+  const anyChosen = () => state.menus.some((m) => m.mode === 'chosen');
+
+  // Rows say what they are, so one drag handler serves every layout.
+  function dndAttrs(row) {
+    if (row.rest) return ` data-dnd="rest" data-dnd-page="${esc(row.pageId)}"`;
+    return ` data-dnd="menu" data-dnd-menu="${esc(row.menuId)}" data-dnd-index="${row.index}"`;
+  }
+  function gripHtml(on) {
+    return on ? `<span class="grip" data-grip title="Drag to move" aria-hidden="true">${GRIP}</span>` : '<span class="grip-space" aria-hidden="true"></span>';
+  }
+  const canDragRow = (row) => (row.rest ? anyChosen() && !!page(row.pageId) : true);
+
   function oneListRowHtml(row) {
     const flash = ui.flash === row.key ? ' flash' : '';
     if (row.kind === 'link') {
       const pop = ui.pop === row.key ? popHtml(popoverFor(row)) : '';
-      return `<li class="row${flash}" data-row="${esc(row.key)}">
+      return `<li class="row${flash}" data-row="${esc(row.key)}"${dndAttrs(row)}>
         <div class="row-main">
+          ${gripHtml(true)}
           <span class="indent" style="width:${row.depth * 20}px"></span>
           <span class="row-icon" style="color:var(--blue)">${ICON.link}</span>
           <span class="row-text"><span class="row-title">${esc(row.item.label)}</span>${state.menus.length > 1 ? `<span class="badge chip">${esc(menu(row.menuId).name.replace(' menu', ''))}</span>` : ''}<span class="row-meta">Link · ${esc(row.item.url)}</span></span>
@@ -449,8 +465,9 @@
     const kind = markerKind(p);
     const dim = kind === 'out' ? ' dim' : '';
     const pop = ui.pop === row.key ? popHtml(popoverFor(row)) : '';
-    return `<li class="row${dim}${flash}${row.gap ? ' gap-before' : ''}" data-row="${esc(row.key)}">
+    return `<li class="row${dim}${flash}${row.gap ? ' gap-before' : ''}" data-row="${esc(row.key)}"${dndAttrs(row)}>
       <div class="row-main">
+        ${gripHtml(canDragRow(row))}
         <span class="indent" style="width:${row.depth * 20}px"></span>
         <span class="row-icon">${ICON.page}</span>
         <span class="row-text"><span class="row-title">${esc(p.title)}</span>${rowBadges(p)}</span>
@@ -495,7 +512,7 @@
 
   function autoBanner() {
     if (header().mode !== 'automatic') return '';
-    return '<div class="banner"><strong>Your header menu shows all pages automatically</strong>New pages join it as soon as they\'re published. Use a page\'s ⋮ menu to change the order.</div>';
+    return '<div class="banner"><strong>Your header menu shows all pages automatically</strong>New pages join it as soon as they\'re published. Drag pages, or use their ⋮ menu, to change the order.</div>';
   }
 
   function renderOneList() {
@@ -503,7 +520,8 @@
     return `${panelHead(btn('ask-link', 'Add link', {}, 'btn-small'))}
       ${autoBanner()}${freshBanner()}
       <ul class="list" aria-label="Pages">${rows.map(oneListRowHtml).join('')}</ul>
-      ${legendHtml()}`;
+      ${legendHtml()}
+      ${dragHint(state.menus.length > 1 ? 'list-two' : 'list')}`;
   }
 
   // ---------- Toggles variant (every page, a switch on each) ----------
@@ -565,9 +583,27 @@
         <div class="toggle-head" aria-hidden="true"><span>Page</span><span>In menu</span></div>
         <ul class="list" aria-label="Pages">${pageTreeRows().map(toggleRowHtml).join('')}</ul>
       </div>
-      ${m.items.some((i) => i.type === 'link') && !auto ? `<div class="group"><div class="group-head"><h2 class="group-title">Links in your menu</h2></div>
-        <ul class="list">${m.items.map((it, index) => it.type !== 'link' ? '' : oneListRowHtml({ key: `link:${m.id}:${index}`, kind: 'link', item: it, menuId: m.id, index, depth: 0 })).join('')}</ul></div>` : ''}
-      <p class="footnote">${auto ? 'Your header menu shows every published page. Switch one off to choose the menu\'s pages yourself.' : 'Switched-on pages show in your header menu, in the order you see on the site. Use a page\'s ⋮ menu to move it or put it in a dropdown. Pages that are off are still live at their address.'}</p>`;
+      ${menuOrderGroup(m, 'Menu order', auto ? 'The order your header shows pages in. Drag to change it.' : 'The order your header shows them in. Drag to reorder; drag onto a page, or to the right, to put it in a dropdown.')}
+      <p class="footnote">${auto ? 'Your header menu shows every published page. Switch one off to choose the menu\'s pages yourself.' : 'Switched-on pages show in your header menu, in the order you see on the site. Change the order in Menu order below. Pages that are off are still live at their address.'}</p>`;
+  }
+
+  // A draggable list of one menu's items, in menu order. Used by the toggles and page-settings layouts,
+  // whose main lists aren't in menu order.
+  function menuOrderGroup(m, title, sub) {
+    const items = itemsOf(m);
+    return `<section class="group menu${m.mode === 'automatic' ? ' auto' : ''}" aria-label="${esc(title)}">
+      <div class="group-head"><h2 class="group-title">${esc(title)}</h2><span class="tag blue">${esc(m.where)}</span></div>
+      ${sub ? `<div class="group-sub">${esc(sub)}</div>` : ''}
+      ${items.length ? `<ul class="list">${items.map((it, i) => sectionRowHtml(m, it, i)).join('')}</ul>` : `<div class="empty" data-dnd="empty-menu" data-dnd-menu="${esc(m.id)}">Nothing in this menu yet.</div>`}
+    </section>`;
+  }
+
+  function dragHint(kind) {
+    const auto = header().mode === 'automatic';
+    if (auto) return '<p class="footnote">Drag pages by their handle to change the order they appear in.</p>';
+    if (kind === 'list') return '<p class="footnote">Drag pages by their handle to reorder the menu. Drop onto a page, or drag to the right, to put it in a dropdown. Drag a page down below the menu pages to take it out, or up into them to add it.</p>';
+    if (kind === 'list-two') return '<p class="footnote">Drag pages by their handle to reorder a menu, or to move them between menus. Drop onto a page, or drag to the right, to make a dropdown.</p>';
+    return '<p class="footnote">Drag by the handle to reorder. Drop onto a page, or drag to the right, to put it in a dropdown. Drag between Other pages and a menu to add or take out.</p>';
   }
 
   // ---------- Sections variant (In your menu / Other pages) ----------
@@ -582,8 +618,9 @@
     const removeAction = item.type === 'link'
       ? `data-action="remove-link" data-menu="${esc(m.id)}" data-index="${index}"`
       : `data-action="${m.mode === 'automatic' ? 'ask-convert' : 'remove'}" data-page="${esc(item.pageId)}" data-menu="${esc(m.id)}"`;
-    return `<li class="row${ui.flash === key ? ' flash' : ''}" data-row="${esc(key)}">
+    return `<li class="row${ui.flash === key ? ' flash' : ''}" data-row="${esc(key)}"${dndAttrs(row)}>
       <div class="row-main">
+        ${gripHtml(true)}
         <span class="indent" style="width:${item.depth * 20}px"></span>
         <span class="row-icon"${item.type === 'link' ? ' style="color:var(--blue)"' : ''}>${item.type === 'link' ? ICON.link : ICON.page}</span>
         <span class="row-text"><span class="row-title">${esc(title)}</span>${p ? rowBadges(p) : ''}${item.type === 'link' ? `<span class="row-meta">Link · ${esc(item.url)}</span>` : ''}${item.depth ? '<span class="row-meta">In a dropdown</span>' : ''}</span>
@@ -600,7 +637,7 @@
       const auto = m.mode === 'automatic';
       html += `<section class="group menu${auto ? ' auto' : ''}" aria-label="${esc(two ? m.name : 'In your menu')}">
         <div class="group-head"><h2 class="group-title">${esc(two ? m.name : 'In your menu')}</h2><span class="tag blue">${esc(two ? m.where : m.name.replace(' menu', ''))}</span>${auto ? '<span class="tag blue">Automatic</span>' : ''}</div>
-        ${items.length ? `<ul class="list">${items.map((it, i) => sectionRowHtml(m, it, i)).join('')}</ul>` : '<div class="empty">Nothing in this menu yet.</div>'}
+        ${items.length ? `<ul class="list">${items.map((it, i) => sectionRowHtml(m, it, i)).join('')}</ul>` : `<div class="empty" data-dnd="empty-menu" data-dnd-menu="${esc(m.id)}">Nothing in this menu yet. Drag a page here.</div>`}
         ${auto ? '' : `<div class="group-foot">
           <button type="button" class="add-btn" data-action="ask-add" data-menu="${esc(m.id)}" data-focus="ask-add:${esc(m.id)}">+ New page in menu</button>
           <button type="button" class="add-btn" data-action="ask-link" data-menu="${esc(m.id)}" data-focus="ask-link:${esc(m.id)}">+ Link</button></div>`}
@@ -619,15 +656,17 @@
             ? `<button type="button" class="icon-btn add" data-action="pop" data-key="${esc(key)}" data-focus="pop:${esc(key)}" aria-expanded="${ui.pop === key}" aria-label="Add ${esc(p.title)} to a menu">${ICON.plus}</button>`
             : `<button type="button" class="icon-btn add" data-action="add" data-page="${esc(p.id)}" data-menu="${esc(header().id)}" data-focus="add:${esc(p.id)}" aria-label="Add ${esc(p.title)} to your menu">${ICON.plus}</button>`)
           : '';
-        return `<li class="row${ui.flash === key ? ' flash' : ''}" data-row="${esc(key)}">
+        return `<li class="row${ui.flash === key ? ' flash' : ''}" data-row="${esc(key)}"${dndAttrs(row)}>
           <div class="row-main">
+            ${gripHtml(canAdd)}
             <span class="row-icon">${ICON.page}</span>
             <span class="row-text"><span class="row-title">${esc(p.title)}</span>${rowBadges(p)}${p.status === 'draft' && !canAdd ? '<span class="row-meta">Joins the menu when published</span>' : ''}</span>
             ${addBtn}${moreButton(key, p.title)}
           </div>${ui.more === key ? moreMenuFor(row) : ''}${ui.pop === key ? popHtml(popoverFor(row)) : ''}</li>`;
-      }).join('')}</ul>` : '<div class="empty">Every page is in a menu.</div>'}
+      }).join('')}</ul>` : '<div class="empty" data-dnd="rest">Every page is in a menu. Drag one here to take it out.</div>'}
       <div class="group-foot"><button type="button" class="add-btn" data-action="ask-add" data-focus="ask-add:other">+ New page</button></div>
     </section>
+    ${dragHint('sections')}
     <p class="footnote">Pages outside the menu are still public at their address and can show in search results.</p>`;
     return html;
   }
@@ -677,10 +716,16 @@
         ${p.id !== 'home' ? btn('ask-trash', 'Move to trash', { page: p.id }, 'btn-small') : ''}
       </div>`;
     }
+    const viewSeg = `<div class="seg" role="group" aria-label="Show"><button type="button" aria-pressed="${ui.view !== 'menus'}" data-action="view" data-value="pages" data-focus="view:pages">Pages</button><button type="button" aria-pressed="${ui.view === 'menus'}" data-action="view" data-value="menus" data-focus="view:menus">Menus</button></div>`;
+    if (ui.view === 'menus') {
+      return `${panelHead(viewSeg)}
+        ${state.menus.map((m) => menuOrderGroup(m, m.name, 'Drag to reorder. Drop onto a page, or drag to the right, to put it in a dropdown.')).join('')}
+        <p class="footnote">To add a page to a menu, open it from Pages and switch on Show in menu.</p>`;
+    }
     const counts = { all: state.pages.length, in: state.pages.filter((p) => menusWith(p.id).length).length };
     counts.out = counts.all - counts.in;
     const shown = state.pages.filter((p) => ui.filter === 'all' || (ui.filter === 'in') === !!menusWith(p.id).length);
-    return `${panelHead('')}
+    return `${panelHead(viewSeg)}
       <div class="filters" role="group" aria-label="Filter pages">
         ${[['all', 'All'], ['in', 'In a menu'], ['out', 'Not in a menu']].map(([k, t]) => `<button type="button" aria-pressed="${ui.filter === k}" data-action="filter" data-value="${k}" data-focus="filter:${k}">${t} · ${counts[k]}</button>`).join('')}
       </div>
@@ -862,6 +907,7 @@
       setTimeout(() => {
         if (ui.flash !== f) return;
         ui.flash = null;
+        ui.freshLink = null;
         root.querySelectorAll('.site .fresh').forEach((el) => el.classList.remove('fresh'));
       }, 2400);
     }
@@ -1025,6 +1071,7 @@
     'open-settings'(d) { ui.selected = d.page; ui.current = d.page; ui.focus = 'close-settings'; render(); },
     'close-settings'() { const s = ui.selected; ui.selected = null; ui.focus = 'open:' + s; render(); },
     filter(d) { ui.filter = d.value; ui.focus = 'filter:' + d.value; render(); },
+    view(d) { ui.view = d.value; ui.focus = 'view:' + d.value; render(); },
 
     'toggle-preview'() { ui.preview = !ui.preview; ui.focus = 'toggle-preview'; render(); },
     device(d) { ui.device = d.value; ui.phoneMenu = false; ui.focus = 'device:' + d.value; render(); },
@@ -1058,12 +1105,306 @@
     }, message);
   }
 
+  // ---------- Drag and drop ----------
+  //
+  // Pointer events, so it works with a mouse, a pen or a finger. Touch drags start from the ⠿ handle
+  // (so the page still scrolls); a mouse can drag a row from anywhere but its buttons.
+  // A drop lands in one of four ways:
+  //   slot   between two items, at the top level or in a dropdown (pointer further right = dropdown)
+  //   into   onto the middle of a top-level page: the end of its dropdown
+  //   remove onto the pages that aren't in a menu: out of the menu
+  //   auto   in an automatic menu: page order among sibling pages (no nesting there)
+
+  let drag = null;
+  let suppressClick = false;
+
+  function blockEnd(items, index) {
+    let end = index + 1;
+    if (items[index] && items[index].depth === 0) while (end < items.length && items[end].depth > 0) end++;
+    return end;
+  }
+
+  function sourceFrom(li) {
+    if (li.dataset.dnd === 'menu') {
+      const m = menu(li.dataset.dndMenu);
+      const index = Number(li.dataset.dndIndex);
+      const items = itemsOf(m);
+      if (!items[index]) return null;
+      return { menuId: m.id, index, end: blockEnd(items, index), auto: m.mode === 'automatic', item: items[index], title: label(items[index]) };
+    }
+    if (li.dataset.dnd === 'rest') {
+      const p = page(li.dataset.dndPage);
+      return p ? { pageId: p.id, title: p.title } : null;
+    }
+    return null;
+  }
+  const srcPageId = (src) => src.pageId || (src.item && src.item.type === 'page' ? src.item.pageId : null);
+  const srcHasChildren = (src) => !!src.menuId && src.end - src.index > 1;
+
+  // The neighbours of a slot, skipping the block being dragged when it comes from the same menu.
+  function neighbours(m, s, src) {
+    const items = m.items;
+    const inBlock = (k) => src.menuId === m.id && !src.auto && k >= src.index && k < src.end;
+    let p = s - 1;
+    while (p >= 0 && inBlock(p)) p--;
+    let n = s;
+    while (n < items.length && inBlock(n)) n++;
+    return { prev: p >= 0 ? items[p] : null, prevIndex: p, next: n < items.length ? items[n] : null };
+  }
+
+  function parentLabelBefore(m, s, src) {
+    let k = s - 1;
+    const inBlock = (j) => src.menuId === m.id && j >= src.index && j < src.end;
+    while (k >= 0 && (inBlock(k) || m.items[k].depth > 0)) k--;
+    return k >= 0 ? label(m.items[k]) : '';
+  }
+
+  function computeTarget(x, y) {
+    const panel = root.querySelector('.panel');
+    const pr = panel.getBoundingClientRect();
+    if (x < pr.left || x > pr.right) return null;
+    const src = drag.src;
+    const cands = [...root.querySelectorAll('[data-dnd]')].filter((el) => {
+      if (el.dataset.dnd !== 'menu' || !src.menuId || el.dataset.dndMenu !== src.menuId) return true;
+      const i = Number(el.dataset.dndIndex);
+      return i < src.index || i >= src.end;
+    });
+    let el = null;
+    let best = Infinity;
+    cands.forEach((c) => {
+      const r = c.getBoundingClientRect();
+      if (!r.height) return;
+      const d = y < r.top ? r.top - y : y > r.bottom ? y - r.bottom : 0;
+      if (d < best) { best = d; el = c; }
+    });
+    if (!el || best > 80) return null;
+    const r = el.getBoundingClientRect();
+    const list = el.closest('.list') || el;
+    const lr = list.getBoundingClientRect();
+    const rel = (y - r.top) / r.height;
+
+    if (el.dataset.dnd === 'rest') {
+      if (!src.menuId) return { type: 'none', el };
+      return { type: 'remove', el, hint: 'Take out of the menu' };
+    }
+    if (el.dataset.dnd === 'empty-menu') {
+      const m = menu(el.dataset.dndMenu);
+      const pid = srcPageId(src);
+      if (m.mode === 'automatic' || (pid && inMenu(pid, m))) return { type: 'none', el };
+      return { type: 'slot', menuId: m.id, s: 0, depth: 0, el, box: true, hint: 'Into the ' + m.name.toLowerCase() };
+    }
+
+    const m = menu(el.dataset.dndMenu);
+    const t = Number(el.dataset.dndIndex);
+    const before = rel < 0.5;
+
+    if (m.mode === 'automatic') {
+      if (!src.auto || src.menuId !== m.id) return { type: 'none', el, hint: 'This menu shows every page on its own' };
+      const it = itemsOf(m)[t];
+      const sp = page(src.item.pageId);
+      const tp = page(it.pageId);
+      if (!tp || tp.parent !== sp.parent) return { type: 'none', el, hint: 'Pages keep their parent here' };
+      return { type: 'auto', menuId: m.id, pageId: tp.id, before, el, lineY: before ? r.top : r.bottom, lineLeft: lr.left + 40 + it.depth * 20, hint: 'Change the page order' };
+    }
+
+    const pid = srcPageId(src);
+    const fromOther = !src.menuId || src.auto || src.menuId !== m.id;
+    if (pid && fromOther && inMenu(pid, m)) return { type: 'none', el, hint: 'Already in the ' + m.name.toLowerCase() };
+    const lsrc = src.menuId && !src.auto ? src : { pageId: pid };
+    const it = m.items[t];
+
+    // Onto the middle of a top-level item: the end of its dropdown.
+    if (rel > 0.28 && rel < 0.72 && it.depth === 0 && !srcHasChildren(lsrc)) {
+      return { type: 'slot', menuId: m.id, s: blockEnd(m.items, t), depth: 1, el, into: true, hint: `Into the ${label(it)} dropdown` };
+    }
+
+    const s = before ? t : t + 1;
+    const { prev, next } = neighbours(m, s, lsrc);
+    let allowed;
+    if (next && next.depth === 1) allowed = srcHasChildren(lsrc) ? [] : [1];
+    else if (!prev) allowed = [0];
+    else allowed = srcHasChildren(lsrc) ? [0] : [0, 1];
+    if (!allowed.length) return { type: 'none', el, hint: 'A page with a dropdown can\'t go inside another' };
+    const wanted = x - lr.left > 76 ? 1 : 0;
+    const depth = allowed.includes(wanted) ? wanted : allowed[0];
+    const where = depth ? `In the ${parentLabelBefore(m, s, lsrc)} dropdown` : (fromOther ? 'Into the ' + m.name.toLowerCase() : 'Move here');
+    return { type: 'slot', menuId: m.id, s, depth, el, lineY: before ? r.top : r.bottom, lineLeft: lr.left + 40 + depth * 22, hint: where };
+  }
+
+  function paintTarget(tg) {
+    root.querySelectorAll('.dnd-into, .dnd-remove').forEach((e) => e.classList.remove('dnd-into', 'dnd-remove'));
+    const line = drag.line;
+    line.hidden = true;
+    drag.ghost.querySelector('small').textContent = tg && tg.hint ? tg.hint : '';
+    drag.ghost.classList.toggle('no-drop', !tg || tg.type === 'none');
+    if (!tg || tg.type === 'none') return;
+    if (tg.type === 'remove') {
+      root.querySelectorAll('[data-dnd="rest"]').forEach((e) => e.classList.add('dnd-remove'));
+      return;
+    }
+    if (tg.into || tg.box) { tg.el.classList.add('dnd-into'); return; }
+    const lr = (tg.el.closest('.list') || tg.el).getBoundingClientRect();
+    line.hidden = false;
+    line.style.top = Math.round(tg.lineY - 1.5) + 'px';
+    line.style.left = Math.round(tg.lineLeft) + 'px';
+    line.style.width = Math.max(40, Math.round(lr.right - tg.lineLeft - 10)) + 'px';
+  }
+
+  function moveGhost(x, y) {
+    drag.ghost.style.transform = `translate(${Math.round(x + 18)}px, ${Math.round(y + 18)}px)`;
+  }
+
+  function beginDrag() {
+    drag.started = true;
+    if (ui.pop || ui.more) {
+      ui.pop = null;
+      ui.more = null;
+      render();
+    }
+    drag.li = root.querySelector(`[data-row="${CSS.escape(drag.key)}"]`);
+    if (drag.li) drag.li.classList.add('drag-source');
+    document.body.classList.add('dragging');
+    const ghost = document.createElement('div');
+    ghost.className = 'dnd-ghost';
+    ghost.setAttribute('aria-hidden', 'true');
+    ghost.innerHTML = `<span>${esc(drag.src.title)}</span><small></small>`;
+    document.body.appendChild(ghost);
+    const line = document.createElement('div');
+    line.className = 'dnd-line';
+    line.hidden = true;
+    document.body.appendChild(line);
+    drag.ghost = ghost;
+    drag.line = line;
+    moveGhost(drag.x, drag.y);
+    autoScroll();
+  }
+
+  // Scroll the page when the pointer is held near the top or bottom edge.
+  function autoScroll() {
+    if (!drag || !drag.started) return;
+    const edge = 70;
+    let dy = 0;
+    if (drag.y < edge) dy = -Math.ceil((edge - drag.y) / 5);
+    else if (drag.y > window.innerHeight - edge) dy = Math.ceil((drag.y - (window.innerHeight - edge)) / 5);
+    if (dy) {
+      window.scrollBy(0, dy);
+      drag.target = computeTarget(drag.x, drag.y);
+      paintTarget(drag.target);
+    }
+    drag.raf = requestAnimationFrame(autoScroll);
+  }
+
+  function endDrag(apply) {
+    if (!drag) return;
+    const d = drag;
+    drag = null;
+    cancelAnimationFrame(d.raf);
+    document.body.classList.remove('dragging');
+    if (d.ghost) d.ghost.remove();
+    if (d.line) d.line.remove();
+    root.querySelectorAll('.drag-source, .dnd-into, .dnd-remove').forEach((e) => e.classList.remove('drag-source', 'dnd-into', 'dnd-remove'));
+    if (!d.started) return;
+    suppressClick = true;
+    setTimeout(() => { suppressClick = false; }, 60);
+    if (apply && d.target && d.target.type !== 'none') drop(d.src, d.target);
+  }
+
+  function rowKeyFor(m, item, index) {
+    const sectionKeys = CONFIG.variant !== 'one-list';
+    if (item.type === 'link') return `link:${m.id}:${index}`;
+    return sectionKeys ? `page:${item.pageId}:${m.id}` : keyRow(item.pageId);
+  }
+
+  function drop(src, tg) {
+    const title = src.title;
+    if (tg.type === 'remove') {
+      if (src.auto) { ui.dialog = { type: 'convert', pageId: src.item.pageId, menuId: src.menuId }; render(); return; }
+      const m = menu(src.menuId);
+      change(() => {
+        removeItemAt(m, src.index);
+        if (src.item.type === 'page') ui.flash = keyRow(src.item.pageId);
+      }, `"${title}" is no longer in your ${m.name.toLowerCase()}`);
+      return;
+    }
+    if (tg.type === 'auto') {
+      change(() => {
+        const p = page(src.item.pageId);
+        const arr = state.pages;
+        arr.splice(arr.indexOf(p), 1);
+        let k = arr.indexOf(page(tg.pageId));
+        if (!tg.before) k += 1;
+        arr.splice(k, 0, p);
+        ui.flash = rowKeyFor(menu(tg.menuId), { type: 'page', pageId: p.id }, 0);
+        ui.freshLink = p.id;
+      }, `"${title}" moved`);
+      return;
+    }
+    // slot
+    const m = menu(tg.menuId);
+    const pid = srcPageId(src);
+    const same = src.menuId === m.id && !src.auto;
+    let message;
+    change(() => {
+      let s = tg.s;
+      let block;
+      if (src.menuId && !src.auto) {
+        const sm = menu(src.menuId);
+        block = sm.items.splice(src.index, src.end - src.index);
+        if (sm === m && s > src.index) s -= block.length;
+      } else {
+        block = [{ type: 'page', pageId: pid, depth: 0 }];
+        state.fresh = state.fresh.filter((x) => x !== pid);
+      }
+      block[0].depth = tg.depth;
+      m.items.splice(s, 0, ...block);
+      const at = m.items.indexOf(block[0]);
+      ui.flash = rowKeyFor(m, block[0], at);
+      if (pid) ui.freshLink = pid;
+      const parent = tg.depth ? parentLabelBefore(m, at, { menuId: null }) : '';
+      if (!same) message = `"${title}" added to your ${m.name.toLowerCase()}${parent ? ', in the ' + parent + ' dropdown' : ''}`;
+      else if (parent) message = `"${title}" is in the ${parent} dropdown. Its page address hasn't changed.`;
+      else message = `"${title}" moved`;
+    }, '');
+    showToast(message, true);
+  }
+
+  document.addEventListener('pointerdown', (ev) => {
+    if (drag || ui.dialog || ev.button > 0) return;
+    const li = ev.target.closest('[data-dnd]');
+    if (!li || !root.contains(li) || !li.querySelector(':scope > .row-main > [data-grip]')) return;
+    const onGrip = !!ev.target.closest('[data-grip]');
+    if (!onGrip && (ev.pointerType !== 'mouse' || ev.target.closest('button, a, input, select, label, .pop, .moremenu'))) return;
+    const src = sourceFrom(li);
+    if (!src) return;
+    ev.preventDefault();
+    drag = { src, key: li.dataset.row, x: ev.clientX, y: ev.clientY, x0: ev.clientX, y0: ev.clientY, started: false, pointerId: ev.pointerId, target: null };
+  });
+
+  document.addEventListener('pointermove', (ev) => {
+    if (!drag || ev.pointerId !== drag.pointerId) return;
+    drag.x = ev.clientX;
+    drag.y = ev.clientY;
+    if (!drag.started) {
+      if (Math.hypot(drag.x - drag.x0, drag.y - drag.y0) < 6) return;
+      beginDrag();
+    }
+    ev.preventDefault();
+    moveGhost(drag.x, drag.y);
+    drag.target = computeTarget(drag.x, drag.y);
+    paintTarget(drag.target);
+  }, { passive: false });
+
+  document.addEventListener('pointerup', (ev) => { if (drag && ev.pointerId === drag.pointerId) endDrag(true); });
+  document.addEventListener('pointercancel', () => endDrag(false));
+  window.addEventListener('blur', () => endDrag(false));
+
   function readName() {
     const i = document.getElementById('dlg-name');
     return i ? i.value.trim() : '';
   }
 
   document.addEventListener('click', (ev) => {
+    if (suppressClick) { suppressClick = false; ev.preventDefault(); ev.stopPropagation(); return; }
     const el = ev.target.closest('[data-action]');
     if (!el) {
       // A click elsewhere closes an open popover or ⋮ menu.
@@ -1078,6 +1419,7 @@
   });
 
   document.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Escape' && drag) { endDrag(false); return; }
     if (ev.key === 'Escape') {
       if (ui.dialog) { ui.dialog = null; render(); return; }
       if (ui.more) { const k = ui.more; ui.more = null; ui.focus = 'more:' + k; render(); return; }

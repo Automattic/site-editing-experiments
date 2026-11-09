@@ -257,3 +257,24 @@ a { color: var(--blue); }
 .toggle-head { display: flex; justify-content: space-between; padding: 0 56px 0 38px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-3); }
 .menu-switch { flex: none; height: 44px; padding: 0 6px; }
 .menu-switch.auto .switch-track { background: #8ea2f5; }
+
+/* ---------- Drag and drop ---------- */
+
+.grip { flex: none; width: 26px; height: 40px; margin-left: -6px; display: flex; align-items: center; justify-content: center; border-radius: 4px; color: #a7aaad; cursor: grab; touch-action: none; -webkit-user-select: none; user-select: none; }
+.grip:hover { color: var(--ink); background: var(--ground); }
+.grip svg { width: 14px; height: 14px; }
+.grip-space { flex: none; width: 20px; margin-left: -6px; }
+body.dragging, body.dragging * { cursor: grabbing !important; -webkit-user-select: none; user-select: none; }
+.row.drag-source { opacity: 0.35; }
+.dnd-line { position: fixed; z-index: 70; height: 3px; border-radius: 2px; background: var(--blue); pointer-events: none; }
+.dnd-line::before { content: ""; position: absolute; left: -9px; top: -4px; width: 11px; height: 11px; border-radius: 50%; border: 2.5px solid var(--blue); background: var(--white); box-sizing: border-box; }
+.row.dnd-into > .row-main { background: var(--blue-tint); box-shadow: inset 0 0 0 2px var(--blue); border-radius: 4px; }
+.empty.dnd-into { border: 2px solid var(--blue); background: var(--blue-tint); color: var(--blue-dark); }
+.row.dnd-remove { background: var(--amber-tint); }
+.empty.dnd-remove { border-color: #b26200; background: var(--amber-tint); color: var(--amber-ink); }
+.dnd-ghost { position: fixed; left: 0; top: 0; z-index: 80; pointer-events: none; display: flex; flex-direction: column; gap: 2px; max-width: 260px; padding: 8px 12px; border-radius: 6px; background: var(--white); border: 1px solid var(--blue); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18); font-size: 14px; font-weight: 500; }
+.dnd-ghost small { font-size: 12px; font-weight: 400; color: var(--blue-dark); }
+.dnd-ghost small:empty { display: none; }
+.dnd-ghost.no-drop { border-color: #c3c4c7; }
+.dnd-ghost.no-drop small { color: var(--ink-3); }
+@media (prefers-reduced-motion: reduce) { .row.flash { animation: none; } }

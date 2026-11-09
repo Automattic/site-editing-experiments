@@ -2,7 +2,7 @@
  * O'Keeffe · Pages and menus.
  *
  * One engine for every prototype. Each HTML page sets window.PROTOTYPE:
- *   variant: 'one-list' | 'sections' | 'page-settings'
+ *   variant: 'one-list' | 'toggles' | 'sections' | 'page-settings'
  *   start:   'chosen' | 'automatic' | 'two-menus'
  *
  * Menus work the way they do in WordPress:
@@ -395,9 +395,13 @@
       const p = page(row.pageId);
       const m = row.menuId ? menu(row.menuId) : null;
       if (m && !row.rest && m.mode === 'chosen') {
-        items.push(['move-up', 'Move up', { menu: m.id, index: row.index }]);
-        items.push(['move-down', 'Move down', { menu: m.id, index: row.index }]);
-        if (row.depth === 0 && row.index > 0) items.push(['indent', 'Move into the dropdown above', { menu: m.id, index: row.index }]);
+        // In the toggles prototype the list is in page order, not menu order, so name what's meant.
+        const t = CONFIG.variant === 'toggles';
+        let above = null;
+        for (let j = row.index - 1; j >= 0; j--) if (m.items[j].depth === 0) { above = label(m.items[j]); break; }
+        items.push(['move-up', t ? 'Move earlier in menu' : 'Move up', { menu: m.id, index: row.index }]);
+        items.push(['move-down', t ? 'Move later in menu' : 'Move down', { menu: m.id, index: row.index }]);
+        if (row.depth === 0 && row.index > 0) items.push(['indent', t && above ? `Move into the ${esc(above)} dropdown` : 'Move into the dropdown above', { menu: m.id, index: row.index }]);
         if (row.depth > 0) items.push(['outdent', 'Move out of the dropdown', { menu: m.id, index: row.index }]);
         items.push('hr');
       }
@@ -486,7 +490,7 @@
     const n = state.fresh.length;
     if (!n || CONFIG.variant === 'page-settings') return '';
     return `<div class="banner"><strong>${n === 1 ? '1 new page isn\'t' : n + ' new pages aren\'t'} in your menu</strong>
-      You choose your menu's pages, so new ones aren't added on their own. ${CONFIG.variant === 'one-list' ? 'They\'re marked New in the list.' : 'They\'re in Other pages, marked New.'}</div>`;
+      You choose your menu's pages, so new ones aren't added on their own. ${CONFIG.variant === 'one-list' ? 'They\'re marked New in the list.' : CONFIG.variant === 'toggles' ? 'They\'re marked New, with their switch off.' : 'They\'re in Other pages, marked New.'}</div>`;
   }
 
   function autoBanner() {
@@ -500,6 +504,70 @@
       ${autoBanner()}${freshBanner()}
       <ul class="list" aria-label="Pages">${rows.map(oneListRowHtml).join('')}</ul>
       ${legendHtml()}`;
+  }
+
+  // ---------- Toggles variant (every page, a switch on each) ----------
+
+  // Rows never move when a switch is flipped: pages stay in page order, child pages under their
+  // parent. The menu's own order is in the site preview and the ⋮ menu.
+  function pageTreeRows() {
+    const rows = [];
+    const isTop = (p) => !p.parent || !page(p.parent);
+    state.pages.filter(isTop).forEach((t) => {
+      rows.push({ p: t, depth: 0 });
+      state.pages.filter((c) => c.parent === t.id).forEach((c) => rows.push({ p: c, depth: 1 }));
+    });
+    return rows;
+  }
+
+  function menuPlace(p, m) {
+    const items = itemsOf(m);
+    const i = items.findIndex((it) => it.type === 'page' && it.pageId === p.id);
+    if (i < 0) return null;
+    if (items[i].depth > 0) {
+      let j = i - 1;
+      while (j >= 0 && items[j].depth > 0) j--;
+      return { index: i, depth: items[i].depth, under: j >= 0 ? label(items[j]) : null };
+    }
+    return { index: i, depth: 0, under: null };
+  }
+
+  function toggleRowHtml({ p, depth }) {
+    const m = header();
+    const key = keyRow(p.id);
+    const on = inMenu(p.id, m);
+    const place = menuPlace(p, m);
+    const auto = m.mode === 'automatic';
+    let meta = '';
+    if (on && p.status === 'draft') meta = 'Shows in the menu once published';
+    else if (!on && p.status === 'draft' && auto) meta = 'Joins the menu when published';
+    else if (place && place.under) meta = `In the ${place.under} dropdown`;
+    const row = place
+      ? { key, kind: 'page', pageId: p.id, menuId: m.id, index: place.index, depth: place.depth }
+      : { key, kind: 'page', pageId: p.id, rest: true, depth: 0 };
+    const pending = !on && p.status === 'draft' && auto;
+    return `<li class="row${on || pending ? '' : ' dim'}${ui.flash === key ? ' flash' : ''}" data-row="${esc(key)}">
+      <div class="row-main">
+        <span class="indent" style="width:${depth * 20}px"></span>
+        <span class="row-icon">${ICON.page}</span>
+        <span class="row-text"><span class="row-title">${esc(p.title)}</span>${rowBadges(p)}${meta ? `<span class="row-meta">${esc(meta)}</span>` : ''}</span>
+        <button type="button" class="switch menu-switch${auto && on ? ' auto' : ''}" aria-pressed="${on}" data-action="switch-menu" data-page="${esc(p.id)}" data-menu="${esc(m.id)}" data-focus="sw:${esc(p.id)}" aria-label="Show ${esc(p.title)} in your header menu"><span class="switch-track"></span></button>
+        ${moreButton(key, p.title)}
+      </div>${ui.more === key ? moreMenuFor(row) : ''}</li>`;
+  }
+
+  function renderToggles() {
+    const m = header();
+    const auto = m.mode === 'automatic';
+    return `${panelHead(btn('ask-link', 'Add link', {}, 'btn-small'))}
+      ${autoBanner()}${freshBanner()}
+      <div class="toggle-list">
+        <div class="toggle-head" aria-hidden="true"><span>Page</span><span>In menu</span></div>
+        <ul class="list" aria-label="Pages">${pageTreeRows().map(toggleRowHtml).join('')}</ul>
+      </div>
+      ${m.items.some((i) => i.type === 'link') && !auto ? `<div class="group"><div class="group-head"><h2 class="group-title">Links in your menu</h2></div>
+        <ul class="list">${m.items.map((it, index) => it.type !== 'link' ? '' : oneListRowHtml({ key: `link:${m.id}:${index}`, kind: 'link', item: it, menuId: m.id, index, depth: 0 })).join('')}</ul></div>` : ''}
+      <p class="footnote">${auto ? 'Your header menu shows every published page. Switch one off to choose the menu\'s pages yourself.' : 'Switched-on pages show in your header menu, in the order you see on the site. Use a page\'s ⋮ menu to move it or put it in a dropdown. Pages that are off are still live at their address.'}</p>`;
   }
 
   // ---------- Sections variant (In your menu / Other pages) ----------
@@ -732,7 +800,8 @@
     ['B', 'automatic.html', 'Automatic menu'],
     ['C', 'two-menus.html', 'Header and footer menus'],
     ['D', 'sections.html', 'Menu and other pages'],
-    ['E', 'page-settings.html', 'Menu in page settings']
+    ['E', 'page-settings.html', 'Menu in page settings'],
+    ['F', 'toggles.html', 'All pages with menu switches']
   ];
 
   function switcherHtml() {
@@ -752,6 +821,7 @@
 
     const panel = CONFIG.variant === 'sections' ? renderSections()
       : CONFIG.variant === 'page-settings' ? renderPageSettings()
+      : CONFIG.variant === 'toggles' ? renderToggles()
       : renderOneList();
 
     root.innerHTML = `
@@ -819,6 +889,7 @@
   // Where focus should land after a change, so keyboard users stay on the row they acted on.
   function focusFor(pageId, menuId) {
     if (CONFIG.variant === 'page-settings') return ui.selected ? 'sw:' + menuId : 'open:' + pageId;
+    if (CONFIG.variant === 'toggles') return 'sw:' + pageId;
     if (CONFIG.variant === 'sections') return 'more:' + keyRow(pageId) + (menuId && menusWith(pageId).some((m) => m.id === menuId) ? ':' + menuId : '');
     return 'pop:' + keyRow(pageId);
   }
@@ -851,6 +922,28 @@
       ui.focus = `toggle-menu:${d.page}:${d.menu}`;
       change(() => { if (on) removeFromMenu(d.page, d.menu); else addToMenu(d.page, d.menu); ui.flash = keyRow(d.page); ui.pop = keyRow(d.page); },
         `"${page(d.page).title}" ${on ? 'taken out of' : 'added to'} your ${m.name.toLowerCase()}`);
+    },
+    // The toggles prototype: one switch per page, no popover. On adds it to the end of the menu,
+    // or to its parent's dropdown when the parent is in the menu; off takes it out.
+    'switch-menu'(d) {
+      const m = menu(d.menu);
+      const p = page(d.page);
+      const on = inMenu(d.page, m);
+      if (m.mode === 'automatic') {
+        if (on) { ui.dialog = { type: 'convert', pageId: d.page, menuId: d.menu }; render(); }
+        else showToast(p.status === 'draft' ? `"${p.title}" joins your menu when it's published` : 'Every published page is already in your menu', false);
+        return;
+      }
+      const parent = p.parent && page(p.parent);
+      const under = !on && parent && menuPlace(parent, m) && menuPlace(parent, m).depth === 0 ? parent : null;
+      change(() => {
+        if (on) removeFromMenu(d.page, d.menu);
+        else addToMenu(d.page, d.menu, under ? under.id : 'end');
+        ui.flash = keyRow(d.page);
+        ui.focus = 'sw:' + d.page;
+      }, on ? `"${p.title}" is no longer in your header menu`
+        : under ? `"${p.title}" added to the ${under.title} dropdown`
+        : `"${p.title}" added to the end of your header menu` + (p.status === 'draft' ? '. It shows once published.' : ''));
     },
     'remove-link'(d) {
       const m = menu(d.menu);
@@ -909,6 +1002,8 @@
         ui.current = id;
         // In the one-list prototype the new page's popover opens, so its menu state is explained straight away.
         if (CONFIG.variant === 'one-list') { ui.pop = keyRow(id); ui.focus = 'pop:' + keyRow(id); }
+        // In the toggles prototype focus lands on its switch, which is off.
+        if (CONFIG.variant === 'toggles') ui.focus = 'sw:' + id;
       }, `"${title}" ${d.status === 'draft' ? 'saved as a draft' : 'published'}`);
     },
     'create-link'(d) {

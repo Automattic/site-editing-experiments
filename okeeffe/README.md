@@ -15,6 +15,7 @@ These prototypes put the Pages screen next to a live preview of the site, so eve
 | C | [Header and footer menus](two-menus.html) | A with two menus. The marker stays one control, and its popover becomes a checklist of the menus the site shows, so the list never splits into sections. Chips say which menus a page is in. |
 | D | [Menu and other pages](sections.html) | The earlier take, for comparison: "In your menu" and "Other pages" as two groups, with + and − buttons. |
 | E | [Menu in page settings](page-settings.html) | A control close to WordPress today: a table of pages with a Menu column and filters, an "Add to menu" switch when creating a page (with where to place it), and menu switches inside each page's settings. |
+| F | [All pages with menu switches](toggles.html) | Every page in page order, child pages under their parent, with an "In menu" switch on each row. Switching on adds the page to the end of the header menu, or to its parent's dropdown if the parent is in the menu; switching off takes it out. Rows never move, and there's no popover: the preview shows the result. Menu order and dropdowns are in the ⋮ menu ("Move earlier in menu", "Move into the About dropdown"). |
 
 What every prototype has:
 
@@ -23,7 +24,7 @@ What every prototype has:
 - **The ⋮ menu on each row**: move up and down, into or out of a dropdown, view on site, publish a draft, and move to trash. Trash lists the menus the page is in, and Undo puts it back where it was. In an automatic menu, moving changes page order, since that's what a Page List sorts by.
 - **Undo** on every change, in the message at the bottom.
 
-There's no drag and drop. Ordering is done from the ⋮ menu so that all five behave the same in a test; the real thing would have both.
+There's no drag and drop. Ordering is done from the ⋮ menu so that all six behave the same in a test; the real thing would have both.
 
 ## Running a test
 
@@ -35,12 +36,12 @@ People who run, or are about to make, a small site: a business, a club, a portfo
 
 ### Suggested design
 
-- Compare **A**, **D** and **E** on the core tasks, one prototype per participant, so earlier ones don't teach the later ones.
+- Compare **A**, **D** and **E** on the core tasks, one prototype per participant, so earlier ones don't teach the later ones. **F** can stand in for A, or be a fourth condition: it asks whether a plain switch on every page is enough without A's markers and explanations.
 - Then give everyone **B** and **C** as follow-ups. They test situations, not layouts: the automatic menu most sites have today, and a second menu.
 
 Start each session with: "This is the Pages screen of a website for a bakery, Rosa's Bakery. On the right is the website as visitors see it. Please think aloud as you go. There are no wrong answers; we're testing the design, not you."
 
-### Core tasks (A, D or E)
+### Core tasks (A, D, E or F)
 
 1. **Read the screen.** "Without clicking anything: which of these pages can a visitor get to from the top of the website?"
    *Watch for:* do they read the markers, the sections or the Menu column? Does anyone think Catering, Privacy policy and the rest are hidden or deleted?
@@ -74,6 +75,7 @@ Start each session with: "This is the Pages screen of a website for a bakery, Ro
 - "In your own words, what's the difference between a page and the menu?"
 - "If you made a new page tomorrow, would it be in the menu?" Their answer shows whether the model stuck.
 - In A: "What do the little squares at the right of each page mean?"
+- In F: "What does the switch next to each page do?" And: "Is the order of this list the order of your menu?"
 
 ### What would tell us A works
 
@@ -92,6 +94,6 @@ Start each session with: "This is the Pages screen of a website for a bakery, Ro
 
 ## Running it
 
-Plain HTML, CSS and JavaScript with no build step: `app.js` and `style.css` are shared, and each page sets `window.PROTOTYPE` to choose a layout (`one-list`, `sections` or `page-settings`) and a starting site (`chosen`, `automatic` or `two-menus`). Serve the repository root with any static server and open `okeeffe/`.
+Plain HTML, CSS and JavaScript with no build step: `app.js` and `style.css` are shared, and each page sets `window.PROTOTYPE` to choose a layout (`one-list`, `toggles`, `sections` or `page-settings`) and a starting site (`chosen`, `automatic` or `two-menus`). Serve the repository root with any static server and open `okeeffe/`.
 
 The bakery, its pages and its copy are placeholders.

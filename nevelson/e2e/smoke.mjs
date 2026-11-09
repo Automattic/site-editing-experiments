@@ -147,8 +147,12 @@ const toolbar = () =>
 			return null;
 		}
 		const r = t.getBoundingClientRect();
+		// What's by the block: not the tools placed in the panel.
 		const labels = [ ...t.querySelectorAll( 'button' ) ]
-			.filter( ( b ) => b.offsetParent !== null )
+			.filter(
+				( b ) =>
+					b.offsetParent !== null && ! b.closest( '.nevelson-moved' )
+			)
 			.map( ( b ) => b.getAttribute( 'aria-label' ) || b.textContent );
 		return {
 			left: r.left,
@@ -168,8 +172,9 @@ const KEPT = [
 	'Link',
 	'More',
 	'Block settings',
+	'Options',
 ];
-const MOVED = [ 'Options', 'Align', 'Align text' ];
+const MOVED = [ 'Align', 'Align text' ];
 // The handle and movers' box, the block name shown in the toolbar, and
 // whether the parent block's button shows.
 const extras = () =>
@@ -179,7 +184,7 @@ const extras = () =>
 			.querySelector( `${ bar } .block-editor-block-mover` )
 			?.getBoundingClientRect();
 		const name = [
-			...document.querySelectorAll( `${ bar } .nevelson-block-name` ),
+			...document.querySelectorAll( `${ bar } .nevelson-switcher-label` ),
 		].find( ( e ) => e.offsetParent !== null );
 		return {
 			mover: m && { left: m.left, right: m.right },
@@ -271,6 +276,40 @@ await step(
 	}
 );
 
+await step(
+	'the block’s name opens the blocks to turn it into, below it',
+	async () => {
+		const inButton = await page.evaluate(
+			() =>
+				!! document.querySelector(
+					'.block-editor-block-switcher > button .nevelson-switcher-label'
+				)
+		);
+		expect( inButton, 'the name isn’t in the block switcher' );
+		await page.locator( '.nevelson-switcher-label' ).first().click();
+		await wait( 600 );
+		const r = await page.evaluate( () => {
+			const m = document.querySelector(
+				'.block-editor-block-switcher__popover'
+			);
+			const b = document
+				.querySelector( '.block-editor-block-switcher > button' )
+				.getBoundingClientRect();
+			return (
+				m && { top: m.getBoundingClientRect().top, bottom: b.bottom }
+			);
+		} );
+		expect( r, 'no list of blocks' );
+		expect(
+			r.top >= r.bottom && r.top - r.bottom < 20,
+			'it didn’t open below'
+		);
+		await shot( '00b-transform' );
+		await page.keyboard.press( 'Escape' );
+		await wait( 300 );
+	}
+);
+
 await step( 'the pencil opens it, to the right of the block', async () => {
 	await page.locator( BUTTON ).first().click();
 	await wait( 400 );
@@ -297,29 +336,81 @@ await step( 'it stays open for the next block', async () => {
 	await wait( 400 );
 } );
 
-await step( 'with the panel open, the whole toolbar is in it', async () => {
-	await select( para.id );
-	await wait( 400 );
-	const p = await panel();
-	const t = await toolbar();
-	expect( t, 'no toolbar' );
-	expect(
-		t.left >= p.left && t.right <= p.right && t.top > p.top,
-		'the toolbar isn’t in the panel'
-	);
-	const band = await page.evaluate( () =>
-		document
-			.querySelector( '.nevelson-panel .nevelson-band' )
-			.getBoundingClientRect()
-			.toJSON()
-	);
-	expect( t.top >= band.top && t.bottom <= band.bottom, 'not in its band' );
-	expect(
-		t.labels.includes( 'Options' ) && t.labels.includes( 'Drag' ),
-		`only ${ t.labels.join( ', ' ) }`
-	);
-	await shot( '01b-toolbar-in-panel' );
-} );
+await step(
+	'with the panel open, its header is the block, and alignment is in panels',
+	async () => {
+		await select( para.id );
+		await wait( 600 );
+		const head = await page.evaluate( () => {
+			const k = document.querySelector( '.nevelson-head .nevelson-kind' );
+			return {
+				name: k.querySelector( '.nevelson-kind-name' )?.textContent,
+				icon: !! k.querySelector( '.block-editor-block-icon' ),
+				title: k.getAttribute( 'title' ),
+				card: [
+					...document.querySelectorAll(
+						'.nevelson-body .block-editor-block-card'
+					),
+				].some( ( c ) => c.offsetParent !== null ),
+				optionsInPanel: !! [
+					...document.querySelectorAll(
+						'.nevelson-panel .block-editor-block-settings-menu, .nevelson-moved .block-editor-block-settings-menu'
+					),
+				].find( ( e ) => e.offsetParent !== null ),
+				dropdownsInBand: [
+					...document.querySelectorAll( '.nevelson-moved button' ),
+				]
+					.filter( ( e ) => e.offsetParent !== null )
+					.map( ( e ) => e.getAttribute( 'aria-label' ) ),
+			};
+		} );
+		expect( head.name === 'Paragraph', `the header says ${ head.name }` );
+		expect( head.icon, 'no icon in the header' );
+		expect(
+			head.title?.startsWith( 'Start with the basic building block' ),
+			`the header's title is ${ head.title }`
+		);
+		expect( ! head.card, 'the block card is still in the settings' );
+		expect( ! head.optionsInPanel, 'the options menu is in the panel' );
+		expect(
+			! MOVED.some( ( l ) => head.dropdownsInBand.includes( l ) ),
+			`alignment dropdowns are in the band: ${ head.dropdownsInBand.join( ', ' ) }`
+		);
+		await page
+			.locator( '.nevelson-text-alignment button[aria-label="Center"]' )
+			.click();
+		await page
+			.locator( '.nevelson-alignment button[aria-label="Wide width"]' )
+			.click();
+		await wait( 400 );
+		const a = await page.evaluate(
+			( id ) =>
+				window.wp.data
+					.select( 'core/block-editor' )
+					.getBlockAttributes( id ),
+			para.id
+		);
+		expect(
+			a.align === 'wide' && a.style?.typography?.textAlign === 'center',
+			`attributes are ${ JSON.stringify( a ) }`
+		);
+		await shot( '01b-alignment' );
+		await page.keyboard.press( 'ControlOrMeta+z' );
+		await page.keyboard.press( 'ControlOrMeta+z' );
+		await wait( 300 );
+		const t = await toolbar();
+		expect(
+			t && ! MOVED.some( ( l ) => t.labels.includes( l ) ),
+			'the toolbar by the block has more than the basics'
+		);
+		expect(
+			[ 'Drag', 'Bold', 'Block settings', 'Options' ].every( ( l ) =>
+				t.labels.includes( l )
+			),
+			'the basics aren’t by the block'
+		);
+	}
+);
 
 await step( 'a setting in the panel changes the block', async () => {
 	await page
@@ -532,6 +623,41 @@ await step(
 			`selected ${ await selectedName() }`
 		);
 		expect( c.at( -1 ) === 'Image', `panel shows ${ c.join( ' > ' ) }` );
+	}
+);
+
+await step(
+	'an image’s other tools are a list of settings, each with its name',
+	async () => {
+		await wait( 300 );
+		const r = await page.evaluate( () => {
+			const band = document
+				.querySelector( '.nevelson-panel .nevelson-band' )
+				.getBoundingClientRect();
+			const rows = [
+				...document.querySelectorAll( '.nevelson-moved button' ),
+			].filter( ( b ) => b.offsetParent !== null );
+			return {
+				names: rows.map(
+					( b ) => b.dataset.nevelsonLabel || b.textContent.trim()
+				),
+				fullWidth: rows.every(
+					( b ) => b.getBoundingClientRect().width > band.width - 30
+				),
+				parent: rows.some( ( b ) =>
+					b.closest( '.block-editor-block-parent-selector' )
+				),
+			};
+		} );
+		expect(
+			[ 'Link', 'Add caption', 'Replace' ].every( ( n ) =>
+				r.names.includes( n )
+			),
+			`the list has ${ r.names.join( ', ' ) }`
+		);
+		expect( r.fullWidth, 'the tools aren’t rows as wide as the panel' );
+		expect( ! r.parent, 'the parent block’s button is in the list' );
+		await shot( '05b-image-tools' );
 	}
 );
 

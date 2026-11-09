@@ -40,6 +40,7 @@ $soft: #757575;
 	align-items: center;
 	gap: 2px;
 	flex: none;
+	min-height: 48px;
 	padding: 6px 6px 6px 16px;
 	border-bottom: 1px solid #f0f0f0;
 	cursor: grab;
@@ -53,6 +54,46 @@ $soft: #757575;
 	.components-button {
 		cursor: pointer;
 	}
+}
+
+.nevelson-head .nevelson-kind {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	min-width: 0;
+	font-size: 13px;
+	text-transform: none;
+	letter-spacing: 0;
+	color: $ink;
+
+	.block-editor-block-icon {
+		flex: none;
+	}
+
+	.nevelson-kind-name {
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+}
+
+// The block's name, icon and description are in the heading: not again in
+// the settings. (A block in a section keeps the row for its parent.)
+.nevelson-body .block-editor-block-card:not(.is-parent) {
+	display: none;
+}
+
+// Core's alignment dropdowns are panels in the settings now; a tool with
+// nothing else in it goes too.
+.nevelson-moved .nevelson-replaced,
+.block-editor-block-contextual-toolbar .block-editor-block-toolbar .nevelson-moved.nevelson-empty.nevelson-empty.nevelson-empty {
+	display: none !important;
+}
+
+// The alignment panels, matching the inspector's.
+.nevelson-alignment,
+.nevelson-text-alignment {
+	border-top: 0;
 }
 
 .nevelson-kind {
@@ -183,31 +224,22 @@ body.nevelson [data-tab-id="edit-post/block"] {
 
 // By the block, the toolbar keeps only the basics: the drag handle and the
 // movers, the block's icon and its name, formatting text (bold, italic, link
-// and the rest, marked by Nevelson) and the pencil. Everything else is in the
-// panel.
-body:not(.nevelson-open) .block-editor-block-contextual-toolbar {
+// and the rest, marked by Nevelson), the pencil and the options menu.
+// Everything else is in the panel.
+.block-editor-block-contextual-toolbar {
 	overflow: visible;
 
 	.block-editor-block-toolbar {
 		position: relative;
 		overflow: visible;
 
-		> :not(:has(.block-editor-block-toolbar__block-controls, .nevelson-block-name, .nevelson-inline-marker, .nevelson-toolbar-button)) {
+		> :not(:has(.block-editor-block-toolbar__block-controls, .nevelson-inline-marker, .nevelson-toolbar-button, .block-editor-block-settings-menu)) {
 			display: none !important;
-		}
-
-		// The pencil's group is last by the block: no divider after it, next
-		// to the toolbar's own border. (Core's would be followed by the
-		// options menu, which is in the panel.)
-		> :has(.nevelson-toolbar-button),
-		> :has(.nevelson-toolbar-button) .components-toolbar-group {
-			border-right: 0 !important;
 		}
 
 		// Other blocks' buttons can share the groups Nevelson keeps, such as
 		// Replace by the pencil.
-		.block-editor-block-toolbar__slot:has(> .nevelson-toolbar-button) > :not(.nevelson-toolbar-button, .nevelson-block-name),
-		.block-editor-block-toolbar__slot:has(> .nevelson-block-name) > :not(.nevelson-block-name, .nevelson-toolbar-button) {
+		.block-editor-block-toolbar__slot:has(> .nevelson-toolbar-button) > :not(.nevelson-toolbar-button) {
 			display: none !important;
 		}
 	}
@@ -226,7 +258,7 @@ body:not(.nevelson-open) .block-editor-block-contextual-toolbar {
 		margin: 0;
 		padding: 0;
 		background: #fff;
-		border: 1px solid #1e1e1e;
+		border: 1px solid #1e1e1e !important; // Core's nested groups have none.
 		border-radius: 2px;
 	}
 
@@ -244,43 +276,47 @@ body:not(.nevelson-open) .block-editor-block-contextual-toolbar {
 	display: none !important;
 }
 
-// The block's name, after its icon.
-.nevelson-block-name {
+// The block's name and a chevron, in the block switcher after its icon: one
+// button that opens the list of blocks to turn it into.
+body :is(.block-editor-block-switcher > .components-dropdown-menu__toggle, .block-editor-block-toolbar__block-icon-button):has(.nevelson-switcher-label) {
+	width: auto !important;
+	min-width: 0 !important;
+	gap: 8px;
+	padding: 0 6px 0 12px !important;
+}
+
+.nevelson-switcher-label {
 	display: flex;
 	align-items: center;
-	padding: 0 12px 0 0;
+	gap: 2px;
 	font-size: 13px;
 	font-weight: 500;
 	white-space: nowrap;
-}
 
-// The name in the pencil's group is for sections, whose toolbar has no other
-// place for it.
-.block-editor-block-toolbar:has(.nevelson-block-name.is-first) .nevelson-block-name.is-fallback {
-	display: none !important;
-}
+	svg {
+		width: 20px;
+		height: 20px;
+		fill: currentColor;
+	}
 
-// In the panel, the block's card has its name already.
-body.nevelson-open .nevelson-block-name {
-	display: none !important;
-}
-
-body.nevelson-open .block-editor-block-toolbar > :has(.nevelson-block-name.is-first) {
-	display: none !important;
+	// A block that can't be turned into others has no chevron and no pointer.
+	.block-editor-block-toolbar__block-icon-button & {
+		padding-right: 6px;
+	}
 }
 
 // With no room left of the block, as for a full-width block, the handle and
 // the movers go back in the toolbar, at its far left.
-body.nevelson-movers-inside:not(.nevelson-open) .block-editor-block-contextual-toolbar .block-editor-block-mover {
+body.nevelson-movers-inside .block-editor-block-contextual-toolbar .block-editor-block-mover {
 	position: static !important;
 	order: -1;
 	height: auto;
-	border: 0;
-	border-right: 1px solid #1e1e1e;
+	border: 0 !important;
+	border-right: 1px solid #1e1e1e !important;
 	border-radius: 0;
 }
 
-body.nevelson-movers-inside:not(.nevelson-open) .block-editor-block-toolbar__block-controls {
+body.nevelson-movers-inside .block-editor-block-toolbar__block-controls {
 	display: flex;
 }
 
@@ -290,57 +326,110 @@ body.nevelson-movers-inside:not(.nevelson-open) .block-editor-block-toolbar__blo
 	display: none !important;
 }
 
-// The panel's band, where the whole toolbar sits while the panel's open.
+// The panel's band, where the tools that aren't in the block's toolbar sit,
+// as a list of settings, each with its icon and name. The tools themselves
+// are core's, in the block toolbar's popover, placed over the band by
+// Nevelson.
 .nevelson-band {
+	display: none;
 	flex: none;
-	box-sizing: content-box;
-	height: var(--nevelson-band, 48px);
 	padding: 6px;
-	background: #f4f4f4;
-	border-bottom: 1px solid #e4e4e4;
+	border-bottom: 1px solid #f0f0f0;
 
-	.is-sheet & {
-		display: none; // On phones, the toolbar stays docked at the top.
+	.has-tools:not(.is-sheet) > & {
+		display: block;
 	}
 }
 
-// While the panel's open, the toolbar's popover sits in the panel's band, not
-// by the block. Core places the popover with inline styles, hence !important.
+.nevelson-band-bar {
+	height: var(--nevelson-band-height, 0);
+}
+
+// While the panel's open, the toolbar's popover goes over the panel, so the
+// tools placed in the band are on top of it.
 body.nevelson-open .block-editor-block-popover:has(.block-editor-block-contextual-toolbar) {
-	position: fixed !important;
-	top: var(--nevelson-toolbar-top) !important;
-	left: var(--nevelson-toolbar-left) !important;
-	transform: none !important;
-	translate: none !important;
-	z-index: 33; // Over the panel.
+	z-index: 33;
+}
 
-	// A white bar of its own in the band, as wide as the panel, wrapping onto
-	// more rows if it needs to, its groups set apart by space.
-	.block-editor-block-contextual-toolbar {
-		box-sizing: border-box;
-		width: var(--nevelson-toolbar-width, 300px);
-		max-width: none;
-		border: 1px solid #e0e0e0 !important;
-		border-radius: 8px;
-		box-shadow: none !important;
-		background: #fff;
+// A tool placed in the panel's band: a list of settings, not a toolbar.
+// (Specific enough to beat the rules that hide it by the block.)
+.block-editor-block-contextual-toolbar .block-editor-block-toolbar .nevelson-moved.nevelson-moved.nevelson-moved {
+	display: flex !important;
+	position: absolute !important;
+	flex-direction: column;
+	align-items: stretch;
+	height: auto;
+	padding: 0;
+	border: 0 !important;
+	background: #fff;
+
+	.block-editor-block-toolbar__slot,
+	.components-toolbar-group,
+	.components-toolbar,
+	.components-dropdown {
+		display: flex;
+		flex-direction: column;
+		align-items: stretch;
+		width: 100%;
+		height: auto;
+		padding: 0;
+		border: 0 !important;
+	}
+
+	.components-button {
+		justify-content: flex-start;
+		gap: 8px;
+		width: 100%;
+		height: 40px;
+		padding: 0 8px !important;
+		border-radius: 4px;
+		font-size: 13px;
+
+		&:hover:not(:disabled) {
+			background: #f0f0f0;
+		}
+
+		// A button's own pressed and focus backdrop is drawn for a square
+		// icon button; fill the row instead.
+		&::before {
+			left: 0 !important;
+			right: 0 !important;
+			width: auto !important;
+		}
+	}
+
+	// The tool's name beside its icon.
+	[data-nevelson-label]::after {
+		content: attr(data-nevelson-label);
+		white-space: nowrap;
 		overflow: hidden;
-
-		.block-editor-block-toolbar {
-			flex-wrap: wrap;
-			column-gap: 6px;
-			width: 100%;
-			overflow: visible;
-		}
-
-		.components-toolbar-group,
-		.components-toolbar {
-			border-right: 0 !important;
-		}
+		text-overflow: ellipsis;
 	}
 }
 
-body.nevelson-open.nevelson-faded .block-editor-block-popover:has(.block-editor-block-contextual-toolbar) {
+// With the toolbar docked at the top of the editor, as on phones, the tools
+// are shown in it while the panel's open.
+.block-editor-block-contextual-toolbar .block-editor-block-toolbar .nevelson-unhidden.nevelson-unhidden.nevelson-unhidden {
+	display: flex !important;
+}
+
+body.nevelson-faded .block-editor-block-toolbar .nevelson-moved {
 	opacity: 0.25;
 	pointer-events: none;
+}
+
+// The list of blocks to turn a block into opens downward, just below the
+// block's name, scrolling inside if it's taller than the room there. Core
+// places it with inline styles, hence !important.
+.block-editor-block-switcher__popover.components-popover {
+	position: fixed !important;
+	top: var(--nevelson-switcher-top) !important;
+	left: var(--nevelson-switcher-left) !important;
+	transform: none !important;
+	translate: none !important;
+
+	.components-popover__content {
+		max-height: calc(100vh - var(--nevelson-switcher-top, 0px) - 12px) !important;
+		overflow-y: auto !important;
+	}
 }

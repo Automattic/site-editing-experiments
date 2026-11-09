@@ -10,19 +10,19 @@ It's [O'Keeffe](../okeeffe/)'s prototype F, "All pages with menu switches", in t
 
 Locally, check out the `add/page-list-reorder-and-hide-pages` branch of Gutenberg and build it. There's no experiment to turn on.
 
-The build is `gutenberg.zip` in this folder, made from the PR at `d070f52`, because the PR's own builds expire after 14 days. When the PR changes, rebuild it: check out the branch, run `npm ci` and `NO_CHECKS=true npm run build:plugin-zip`, and replace `gutenberg.zip` with the result.
+The build is `gutenberg.zip` in this folder, the PR's own build at `b38609e`, kept here because the PR's builds expire after 14 days. When the PR changes, replace it: download `gutenberg.zip` from the PR's latest **Build Gutenberg Plugin Zip** run, or check out the branch and run `npm ci` and `NO_CHECKS=true npm run build:plugin-zip`.
 
 ## What's in it
 
 ### The Pages panel
 
-Click a page in the header's menu, or select the Page List in the Navigation block's list view, and the sidebar gets a **Pages** panel. Every page is listed with its child pages indented under it (Our story and Team, under About). Each row has:
+Click the menu in the header, then **Page List** in the sidebar's list of the menu's items. The Page List's settings open with a **Pages** panel at the top. Every page is listed with its child pages indented under it (Our story and Team, under About). Each row has:
 
 - a **drag handle**: drag a page up or down among the pages at its level, and its child pages go with it. Focus the handle and use the up and down arrow keys to do the same from the keyboard.
 - an **In menu** switch: turn it off and the page leaves the menu. Pages that are off are still published, at their usual address.
 - a **⋮ menu** with Move up and Move down.
 
-Clicking a page in the menu used to ask whether to detach the Page List. Now it selects the Page List and shows the panel. Detach is still in the toolbar and in Settings, for menus that need custom links or a different order from the site's.
+In the menu's list, each page now has a lock icon, since its place is set in this panel and it can't be dragged out of the Page List. Clicking a page no longer opens a dialog asking whether to detach the Page List. Detach is still in the toolbar and in Settings, for menus that need custom links or a different order from the site's.
 
 ### Order is page order
 

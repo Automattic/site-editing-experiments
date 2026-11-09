@@ -252,18 +252,11 @@ function Nevelson() {
 		};
 	}, [ doc, registry, sections ] );
 
-	const [ offset, setOffset ] = useState( null );
-
 	if ( ! key || hidden || ! open ) {
 		return null;
 	}
 	return createPortal(
-		<FloatingPanel
-			clientIds={ key.split( ',' ) }
-			isTyping={ isTyping }
-			offset={ offset }
-			setOffset={ setOffset }
-		/>,
+		<FloatingPanel clientIds={ key.split( ',' ) } isTyping={ isTyping } />,
 		// In the editor's content area, which is a stacking context of its
 		// own, so the block toolbar can go over the panel.
 		document.querySelector( '.interface-interface-skeleton__content' ) ||

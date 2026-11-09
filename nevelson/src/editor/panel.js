@@ -4,11 +4,10 @@
  * page scrolls and changes.
  */
 import { BlockInspector } from '@wordpress/block-editor';
-import { Button } from '@wordpress/components';
 import { useLayoutEffect, useRef } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 
-import { place, placeAt, placeSheet, isSheet, overlaps, union } from './place';
+import { placeRight, placeSheet, isSheet, overlaps, union } from './place';
 
 const canvasFrame = () =>
 	document.querySelector( 'iframe[name="editor-canvas"]' );
@@ -79,25 +78,23 @@ const toolbarPopover = () =>
 		)
 		?.closest( '.block-editor-block-popover' );
 
-// Heights of the panel's grip, and of its toolbar row before the toolbar's
-// been in it.
-const GRIP = 14;
+// The toolbar band's padding, and its height before the toolbar's been in it.
+const BAND_PAD = 6;
 const LABEL_ROW = 36;
 
 /**
- * One card for the block: its toolbar along the top, moved there from above
- * the block, and its settings below.
+ * One floating card for the block, pinned to the right of the canvas: its
+ * toolbar in a band along the top, moved there from above the block, and
+ * its settings below. As tall as its controls.
  *
  * @param {Object}   props
  * @param {string[]} props.clientIds The selected blocks.
  * @param {boolean}  props.isTyping  Whether you're typing in the canvas.
- * @param {Object}   props.offset    Where it's been dragged to, or null to follow the block.
- * @param {Function} props.setOffset Puts it somewhere, or null to follow the block again.
  */
-export function FloatingPanel( { clientIds, isTyping, offset, setOffset } ) {
+export function FloatingPanel( { clientIds, isTyping } ) {
 	const ref = useRef();
 	const live = useRef( {} );
-	live.current = { clientIds, isTyping, offset };
+	live.current = { clientIds, isTyping };
 
 	// While the panel's open, the block toolbar is in it.
 	useLayoutEffect( () => {
@@ -105,8 +102,8 @@ export function FloatingPanel( { clientIds, isTyping, offset, setOffset } ) {
 		return () => document.body.classList.remove( 'nevelson-open' );
 	}, [] );
 
-	// Follow the block, every frame: it moves when the page scrolls, when
-	// anything above it changes size, and as you type.
+	// Every frame: the canvas changes size with the window and the page's
+	// card, the toolbar comes and goes, and the block moves under the panel.
 	useLayoutEffect( () => {
 		let frame;
 		let last = '';
@@ -123,11 +120,7 @@ export function FloatingPanel( { clientIds, isTyping, offset, setOffset } ) {
 				}
 				return;
 			}
-			const {
-				clientIds: ids,
-				offset: put,
-				isTyping: typing,
-			} = live.current;
+			const { clientIds: ids, isTyping: typing } = live.current;
 			const own = blocksBox( iframe, ids );
 			const block = own || {
 				left: canvas.right,
@@ -158,7 +151,7 @@ export function FloatingPanel( { clientIds, isTyping, offset, setOffset } ) {
 			el.style.setProperty( '--nevelson-row', `${ rowHeight }px` );
 			document.body.style.setProperty(
 				'--nevelson-toolbar-width',
-				`${ el.offsetWidth }px`
+				`${ el.offsetWidth - BAND_PAD * 2 }px`
 			);
 			el.classList.toggle( 'is-sheet', sheet );
 
@@ -166,10 +159,8 @@ export function FloatingPanel( { clientIds, isTyping, offset, setOffset } ) {
 			let p;
 			if ( sheet ) {
 				p = placeSheet( { canvas, panel: size } );
-			} else if ( put ) {
-				p = placeAt( { offset: put, canvas, panel: size } );
 			} else {
-				p = place( { block, canvas, panel: size } );
+				p = placeRight( { canvas, panel: size } );
 			}
 			// A sheet covers the bottom of the page: when a block is selected
 			// under it, scroll the block up above it.
@@ -203,11 +194,11 @@ export function FloatingPanel( { clientIds, isTyping, offset, setOffset } ) {
 				: 0;
 			document.body.style.setProperty(
 				'--nevelson-toolbar-left',
-				`${ Math.round( p.left - shift ) }px`
+				`${ Math.round( p.left + BAND_PAD - shift ) }px`
 			);
 			document.body.style.setProperty(
 				'--nevelson-toolbar-top',
-				`${ Math.round( p.top + GRIP - inset ) }px`
+				`${ Math.round( p.top + BAND_PAD - inset ) }px`
 			);
 
 			const key = [
@@ -239,44 +230,6 @@ export function FloatingPanel( { clientIds, isTyping, offset, setOffset } ) {
 		};
 	}, [] );
 
-	// Drag it by its grip; it stays where you put it, for every block, until
-	// Follow block.
-	const onPointerDown = ( event ) => {
-		const el = ref.current;
-		if (
-			event.button !== 0 ||
-			event.target.closest( 'button' ) ||
-			el?.classList.contains( 'is-sheet' )
-		) {
-			return;
-		}
-		const iframe = canvasFrame();
-		const canvas = iframe && visibleCanvas( iframe );
-		if ( ! el || ! canvas ) {
-			return;
-		}
-		event.preventDefault();
-		const r = el.getBoundingClientRect();
-		const grab = { x: event.clientX - r.left, y: event.clientY - r.top };
-		const head = event.currentTarget;
-		head.setPointerCapture( event.pointerId );
-		el.classList.add( 'is-dragging' );
-		const move = ( e ) =>
-			setOffset( {
-				x: e.clientX - grab.x - canvas.left,
-				y: e.clientY - grab.y - canvas.top,
-			} );
-		const up = () => {
-			el.classList.remove( 'is-dragging' );
-			head.removeEventListener( 'pointermove', move );
-			head.removeEventListener( 'pointerup', up );
-			head.removeEventListener( 'pointercancel', up );
-		};
-		head.addEventListener( 'pointermove', move );
-		head.addEventListener( 'pointerup', up );
-		head.addEventListener( 'pointercancel', up );
-	};
-
 	return (
 		<div
 			ref={ ref }
@@ -285,23 +238,8 @@ export function FloatingPanel( { clientIds, isTyping, offset, setOffset } ) {
 			aria-label={ __( 'Block settings', 'nevelson' ) }
 			style={ { visibility: 'hidden' } }
 		>
-			<div
-				className="nevelson-grip"
-				onPointerDown={ onPointerDown }
-				title={ __( 'Drag to move', 'nevelson' ) }
-			>
-				{ offset && (
-					<Button
-						size="small"
-						className="nevelson-follow"
-						onClick={ () => setOffset( null ) }
-					>
-						{ __( 'Follow block', 'nevelson' ) }
-					</Button>
-				) }
-			</div>
-			{ /* The block toolbar sits over this row. While it's hidden, as
-			   when you're typing, the row says what the panel is. */ }
+			{ /* The block toolbar sits in this band. While it's hidden, as
+			   when you're typing, the band says what the panel is. */ }
 			<div className="nevelson-toolbar-row">
 				<span className="nevelson-kind">
 					{ __( 'Block settings', 'nevelson' ) }

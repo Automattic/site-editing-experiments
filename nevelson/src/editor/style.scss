@@ -20,11 +20,6 @@ $soft: #757575;
 	overflow: hidden;
 	transition: opacity 0.15s ease;
 
-	&.is-dragging {
-		transition: none;
-		box-shadow: 0 24px 56px rgba(0, 0, 0, 0.26), 0 0 0 1px rgba(0, 0, 0, 0.08);
-	}
-
 	&.is-faded {
 		opacity: 0.25;
 		pointer-events: none;
@@ -35,51 +30,22 @@ $soft: #757575;
 	}
 }
 
-// The grip along the top, to drag the panel by.
-.nevelson-grip {
-	position: relative;
-	display: flex;
-	justify-content: flex-end;
-	align-items: center;
-	flex: none;
-	height: 14px;
-	cursor: grab;
-	touch-action: none;
-
-	&::before {
-		content: "";
-		position: absolute;
-		top: 5px;
-		left: 50%;
-		width: 32px;
-		height: 4px;
-		margin-left: -16px;
-		border-radius: 2px;
-		background: #e0e0e0;
-	}
-
-	&:hover::before {
-		background: #bbb;
-	}
-
-	.is-dragging & {
-		cursor: grabbing;
-	}
-
-	.is-sheet & {
-		cursor: default;
-	}
-}
-
-// The row the block toolbar sits over. While the toolbar is hidden, as when
-// you're typing, it says what the panel is.
+// The band along the top that the block toolbar sits in, set apart from the
+// settings below. While the toolbar is hidden, as when you're typing, it
+// says what the panel is.
 .nevelson-toolbar-row {
 	display: flex;
 	align-items: center;
 	flex: none;
+	box-sizing: content-box;
 	height: var(--nevelson-row, 48px);
-	padding: 0 16px;
-	border-bottom: 1px solid #f0f0f0;
+	padding: 6px;
+	background: #f4f4f4;
+	border-bottom: 1px solid #e4e4e4;
+
+	.nevelson-kind {
+		padding: 0 10px;
+	}
 }
 
 .has-toolbar .nevelson-kind {
@@ -94,15 +60,6 @@ $soft: #757575;
 	color: $soft;
 }
 
-.nevelson-follow.components-button {
-	position: relative;
-	z-index: 1;
-	height: 14px;
-	min-height: 0;
-	margin-right: 8px;
-	padding: 0 4px;
-	font-size: 11px;
-}
 
 /* ---------- The block toolbar, in the panel ---------- */
 
@@ -123,18 +80,29 @@ body.nevelson-open .block-editor-block-popover:has(.block-editor-block-contextua
 	}
 
 	// As wide as the panel, wrapping onto more rows if it needs to.
+	// A white bar of its own in the panel's band.
 	.block-editor-block-contextual-toolbar {
+		box-sizing: border-box;
 		width: var(--nevelson-toolbar-width, 300px);
 		max-width: none;
-		border: 0 !important;
-		border-radius: 0;
+		border: 1px solid #e0e0e0 !important;
+		border-radius: 8px;
 		box-shadow: none !important;
-		background: transparent;
+		background: #fff;
+		overflow: hidden;
 
+		// Wrapped, the groups are set apart by space, not dividers, which
+		// would end rows with a line.
 		.block-editor-block-toolbar {
 			flex-wrap: wrap;
+			column-gap: 6px;
 			width: 100%;
 			overflow: visible;
+		}
+
+		.components-toolbar-group,
+		.components-toolbar {
+			border-right: 0 !important;
 		}
 	}
 }

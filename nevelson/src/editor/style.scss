@@ -178,3 +178,85 @@ body.nevelson [data-tab-id="edit-post/block"] {
 		}
 	}
 }
+
+/* ---------- The block toolbar ---------- */
+
+// By the block, the toolbar keeps only the basics: formatting text (bold,
+// italic, link and the rest, marked by Nevelson) and the pencil. Everything
+// else is in the panel.
+body:not(.nevelson-open) .block-editor-block-contextual-toolbar .block-editor-block-toolbar {
+	> :not(:has(.nevelson-inline-marker, .nevelson-toolbar-button)) {
+		display: none !important;
+	}
+
+	// Other blocks' buttons can share the pencil's group, such as Replace.
+	.block-editor-block-toolbar__slot:has(> .nevelson-toolbar-button) > :not(.nevelson-toolbar-button) {
+		display: none !important;
+	}
+}
+
+// The formatting group's marker makes an empty group in blocks without text.
+.block-editor-block-toolbar
+	> .components-toolbar-group:has(.nevelson-inline-marker):not(:has([data-toolbar-item])) {
+	display: none !important;
+}
+
+// The panel's band, where the whole toolbar sits while the panel's open.
+.nevelson-band {
+	flex: none;
+	box-sizing: content-box;
+	height: var(--nevelson-band, 48px);
+	padding: 6px;
+	background: #f4f4f4;
+	border-bottom: 1px solid #e4e4e4;
+
+	.is-sheet & {
+		display: none; // On phones, the toolbar stays docked at the top.
+	}
+}
+
+// While the panel's open, the toolbar's popover sits in the panel's band, not
+// by the block. Core places the popover with inline styles, hence !important.
+body.nevelson-open .block-editor-block-popover:has(.block-editor-block-contextual-toolbar) {
+	position: fixed !important;
+	top: var(--nevelson-toolbar-top) !important;
+	left: var(--nevelson-toolbar-left) !important;
+	transform: none !important;
+	translate: none !important;
+	z-index: 33; // Over the panel.
+
+	// The panel's card shows the parent block already, and selects it.
+	.block-editor-block-parent-selector {
+		display: none !important;
+	}
+
+	// A white bar of its own in the band, as wide as the panel, wrapping onto
+	// more rows if it needs to, its groups set apart by space.
+	.block-editor-block-contextual-toolbar {
+		box-sizing: border-box;
+		width: var(--nevelson-toolbar-width, 300px);
+		max-width: none;
+		border: 1px solid #e0e0e0 !important;
+		border-radius: 8px;
+		box-shadow: none !important;
+		background: #fff;
+		overflow: hidden;
+
+		.block-editor-block-toolbar {
+			flex-wrap: wrap;
+			column-gap: 6px;
+			width: 100%;
+			overflow: visible;
+		}
+
+		.components-toolbar-group,
+		.components-toolbar {
+			border-right: 0 !important;
+		}
+	}
+}
+
+body.nevelson-open.nevelson-faded .block-editor-block-popover:has(.block-editor-block-contextual-toolbar) {
+	opacity: 0.25;
+	pointer-events: none;
+}

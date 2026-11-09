@@ -1,7 +1,11 @@
 /**
- * The panel opens from the block toolbar, not by itself: a settings button
- * in every block's toolbar shows it, and it stays open from block to block
- * until you close it, with × or the button again.
+ * The panel opens from the block toolbar, not by itself: a pencil in every
+ * block's toolbar shows it, and it stays open from block to block until you
+ * close it, with × or the pencil again.
+ *
+ * The toolbar by the block keeps only the basics, formatting text and the
+ * pencil; everything else is in the panel, which has the whole toolbar along
+ * its top while it's open.
  */
 import {
 	createReduxStore,
@@ -29,10 +33,10 @@ export const store = createReduxStore( 'nevelson', {
 } );
 register( store );
 
-const settingsIcon = (
+// A pencil: edit this block.
+const pencilIcon = (
 	<SVG xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-		<Path d="m19 7.5h-7.628c-.3089-.87389-1.1423-1.5-2.122-1.5-.97966 0-1.81309.62611-2.12197 1.5h-2.12803v1.5h2.12803c.30888.87389 1.14231 1.5 2.12197 1.5.9797 0 1.8131-.62611 2.122-1.5h7.628z" />
-		<Path d="m19 15h-2.128c-.3089-.8739-1.1423-1.5-2.122-1.5s-1.8131.6261-2.122 1.5h-7.628v1.5h7.628c.3089.8739 1.1423 1.5 2.122 1.5s1.8131-.6261 2.122-1.5h2.128z" />
+		<Path d="m19 7-3-3-8.5 8.5-1 4 4-1L19 7Zm-7 11.5H5V20h7v-1.5Z" />
 	</SVG>
 );
 
@@ -40,16 +44,23 @@ function SettingsButton() {
 	const open = useSelect( ( select ) => select( store ).isOpen(), [] );
 	const { setOpen } = useDispatch( store );
 	return (
-		<BlockControls group="other">
-			<ToolbarButton
-				className="nevelson-toolbar-button"
-				icon={ settingsIcon }
-				label={ __( 'Block settings', 'nevelson' ) }
-				isPressed={ open }
-				aria-expanded={ open }
-				onClick={ () => setOpen( ! open ) }
-			/>
-		</BlockControls>
+		<>
+			{ /* Marks the toolbar's formatting group (bold, italic, link), the
+			   only one that stays by the block: the rest are in the panel. */ }
+			<BlockControls group="inline">
+				<span className="nevelson-inline-marker" hidden />
+			</BlockControls>
+			<BlockControls group="other">
+				<ToolbarButton
+					className="nevelson-toolbar-button"
+					icon={ pencilIcon }
+					label={ __( 'Block settings', 'nevelson' ) }
+					isPressed={ open }
+					aria-expanded={ open }
+					onClick={ () => setOpen( ! open ) }
+				/>
+			</BlockControls>
+		</>
 	);
 }
 

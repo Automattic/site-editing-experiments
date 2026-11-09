@@ -6,9 +6,11 @@ It's what's left of [Escher](../escher/) and [Hepworth](../hepworth/)'s writing 
 
 ## Try it
 
-**[Try it in Playground](https://playground.wordpress.net/?blueprint-url=https://raw.githubusercontent.com/Automattic/site-editing-experiments/trunk/morris/blueprint.json)**. It installs the PR's latest build with the **Typography toolbar** experiment already on, and opens a sample post with a heading, paragraphs, a button and a spacer.
+**[Try the live demo](https://automattic.github.io/site-editing-experiments/morris/)**, or **[open it full screen in WordPress Playground](https://playground.wordpress.net/?blueprint-url=https://raw.githubusercontent.com/Automattic/site-editing-experiments/trunk/morris/blueprint.json)**: a fresh, throwaway WordPress in your browser with a build of the PR, the **Typography toolbar** experiment already on, and a sample post open with a heading, paragraphs, a button and a spacer. Give it a minute to start. Nothing is saved: closing or reloading the tab starts over.
 
 Locally, check out the `scruffian/write-mode-toolbar-add` branch of Gutenberg, build it, and turn on **Typography toolbar** under Gutenberg → Experiments.
+
+The build is `gutenberg.zip` in this folder, made from the PR at `a939f41`, because the PR's own builds expire after 14 days. When the PR changes, rebuild it: check out the branch, run `npm ci` and `NO_CHECKS=true npm run build:plugin-zip`, and replace `gutenberg.zip` with the result.
 
 ## What's in it
 

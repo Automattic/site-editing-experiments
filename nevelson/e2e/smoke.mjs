@@ -158,7 +158,39 @@ const toolbar = () =>
 			labels,
 		};
 	} );
-const BASICS = [ 'Bold', 'Italic', 'Link', 'More', 'Block settings' ];
+// What's kept by the block, and some of what isn't.
+const KEPT = [
+	'Drag',
+	'Move up',
+	'Move down',
+	'Bold',
+	'Italic',
+	'Link',
+	'More',
+	'Block settings',
+];
+const MOVED = [ 'Options', 'Align', 'Align text' ];
+// The handle and movers' box, the block name shown in the toolbar, and
+// whether the parent block's button shows.
+const extras = () =>
+	page.evaluate( () => {
+		const bar = '.block-editor-block-contextual-toolbar';
+		const m = document
+			.querySelector( `${ bar } .block-editor-block-mover` )
+			?.getBoundingClientRect();
+		const name = [
+			...document.querySelectorAll( `${ bar } .nevelson-block-name` ),
+		].find( ( e ) => e.offsetParent !== null );
+		return {
+			mover: m && { left: m.left, right: m.right },
+			name: name?.textContent || null,
+			parentButton: [
+				...document.querySelectorAll(
+					'.block-editor-block-parent-selector'
+				),
+			].some( ( e ) => e.offsetParent !== null ),
+		};
+	} );
 
 const select = ( clientId ) =>
 	page.evaluate(
@@ -220,34 +252,42 @@ await step(
 		expect( ( await pressed() ) === 'false', 'the button is pressed' );
 		const t = await toolbar();
 		expect(
-			t.labels.length === BASICS.length &&
-				t.labels.every( ( l ) => BASICS.includes( l ) ),
+			KEPT.every( ( l ) => t.labels.includes( l ) ),
 			`the toolbar has ${ t.labels.join( ', ' ) }`
 		);
+		expect(
+			! MOVED.some( ( l ) => t.labels.includes( l ) ),
+			`the toolbar still has ${ t.labels.join( ', ' ) }`
+		);
+		const x = await extras();
+		const b = await blockBox( para.id );
+		expect( x.name === 'Paragraph', `the name is ${ x.name }` );
+		expect(
+			x.mover && x.mover.right <= b.left && x.mover.right <= t.left,
+			'the handle and movers aren’t left of the block'
+		);
+		expect( ! x.parentButton, 'the parent block’s button shows' );
 		await shot( '00-basics' );
 	}
 );
 
-await step(
-	'the pencil opens it, to the right of the block',
-	async () => {
-		await page.locator( BUTTON ).first().click();
-		await wait( 400 );
-		const p = await panel();
-		const b = await blockBox( para.id );
-		expect( p, 'no panel' );
-		expect( ( await pressed() ) === 'true', 'the button isn’t pressed' );
-		expect( p.side === 'right', `side is ${ p.side }` );
-		expect( p.left > b.right, 'panel overlaps the block' );
-		expect(
-			Math.abs( p.top - ( await expectedTop( p, b ) ) ) < 2,
-			'panel is not level with the block'
-		);
-		expect( p.title === 'Paragraph', `panel shows ${ p.title }` );
-		expect( ( await area() ) === null, 'the sidebar opened' );
-		await shot( '01-beside' );
-	}
-);
+await step( 'the pencil opens it, to the right of the block', async () => {
+	await page.locator( BUTTON ).first().click();
+	await wait( 400 );
+	const p = await panel();
+	const b = await blockBox( para.id );
+	expect( p, 'no panel' );
+	expect( ( await pressed() ) === 'true', 'the button isn’t pressed' );
+	expect( p.side === 'right', `side is ${ p.side }` );
+	expect( p.left > b.right, 'panel overlaps the block' );
+	expect(
+		Math.abs( p.top - ( await expectedTop( p, b ) ) ) < 2,
+		'panel is not level with the block'
+	);
+	expect( p.title === 'Paragraph', `panel shows ${ p.title }` );
+	expect( ( await area() ) === null, 'the sidebar opened' );
+	await shot( '01-beside' );
+} );
 
 await step( 'it stays open for the next block', async () => {
 	await canvas.locator( `#block-${ paras[ 1 ].id }` ).click();
@@ -360,6 +400,17 @@ await step( 'a full-width section gets it over the canvas edge', async () => {
 	await wait( 400 );
 	const p = await panel();
 	expect( p.side === 'over', `side is ${ p.side }` );
+	await page.locator( `${ PANEL } button[aria-label="Close"]` ).click();
+	await wait( 400 );
+	const x = await extras();
+	const t = await toolbar();
+	expect(
+		x.mover && x.mover.left >= t.left - 1 && x.mover.right <= t.right + 1,
+		'with no room left of the block, the movers aren’t in the toolbar'
+	);
+	expect( x.name === 'Cover', `the name is ${ x.name }` );
+	await page.locator( BUTTON ).first().click();
+	await wait( 400 );
 	expect( p.right <= b.right, 'panel is off the canvas' );
 	await shot( '03-wide' );
 } );
@@ -527,7 +578,7 @@ await step( 'closed, it stays closed until the button opens it', async () => {
 		'the toolbar isn’t back by the block'
 	);
 	expect(
-		t.labels.every( ( l ) => BASICS.includes( l ) ),
+		! MOVED.some( ( l ) => t.labels.includes( l ) ),
 		`by the block: ${ t.labels.join( ', ' ) }`
 	);
 	await canvas.locator( `#block-${ paras[ 1 ].id }` ).click();

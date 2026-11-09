@@ -149,6 +149,40 @@ function Nevelson() {
 		return () => document.body.classList.remove( 'nevelson' );
 	}, [] );
 
+	// The handle and the movers sit left of the block, outside the toolbar,
+	// unless there's no room for them there, as for a full-width block.
+	useEffect( () => {
+		const ROOM = 80;
+		let frame;
+		const check = () => {
+			frame = window.requestAnimationFrame( check );
+			const bar = document.querySelector(
+				'.block-editor-block-popover .block-editor-block-contextual-toolbar'
+			);
+			const canvas = document
+				.querySelector( '.interface-interface-skeleton__content' )
+				?.getBoundingClientRect();
+			const inside =
+				!! bar &&
+				!! canvas &&
+				bar.getBoundingClientRect().left - canvas.left < ROOM;
+			if (
+				document.body.classList.contains( 'nevelson-movers-inside' ) !==
+				inside
+			) {
+				document.body.classList.toggle(
+					'nevelson-movers-inside',
+					inside
+				);
+			}
+		};
+		check();
+		return () => {
+			window.cancelAnimationFrame( frame );
+			document.body.classList.remove( 'nevelson-movers-inside' );
+		};
+	}, [] );
+
 	// The editor opens without the page's settings. They open a moment after
 	// the editor does, so close them when they do, unless you've started on
 	// something by then.

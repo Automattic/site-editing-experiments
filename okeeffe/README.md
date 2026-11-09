@@ -15,7 +15,7 @@ These prototypes put the Pages screen next to a live preview of the site, so eve
 | C | [Header and footer menus](two-menus.html) | A with two menus. The marker stays one control, and its popover becomes a checklist of the menus the site shows, so the list never splits into sections. Chips say which menus a page is in. |
 | D | [Menu and other pages](sections.html) | The earlier take, for comparison: "In your menu" and "Other pages" as two groups, with + and − buttons. |
 | E | [Menu in page settings](page-settings.html) | A control close to WordPress today: a table of pages with a Menu column and filters, an "Add to menu" switch when creating a page (with where to place it), and menu switches inside each page's settings. |
-| F | [All pages with menu switches](toggles.html) | Every page in page order, child pages under their parent, with an "In menu" switch on each row. Switching on adds the page to the end of the header menu, or to its parent's dropdown if the parent is in the menu; switching off takes it out. Rows never move, and there's no popover: the preview shows the result. Menu order and dropdowns are in the ⋮ menu ("Move earlier in menu", "Move into the About dropdown"). |
+| F | [All pages with menu switches](toggles.html) | Every page in one list, child pages under their parent, with an "In menu" switch on each row. The list *is* the menu's order: switched-on pages show in the header in list order, child pages in their parent's dropdown, so it's a Page List with a switch on each page. Flipping a switch never moves a row, and there's no popover: the preview shows the result. Drag a page by its handle (or focus the handle and use the arrow keys) to reorder it among its siblings; a page takes its child pages with it. The ⋮ menu has Move up and down, and "Put under About" / "Take out from under About", which change the page's address, as a parent page does in WordPress. |
 
 What every prototype has:
 
@@ -24,7 +24,7 @@ What every prototype has:
 - **The ⋮ menu on each row**: move up and down, into or out of a dropdown, view on site, publish a draft, and move to trash. Trash lists the menus the page is in, and Undo puts it back where it was. In an automatic menu, moving changes page order, since that's what a Page List sorts by.
 - **Undo** on every change, in the message at the bottom.
 
-There's no drag and drop. Ordering is done from the ⋮ menu so that all six behave the same in a test; the real thing would have both.
+Only F has drag and drop. The others order from the ⋮ menu so that they behave the same in a test; the real thing would have both.
 
 ## Running a test
 
@@ -75,7 +75,7 @@ Start each session with: "This is the Pages screen of a website for a bakery, Ro
 - "In your own words, what's the difference between a page and the menu?"
 - "If you made a new page tomorrow, would it be in the menu?" Their answer shows whether the model stuck.
 - In A: "What do the little squares at the right of each page mean?"
-- In F: "What does the switch next to each page do?" And: "Is the order of this list the order of your menu?"
+- In F: "What does the switch next to each page do?" And: "How would you change the order of your menu?" Watch whether they reach for the list or look for a separate menu editor.
 
 ### What would tell us A works
 
@@ -90,6 +90,7 @@ Start each session with: "This is the Pages screen of a website for a bakery, Ro
 - **Automatic menu**: a Navigation block whose menu is one Page List block (what a new block theme's header falls back to). Page List shows every published page in page order (`menu_order`), with child pages as dropdowns.
 - **Taking a page out of an automatic menu** converts the Page List to page links, as core's "Convert to links" does, then removes that page. There's deliberately no "leave this page out" option: it would need a new Page List setting that older WordPress would ignore.
 - **New**: pages published after a menu became chosen, and not yet added or kept out. In WordPress this would need storing which pages have been seen.
+- **F's order**: one order for both, page order (`menu_order`) and parent pages. Switching a page on or off is a chosen menu; in WordPress it could also be a Page List that leaves some pages out, which would need a new Page List setting.
 - **Which menus get a marker**: the menus the site actually shows (header, then footer), named by where they appear rather than by the menu's title.
 
 ## Running it

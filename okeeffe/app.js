@@ -120,6 +120,7 @@
   function change(fn, message) {
     const before = { state: clone(state), current: ui.current };
     fn();
+    syncToggleMenu();
     undo = before;
     ui.more = null;
     render();
@@ -264,6 +265,7 @@
     plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 6v12M6 12h12"/></svg>',
     minus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 12h12"/></svg>',
     chevron: '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>',
+    grip: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg>',
     burger: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>'
   };
 
@@ -386,6 +388,7 @@
   }
 
   function moreMenuFor(row) {
+    if (CONFIG.variant === 'toggles') return moreMenuHtml(toggleMoreItems(row));
     const items = [];
     if (row.kind === 'link') {
       items.push(['move-up', 'Move up', { menu: row.menuId, index: row.index }]);
@@ -395,13 +398,9 @@
       const p = page(row.pageId);
       const m = row.menuId ? menu(row.menuId) : null;
       if (m && !row.rest && m.mode === 'chosen') {
-        // In the toggles prototype the list is in page order, not menu order, so name what's meant.
-        const t = CONFIG.variant === 'toggles';
-        let above = null;
-        for (let j = row.index - 1; j >= 0; j--) if (m.items[j].depth === 0) { above = label(m.items[j]); break; }
-        items.push(['move-up', t ? 'Move earlier in menu' : 'Move up', { menu: m.id, index: row.index }]);
-        items.push(['move-down', t ? 'Move later in menu' : 'Move down', { menu: m.id, index: row.index }]);
-        if (row.depth === 0 && row.index > 0) items.push(['indent', t && above ? `Move into the ${esc(above)} dropdown` : 'Move into the dropdown above', { menu: m.id, index: row.index }]);
+        items.push(['move-up', 'Move up', { menu: m.id, index: row.index }]);
+        items.push(['move-down', 'Move down', { menu: m.id, index: row.index }]);
+        if (row.depth === 0 && row.index > 0) items.push(['indent', 'Move into the dropdown above', { menu: m.id, index: row.index }]);
         if (row.depth > 0) items.push(['outdent', 'Move out of the dropdown', { menu: m.id, index: row.index }]);
         items.push('hr');
       }
@@ -414,6 +413,10 @@
       if (p.status === 'draft') items.push(['publish', 'Publish', { page: p.id }]);
       if (p.id !== 'home') items.push(['ask-trash', 'Move to trash', { page: p.id }, 'danger']);
     }
+    return moreMenuHtml(items);
+  }
+
+  function moreMenuHtml(items) {
     return `<div class="moremenu" role="menu">${items.map((it) => {
       if (it === 'hr') return '<hr>';
       const [action, text, data, cls] = it;
@@ -508,8 +511,10 @@
 
   // ---------- Toggles variant (every page, a switch on each) ----------
 
-  // Rows never move when a switch is flipped: pages stay in page order, child pages under their
-  // parent. The menu's own order is in the site preview and the ⋮ menu.
+  // The list is the menu's order. Pages are in page order, child pages under their parent, and
+  // switched-on pages appear in the header menu in that same order, child pages in their parent's
+  // dropdown. So reordering the list (drag, or ⋮) reorders the menu, and a switch never moves a row.
+  // That's a Page List with a switch on each page, stored as a chosen menu.
   function pageTreeRows() {
     const rows = [];
     const isTop = (p) => !p.parent || !page(p.parent);
@@ -518,6 +523,63 @@
       state.pages.filter((c) => c.parent === t.id).forEach((c) => rows.push({ p: c, depth: 1 }));
     });
     return rows;
+  }
+
+  // Rebuild the header from the list: the pages that are on, in list order, then any links.
+  function syncToggleMenu() {
+    const m = header();
+    if (CONFIG.variant !== 'toggles' || m.mode !== 'chosen') return;
+    const on = new Set(m.items.filter((i) => i.type === 'page').map((i) => i.pageId));
+    const links = m.items.filter((i) => i.type === 'link').map((l) => Object.assign(l, { depth: 0 }));
+    m.items = pageTreeRows().filter((r) => on.has(r.p.id))
+      .map((r) => ({ type: 'page', pageId: r.p.id, depth: r.depth && on.has(r.p.parent) ? 1 : 0 }))
+      .concat(links);
+  }
+
+  const siblingsOf = (p) => state.pages.filter((q) => (q.parent && page(q.parent) ? q.parent : null) === (p.parent && page(p.parent) ? p.parent : null));
+
+  // Move a page before or after a sibling. Child pages go with their parent.
+  function placePage(pageId, targetId, after) {
+    const p = page(pageId);
+    if (!p || pageId === targetId) return;
+    state.pages.splice(state.pages.indexOf(p), 1);
+    const i = state.pages.indexOf(page(targetId));
+    state.pages.splice(after ? i + 1 : i, 0, p);
+  }
+
+  function stepPage(pageId, dir) {
+    const sibs = siblingsOf(page(pageId));
+    const k = sibs.findIndex((q) => q.id === pageId) + dir;
+    if (k < 0 || k >= sibs.length) return false;
+    placePage(pageId, sibs[k].id, dir > 0);
+    return true;
+  }
+
+  // The top-level page just above, which this one could go under.
+  function pageAbove(p) {
+    if (p.parent || p.id === 'home' || state.pages.some((q) => q.parent === p.id)) return null;
+    const sibs = siblingsOf(p);
+    const k = sibs.indexOf(p);
+    return k > 0 && sibs[k - 1].id !== 'home' ? sibs[k - 1] : null;
+  }
+
+  function toggleMoreItems(row) {
+    const m = header();
+    if (row.kind === 'link') return [['remove-link', 'Remove from menu', { menu: row.menuId, index: row.index }]];
+    const p = page(row.pageId);
+    const items = [];
+    const sibs = siblingsOf(p);
+    const k = sibs.indexOf(p);
+    if (k > 0) items.push(['page-step', 'Move up', { page: p.id, dir: -1 }]);
+    if (k < sibs.length - 1) items.push(['page-step', 'Move down', { page: p.id, dir: 1 }]);
+    const above = pageAbove(p);
+    if (above) items.push(['page-nest', `Put under ${esc(above.title)}`, { page: p.id, parent: above.id }]);
+    if (p.parent && page(p.parent)) items.push(['page-unnest', `Take out from under ${esc(page(p.parent).title)}`, { page: p.id }]);
+    if (items.length) items.push('hr');
+    items.push(['view', 'View on site', { page: p.id }]);
+    if (p.status === 'draft') items.push(['publish', 'Publish', { page: p.id }]);
+    if (p.id !== 'home') items.push(['ask-trash', 'Move to trash', { page: p.id }, 'danger']);
+    return items;
   }
 
   function menuPlace(p, m) {
@@ -546,8 +608,10 @@
       ? { key, kind: 'page', pageId: p.id, menuId: m.id, index: place.index, depth: place.depth }
       : { key, kind: 'page', pageId: p.id, rest: true, depth: 0 };
     const pending = !on && p.status === 'draft' && auto;
-    return `<li class="row${on || pending ? '' : ' dim'}${ui.flash === key ? ' flash' : ''}" data-row="${esc(key)}">
+    const parent = p.parent && page(p.parent) ? p.parent : '';
+    return `<li class="row${on || pending ? '' : ' dim'}${ui.flash === key ? ' flash' : ''}" data-row="${esc(key)}" data-page="${esc(p.id)}" data-parent="${esc(parent)}">
       <div class="row-main">
+        <button type="button" class="handle" data-drag="${esc(p.id)}" data-focus="drag:${esc(p.id)}" aria-label="Reorder ${esc(p.title)}. Use the up and down arrow keys, or drag." aria-describedby="reorder-hint">${ICON.grip}</button>
         <span class="indent" style="width:${depth * 20}px"></span>
         <span class="row-icon">${ICON.page}</span>
         <span class="row-text"><span class="row-title">${esc(p.title)}</span>${rowBadges(p)}${meta ? `<span class="row-meta">${esc(meta)}</span>` : ''}</span>
@@ -563,11 +627,12 @@
       ${autoBanner()}${freshBanner()}
       <div class="toggle-list">
         <div class="toggle-head" aria-hidden="true"><span>Page</span><span>In menu</span></div>
+        <span id="reorder-hint" class="visually-hidden">Your header menu follows the order of this list.</span>
         <ul class="list" aria-label="Pages">${pageTreeRows().map(toggleRowHtml).join('')}</ul>
       </div>
       ${m.items.some((i) => i.type === 'link') && !auto ? `<div class="group"><div class="group-head"><h2 class="group-title">Links in your menu</h2></div>
         <ul class="list">${m.items.map((it, index) => it.type !== 'link' ? '' : oneListRowHtml({ key: `link:${m.id}:${index}`, kind: 'link', item: it, menuId: m.id, index, depth: 0 })).join('')}</ul></div>` : ''}
-      <p class="footnote">${auto ? 'Your header menu shows every published page. Switch one off to choose the menu\'s pages yourself.' : 'Switched-on pages show in your header menu, in the order you see on the site. Use a page\'s ⋮ menu to move it or put it in a dropdown. Pages that are off are still live at their address.'}</p>`;
+      <p class="footnote">${auto ? 'Your header menu shows every published page. Switch one off to choose the menu\'s pages yourself.' : 'Switched-on pages show in your header menu in the order of this list. Drag a page by its handle to reorder, or use its ⋮ menu to move it or put it under another page. Pages that are off are still live at their address.'}</p>`;
   }
 
   // ---------- Sections variant (In your menu / Other pages) ----------
@@ -945,6 +1010,31 @@
         : under ? `"${p.title}" added to the ${under.title} dropdown`
         : `"${p.title}" added to the end of your header menu` + (p.status === 'draft' ? '. It shows once published.' : ''));
     },
+    'page-step'(d) {
+      const p = page(d.page);
+      change(() => { stepPage(d.page, Number(d.dir)); ui.flash = keyRow(d.page); ui.focus = 'more:' + keyRow(d.page); },
+        `"${p.title}" moved ${Number(d.dir) < 0 ? 'up' : 'down'}`);
+    },
+    'page-nest'(d) {
+      const p = page(d.page);
+      const parent = page(d.parent);
+      change(() => {
+        p.parent = parent.id;
+        // It goes last under its new parent.
+        state.pages.splice(state.pages.indexOf(p), 1);
+        state.pages.push(p);
+        ui.flash = keyRow(d.page); ui.focus = 'more:' + keyRow(d.page);
+      }, `"${p.title}" is under ${parent.title}. Its address is now ${SITE}/${parent.id}/${p.id}`);
+    },
+    'page-unnest'(d) {
+      const p = page(d.page);
+      const parent = page(p.parent);
+      change(() => {
+        p.parent = null;
+        placePage(p.id, parent.id, true);
+        ui.flash = keyRow(d.page); ui.focus = 'more:' + keyRow(d.page);
+      }, `"${p.title}" is no longer under ${parent.title}. Its address is now ${SITE}/${p.id}`);
+    },
     'remove-link'(d) {
       const m = menu(d.menu);
       const it = m.items[Number(d.index)];
@@ -1079,6 +1169,7 @@
 
   document.addEventListener('keydown', (ev) => {
     if (ev.key === 'Escape') {
+      if (drag) { endDrag(ev, true); return; }
       if (ui.dialog) { ui.dialog = null; render(); return; }
       if (ui.more) { const k = ui.more; ui.more = null; ui.focus = 'more:' + k; render(); return; }
       if (ui.pop) { const k = ui.pop; ui.pop = null; ui.focus = 'pop:' + k; render(); }
@@ -1093,6 +1184,91 @@
       const i = items.indexOf(document.activeElement);
       if (items.length) { ev.preventDefault(); items[(i + (ev.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length].focus(); }
     }
+  });
+
+  // ---------- Reordering the toggles list: drag a handle, or arrow keys on it ----------
+
+  // Only among siblings: top-level pages among themselves (each with its child pages), and child
+  // pages within their parent. Putting a page under another is in the ⋮ menu, because it changes
+  // the page's address.
+  let drag = null;
+
+  function rowsBlock(li) {
+    // A top-level row and the child rows under it.
+    const out = [li];
+    let n = li.nextElementSibling;
+    while (n && n.dataset.parent && n.dataset.parent === li.dataset.page) { out.push(n); n = n.nextElementSibling; }
+    return out;
+  }
+
+  function clearDropMarks() {
+    root.querySelectorAll('.drop-before, .drop-after').forEach((el) => el.classList.remove('drop-before', 'drop-after'));
+  }
+
+  document.addEventListener('pointerdown', (ev) => {
+    const h = ev.target.closest('.handle');
+    if (!h || CONFIG.variant !== 'toggles' || ev.button > 0) return;
+    const li = h.closest('li');
+    ev.preventDefault();
+    h.setPointerCapture(ev.pointerId);
+    ui.more = null; ui.pop = null;
+    drag = { id: li.dataset.page, parent: li.dataset.parent, handle: h, target: null, moved: false, y: ev.clientY };
+    rowsBlock(li).forEach((r) => r.classList.add('dragging'));
+  });
+
+  document.addEventListener('pointermove', (ev) => {
+    if (!drag) return;
+    if (Math.abs(ev.clientY - drag.y) > 4) drag.moved = true;
+    const sibs = [...root.querySelectorAll('.toggle-list li[data-page]')].filter((li) => li.dataset.parent === drag.parent);
+    clearDropMarks();
+    drag.target = null;
+    for (const li of sibs) {
+      const block = rowsBlock(li);
+      const top = block[0].getBoundingClientRect().top;
+      const bottom = block[block.length - 1].getBoundingClientRect().bottom;
+      if (ev.clientY < (top + bottom) / 2) { drag.target = { id: li.dataset.page, after: false }; block[0].classList.add('drop-before'); break; }
+    }
+    if (!drag.target && sibs.length) {
+      const last = sibs[sibs.length - 1];
+      const block = rowsBlock(last);
+      drag.target = { id: last.dataset.page, after: true };
+      block[block.length - 1].classList.add('drop-after');
+    }
+    // Dropping right next to where it is changes nothing.
+    if (drag.target) {
+      const ids = sibs.map((li) => li.dataset.page);
+      const from = ids.indexOf(drag.id);
+      const to = ids.indexOf(drag.target.id) + (drag.target.after ? 1 : 0);
+      if (to === from || to === from + 1) { drag.target = null; clearDropMarks(); }
+    }
+  });
+
+  function endDrag(ev, cancel) {
+    if (!drag) return;
+    const d = drag;
+    drag = null;
+    clearDropMarks();
+    root.querySelectorAll('.dragging').forEach((el) => el.classList.remove('dragging'));
+    if (cancel || !d.target || !d.moved) return;
+    const p = page(d.id);
+    change(() => { placePage(d.id, d.target.id, d.target.after); ui.flash = keyRow(d.id); ui.focus = 'drag:' + d.id; },
+      `"${p.title}" moved. Your header menu follows this order.`);
+  }
+  document.addEventListener('pointerup', (ev) => endDrag(ev, false));
+  document.addEventListener('pointercancel', (ev) => endDrag(ev, true));
+
+  document.addEventListener('keydown', (ev) => {
+    const h = ev.target.closest && ev.target.closest('.handle');
+    if (!h || (ev.key !== 'ArrowUp' && ev.key !== 'ArrowDown')) return;
+    ev.preventDefault();
+    const id = h.dataset.drag;
+    const p = page(id);
+    const dir = ev.key === 'ArrowUp' ? -1 : 1;
+    const sibs = siblingsOf(p);
+    const k = sibs.indexOf(p) + dir;
+    if (k < 0 || k >= sibs.length) { showToast(`"${p.title}" is already ${dir < 0 ? 'first' : 'last'}`, false); return; }
+    change(() => { stepPage(id, dir); ui.focus = 'drag:' + id; ui.flash = keyRow(id); },
+      `"${p.title}" moved ${dir < 0 ? 'up' : 'down'}`);
   });
 
   // Renaming in page settings updates the title as you type, without re-rendering the field.

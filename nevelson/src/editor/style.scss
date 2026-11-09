@@ -192,7 +192,7 @@ body:not(.nevelson-open) .block-editor-block-contextual-toolbar {
 		position: relative;
 		overflow: visible;
 
-		> :not(:has(.block-editor-block-toolbar__block-controls, .nevelson-block-name, .nevelson-inline-marker, .nevelson-toolbar-button)) {
+		> :not(:has(.block-editor-block-toolbar__block-controls, .nevelson-inline-marker, .nevelson-toolbar-button)) {
 			display: none !important;
 		}
 
@@ -206,8 +206,7 @@ body:not(.nevelson-open) .block-editor-block-contextual-toolbar {
 
 		// Other blocks' buttons can share the groups Nevelson keeps, such as
 		// Replace by the pencil.
-		.block-editor-block-toolbar__slot:has(> .nevelson-toolbar-button) > :not(.nevelson-toolbar-button, .nevelson-block-name),
-		.block-editor-block-toolbar__slot:has(> .nevelson-block-name) > :not(.nevelson-block-name, .nevelson-toolbar-button) {
+		.block-editor-block-toolbar__slot:has(> .nevelson-toolbar-button) > :not(.nevelson-toolbar-button) {
 			display: none !important;
 		}
 	}
@@ -244,29 +243,38 @@ body:not(.nevelson-open) .block-editor-block-contextual-toolbar {
 	display: none !important;
 }
 
-// The block's name, after its icon.
-.nevelson-block-name {
+// The block's name and a chevron, in the block switcher after its icon: one
+// button that opens the list of blocks to turn it into.
+body:not(.nevelson-open) :is(.block-editor-block-switcher > .components-dropdown-menu__toggle, .block-editor-block-toolbar__block-icon-button):has(.nevelson-switcher-label) {
+	width: auto !important;
+	min-width: 0 !important;
+	gap: 8px;
+	padding: 0 6px 0 12px !important;
+}
+
+.nevelson-switcher-label {
 	display: flex;
 	align-items: center;
-	padding: 0 12px 0 0;
+	gap: 2px;
 	font-size: 13px;
 	font-weight: 500;
 	white-space: nowrap;
-}
 
-// The name in the pencil's group is for sections, whose toolbar has no other
-// place for it.
-.block-editor-block-toolbar:has(.nevelson-block-name.is-first) .nevelson-block-name.is-fallback {
-	display: none !important;
-}
+	svg {
+		width: 20px;
+		height: 20px;
+		fill: currentColor;
+	}
 
-// In the panel, the block's card has its name already.
-body.nevelson-open .nevelson-block-name {
-	display: none !important;
-}
+	// In the panel, the block's card has its name already.
+	body.nevelson-open & {
+		display: none;
+	}
 
-body.nevelson-open .block-editor-block-toolbar > :has(.nevelson-block-name.is-first) {
-	display: none !important;
+	// A block that can't be turned into others has no chevron and no pointer.
+	.block-editor-block-toolbar__block-icon-button & {
+		padding-right: 6px;
+	}
 }
 
 // With no room left of the block, as for a full-width block, the handle and
@@ -343,4 +351,20 @@ body.nevelson-open .block-editor-block-popover:has(.block-editor-block-contextua
 body.nevelson-open.nevelson-faded .block-editor-block-popover:has(.block-editor-block-contextual-toolbar) {
 	opacity: 0.25;
 	pointer-events: none;
+}
+
+// The list of blocks to turn a block into opens downward, just below the
+// block's name, scrolling inside if it's taller than the room there. Core
+// places it with inline styles, hence !important.
+.block-editor-block-switcher__popover.components-popover {
+	position: fixed !important;
+	top: var(--nevelson-switcher-top) !important;
+	left: var(--nevelson-switcher-left) !important;
+	transform: none !important;
+	translate: none !important;
+
+	.components-popover__content {
+		max-height: calc(100vh - var(--nevelson-switcher-top, 0px) - 12px) !important;
+		overflow-y: auto !important;
+	}
 }

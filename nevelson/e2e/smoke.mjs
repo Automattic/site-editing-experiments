@@ -179,7 +179,7 @@ const extras = () =>
 			.querySelector( `${ bar } .block-editor-block-mover` )
 			?.getBoundingClientRect();
 		const name = [
-			...document.querySelectorAll( `${ bar } .nevelson-block-name` ),
+			...document.querySelectorAll( `${ bar } .nevelson-switcher-label` ),
 		].find( ( e ) => e.offsetParent !== null );
 		return {
 			mover: m && { left: m.left, right: m.right },
@@ -268,6 +268,40 @@ await step(
 		);
 		expect( ! x.parentButton, 'the parent block’s button shows' );
 		await shot( '00-basics' );
+	}
+);
+
+await step(
+	'the block’s name opens the blocks to turn it into, below it',
+	async () => {
+		const inButton = await page.evaluate(
+			() =>
+				!! document.querySelector(
+					'.block-editor-block-switcher > button .nevelson-switcher-label'
+				)
+		);
+		expect( inButton, 'the name isn’t in the block switcher' );
+		await page.locator( '.nevelson-switcher-label' ).first().click();
+		await wait( 600 );
+		const r = await page.evaluate( () => {
+			const m = document.querySelector(
+				'.block-editor-block-switcher__popover'
+			);
+			const b = document
+				.querySelector( '.block-editor-block-switcher > button' )
+				.getBoundingClientRect();
+			return (
+				m && { top: m.getBoundingClientRect().top, bottom: b.bottom }
+			);
+		} );
+		expect( r, 'no list of blocks' );
+		expect(
+			r.top >= r.bottom && r.top - r.bottom < 20,
+			'it didn’t open below'
+		);
+		await shot( '00b-transform' );
+		await page.keyboard.press( 'Escape' );
+		await wait( 300 );
 	}
 );
 

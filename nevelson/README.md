@@ -10,9 +10,9 @@ Requires WordPress 7.0 or later (for sections). Developed and tested on WordPres
 
 ## Try it
 
-**[Try the live demo](https://automattic.github.io/site-editing-experiments/nevelson/)**, or **[open it full screen in WordPress Playground](https://playground.wordpress.net/?blueprint-url=https://raw.githubusercontent.com/Automattic/site-editing-experiments/trunk/nevelson/blueprint.json)**: a fresh, throwaway WordPress in your browser with Nevelson active and a sample page open in the editor. Give it a minute to start. Nothing is saved: closing or reloading the tab starts over.
+**This is an option, on its own branch: [open it in WordPress Playground](https://playground.wordpress.net/?blueprint-url=https://raw.githubusercontent.com/Automattic/site-editing-experiments/option/nevelson-pinned-panel/nevelson/blueprint.json)**, a fresh, throwaway WordPress in your browser with this version of Nevelson active and a sample page open in the editor. Give it a minute to start. Nothing is saved: closing or reloading the tab starts over. (The live demo and the trunk Playground link show the version on trunk, with the panel beside the block.)
 
-The link runs [`blueprint.json`](blueprint.json), which installs the plugin straight from this repo's `trunk`. On any site with Nevelson active, `/wp-admin/?nevelson-sample` makes the same sample page and opens it: a few blocks in the content width, then three full-width Twenty Twenty-Five patterns, each a section, as they are when inserted from the inserter.
+The link runs [`blueprint.json`](blueprint.json), which installs the plugin straight from this branch; set its `ref` back to `trunk` if this is ever merged. On any site with Nevelson active, `/wp-admin/?nevelson-sample` makes the same sample page and opens it: a few blocks in the content width, then three full-width Twenty Twenty-Five patterns, each a section, as they are when inserted from the inserter.
 
 ## The floating panel
 

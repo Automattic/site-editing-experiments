@@ -10,7 +10,7 @@ It's [O'Keeffe](../okeeffe/)'s prototype F, "All pages with menu switches", in t
 
 Locally, check out the `add/page-list-reorder-and-hide-pages` branch of Gutenberg and build it. There's no experiment to turn on.
 
-The build is `gutenberg.zip` in this folder, the PR's own build at `7907529`, kept here because the PR's builds expire after 14 days. When the PR changes, replace it: download `gutenberg.zip` from the PR's latest **Build Gutenberg Plugin Zip** run, or check out the branch and run `npm ci` and `NO_CHECKS=true npm run build:plugin-zip`.
+The build is `gutenberg.zip` in this folder, the PR's own build at `5443f24`, kept here because the PR's builds expire after 14 days. When the PR changes, replace it: download `gutenberg.zip` from the PR's latest **Build Gutenberg Plugin Zip** run, or check out the branch and run `npm ci` and `NO_CHECKS=true npm run build:plugin-zip`.
 
 ## What's in it
 
@@ -28,13 +28,15 @@ Click the menu in the header. Where the Navigation block's sidebar would list th
 
 ![The ⋮ menu for Menu, with Move up, Move down and Add link after](screenshots/options-menu.png)
 
-The pages in the canvas can't be selected on their own, and the Page List no longer appears in the Navigation block's list of items. The same controls are in the Page List's own sidebar, under **Pages**, if you select it another way.
+Neither the Page List nor its pages can be selected on their own: clicking one in the canvas selects the menu. The Page List never appears in the Navigation block's list of items, even when the menu has other links. Its Parent page setting and Detach button are out of reach inside a menu as a result, and Add link after does the detaching instead.
 
 ### Adding links
 
-When the menu is only pages, an **Add link** button sits below them. It adds a link after the pages and opens its search. The menu's list of items then appears below the pages, with the Page List as one row, since its pages are edited above.
+When the menu is only pages, an **Add link** button sits below them. It adds a link after the pages and opens its search. Once the menu has other links, the usual list of items appears below the pages, with only those links in it.
 
-![After Add link: the new link's search is open in the header, suggesting a post, and the sidebar shows the pages, then a list with Page List and Navigation Link](screenshots/add-link.png)
+![After Add link: the new link's search is open in the header, suggesting a post](screenshots/add-link.png)
+
+![A menu of pages and a link to a shop: the sidebar lists the pages, then just the shop link and the add button](screenshots/mixed-menu.png)
 
 A link can't go between two pages of a Page List. So **Add link after** in a page's ⋮ menu turns the menu's pages into links first, as Detach does, then adds the new link after that page and opens its search. The ⋮ menu says so. From then on the menu is links, which no longer update as pages change.
 
@@ -64,7 +66,7 @@ While a Navigation block has a Page List, the Page List is the only way to add a
 
 ### Detach
 
-Detach, from the Page List's toolbar or settings, and Add link after both keep the menu you see: the same order, with hidden pages left out.
+Detach, from a Page List's toolbar outside a menu, and Add link after both keep the menu you see: the same order, with hidden pages left out.
 
 ## Open questions
 
@@ -73,5 +75,6 @@ Detach, from the Page List's toolbar or settings, and Add link after both keep t
 - **Putting a page under another.** F's ⋮ menu also had "Put under About" and "Take out from under About", which change the page's parent and its address. This leaves those to the page's own settings.
 - **Where the list lives.** The pages are in the Navigation block's sidebar. Would people also look for them on the Pages screen, as in O'Keeffe?
 - **Links between pages.** Add link after detaches the whole menu to put one link between two pages. Is that a surprise, even with the note in the ⋮ menu? The alternative is a Page List that can hold links of its own.
+- **Removing the pages.** With the Page List out of reach, the only way to take every page out of a menu is to switch each one off. Does it need a "Remove pages" action, or the Parent page setting, in the menu's sidebar?
 - **The canvas's + button.** The menu's + in the canvas adds a Page Link, labelled "Select page", which here can't link to a page. In a menu with a Page List it should probably add a custom link, as the sidebar's Add link button does.
 - **Many pages.** The panel lists every page, up to the 100 that Page List loads in the editor. A site with hundreds would need search or collapsed sections.

@@ -410,16 +410,27 @@ await step(
 		await page.keyboard.press( 'ControlOrMeta+z' );
 		await page.keyboard.press( 'ControlOrMeta+z' );
 		await wait( 300 );
-		const t = await toolbar();
-		expect(
-			t && ! MOVED.some( ( l ) => t.labels.includes( l ) ),
-			'the toolbar by the block has more than the basics'
+		// While the panel's open, the toolbar by the block is hidden.
+		const hidden = await page.evaluate(
+			() =>
+				window.getComputedStyle(
+					document.querySelector(
+						'.block-editor-block-contextual-toolbar'
+					)
+				).visibility === 'hidden'
+		);
+		expect( hidden, 'the toolbar by the block shows' );
+		// The tabs have their names.
+		const tabs = await page.evaluate( () =>
+			[
+				...document.querySelectorAll(
+					'.nevelson-body .nevelson-tab-label'
+				),
+			].map( ( l ) => l.textContent )
 		);
 		expect(
-			[ 'Drag', 'Bold', 'Block settings', 'Options' ].every( ( l ) =>
-				t.labels.includes( l )
-			),
-			'the basics aren’t by the block'
+			tabs.includes( 'Settings' ) && tabs.includes( 'Styles' ),
+			`the tabs say ${ tabs.join( ', ' ) }`
 		);
 	}
 );
@@ -490,6 +501,33 @@ await step( 'a colour picker opens over the panel', async () => {
 	await shot( '02-colour' );
 	await page.keyboard.press( 'Escape' );
 	await wait( 200 );
+} );
+
+await step( 'pop-outs from the panel open to its side', async () => {
+	await openTab( 'Styles' );
+	await page
+		.locator(
+			`${ PANEL } .block-editor-tools-panel-color-gradient-settings__dropdown`
+		)
+		.first()
+		.click();
+	await wait( 500 );
+	const r = await page.evaluate( () => {
+		const pop = document.querySelector( '.nevelson-side-popover' );
+		if ( ! pop ) {
+			return 'no pop-out';
+		}
+		const card = document
+			.querySelector( '.nevelson-panel' )
+			.getBoundingClientRect();
+		const b = pop.getBoundingClientRect();
+		return b.right <= card.left || b.left >= card.right
+			? true
+			: 'over the panel';
+	} );
+	expect( r === true, String( r ) );
+	await page.keyboard.press( 'Escape' );
+	await wait( 300 );
 } );
 
 await step( 'a full-width section gets it over the canvas edge', async () => {
@@ -728,9 +766,9 @@ await step( 'closed, it stays closed until the button opens it', async () => {
 	await page.locator( BUTTON ).first().click();
 	await wait( 400 );
 	expect( await panel(), 'the button didn’t open it' );
-	await page.locator( BUTTON ).first().click();
+	await page.locator( `${ PANEL } button[aria-label="Close"]` ).click();
 	await wait( 400 );
-	expect( ( await panel() ) === null, 'the button didn’t close it' );
+	expect( ( await panel() ) === null, 'Close didn’t close it' );
 	await page.locator( BUTTON ).first().click();
 	await wait( 400 );
 } );

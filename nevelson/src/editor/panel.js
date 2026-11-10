@@ -187,6 +187,89 @@ function placeTools( panel, marked ) {
 	return shown.length;
 }
 
+/**
+ * Pop-outs opened from the panel (a colour picker, duotone, a link) open to
+ * its side, level with what opened them, not over the panel: on its left if
+ * there's room, or its right. Core places popovers with inline styles, so
+ * Nevelson marks the pop-out and keeps where in CSS variables.
+ *
+ * @param {Element} panel The panel.
+ * @param {Object}  state Remembers the pop-out it marked.
+ */
+function placePopout( panel, state ) {
+	const opener = [
+		...document.querySelectorAll(
+			'.nevelson-panel [aria-expanded="true"], .nevelson-moved [aria-expanded="true"]'
+		),
+	].pop();
+	const popover =
+		opener &&
+		[ ...document.querySelectorAll( '.components-popover' ) ]
+			.filter(
+				( p ) =>
+					! p.matches(
+						'.block-editor-block-popover, .components-tooltip, .block-editor-block-switcher__popover'
+					) && ! p.contains( opener )
+			)
+			.pop();
+	if ( state.popover && state.popover !== popover ) {
+		state.popover.classList.remove( 'nevelson-side-popover' );
+	}
+	state.popover = popover || null;
+	if ( ! popover ) {
+		return;
+	}
+	popover.classList.add( 'nevelson-side-popover' );
+	const card = panel.getBoundingClientRect();
+	const from = opener.getBoundingClientRect();
+	const box = popover.getBoundingClientRect();
+	const GAP = 8;
+	const left =
+		card.left - GAP - box.width >= GAP
+			? card.left - GAP - box.width
+			: Math.min( card.right + GAP, window.innerWidth - GAP - box.width );
+	const top = Math.max(
+		GAP,
+		Math.min( from.top, window.innerHeight - GAP - box.height )
+	);
+	popover.style.setProperty(
+		'--nevelson-popout-left',
+		`${ Math.round( left ) }px`
+	);
+	popover.style.setProperty(
+		'--nevelson-popout-top',
+		`${ Math.round( top ) }px`
+	);
+}
+
+/**
+ * The settings' tabs are icons, with their names only for screen readers:
+ * in the panel, they show their names beside their icons.
+ *
+ * @param {Element} panel The panel.
+ */
+function labelTabs( panel ) {
+	panel
+		.querySelectorAll( '.nevelson-body [role="tablist"] [role="tab"]' )
+		.forEach( ( tab ) => {
+			const name = tab.getAttribute( 'aria-label' );
+			let label = tab.querySelector( ':scope > .nevelson-tab-label' );
+			if ( ! name ) {
+				label?.remove();
+				return;
+			}
+			if ( ! label ) {
+				label = document.createElement( 'span' );
+				label.className = 'nevelson-tab-label';
+				label.setAttribute( 'aria-hidden', 'true' );
+				tab.appendChild( label );
+			}
+			if ( label.textContent !== name ) {
+				label.textContent = name;
+			}
+		} );
+}
+
 const canvasFrame = () =>
 	document.querySelector( 'iframe[name="editor-canvas"]' );
 
@@ -304,6 +387,7 @@ export function FloatingPanel( {
 		let last = '';
 		let shown = '';
 		let actions = -1;
+		const popout = {};
 		const marked = new Set();
 		const tick = () => {
 			frame = window.requestAnimationFrame( tick );
@@ -362,6 +446,8 @@ export function FloatingPanel( {
 				actions = count;
 				dispatch( nevelsonStore ).setActions( count );
 			}
+			placePopout( el, popout );
+			labelTabs( el );
 
 			const box = {
 				left: p.left,
@@ -397,6 +483,7 @@ export function FloatingPanel( {
 			window.cancelAnimationFrame( frame );
 			document.body.classList.remove( 'nevelson-faded' );
 			unmark( marked, new Set() );
+			popout.popover?.classList.remove( 'nevelson-side-popover' );
 		};
 	}, [] );
 

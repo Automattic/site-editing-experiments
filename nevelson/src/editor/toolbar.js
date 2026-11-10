@@ -144,8 +144,8 @@ function SettingsButton( { clientId } ) {
 
 /**
  * The toolbar's tools that aren't in the block's toolbar, as settings among
- * the block's other settings, while the panel's open: an Actions panel, and
- * the alignment panels. The Actions panel is a place for core's own tools,
+ * the block's other settings, while the panel's open: an Actions panel in
+ * the Settings tab, and the alignment panels with the block's styles. The Actions panel is a place for core's own tools,
  * which Nevelson puts over it (see panel.js).
  *
  * @param {Object} props
@@ -163,17 +163,24 @@ function ToolbarSettings( { clientId } ) {
 		return null;
 	}
 	return (
-		<InspectorControls>
+		<>
+			{ /* Only when there are actions: an empty fill would give the
+			   block a Settings tab of its own. */ }
 			{ actions > 0 && (
-				<PanelBody
-					title={ __( 'Actions', 'nevelson' ) }
-					className="nevelson-actions"
-				>
-					<div className="nevelson-actions-slot" />
-				</PanelBody>
+				<InspectorControls>
+					<PanelBody
+						title={ __( 'Actions', 'nevelson' ) }
+						className="nevelson-actions"
+					>
+						<div className="nevelson-actions-slot" />
+					</PanelBody>
+				</InspectorControls>
 			) }
-			<AlignmentPanels clientId={ clientId } />
-		</InspectorControls>
+			{ /* How the block looks and sits on the page: with its styles. */ }
+			<InspectorControls group="styles">
+				<AlignmentPanels clientId={ clientId } />
+			</InspectorControls>
+		</>
 	);
 }
 

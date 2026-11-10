@@ -387,7 +387,7 @@ await step(
 			! MOVED.some( ( l ) => head.dropdownsInBand.includes( l ) ),
 			`alignment dropdowns are in the band: ${ head.dropdownsInBand.join( ', ' ) }`
 		);
-		await openTab( 'Settings' );
+		await openTab( 'Styles' );
 		await page
 			.locator( '.nevelson-text-alignment button[aria-label="Center"]' )
 			.click();
@@ -420,18 +420,11 @@ await step(
 				).visibility === 'hidden'
 		);
 		expect( hidden, 'the toolbar by the block shows' );
-		// The tabs have their names.
-		const tabs = await page.evaluate( () =>
-			[
-				...document.querySelectorAll(
-					'.nevelson-body .nevelson-tab-label'
-				),
-			].map( ( l ) => l.textContent )
-		);
-		expect(
-			tabs.includes( 'Settings' ) && tabs.includes( 'Styles' ),
-			`the tabs say ${ tabs.join( ', ' ) }`
-		);
+		// A paragraph has no actions, so no Settings tab: no tabs at all.
+		const tabCount = await page
+			.locator( `${ PANEL } [role="tablist"] [role="tab"]` )
+			.count();
+		expect( tabCount === 0, `the paragraph has ${ tabCount } tabs` );
 	}
 );
 
@@ -709,6 +702,33 @@ await step(
 			`the list has ${ r.names.join( ', ' ) }`
 		);
 		expect( r.fullWidth, 'the tools aren’t rows as wide as the panel' );
+		const tabs = await page.evaluate( () =>
+			[
+				...document.querySelectorAll(
+					'.nevelson-body .nevelson-tab-label'
+				),
+			].map( ( l ) => l.textContent )
+		);
+		expect(
+			[ 'Content', 'Settings', 'Styles' ].every( ( t ) =>
+				tabs.includes( t )
+			),
+			`the tabs say ${ tabs.join( ', ' ) }`
+		);
+		const width = await page.evaluate(
+			() => document.querySelector( '.nevelson-panel' ).offsetWidth
+		);
+		expect(
+			width === 360,
+			`with three tabs, the panel is ${ width } wide`
+		);
+		await openTab( 'Styles' );
+		expect(
+			( await page.locator( `${ PANEL } .nevelson-alignment` ).count() ) >
+				0,
+			'Alignment isn’t with the styles'
+		);
+		await openTab( 'Settings' );
 		expect( ! r.parent, 'the parent block’s button is in the list' );
 		await shot( '05b-image-tools' );
 	}

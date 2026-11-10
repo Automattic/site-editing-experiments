@@ -8,32 +8,20 @@
  * and the pencil. Everything else is in the panel, which has the whole
  * toolbar along its top while it's open.
  */
+import { useSelect, useDispatch } from '@wordpress/data';
 import {
-	createReduxStore,
-	register,
-	useSelect,
-	useDispatch,
-} from '@wordpress/data';
-import { BlockControls, BlockTitle } from '@wordpress/block-editor';
-import { ToolbarButton, SVG, Path } from '@wordpress/components';
+	BlockControls,
+	BlockTitle,
+	InspectorControls,
+} from '@wordpress/block-editor';
+import { PanelBody, ToolbarButton, SVG, Path } from '@wordpress/components';
 import { createHigherOrderComponent } from '@wordpress/compose';
 import { createPortal, useEffect, useRef, useState } from '@wordpress/element';
 import { addFilter } from '@wordpress/hooks';
 import { __ } from '@wordpress/i18n';
 
-// Whether the panel is open. Not saved: every visit starts with it closed.
-export const store = createReduxStore( 'nevelson', {
-	reducer( state = { open: false }, action ) {
-		return action.type === 'SET_OPEN' ? { open: action.open } : state;
-	},
-	actions: {
-		setOpen: ( open ) => ( { type: 'SET_OPEN', open } ),
-	},
-	selectors: {
-		isOpen: ( state ) => state.open,
-	},
-} );
-register( store );
+import { store } from './store';
+import { AlignmentPanels } from './alignment';
 
 // A pencil: edit this block.
 const pencilIcon = (
@@ -154,12 +142,51 @@ function SettingsButton( { clientId } ) {
 	);
 }
 
+/**
+ * The toolbar's tools that aren't in the block's toolbar, as settings among
+ * the block's other settings, while the panel's open: an Actions panel, and
+ * the alignment panels. The Actions panel is a place for core's own tools,
+ * which Nevelson puts over it (see panel.js).
+ *
+ * @param {Object} props
+ * @param {string} props.clientId The block.
+ */
+function ToolbarSettings( { clientId } ) {
+	const { open, actions } = useSelect(
+		( select ) => ( {
+			open: select( store ).isOpen(),
+			actions: select( store ).getActions(),
+		} ),
+		[]
+	);
+	if ( ! open ) {
+		return null;
+	}
+	return (
+		<InspectorControls>
+			{ actions > 0 && (
+				<PanelBody
+					title={ __( 'Actions', 'nevelson' ) }
+					className="nevelson-actions"
+				>
+					<div className="nevelson-actions-slot" />
+				</PanelBody>
+			) }
+			<AlignmentPanels clientId={ clientId } />
+		</InspectorControls>
+	);
+}
+
 addFilter(
 	'editor.BlockEdit',
 	'nevelson/settings-button',
 	createHigherOrderComponent(
 		( BlockEdit ) => ( props ) => (
 			<>
+				{ /* Before the block's own settings, so they come first. */ }
+				{ props.isSelected && (
+					<ToolbarSettings clientId={ props.clientId } />
+				) }
 				<BlockEdit { ...props } />
 				{ props.isSelected && (
 					<SettingsButton clientId={ props.clientId } />

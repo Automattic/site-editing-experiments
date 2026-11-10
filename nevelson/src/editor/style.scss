@@ -326,23 +326,16 @@ body.nevelson-movers-inside .block-editor-block-toolbar__block-controls {
 	display: none !important;
 }
 
-// The panel's band, where the tools that aren't in the block's toolbar sit,
-// as a list of settings, each with its icon and name. The tools themselves
-// are core's, in the block toolbar's popover, placed over the band by
-// Nevelson.
-.nevelson-band {
-	display: none;
-	flex: none;
-	padding: 6px;
-	border-bottom: 1px solid #f0f0f0;
-
-	.has-tools:not(.is-sheet) > & {
-		display: block;
-	}
+// The Actions panel's place for core's tools, which Nevelson puts over it.
+.nevelson-actions-slot {
+	min-height: 40px;
 }
 
-.nevelson-band-bar {
-	height: var(--nevelson-band-height, 0);
+// A tool whose place isn't showing: another tab, the Actions panel closed,
+// or scrolled out of the settings.
+.block-editor-block-contextual-toolbar .block-editor-block-toolbar .nevelson-moved.nevelson-offstage {
+	visibility: hidden;
+	pointer-events: none;
 }
 
 // While the panel's open, the toolbar's popover goes over the panel, so the

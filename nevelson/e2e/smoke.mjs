@@ -197,6 +197,17 @@ const extras = () =>
 		};
 	} );
 
+// Opens a tab in the block's settings, if it has tabs.
+const openTab = async ( name ) => {
+	const tab = page.locator(
+		`${ PANEL } [role="tab"][aria-label="${ name }"]`
+	);
+	if ( await tab.count() ) {
+		await tab.first().click();
+		await wait( 300 );
+	}
+};
+
 const select = ( clientId ) =>
 	page.evaluate(
 		( id ) =>
@@ -376,6 +387,7 @@ await step(
 			! MOVED.some( ( l ) => head.dropdownsInBand.includes( l ) ),
 			`alignment dropdowns are in the band: ${ head.dropdownsInBand.join( ', ' ) }`
 		);
+		await openTab( 'Settings' );
 		await page
 			.locator( '.nevelson-text-alignment button[aria-label="Center"]' )
 			.click();
@@ -413,6 +425,7 @@ await step(
 );
 
 await step( 'a setting in the panel changes the block', async () => {
+	await openTab( 'Styles' );
 	await page
 		.locator( `${ PANEL } [role="radio"][aria-label="Large"]` )
 		.click();
@@ -451,6 +464,7 @@ await step( 'it follows the block as the page scrolls', async () => {
 } );
 
 await step( 'a colour picker opens over the panel', async () => {
+	await openTab( 'Styles' );
 	await page
 		.locator(
 			`${ PANEL } .block-editor-tools-panel-color-gradient-settings__dropdown`
@@ -629,10 +643,11 @@ await step(
 await step(
 	'an image’s other tools are a list of settings, each with its name',
 	async () => {
+		await openTab( 'Settings' );
 		await wait( 300 );
 		const r = await page.evaluate( () => {
 			const band = document
-				.querySelector( '.nevelson-panel .nevelson-band' )
+				.querySelector( '.nevelson-panel .nevelson-actions-slot' )
 				.getBoundingClientRect();
 			const rows = [
 				...document.querySelectorAll( '.nevelson-moved button' ),

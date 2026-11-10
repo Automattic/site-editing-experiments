@@ -14,6 +14,11 @@ $soft: #757575;
 	flex-direction: column;
 	width: 300px;
 	box-sizing: border-box;
+
+	// With three tabs or more, wide enough for their names.
+	&.has-many-tabs:not(.is-sheet) {
+		width: 360px;
+	}
 	background: #fff;
 	border-radius: 12px;
 	box-shadow: 0 16px 40px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(0, 0, 0, 0.08);

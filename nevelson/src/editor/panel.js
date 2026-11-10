@@ -448,6 +448,13 @@ export function FloatingPanel( {
 			}
 			placePopout( el, popout );
 			labelTabs( el );
+			// Wider with three tabs or more, so their names fit.
+			el.classList.toggle(
+				'has-many-tabs',
+				el.querySelectorAll(
+					'.nevelson-body [role="tablist"] [role="tab"]'
+				).length >= 3
+			);
 
 			const box = {
 				left: p.left,

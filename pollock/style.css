@@ -115,7 +115,7 @@ svg { display: block; }
 .menu button:hover { background: var(--blue-tint); color: var(--blue); }
 .menu hr { border: none; border-top: 1px solid var(--line); margin: 6px 0; }
 
-.snackbar { position: fixed; left: 24px; bottom: 24px; z-index: 200; display: none; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 2px; background: var(--ink); color: var(--white); font-size: 13px; }
+.snackbar { position: fixed; left: 50%; transform: translateX(-50%); bottom: 24px; z-index: 200; display: none; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 2px; background: var(--ink); color: var(--white); font-size: 13px; }
 .snackbar.is-visible { display: flex; }
 .snackbar button { border: none; background: none; color: #9fb1ff; padding: 0; text-decoration: underline; }
 
@@ -139,3 +139,18 @@ svg { display: block; }
 .notes .log .is-alt { color: #8a5a00; }
 .notes .log .is-task { color: var(--green); font-weight: 600; }
 .notes .actions { display: flex; gap: 8px; margin-top: 12px; }
+
+/* ---------- Round 2 ---------- */
+
+.block-toolbar { transition: opacity .15s; }
+.block-toolbar.is-faded:not(:focus-within) { opacity: .12; pointer-events: none; }
+
+.edge-hint { position: absolute; z-index: 15; display: none; transform: translateX(-100%); height: 26px; padding: 0 8px; border-radius: 4px; background: var(--ink); color: var(--white); font-size: 12px; line-height: 26px; white-space: nowrap; pointer-events: none; }
+.edge-hint.is-visible { display: block; }
+
+.task-card { position: fixed; right: 16px; bottom: 16px; z-index: 250; width: 280px; padding: 16px; background: var(--white); border: 1px solid var(--ink); border-radius: 4px; box-shadow: 0 8px 24px rgba(0,0,0,.15); }
+.task-card .task-count { margin: 0 0 4px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--ink-3); }
+.task-card .task-text { margin: 0 0 12px; font-size: 15px; line-height: 1.45; }
+.task-card .task-code { display: block; width: 100%; margin: 0 0 12px; padding: 8px; border: 1px solid var(--line); border-radius: 2px; font: 13px/1.4 ui-monospace, Menlo, monospace; resize: none; word-break: break-all; }
+.task-card .btn { width: 100%; }
+.has-notes ~ .task-card, body:has(.notes) .task-card { right: 384px; }

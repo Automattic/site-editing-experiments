@@ -23,10 +23,35 @@
 (function () {
   'use strict';
 
-  const CONFIG = Object.assign({ handle: 'today' }, window.PROTOTYPE || {});
+  /*
+   * Round 2 adds, per page:
+   *   round:  2       a longer page where the moves are long, tasks shown one
+   *                   at a time in a card on the page, a completion code at the
+   *                   end to paste into the testing tool, and a toolbar that
+   *                   fades when the pointer is away from it, so it never hides
+   *                   the text above the block.
+   *   arrows: false   no move arrows in the toolbar (B without arrows).
+   *   hint:   true    a "Drag to move" label beside the edge grip until the
+   *                   first drag (B with a label).
+   *   code:   'Bh'    the short name that starts the completion code.
+   *   directDrag      pictures drag by themselves, as in the editor. On by
+   *                   default in round 2, off in round 1.
+   */
+  const CONFIG = Object.assign({ handle: 'today', round: 1, arrows: true, hint: false }, window.PROTOTYPE || {});
+  const ROUND2 = CONFIG.round === 2;
+  // As in the editor today, a block that isn't text (here, a picture) can be
+  // dragged by itself, without a handle: BlockListBlock is draggable when the
+  // block, not a text field in it, has focus. Round 1 didn't have this.
+  const DIRECT_DRAG = CONFIG.directDrag != null ? CONFIG.directDrag : ROUND2;
   const NOTES = new URLSearchParams(location.search).has('notes') || location.hash === '#notes';
-  const LETTER = { today: 'A', edge: 'B', toolbar: 'C' }[CONFIG.handle];
-  const PAGES = [
+  const LETTER = CONFIG.code || { today: 'A', edge: 'B', toolbar: 'C' }[CONFIG.handle];
+  const PAGES = ROUND2 ? [
+    { letter: 'A', href: 'today.html' },
+    { letter: 'B', href: 'edge.html' },
+    { letter: 'Bn', href: 'edge-no-arrows.html' },
+    { letter: 'Bh', href: 'edge-hint.html' },
+    { letter: 'C', href: 'toolbar.html' }
+  ] : [
     { letter: 'A', href: 'today.html' },
     { letter: 'B', href: 'edge.html' },
     { letter: 'C', href: 'toolbar.html' }
@@ -61,6 +86,8 @@
 
   const LOAF = '<svg viewBox="0 0 320 180" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><rect x="0" y="128" width="320" height="52" fill="#8a4b25" opacity=".35"/><ellipse cx="160" cy="132" rx="120" ry="14" fill="#5a2e14" opacity=".25"/><path d="M60 128 C60 70 100 52 160 52 C220 52 260 70 260 128 Z" fill="#a8562a"/><path d="M78 124 C80 80 112 66 160 66 C208 66 240 80 242 124 Z" fill="#c46a35"/><path d="M110 70 l14 22 M150 62 l10 26 M192 66 l8 24" stroke="#f3c48f" stroke-width="5" stroke-linecap="round"/><circle cx="262" cy="116" r="16" fill="#e8892f"/><path d="M262 100 v-8" stroke="#5f7d3a" stroke-width="4" stroke-linecap="round"/></svg>';
 
+  const BUNS = '<svg viewBox="0 0 320 180" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><rect width="320" height="180" fill="#f1dcc0"/><rect y="120" width="320" height="60" fill="#c9a27a"/>' + [[90, 105], [160, 95], [230, 105], [125, 132], [195, 132]].map(([x, y]) => '<circle cx="' + x + '" cy="' + y + '" r="34" fill="#c27a3e"/><path d="M' + (x - 18) + ' ' + y + ' a18 18 0 1 0 18 -18 a10 10 0 1 1 -10 10" stroke="#6e3a17" stroke-width="5" fill="none" stroke-linecap="round"/>').join('') + '</svg>';
+
   // ---------- Content ----------
 
   const BLOCKS = {
@@ -73,19 +100,50 @@
     closed: { type: 'paragraph', name: 'Paragraph', html: 'We’re closed on Mondays.' },
     button: { type: 'buttons', name: 'Buttons', html: 'Order online' }
   };
-  const START = ['title', 'intro', 'quote', 'picture', 'order-heading', 'order-text', 'closed', 'button'];
   const ICON_FOR = { heading: 'heading', paragraph: 'paragraph', quote: 'quote', image: 'image', buttons: 'buttons' };
+  const after = (o, a, b) => o.indexOf(a) === o.indexOf(b) + 1;
 
-  const TASKS = [
+  // Round 1: eight blocks, short moves.
+  const START_1 = ['title', 'intro', 'quote', 'picture', 'order-heading', 'order-text', 'closed', 'button'];
+  const TASKS_1 = [
     { text: 'Put the picture of the pumpkin loaf at the very top, above “Autumn at Rosa’s”.', done: (o) => o[0] === 'picture' },
     { text: 'Move the quote from Ana to the end of the page.', done: (o) => o[o.length - 1] === 'quote' },
-    { text: 'Put the Order online button straight under “Order for the weekend”.', done: (o) => o.indexOf('button') === o.indexOf('order-heading') + 1 },
-    { text: 'Move “We’re closed on Mondays” so it comes straight after the first paragraph.', done: (o) => o.indexOf('closed') === o.indexOf('intro') + 1 }
+    { text: 'Put the Order online button straight under “Order for the weekend”.', done: (o) => after(o, 'button', 'order-heading') },
+    { text: 'Move “We’re closed on Mondays” so it comes straight after the first paragraph.', done: (o) => after(o, 'closed', 'intro') }
   ];
+
+  // Round 2: a longer page, where every move is long enough that dragging
+  // is quicker than clicking an arrow, and the first one is the longest.
+  Object.assign(BLOCKS, {
+    'breads-heading': { type: 'heading', level: 2, name: 'Heading', html: 'Our breads' },
+    sourdough: { type: 'paragraph', name: 'Paragraph', html: 'Our white sourdough takes two days: a slow rise overnight, then a hot oven first thing.' },
+    rye: { type: 'paragraph', name: 'Paragraph', html: 'The dark rye is dense, sour and keeps for a week. It’s best sliced thin with butter.' },
+    focaccia: { type: 'paragraph', name: 'Paragraph', html: 'Focaccia comes out at eleven, with rosemary and sea salt, or tomatoes when they’re good.' },
+    buns: { type: 'image', name: 'Image', caption: 'Cinnamon buns, out of the oven at eight', art: 'buns' },
+    'hours-heading': { type: 'heading', level: 2, name: 'Heading', html: 'Opening hours' },
+    'hours-week': { type: 'paragraph', name: 'Paragraph', html: 'Tuesday to Friday, 7am to 4pm.' },
+    'hours-sat': { type: 'paragraph', name: 'Paragraph', html: 'Saturday, 8am to 2pm.' },
+    'visit-heading': { type: 'heading', level: 2, name: 'Heading', html: 'Visit us' },
+    address: { type: 'paragraph', name: 'Paragraph', html: 'You’ll find us at 12 Mill Lane, next to the post office.' },
+    parking: { type: 'paragraph', name: 'Paragraph', html: 'There’s free parking behind the shop, and a bike rack by the door.' },
+    'gifts-heading': { type: 'heading', level: 2, name: 'Heading', html: 'Gift cards' },
+    gifts: { type: 'paragraph', name: 'Paragraph', html: 'Gift cards come in any amount and never run out. Ask at the counter.' },
+    newsletter: { type: 'paragraph', name: 'Paragraph', html: 'Join our newsletter for the week’s specials, every Thursday.' }
+  });
+  const START_2 = ['title', 'intro', 'closed', 'breads-heading', 'sourdough', 'rye', 'focaccia', 'buns', 'order-heading', 'order-text', 'hours-heading', 'hours-week', 'hours-sat', 'visit-heading', 'address', 'parking', 'quote', 'gifts-heading', 'gifts', 'picture', 'newsletter', 'button'];
+  const TASKS_2 = [
+    { text: 'Put the picture of the pumpkin loaf at the very top of the page, above “Autumn at Rosa’s”.', done: (o) => o[0] === 'picture' },
+    { text: '“We’re closed on Mondays” is in the wrong place. Move it to the opening hours, straight after “Saturday, 8am to 2pm.”', done: (o) => after(o, 'closed', 'hours-sat') },
+    { text: 'Put the Order online button straight after the paragraph about ordering for the weekend (“Whole cakes and loaves…”).', done: (o) => after(o, 'button', 'order-text') },
+    { text: 'Move the quote from Ana so it comes straight after the first paragraph (“From this week…”).', done: (o) => after(o, 'quote', 'intro') }
+  ];
+
+  const START = ROUND2 ? START_2 : START_1;
+  const TASKS = ROUND2 ? TASKS_2 : TASKS_1;
 
   // ---------- State ----------
 
-  let order, past, future, selected, hovered, t0, log, firstDone;
+  let order, past, future, selected, hovered, t0, log, firstDone, taskIndex, taskStart, results;
 
   function resetState() {
     order = START.slice();
@@ -96,15 +154,19 @@
     t0 = performance.now();
     log = [];
     firstDone = TASKS.map(() => null);
+    taskIndex = 0;
+    taskStart = 0;
+    results = [];
   }
 
+  const seconds = () => Math.round((performance.now() - t0) / 1000);
   const elapsed = () => {
-    const s = Math.round((performance.now() - t0) / 1000);
+    const s = seconds();
     return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
   };
 
   function note(kind, text) {
-    log.push({ at: elapsed(), kind, text });
+    log.push({ at: elapsed(), sec: seconds(), kind, text });
     renderNotes();
   }
 
@@ -141,7 +203,9 @@
     topbar.append(sw);
   }
   const resetBtn = $('button', { class: 'btn btn-link', text: 'Reset' });
-  topbar.append(resetBtn, $('button', { class: 'btn btn-primary', disabled: '', text: 'Save' }));
+  // In round 2 only the facilitator gets Reset, so a participant can't lose their place.
+  if (!ROUND2 || NOTES) topbar.append(resetBtn);
+  topbar.append($('button', { class: 'btn btn-primary', disabled: '', text: 'Save' }));
   app.append(topbar);
 
   // Canvas
@@ -157,7 +221,7 @@
     if (b.type === 'heading') el.innerHTML = '<h' + b.level + ' contenteditable="true">' + b.html + '</h' + b.level + '>';
     if (b.type === 'paragraph') el.innerHTML = '<p contenteditable="true">' + b.html + '</p>';
     if (b.type === 'quote') el.innerHTML = '<blockquote><p contenteditable="true" style="margin:0">' + b.html + '</p><cite contenteditable="true">' + b.cite + '</cite></blockquote>';
-    if (b.type === 'image') el.innerHTML = '<figure><div class="picture" draggable="false">' + LOAF + '</div><figcaption contenteditable="true">' + b.caption + '</figcaption></figure>';
+    if (b.type === 'image') el.innerHTML = '<figure><div class="picture" draggable="false">' + (b.art === 'buns' ? BUNS : LOAF) + '</div><figcaption contenteditable="true">' + b.caption + '</figcaption></figure>';
     if (b.type === 'buttons') el.innerHTML = '<span class="wp-button" contenteditable="true">' + b.html + '</span>';
     return el;
   }
@@ -173,6 +237,9 @@
   const menu = $('div', { class: 'menu', role: 'menu', hidden: '' });
   canvas.append(toolbar, dropLine, menu);
   if (CONFIG.handle === 'edge') canvas.append(edgeHandle);
+  const hintEl = $('div', { class: 'edge-hint', 'aria-hidden': 'true', text: 'Drag to move' });
+  if (CONFIG.hint) canvas.append(hintEl);
+  let hasDragged = false;
 
   const snackbar = $('div', { class: 'snackbar', role: 'status' });
   document.body.append(snackbar);
@@ -231,7 +298,7 @@
     if (i === 0) up.disabled = true;
     if (i === order.length - 1) down.disabled = true;
     movers.append(up, down);
-    first.append(movers);
+    if (CONFIG.arrows) first.append(movers);
 
     const groups = [];
     if (CONFIG.handle === 'toolbar') {
@@ -282,8 +349,12 @@
         edgeHandle.style.left = (el.offsetLeft - 40) + 'px';
         edgeHandle.dataset.id = id;
         edgeHandle.classList.add('is-visible');
+        hintEl.style.top = (el.offsetTop + firstLineCentre(el) - 13) + 'px';
+        hintEl.style.left = (el.offsetLeft - 46) + 'px';
+        hintEl.classList.toggle('is-visible', !hasDragged);
       } else if (document.activeElement !== edgeHandle) {
         edgeHandle.classList.remove('is-visible');
+        hintEl.classList.remove('is-visible');
       }
     }
   }
@@ -409,7 +480,7 @@
   function onDragUp() {
     if (press) {
       // A click on the handle with no drag: the handle selects its block, nothing else.
-      note('other', 'Clicked the ' + press.source + ' drag handle without dragging');
+      if (press.source !== 'picture') note('other', 'Clicked the ' + press.source + ' drag handle without dragging');
       selected = press.id;
       press = null;
       cleanupListeners();
@@ -419,7 +490,8 @@
     if (!drag) return;
     const rest = order.filter((id) => id !== drag.id);
     rest.splice(drag.index, 0, drag.id);
-    const label = 'dragged from the ' + drag.source + ' handle';
+    const label = drag.source === 'picture' ? 'dragged the picture itself' : 'dragged from the ' + drag.source + ' handle';
+    if (drag.source === 'block-edge') hasDragged = true;
     if (!commit(rest, label)) note('other', 'Dragged ' + describe(drag.id) + ' and dropped it where it was');
     endDrag();
   }
@@ -464,6 +536,7 @@
 
   document.addEventListener('pointerdown', (e) => {
     if (e.target.closest('[data-handle], .edge-handle') || e.button !== 0) return;
+    if (DIRECT_DRAG && e.target.closest('.picture')) return;
     const label = labelFor(e.target);
     attempt = label ? { x: e.clientX, y: e.clientY, label, logged: false } : null;
   }, true);
@@ -482,6 +555,15 @@
   // ---------- Events ----------
 
   canvas.addEventListener('pointerdown', (e) => {
+    const picture = DIRECT_DRAG && e.target.closest('.picture');
+    if (picture) {
+      const id = picture.closest('.block').dataset.id;
+      closeMenu();
+      if (id !== selected) { selected = id; render(); }
+      blockEls[id].focus({ preventScroll: true });
+      onHandleDown(e, id, 'picture');
+      return;
+    }
     const handle = e.target.closest('[data-handle], .edge-handle');
     if (handle) {
       onHandleDown(e, handle.classList.contains('edge-handle') ? handle.dataset.id : selected, handle.classList.contains('edge-handle') ? 'block-edge' : 'toolbar');
@@ -500,6 +582,7 @@
 
   scroller.addEventListener('pointermove', (e) => {
     if (drag || press) return;
+    if (ROUND2) fadeToolbar(e.clientX, e.clientY);
     let id = null;
     for (const bid of order) {
       const r = blockEls[bid].getBoundingClientRect();
@@ -518,6 +601,15 @@
     Object.values(blockEls).forEach((el) => el.classList.remove('is-hovered'));
     position();
   });
+
+  // Round 2: the toolbar fades when the pointer is away from it and its block,
+  // so it never hides the text above the block you're reading.
+  function fadeToolbar(x, y) {
+    if (!selected) return;
+    const near = (r) => x >= r.left - 16 && x <= r.right + 16 && y >= r.top - 16 && y <= r.bottom + 16;
+    const close = near(blockEls[selected].getBoundingClientRect()) || near(toolbar.getBoundingClientRect());
+    toolbar.classList.toggle('is-faded', !close);
+  }
 
   toolbar.addEventListener('mousedown', (e) => {
     // Keep the text selection for Bold and Italic.
@@ -583,7 +675,7 @@
     note(b === listViewBtn ? 'alt' : 'other', 'Clicked ' + b.getAttribute('aria-label'));
     toast('That isn’t part of this prototype.');
   }));
-  resetBtn.addEventListener('click', () => { resetState(); buildBlocks(); render(); });
+  resetBtn.addEventListener('click', () => { resetState(); hasDragged = false; buildBlocks(); render(); renderCard(); });
 
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
@@ -611,24 +703,95 @@
     });
   }
 
+  function summary() {
+    const moves = log.filter((l) => l.kind === 'move');
+    const count = (re) => moves.filter((m) => re.test(m.text)).length;
+    const firstDrag = moves.find((m) => /dragged from/.test(m.text));
+    return {
+      drags: count(/dragged from/),
+      pictures: count(/dragged the picture/),
+      arrows: count(/Move (up|down) arrow/),
+      keys: count(/arrow keys/),
+      misses: log.filter((l) => l.kind === 'miss').length,
+      elsewhere: log.filter((l) => l.kind === 'alt').length,
+      firstDrag
+    };
+  }
+
+  /*
+   * The completion code, for pasting into the testing tool:
+   *   Bh-1101-d3-p1-a5-k0-m2-o1-f45-t43.20.31.15
+   *   prototype · each task right (1) or not (0) when they said it was done ·
+   *   moves by dragging a handle · by dragging a picture itself · by arrows ·
+   *   by keyboard · drags on things that
+   *   aren't handles · looks at Move to or List View · seconds to the first
+   *   drag from a handle (x if none) · seconds spent on each task.
+   */
+  function completionCode() {
+    const m = summary();
+    return [
+      LETTER,
+      results.map((r) => (r.right ? 1 : 0)).join(''),
+      'd' + m.drags, 'p' + m.pictures, 'a' + m.arrows, 'k' + m.keys, 'm' + m.misses, 'o' + m.elsewhere,
+      'f' + (m.firstDrag ? m.firstDrag.sec : 'x'),
+      't' + results.map((r) => r.secs).join('.')
+    ].join('-');
+  }
+
+  // Round 2: the tasks, one at a time, in a card on the page.
+  let cardEl = null;
+  function renderCard() {
+    if (!ROUND2) return;
+    if (!cardEl) { cardEl = $('section', { class: 'task-card', 'aria-live': 'polite', 'aria-label': 'Your task' }); document.body.append(cardEl); }
+    if (taskIndex < TASKS.length) {
+      const last = taskIndex === TASKS.length - 1;
+      cardEl.innerHTML = '<p class="task-count">Task ' + (taskIndex + 1) + ' of ' + TASKS.length + '</p><p class="task-text">' + TASKS[taskIndex].text + '</p><button class="btn btn-primary">' + (last ? 'I’ve done this, finish' : 'I’ve done this, next task') + '</button>';
+      cardEl.querySelector('button').addEventListener('click', finishTask);
+    } else {
+      const code = completionCode();
+      cardEl.innerHTML = '<p class="task-count">All done, thank you</p><p class="task-text">Please copy this code into the next question:</p><textarea class="task-code" readonly rows="2" aria-label="Your code">' + code + '</textarea><button class="btn btn-primary">Copy code</button>';
+      const input = cardEl.querySelector('textarea');
+      input.addEventListener('focus', () => input.select());
+      cardEl.querySelector('button').addEventListener('click', () => {
+        input.select();
+        (navigator.clipboard ? navigator.clipboard.writeText(code) : Promise.reject()).then(() => toast('Code copied.'), () => { try { document.execCommand('copy'); toast('Code copied.'); } catch (e) { toast('Select the code and copy it.'); } });
+      });
+    }
+  }
+  function finishTask() {
+    const right = TASKS[taskIndex].done(order);
+    const secs = seconds() - taskStart;
+    results.push({ right, secs });
+    note('task', 'Said task ' + (taskIndex + 1) + ' was done after ' + secs + 's: ' + (right ? 'right' : 'not right'));
+    taskIndex += 1;
+    taskStart = seconds();
+    if (taskIndex === TASKS.length) note('task', 'Finished. Code ' + completionCode());
+    renderCard();
+  }
+
   let notesEl = null;
   function renderNotes() {
     if (!NOTES) return;
     if (!notesEl) { notesEl = $('aside', { class: 'notes', 'aria-label': 'Facilitator notes' }); document.body.append(notesEl); }
-    const moves = log.filter((l) => l.kind === 'move');
-    const count = (re) => moves.filter((m) => re.test(m.text)).length;
-    const firstDrag = moves.find((m) => /dragged/.test(m.text));
-    const variant = { today: 'Today: the toolbar handle as Gutenberg draws it', edge: 'A grip on the block’s edge', toolbar: 'A bigger handle in the toolbar' }[CONFIG.handle];
+    const m = summary();
+    const variant = {
+      A: 'Today: the toolbar handle as Gutenberg draws it',
+      B: 'A grip on the block’s edge',
+      Bn: 'A grip on the block’s edge, and no move arrows',
+      Bh: 'A grip on the block’s edge, labelled “Drag to move” until the first drag',
+      C: 'A bigger handle in the toolbar'
+    }[LETTER] + (ROUND2 ? ' (round 2: the long page)' : '');
     notesEl.innerHTML =
       '<h2>' + LETTER + ' · Facilitator notes</h2><p>' + variant + '. Only you can see this panel; open the page without <code>?notes</code> for participants.</p>' +
       '<h3>Tasks</h3><ol>' + TASKS.map((t, i) => '<li class="' + (t.done(order) ? 'is-done' : '') + '">' + t.text + (firstDone[i] ? ' <small>(' + firstDone[i] + ')</small>' : '') + '</li>').join('') + '</ol>' +
       '<h3>Summary</h3><dl>' +
-      '<dt>Moves by dragging a handle</dt><dd>' + count(/dragged/) + '</dd>' +
-      '<dt>Moves with the arrows</dt><dd>' + count(/Move (up|down) arrow/) + '</dd>' +
-      '<dt>Moves with the keyboard</dt><dd>' + count(/arrow keys/) + '</dd>' +
-      '<dt>Dragged on something that isn’t a handle</dt><dd>' + log.filter((l) => l.kind === 'miss').length + '</dd>' +
-      '<dt>Looked elsewhere (Move to, List View)</dt><dd>' + log.filter((l) => l.kind === 'alt').length + '</dd>' +
-      '<dt>First drag from a handle</dt><dd>' + (firstDrag ? firstDrag.at : '–') + '</dd>' +
+      '<dt>Moves by dragging a handle</dt><dd>' + m.drags + '</dd>' +
+      (DIRECT_DRAG ? '<dt>Moves by dragging a picture itself</dt><dd>' + m.pictures + '</dd>' : '') +
+      '<dt>Moves with the arrows</dt><dd>' + m.arrows + '</dd>' +
+      '<dt>Moves with the keyboard</dt><dd>' + m.keys + '</dd>' +
+      '<dt>Dragged on something that isn’t a handle</dt><dd>' + m.misses + '</dd>' +
+      '<dt>Looked elsewhere (Move to, List View)</dt><dd>' + m.elsewhere + '</dd>' +
+      '<dt>First drag from a handle</dt><dd>' + (m.firstDrag ? m.firstDrag.at : '–') + '</dd>' +
       '</dl>' +
       '<div class="actions"><button class="btn" data-copy>Copy log</button></div>' +
       '<h3>Log</h3><ul class="log">' + (log.length ? log.slice().reverse().map((l) => '<li class="is-' + l.kind + '"><time>' + l.at + '</time>' + l.text + '</li>').join('') : '<li>Nothing yet.</li>') + '</ul>';
@@ -643,4 +806,5 @@
   resetState();
   buildBlocks();
   render();
+  renderCard();
 })();

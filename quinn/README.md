@@ -10,57 +10,68 @@ It's [O'Keeffe](../okeeffe/)'s prototype F, "All pages with menu switches", in t
 
 Locally, check out the `add/page-list-reorder-and-hide-pages` branch of Gutenberg and build it. There's no experiment to turn on.
 
-The build is `gutenberg.zip` in this folder, the PR's own build at `b38609e`, kept here because the PR's builds expire after 14 days. When the PR changes, replace it: download `gutenberg.zip` from the PR's latest **Build Gutenberg Plugin Zip** run, or check out the branch and run `npm ci` and `NO_CHECKS=true npm run build:plugin-zip`.
+The build is `gutenberg.zip` in this folder, the PR's own build at `7907529`, kept here because the PR's builds expire after 14 days. When the PR changes, replace it: download `gutenberg.zip` from the PR's latest **Build Gutenberg Plugin Zip** run, or check out the branch and run `npm ci` and `NO_CHECKS=true npm run build:plugin-zip`.
 
 ## What's in it
 
-### The Pages panel
+### Pages, straight in the Navigation block
 
-![The header's menu selected, with the Page List and its pages in the sidebar, each page with a lock](screenshots/menu-list.png)
+![The header's menu selected: the sidebar lists every page, each with a drag handle, an In menu switch and a ⋮ button, with Our story and Team indented under About, and an Add link button below](screenshots/navigation-sidebar.png)
 
-Click the menu in the header, then **Page List** in the sidebar's list of the menu's items. The Page List's settings open with a **Pages** panel at the top. Every page is listed with its child pages indented under it (Our story and Team, under About). Each row has:
+Click the menu in the header. Where the Navigation block's sidebar would list the Page List, it lists the pages themselves, with their child pages indented under them (Our story and Team, under About). Each row has:
 
-- a **drag handle**: drag a page up or down among the pages at its level, and its child pages go with it. Focus the handle and use the up and down arrow keys to do the same from the keyboard.
+- a **drag handle**: drag a page up or down among the pages at its level, and its child pages go with it. While you drag, a chip with the page's title follows the cursor, like the one shown when dragging blocks. Focus the handle and use the up and down arrow keys to do the same from the keyboard.
 - an **In menu** switch: turn it off and the page leaves the menu. Pages that are off are still published, at their usual address.
-- a **⋮ menu** with Move up and Move down.
+- a **⋮ menu** with Move up, Move down and Add link after.
 
-![The Pages panel: every page with a drag handle, an In menu switch and a ⋮ button, Our story and Team indented under About](screenshots/pages-panel.png)
+![Dragging Catering: a dark chip with its title follows the cursor, the row it came from is faded, and a line shows where it will land](screenshots/drag-chip.png)
 
-![The ⋮ menu for Menu, with Move up and Move down](screenshots/options-menu.png)
+![The ⋮ menu for Menu, with Move up, Move down and Add link after](screenshots/options-menu.png)
 
-In the menu's list, each page now has a lock icon, since its place is set in this panel and it can't be dragged out of the Page List. Clicking a page no longer opens a dialog asking whether to detach the Page List. Detach is still in the toolbar and in Settings, for menus that need custom links or a different order from the site's.
+The pages in the canvas can't be selected on their own, and the Page List no longer appears in the Navigation block's list of items. The same controls are in the Page List's own sidebar, under **Pages**, if you select it another way.
+
+### Adding links
+
+When the menu is only pages, an **Add link** button sits below them. It adds a link after the pages and opens its search. The menu's list of items then appears below the pages, with the Page List as one row, since its pages are edited above.
+
+![After Add link: the new link's search is open in the header, suggesting a post, and the sidebar shows the pages, then a list with Page List and Navigation Link](screenshots/add-link.png)
+
+A link can't go between two pages of a Page List. So **Add link after** in a page's ⋮ menu turns the menu's pages into links first, as Detach does, then adds the new link after that page and opens its search. The ⋮ menu says so. From then on the menu is links, which no longer update as pages change.
+
+![After Add link after Menu: the sidebar lists the pages as links, with a new Navigation Link after Menu, and its search is open in the header](screenshots/add-link-after.png)
 
 ### Order is page order
 
-Page List shows pages in page order (`menu_order`), so that's what the panel changes. The menu stays automatic: a new page still appears in it, in its place. The pages you reorder appear in the save panel alongside the menu, and one Undo puts a whole move back. ![The save panel listing four pages, Home, About, Menu and Visit us, and the Header navigation menu](screenshots/save-panel.png)
+Page List shows pages in page order (`menu_order`), so that's what the controls change. The menu stays automatic: a new page still appears in it, in its place. The pages you reorder appear in the save panel alongside the menu, and one Undo puts a whole move back.
 
-Because it's the site's page order, it changes every Page List on the site, and the panel's help text says so. People who can't edit pages get the switches but no reorder controls.
+![The save panel listing four pages, Home, About, Menu and Visit us, and the Header navigation menu](screenshots/save-panel.png)
+
+Because it's the site's page order, it changes every Page List on the site, and the help text says so. People who can't edit pages get the switches but no reorder controls.
 
 ### Hiding a page
 
-A page that's switched off is saved on the block, in a new `excludedPageIDs` attribute, not on the page. The server leaves it out with `get_pages()` `exclude_tree`, so its child pages go too. In the panel, a hidden page's child pages show their switches off and disabled. Switch the parent back on and they return as they were. Older WordPress ignores the attribute and shows every page.
+A page that's switched off is saved on the block, in a new `excludedPageIDs` attribute, not on the page. The server leaves it out with `get_pages()` `exclude_tree`, so its child pages go too. In the list, a hidden page's child pages show their switches off and disabled. Switch the parent back on and they return as they were. Older WordPress ignores the attribute and shows every page.
 
 Try it with **Thank you for your order**, which no one needs in a menu.
 
-![About and Thank you for your order switched off: the menu shows Visit us, Home, Catering and Menu, and Our story and Team are greyed out with their switches disabled](screenshots/hidden.png)
+![About and Thank you for your order switched off: the menu shows Home, Menu, Catering and Visit us, and Our story and Team are greyed out with their switches disabled](screenshots/hidden.png)
 
 ![The saved site's header: Home, Menu, Visit us and Catering](screenshots/front-end.png)
 
 ### Pages only through the Page List
 
-While a Navigation block has a Page List, the Page List is the only way to add a page to that menu. Searching for a link elsewhere in the menu leaves pages out and suggests posts instead, and "Create page" isn't offered. Custom links, posts and categories can still be added. Page items can't be dragged out of the Page List into the Navigation either.
-
-![Adding a link to the menu and searching for "Cater": no results, as Catering is a page](screenshots/link-search.png)
+While a Navigation block has a Page List, the Page List is the only way to add a page to that menu. Searching for a link elsewhere in the menu leaves pages out and suggests posts instead, as in the Add link screenshot above, and "Create page" isn't offered. Custom links, posts and categories can still be added.
 
 ### Detach
 
-Detach now keeps the menu you see: the same order, with hidden pages left out.
+Detach, from the Page List's toolbar or settings, and Add link after both keep the menu you see: the same order, with hidden pages left out.
 
 ## Open questions
 
 - **Site-wide order.** Reordering here changes the order of every Page List and of the Pages screen. That's the model F tested: the list *is* the menu. But someone moving Catering up in the header may not expect the footer's page list to change too. An order saved on the block would affect only this menu, at the cost of new pages needing a place in it.
 - **Hidden parents.** Hiding a parent hides its child pages. F did the opposite: it promoted the child pages to the top level. Which matches what people expect?
 - **Putting a page under another.** F's ⋮ menu also had "Put under About" and "Take out from under About", which change the page's parent and its address. This leaves those to the page's own settings.
-- **Where the list lives.** The panel is in the Page List's sidebar. Would people look for it in the Navigation block's list view, or on the Pages screen, as in O'Keeffe?
-- **The menu's + button.** It adds a Page Link, labelled "Select page", which here can't link to a page. In a menu with a Page List it should probably add a custom link.
+- **Where the list lives.** The pages are in the Navigation block's sidebar. Would people also look for them on the Pages screen, as in O'Keeffe?
+- **Links between pages.** Add link after detaches the whole menu to put one link between two pages. Is that a surprise, even with the note in the ⋮ menu? The alternative is a Page List that can hold links of its own.
+- **The canvas's + button.** The menu's + in the canvas adds a Page Link, labelled "Select page", which here can't link to a page. In a menu with a Page List it should probably add a custom link, as the sidebar's Add link button does.
 - **Many pages.** The panel lists every page, up to the 100 that Page List loads in the editor. A site with hundreds would need search or collapsed sections.

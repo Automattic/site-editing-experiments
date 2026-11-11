@@ -1,6 +1,6 @@
 # Nevelson: block settings beside the block
 
-A WordPress plugin that tries out [Judd](../judd/)'s popovers in the real editor. In Judd, when you click something on the page, its settings open in a card beside it. Nevelson does the same with the block's toolbar and inspector. By the block, the toolbar keeps only the basics: the drag handle and movers, the block's icon and name, formatting text, and a pencil. The pencil opens a floating panel next to the block, headed with the block's icon and name, with everything else: the toolbar's other tools along its top, alignment as panels, and the block's settings below. It follows the block as you scroll. There's no sidebar: the page's own settings open in a card from the Settings button, as Judd's Edit page does.
+A WordPress plugin that tries out [Judd](../judd/)'s popovers in the real editor. In Judd, when you click something on the page, its settings open in a card beside it. Nevelson does the same with the block's toolbar and inspector. By the block, the toolbar keeps only the basics: the drag handle and movers, the block's icon and name, formatting text, and a pencil. The pencil opens a floating panel next to the block, headed with the block's icon and name, with everything else: the toolbar's other tools along its top, alignment as panels, and the block's settings below. It follows the block as you scroll. There's no sidebar: the page's own settings are a **Page** tab in the Document overview on the left, the first tab, before List View and Outline.
 
 It's the editor's own block inspector, moved, not a copy: every panel, tab and control is the same, including those added by other plugins.
 
@@ -40,11 +40,13 @@ So Nevelson switches sections off. Patterns and template parts are editable stra
 
 ## The page's settings
 
-There's no sidebar. The **Settings** button opens the page's settings (or the template's, in the site editor) in a card just below it. There's no Block tab, because the block's settings are always in the panel, and the card stays on the page's settings when you select a block. The block's panel moves out of the card's way. A click on the page closes the card, as Judd's popovers close.
+There's no sidebar and no Settings button. The page's settings (or the template's, in the site editor) are a **Page** tab (**Template** in the site editor) in the Document overview, the panel on the left that opens from the button beside undo and redo, as its first tab, before **List View** and **Outline**. That keeps the two sides apart: the left is for the whole page, and what's beside a block is for the block you clicked.
 
-The editor opens with the card closed.
+There's no Block tab, because the block's settings are always in the panel, and Page stays open as you select blocks. List View or Outline goes back to them, and closing the overview closes Page too. Opening the page's settings some other way, as with the keyboard shortcut, opens the overview at Page.
 
-![The page's settings in a card below the Settings button, with the paragraph's settings to the left of the page](docs/screenshots/04-page.jpg)
+The editor opens with the overview closed.
+
+![The Document overview on the left with Page, List View and Outline tabs, Page chosen and showing the page's status, link, template and the rest, while the paragraph's settings are in its panel on the right](docs/screenshots/04-page.jpg)
 
 ## On a narrow screen
 
@@ -60,7 +62,7 @@ The plugin renders the editor's [`BlockInspector`](https://github.com/WordPress/
 
 Each frame, it reads the selected blocks' boxes in the canvas iframe and places the card with [`place.js`](src/editor/place.js), a small function with unit tests. It writes the position straight to the card's style, so following the block doesn't re-render the inspector.
 
-The page's card is the editor's own sidebar, restyled into a card and placed below the Settings button.
+Core's Document overview has no place for another tab, so the Page tab is a button Nevelson adds at the start of its tab list, dressed as core's tabs are (the arrow keys move between it and core's tabs), in [`page-tab.js`](src/editor/page-tab.js). What it shows is the editor's own sidebar for the page, placed each frame over the overview's tab panel, under its tabs; Page is open whenever that sidebar is. While it's open, the overview's own panels are hidden and the line under its tabs moves under Page. Below WordPress' mobile breakpoint, where the overview and the sidebar each fill the screen, the page's settings open as core opens them.
 
 Sections are switched off with two of core's editor settings, `disableContentOnlyForUnsyncedPatterns` and `disableContentOnlyForTemplateParts`, set with the `block_editor_settings_all` filter (core's command *Enable editing all patterns* sets the same two). A template part's blocks would still be behind an overlay until the template part was selected, so Nevelson gives `core/template-part` the `__experimentalDisableBlockOverlay` support.
 
@@ -68,7 +70,7 @@ Sections are switched off with two of core's editor settings, `disableContentOnl
 
 - Most blocks have so many settings that the panel is taller than the space beside them and rises above the block. Should the panel show only the most-used settings, with the rest a click away?
 - With sections off, nothing shows where a pattern begins and ends, or which pattern a block came from. Does anyone miss that?
-- Is the Settings button the right home for the page's settings, or should they come from the document bar in the middle of the header, where the page's name is?
+- With the page's settings in the overview, the left is for the page and beside the block is for the block. Do people find Page there, without a Settings button? Or would they look for it from the document bar in the middle of the header, where the page's name is?
 - Keyboard: there's no shortcut yet to move between the block and its panel, and nothing announces the panel when it appears.
 
 ## Developing

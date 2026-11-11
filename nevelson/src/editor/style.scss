@@ -152,7 +152,7 @@ $soft: #757575;
 	}
 }
 
-/* ---------- The page's settings: a card below the Settings button ---------- */
+/* ---------- The page's settings: a Page tab in the Document overview ---------- */
 
 // Only the page's tab: the block's settings are in the panel.
 body.nevelson [data-tab-id="edit-post/block"] {
@@ -160,67 +160,68 @@ body.nevelson [data-tab-id="edit-post/block"] {
 }
 
 @media (min-width: 782px) {
+	// No Settings button: the page's settings are in the overview.
+	body.nevelson .editor-header__settings [aria-controls^="edit-post"] {
+		display: none;
+	}
+
+	// The page's settings are core's sidebar, placed over the overview's tab
+	// panel while Page is open, and out of the way otherwise.
 	body.nevelson .interface-interface-skeleton__sidebar {
 		// Core's layout rules for the sidebar are more specific.
 		position: fixed !important;
-		top: var(--nevelson-page-top, 104px) !important;
-		right: var(--nevelson-page-right, 12px) !important;
+		top: var(--nevelson-page-top, 0) !important;
+		left: var(--nevelson-page-left, 0) !important;
+		right: auto !important;
 		bottom: auto !important;
-		left: auto !important;
-		z-index: 32;
-		width: 300px !important;
-		height: auto !important;
-		max-height: calc(100vh - var(--nevelson-page-top, 104px) - 16px);
+		// Over the overview, which core puts at 100000; under popovers.
+		z-index: 100001;
+		width: var(--nevelson-page-width, 350px) !important;
+		height: var(--nevelson-page-height, 0) !important;
 		border: 0 !important;
-		border-radius: 12px;
 		background: #fff;
-		box-shadow: 0 16px 40px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(0, 0, 0, 0.08);
 		overflow: hidden;
 		display: flex;
 		flex-direction: column;
-
-		&:empty {
-			display: none;
-		}
 
 		> *,
 		.interface-complementary-area__fill,
 		.interface-complementary-area {
 			width: 100% !important;
 			min-width: 0 !important;
-			height: auto !important;
-			max-height: inherit;
+			height: 100% !important;
 		}
 
 		.interface-complementary-area {
 			overflow: auto;
 		}
 
-		// The page's tab, alone, is the card's label, like the panel's.
-		[data-tab-id="edit-post/document"] {
-			padding-left: 16px;
-			font-size: 11px;
-			font-weight: 600;
-			text-transform: uppercase;
-			letter-spacing: 0.06em;
-			color: #757575;
-			pointer-events: none;
-
-			&::after {
-				display: none;
-			}
+		// The overview's tabs are its header: not the sidebar's own.
+		.interface-complementary-area-header,
+		[role="tablist"] {
+			display: none !important;
 		}
+	}
 
-		[role="tablist"]::after,
-		[role="tablist"] > :not([role="tab"]) {
+	body.nevelson:not(.nevelson-page-on) .interface-interface-skeleton__sidebar {
+		visibility: hidden;
+	}
+
+	// The Page tab comes first in the overview's tab list.
+	.nevelson-page-tab-slot {
+		display: contents;
+	}
+
+	// While Page is open, the overview's own panels are hidden, and the line
+	// under its tabs moves under Page.
+	body.nevelson-page-on .editor-list-view-sidebar {
+		[role="tabpanel"] {
 			display: none;
 		}
 
-		.interface-complementary-area-header {
-			position: sticky;
-			top: 0;
-			z-index: 1;
-			background: #fff;
+		[role="tablist"] {
+			--selected-left: var(--nevelson-tab-left) !important;
+			--selected-width: var(--nevelson-tab-width) !important;
 		}
 	}
 }

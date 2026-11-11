@@ -6,8 +6,8 @@
  *   open from block to block until it's closed.
  * - The block's settings are only ever in the panel. It's always the
  *   selected block's own settings, even in a pattern or template part.
- * - The page's settings aren't in a sidebar either: the Settings button opens
- *   them in a card below it, as Judd's Edit page does.
+ * - The page's settings aren't in a sidebar either: they're a Page tab in the
+ *   Document overview, beside List View and Outline.
  * - On a narrow canvas, the panel is a sheet along the bottom.
  */
 import { registerPlugin } from '@wordpress/plugins';
@@ -16,40 +16,12 @@ import { store as blockEditorStore } from '@wordpress/block-editor';
 import { createPortal, useEffect, useRef, useState } from '@wordpress/element';
 
 import { FloatingPanel } from './panel';
+import PageTab, { SCOPE, DOCUMENT } from './page-tab';
 import './toolbar';
 import { store as nevelsonStore } from './store';
 import './style.scss';
 
-const SCOPE = 'core';
 const BLOCK = 'edit-post/block';
-const DOCUMENT = 'edit-post/document';
-
-// Below WordPress' mobile breakpoint the sidebar fills the screen, so the
-// page's settings stay as they are.
-const isWide = () => window.matchMedia( '(min-width: 782px)' ).matches;
-
-// The editor canvas iframe's document, once it has loaded.
-function useCanvasDocument() {
-	const [ doc, setDoc ] = useState( null );
-	useEffect( () => {
-		const find = () => {
-			const d = document.querySelector(
-				'iframe[name="editor-canvas"]'
-			)?.contentDocument;
-			const ready = d?.body && d.querySelector( '.is-root-container' );
-			setDoc( ( prev ) => {
-				if ( ! ready ) {
-					return null;
-				}
-				return prev === d ? prev : d;
-			} );
-		};
-		find();
-		const t = setInterval( find, 600 );
-		return () => clearInterval( t );
-	}, [] );
-	return doc;
-}
 
 /**
  * The sidebar only ever shows the page's settings: whenever the editor
@@ -73,50 +45,7 @@ function useSidebarIsForThePage() {
 	}, [ registry ] );
 }
 
-/**
- * Where the page's settings card goes: below the Settings button, lined up
- * with its right edge. Kept in CSS variables, so the styles place it.
- *
- * @param {boolean} open Whether the card is open.
- */
-function usePageCardPosition( open ) {
-	useEffect( () => {
-		const body = document.body;
-		const put = () => {
-			const header = document
-				.querySelector(
-					'.editor-header, .interface-interface-skeleton__header'
-				)
-				?.getBoundingClientRect();
-			const toggle = Array.from(
-				document.querySelectorAll(
-					'.editor-header__settings button[aria-expanded], .interface-pinned-items button'
-				)
-			).find(
-				( b ) =>
-					b
-						.getAttribute( 'aria-controls' )
-						?.includes( 'edit-post' ) ||
-					b.getAttribute( 'aria-pressed' ) !== null
-			);
-			const r = toggle?.getBoundingClientRect();
-			body.style.setProperty(
-				'--nevelson-page-top',
-				`${ Math.round( ( header?.bottom ?? 96 ) + 8 ) }px`
-			);
-			body.style.setProperty(
-				'--nevelson-page-right',
-				`${ Math.max( 12, Math.round( window.innerWidth - ( r?.right ?? window.innerWidth - 12 ) ) ) }px`
-			);
-		};
-		put();
-		window.addEventListener( 'resize', put );
-		return () => window.removeEventListener( 'resize', put );
-	}, [ open ] );
-}
-
 function Nevelson() {
-	const registry = useRegistry();
 	const { key, area, hidden, isTyping } = useSelect( ( select ) => {
 		const be = select( blockEditorStore );
 		const multi = be.getMultiSelectedBlockClientIds();
@@ -136,7 +65,6 @@ function Nevelson() {
 	}, [] );
 	const { disableComplementaryArea } = useDispatch( 'core/interface' );
 	useSidebarIsForThePage();
-	usePageCardPosition( area === DOCUMENT );
 
 	useEffect( () => {
 		document.body.classList.add( 'nevelson' );
@@ -207,49 +135,30 @@ function Nevelson() {
 	);
 	const { setOpen } = useDispatch( nevelsonStore );
 
-	const doc = useCanvasDocument();
-	useEffect( () => {
-		if ( ! doc ) {
-			return;
-		}
-		const down = () => {
-			// The page's card closes when you go back to the page, as
-			// Judd's popovers do.
-			const { getActiveComplementaryArea } =
-				registry.select( 'core/interface' );
-			if (
-				isWide() &&
-				getActiveComplementaryArea( SCOPE ) === DOCUMENT
-			) {
-				registry
-					.dispatch( 'core/interface' )
-					.disableComplementaryArea( SCOPE );
-			}
-		};
-		// On the canvas' window, capturing, so Nevelson hears clicks before
-		// anything in the editor does.
-		const win = doc.defaultView;
-		win.addEventListener( 'pointerdown', down, true );
-		return () => win.removeEventListener( 'pointerdown', down, true );
-	}, [ doc, registry ] );
-
 	const [ offset, setOffset ] = useState( null );
 
+	const page = <PageTab loading={ loading } />;
 	if ( ! key || hidden || ! open ) {
-		return null;
+		return page;
 	}
-	return createPortal(
-		<FloatingPanel
-			clientIds={ key.split( ',' ) }
-			isTyping={ isTyping }
-			offset={ offset }
-			setOffset={ setOffset }
-			onClose={ () => setOpen( false ) }
-		/>,
-		// In the editor's content area, which is a stacking context of its
-		// own, so the block toolbar can go over the panel.
-		document.querySelector( '.interface-interface-skeleton__content' ) ||
-			document.body
+	return (
+		<>
+			{ page }
+			{ createPortal(
+				<FloatingPanel
+					clientIds={ key.split( ',' ) }
+					isTyping={ isTyping }
+					offset={ offset }
+					setOffset={ setOffset }
+					onClose={ () => setOpen( false ) }
+				/>,
+				// In the editor's content area, which is a stacking context of its
+				// own, so the block toolbar can go over the panel.
+				document.querySelector(
+					'.interface-interface-skeleton__content'
+				) || document.body
+			) }
+		</>
 	);
 }
 

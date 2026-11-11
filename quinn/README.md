@@ -10,7 +10,7 @@ It's [O'Keeffe](../okeeffe/)'s prototype F, "All pages with menu switches", in t
 
 Locally, check out the `add/page-list-reorder-and-hide-pages` branch of Gutenberg and build it. There's no experiment to turn on.
 
-The build is `gutenberg.zip` in this folder, the PR's own build at `aff5dee`, kept here because the PR's builds expire after 14 days. When the PR changes, replace it: download `gutenberg.zip` from the PR's latest **Build Gutenberg Plugin Zip** run, or check out the branch and run `npm ci` and `NO_CHECKS=true npm run build:plugin-zip`.
+The build is `gutenberg.zip` in this folder, the PR's own build at `6393bd9`, kept here because the PR's builds expire after 14 days. When the PR changes, replace it: download `gutenberg.zip` from the PR's latest **Build Gutenberg Plugin Zip** run, or check out the branch and run `npm ci` and `NO_CHECKS=true npm run build:plugin-zip`.
 
 ## What's in it
 
@@ -54,6 +54,10 @@ Dragging does the same, in the sidebar:
 - drag a page by its handle onto the list of the menu's other items, and a line shows where it will land, before or after the item under it. Its child pages go with it.
 
 Either way, the pages turn into links first, in the order shown and without hidden pages, and the menu becomes an ordinary menu of links. One Undo puts the Page List back.
+
+Before any of these turns the pages into links, the Detach dialog asks, saying what you did and what follows: new pages won't be added to the menu automatically, and pages that are switched off are left out. Cancel keeps the Page List, and anything you dragged goes back where it was.
+
+![Dragging Catering out of the pages: the Detach Page List dialog says the menu's pages will become links, with Cancel and Detach](screenshots/detach-dialog.png)
 
 ![After dragging Catering below the shop link: the sidebar lists the menu's links, Home, About with Our story and Team, Menu, Visit us, Thank you for your order, the shop link, then Catering](screenshots/dragged-out.png)
 

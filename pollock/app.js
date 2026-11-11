@@ -66,7 +66,8 @@
     { letter: 'Cm', href: 'toolbar-move-icon.html' },
     { letter: 'Ac', href: 'today-columns.html' },
     { letter: 'Bc', href: 'edge-columns.html' },
-    { letter: 'Cc', href: 'toolbar-columns.html' }
+    { letter: 'Cc', href: 'toolbar-columns.html' },
+    { letter: 'Ccm', href: 'toolbar-move-icon-columns.html' }
   ] : [
     { letter: 'A', href: 'today.html' },
     { letter: 'B', href: 'edge.html' },
@@ -946,7 +947,8 @@
       Cm: 'A bigger handle in the toolbar, with a four-arrow move icon',
       Ac: 'Today, on the page with columns and a full-width cover',
       Bc: 'A grip on the block’s edge, on the page with columns and a full-width cover',
-      Cc: 'A bigger handle in the toolbar, on the page with columns and a full-width cover'
+      Cc: 'A bigger handle in the toolbar, on the page with columns and a full-width cover',
+      Ccm: 'A bigger handle in the toolbar with a four-arrow move icon, on the page with columns and a full-width cover'
     }[LETTER] + (ROUND2 ? ' (round 2: the long page)' : '');
     notesEl.innerHTML =
       '<h2>' + LETTER + ' · Facilitator notes</h2><p>' + variant + '. Only you can see this panel; open the page without <code>?notes</code> for participants.</p>' +

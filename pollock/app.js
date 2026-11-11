@@ -49,6 +49,11 @@
   // dragged by itself, without a handle: BlockListBlock is draggable when the
   // block, not a text field in it, has focus. Round 1 didn't have this.
   const DIRECT_DRAG = CONFIG.directDrag != null ? CONFIG.directDrag : ROUND2;
+  // Round 2 keeps the drag handle and the move arrows together, since they
+  // do the same job: C's handle sits straight before the toolbar's arrows,
+  // and with the edge grip the arrows leave the toolbar to sit beside it.
+  // Round 1's pages stay as they were tested.
+  const PAIRED = CONFIG.paired != null ? CONFIG.paired : ROUND2;
   const NOTES = new URLSearchParams(location.search).has('notes') || location.hash === '#notes';
   const LETTER = CONFIG.code || { today: 'A', edge: 'B', toolbar: 'C' }[CONFIG.handle];
   const PAGES = ROUND2 ? [
@@ -285,12 +290,29 @@
   const dropLine = $('div', { class: 'drop-line' });
   const menu = $('div', { class: 'menu', role: 'menu', hidden: '' });
   canvas.append(toolbar, dropLine, menu);
-  if (CONFIG.handle === 'edge') canvas.append(edgeHandle);
+  // The edge grip and, beside it, the move arrows: both ways to move a block,
+  // kept together wherever they go.
+  const edgeTools = $('div', { class: 'edge-tools' });
+  const edgeUp = $('button', { class: 'icon-btn', 'aria-label': 'Move up', title: 'Move up', 'data-edge': 'up' }, ICON.up);
+  const edgeDown = $('button', { class: 'icon-btn', 'aria-label': 'Move down', title: 'Move down', 'data-edge': 'down' }, ICON.down);
+  const edgeMovers = $('div', { class: 'edge-movers' });
+  edgeMovers.append(edgeUp, edgeDown);
+  edgeTools.append(edgeHandle);
+  if (CONFIG.arrows && PAIRED) edgeTools.append(edgeMovers);
+  if (CONFIG.handle === 'edge') canvas.append(edgeTools);
+  const TOOLS_W = CONFIG.arrows && PAIRED ? 50 : 28;
+  edgeMovers.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-edge]');
+    if (!b || b.disabled) return;
+    hovered = null;
+    nudge(edgeTools.dataset.id, b.dataset.edge === 'up' ? -1 : 1, b.dataset.edge === 'up' ? 'Move up arrow beside the grip' : 'Move down arrow beside the grip');
+    requestAnimationFrame(() => b.focus());
+  });
   const hintEl = $('div', { class: 'edge-hint', 'aria-hidden': 'true', text: 'Drag to move' });
   if (CONFIG.hint) {
     canvas.append(hintEl);
     edgeHandle.removeAttribute('title'); // the label does the tooltip's job
-    const show = (on) => hintEl.classList.toggle('is-visible', on && !drag && edgeHandle.classList.contains('is-visible'));
+    const show = (on) => hintEl.classList.toggle('is-visible', on && !drag && edgeTools.classList.contains('is-visible'));
     edgeHandle.addEventListener('pointerenter', () => show(true));
     edgeHandle.addEventListener('pointerleave', () => show(false));
     edgeHandle.addEventListener('focus', () => requestAnimationFrame(() => show(true)));
@@ -355,16 +377,24 @@
       h.dataset.handle = 'toolbar';
       first.append(h);
     }
+    if (CONFIG.handle === 'toolbar' && PAIRED) {
+      // Straight before the arrows, as today's handle is: they're both ways to move.
+      const h = toolButton(GRIP, 'Drag to move. Arrow keys move too.', 'drag', { class: 'icon-btn drag-big', title: 'Drag to move' });
+      h.dataset.handle = 'toolbar';
+      first.append(h);
+    }
     const movers = $('div', { class: 'movers' });
     const up = toolButton('up', 'Move up', 'up');
     const down = toolButton('down', 'Move down', 'down');
     if (i === 0) up.disabled = true;
     if (i === own.length - 1) down.disabled = true;
     movers.append(up, down);
-    if (CONFIG.arrows) first.append(movers);
+    // With the edge grip, the arrows move out of the toolbar to sit beside it.
+    if (CONFIG.arrows && !(CONFIG.handle === 'edge' && PAIRED)) first.append(movers);
 
     const groups = [];
-    if (CONFIG.handle === 'toolbar') {
+    if (CONFIG.handle === 'toolbar' && !PAIRED) {
+      // Round 1: the bigger handle in a group of its own, at the start.
       const g = $('div', { class: 'tb-group' });
       const h = toolButton(GRIP, 'Drag to move. Arrow keys move too.', 'drag', { class: 'icon-btn drag-big', title: 'Drag to move' });
       h.dataset.handle = 'toolbar';
@@ -407,7 +437,7 @@
     let limit = rel(scroller).left;
     const col = el.parentElement.closest('.wp-column');
     if (col && col.previousElementSibling) limit = rel(col.previousElementSibling).right;
-    return r.left - limit >= 40;
+    return r.left - limit >= TOOLS_W + 12;
   }
 
   function firstLineCentre(el) {
@@ -434,18 +464,22 @@
         const r = rel(el);
         const outside = gripFitsOutside(id);
         const top = outside ? r.top + firstLineCentre(el) - 16 : r.top + 6;
-        const left = outside ? r.left - 40 : r.left + 6;
-        edgeHandle.style.top = top + 'px';
-        edgeHandle.style.left = left + 'px';
-        edgeHandle.classList.toggle('is-inside', !outside);
+        const left = outside ? r.left - TOOLS_W - 12 : r.left + 6;
+        edgeTools.style.top = top + 'px';
+        edgeTools.style.left = left + 'px';
+        edgeTools.classList.toggle('is-inside', !outside);
+        edgeTools.dataset.id = id;
         edgeHandle.dataset.id = id;
-        edgeHandle.classList.add('is-visible');
-        // The label goes to the left of the grip outside, and to its right inside.
+        const own = lists[listOf(id)];
+        edgeUp.disabled = own.indexOf(id) === 0;
+        edgeDown.disabled = own.indexOf(id) === own.length - 1;
+        edgeTools.classList.add('is-visible');
+        // The label goes to the left of the grip outside, and to the right of the tools inside.
         hintEl.style.top = (top + 3) + 'px';
-        hintEl.style.left = (outside ? left - 6 : left + 34) + 'px';
+        hintEl.style.left = (outside ? left - 6 : left + TOOLS_W + 10) + 'px';
         hintEl.classList.toggle('is-right', !outside);
-      } else if (document.activeElement !== edgeHandle) {
-        edgeHandle.classList.remove('is-visible');
+      } else if (!edgeTools.contains(document.activeElement)) {
+        edgeTools.classList.remove('is-visible');
         hintEl.classList.remove('is-visible');
       }
     }
@@ -687,7 +721,7 @@
       onHandleDown(e, handle.classList.contains('edge-handle') ? handle.dataset.id : selected, handle.classList.contains('edge-handle') ? 'block-edge' : 'toolbar');
       return;
     }
-    if (e.target.closest('.block-toolbar, .menu')) return;
+    if (e.target.closest('.block-toolbar, .menu, .edge-tools')) return;
     const block = e.target.closest('.block');
     closeMenu();
     const id = block ? block.dataset.id : null;
@@ -708,14 +742,14 @@
     let best = Infinity;
     for (const bid of order) {
       const r = blockEls[bid].getBoundingClientRect();
-      const reach = CONFIG.handle === 'edge' && gripFitsOutside(bid) ? 56 : 0;
+      const reach = CONFIG.handle === 'edge' && gripFitsOutside(bid) ? TOOLS_W + 28 : 0;
       const pad = listOf(bid) === 'root' ? 14 : 0;
       if (e.clientY >= r.top - pad && e.clientY <= r.bottom + pad && e.clientX >= r.left - reach && e.clientX <= r.right + 8) {
         const area = r.width * r.height;
         if (area < best) { best = area; id = bid; }
       }
     }
-    if (e.target.closest('.block-toolbar, .edge-handle')) id = hovered;
+    if (e.target.closest('.block-toolbar, .edge-tools')) id = hovered;
     if (id !== hovered) {
       hovered = id;
       Object.entries(blockEls).forEach(([bid, el]) => el.classList.toggle('is-hovered', bid === hovered && bid !== selected));

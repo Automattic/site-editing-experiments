@@ -10,7 +10,7 @@ It's [O'Keeffe](../okeeffe/)'s prototype F, "All pages with menu switches", in t
 
 Locally, check out the `add/page-list-reorder-and-hide-pages` branch of Gutenberg and build it. There's no experiment to turn on.
 
-The build is `gutenberg.zip` in this folder, the PR's own build at `6450b2f`, kept here because the PR's builds expire after 14 days. When the PR changes, replace it: download `gutenberg.zip` from the PR's latest **Build Gutenberg Plugin Zip** run, or check out the branch and run `npm ci` and `NO_CHECKS=true npm run build:plugin-zip`.
+The build is `gutenberg.zip` in this folder, the PR's own build at `4b0cc32`, kept here because the PR's builds expire after 14 days. When the PR changes, replace it: download `gutenberg.zip` from the PR's latest **Build Gutenberg Plugin Zip** run, or check out the branch and run `npm ci` and `NO_CHECKS=true npm run build:plugin-zip`.
 
 ## What's in it
 
@@ -20,11 +20,13 @@ The build is `gutenberg.zip` in this folder, the PR's own build at `6450b2f`, ke
 
 Click the menu in the header. Where the Navigation block's sidebar would list the Page List, it lists the pages themselves, with their child pages indented under them (Our story and Team, under About). Each row has:
 
-- a **drag handle**: drag a page up or down, and its child pages go with it. Drop it next to a page at another level and it moves to that level, so a child page can become a top-level page, or the other way round. Drop it just below a page that has child pages and it becomes the first of them. The drop line is indented to the level it will land at. While you drag, a chip with the page's title follows the cursor, like the one shown when dragging blocks. Focus the handle and use the up and down arrow keys to move a page among the pages at its level from the keyboard.
+- a **drag handle**: drag a page up or down, and its child pages go with it. Drop it on the middle of another page, which is outlined while you're over it, and it goes inside that page, after any child pages it has. Drop it near the top or bottom edge of a page instead, and a line shows it going before or after that page, at that page's level, so a child page can become a top-level page. Just below a page that has child pages, it becomes the first of them. The line is indented to the level it will land at. While you drag, a chip with the page's title follows the cursor, like the one shown when dragging blocks. Focus the handle and use the up and down arrow keys to move a page among the pages at its level from the keyboard.
 - an **In menu** switch: turn it off and the page leaves the menu. Pages that are off are still published, at their usual address.
 - a **⋮ menu** with Move up, Move down, Move out of its parent page, Move under the page before it, and Add link after.
 
 ![Dragging Catering: a dark chip with its title follows the cursor, the row it came from is faded, and a line shows where it will land](screenshots/drag-chip.png)
+
+![After dropping Catering on Menu: Catering is indented under Menu in the sidebar, and Menu has a dropdown arrow in the header](screenshots/dropped-inside.png)
 
 ![The ⋮ menu for Our story, under About: Move up, Move down, Move out of About, Move under Catering, and Add link after](screenshots/options-menu.png)
 

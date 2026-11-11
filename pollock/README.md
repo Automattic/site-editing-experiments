@@ -107,7 +107,7 @@ Round 2 is in [`round-2/`](round-2/) and changes the test, not just the handle:
 What's new in all of them:
 
 - **A longer page, with long moves.** 22 blocks: the autumn news, Our breads, Order for the weekend, Opening hours, Visit us and Gift cards. Every task moves a block 10 or more places, so a drag is quicker than clicking an arrow, and the first task is the longest (the picture of the pumpkin loaf from near the bottom to the top). Dragging scrolls the page near its top and bottom edges.
-- **A Finished button and a completion code.** Lyssna shows the tasks, so the page only has a Finished button in the bottom right. Clicking it shows a code to copy into the next question in Lyssna, for example `Bh-1101-d3-p1-a5-k0-m2-o1-f45-t40.95.x.130-s180`: the prototype; each task right (1) or not (0) when they clicked Finished; moves by dragging a handle (`d`), by dragging a picture or cover itself (`p`), by the arrows (`a`) and by the keyboard (`k`); drags on things that aren't handles (`m`); looks at Move to or List View (`o`); seconds to the first drag from a handle (`f`, or `x` for none); seconds until each task was first right (`t`, `x` for never); and seconds until Finished (`s`). The page can't see when Lyssna moves someone to the next task, so `t` is when each task was first done, counted from when the page opened. "Keep editing" goes back to the page, and clicking Finished again gives a new code.
+- **A Finished button and a completion code.** Lyssna shows the tasks, so the page only has a Finished button in the bottom right. Clicking it shows a code to copy into the next question in Lyssna, for example `Cct-1101-d3-p1-a5-k0-m2-o1-h2-f45-t40.95.x.130-s180`: the prototype; each task right (1) or not (0) when they clicked Finished; moves by dragging a handle (`d`), by dragging a picture or cover itself (`p`), by the arrows (`a`) and by the keyboard (`k`); drags on things that aren't handles (`m`); looks at Move to or List View (`o`); times the drag handle's tooltip appeared (`h`); seconds to the first drag from a handle (`f`, or `x` for none); seconds until each task was first right (`t`, `x` for never); and seconds until Finished (`s`). The page can't see when Lyssna moves someone to the next task, so `t` is when each task was first done, counted from when the page opened. "Keep editing" goes back to the page, and clicking Finished again gives a new code.
 - **Pictures drag by themselves**, as in the editor: press on a picture and drag it. This is counted separately from handle drags (`p`), since the question is whether people find the handle.
 - **The toolbar fades** to nearly transparent when the pointer is away from it and its block, so it doesn't hide the text above. It comes back as soon as the pointer gets near.
 - **The drag handle and the move arrows stay together**, since they do the same job. In C (and Cm, Cc) the bigger handle sits straight before the arrows in the toolbar's first group, as today's handle does in A, rather than in a group of its own. With the edge grip (B, Bh, Bm, Bc) the arrows leave the toolbar and sit beside the grip on the block's edge, so they show on hover too; in Bn there are no arrows at all. On the columns page the grip and arrows together are about 50px wide, so where they have to sit inside a block they cover more of its text than the grip alone. Round 1's pages are unchanged.
@@ -145,7 +145,7 @@ Blocks can be dragged from the page into a column, out of one, and between colum
 
 ### Running round 2
 
-**Run four tests, all on the columns page:**
+**Run five tests, all on the columns page:**
 
 | Test | Prototype | URL |
 | --- | --- | --- |
@@ -153,10 +153,13 @@ Blocks can be dragged from the page into a column, out of one, and between colum
 | Bc | Edge grip, with the arrows beside it | `round-2/edge-columns.html` |
 | Cc | Bigger toolbar handle, six dots | `round-2/toolbar-columns.html` |
 | Ccm | Bigger toolbar handle, four-arrow move icon | `round-2/toolbar-move-icon-columns.html` |
+| Cct | Bigger toolbar handle, "Drag to move" tooltip straight away | `round-2/toolbar-tip-columns.html` |
+
+**Tooltips.** Round 2 uses the editor's tooltips, a small dark label under the control after a 700ms hover, as the block toolbar does, rather than the browser's own. Every toolbar button and the edge grip and arrows have one. The drag handle's says "Drag" in Ac, as in the editor today, and "Drag to move" in the others. Cct is Cc with one difference: the handle's tooltip appears as soon as the pointer is over it. Round 1's pages keep the browser tooltips they were tested with.
 
 The other round 2 pages (A, B, Bn, Bh, Bm, C and Cm on the simpler page) stay in the repository for reference but aren't in the test. The columns page is the layout a handle really has to work in, the handle stays beside the arrows as a design rule, and fewer groups means more people in each.
 
-- **One prototype per person.** A separate Lyssna test for each URL, each with its own participants, launched together with the same filters. 10 people each, 40 in all.
+- **One prototype per person.** A separate Lyssna test for each URL, each with its own participants, launched together with the same filters. 10 people each, 50 in all.
 - **Screener:** "Have you used the WordPress block editor in the last year?" Screen out "Yes, often". Desktop or laptop only; fluent English.
 - **Tasks in Lyssna:** put all four tasks in **one** live website task, as in round 1. Reloading or reopening the page starts it again, so separate tasks would each start from a fresh page. Add: "Please think aloud, in English, as you go. When you've done all four, click Finished in the bottom-right corner and copy the code." Then a required text question: "Paste your code here."
 - **Questions after the task, in Lyssna** (show a screenshot of that prototype's handle):
@@ -170,7 +173,8 @@ Decide these before the results come in. With 10 people a group, a difference of
 
 - **Is a bigger toolbar handle better than today's?** Cc (or Ccm) against Ac: more people drag from a handle at all (`d` > 0, by 3 or more of 10), they find it sooner (`f`), and task 1 is done faster (the first `t`).
 - **Is the move icon better than the dots?** Ccm against Cc, on the same measures, plus how many people say the handle is for moving or dragging when asked "What do you think this does?".
-- **Is the edge grip worth its problems?** It covers text in the right column, needs a new kind of block tool and changes the arrows' place, so it has to win clearly. Only consider it if Bc beats the better of Cc and Ccm by 3 or more of 10 people dragging from a handle, **and** isn't worse on task 3 (the move inside the right column, where the grip sits over the text), **and** doesn't have more drags across text (`m`). Otherwise, the toolbar handle is the answer.
+- **Does an instant tooltip help people find the handle?** Cct against Cc: more people drag from a handle (`d` > 0, by 3 or more of 10), sooner (`f`). `h` shows whether they saw the tooltip at all: if most people in Cc never see it (`h0`), the editor's delay is hiding it.
+- **Is the edge grip worth its problems?** It covers text in the right column, needs a new kind of block tool and changes the arrows' place, so it has to win clearly. Only consider it if Bc beats the best of Cc, Ccm and Cct by 3 or more of 10 people dragging from a handle, **and** isn't worse on task 3 (the move inside the right column, where the grip sits over the text), **and** doesn't have more drags across text (`m`). Otherwise, the toolbar handle is the answer.
 
 ## How it maps to Gutenberg
 

@@ -37,6 +37,9 @@
    *                   opening hours and directions side by side in two
    *                   columns, so handles have to cope with blocks that
    *                   have no margin beside them.
+   *   handleTip: 'instant'  the drag handle's tooltip appears as soon as the
+   *                   pointer is over it, instead of after the editor's usual
+   *                   delay.
    *   icon:   'arrows' a four-arrow move icon on the edge grip or the bigger
    *                   toolbar handle, in place of the six dots.
    *   code:   'Bh'    the short name that starts the completion code.
@@ -54,6 +57,12 @@
   // and with the edge grip the arrows leave the toolbar to sit beside it.
   // Round 1's pages stay as they were tested.
   const PAIRED = CONFIG.paired != null ? CONFIG.paired : ROUND2;
+  // Round 2 uses the editor's tooltips (a dark label after a 700ms hover)
+  // instead of the browser's own, as the block toolbar does. Round 1's pages
+  // keep the browser's tooltips they were tested with.
+  const EDITOR_TIPS = ROUND2;
+  const TIP_DELAY = 700;
+  const HANDLE_TIP_DELAY = CONFIG.handleTip === 'instant' ? 0 : TIP_DELAY;
   const NOTES = new URLSearchParams(location.search).has('notes') || location.hash === '#notes';
   const LETTER = CONFIG.code || { today: 'A', edge: 'B', toolbar: 'C' }[CONFIG.handle];
   const PAGES = ROUND2 ? [
@@ -67,7 +76,8 @@
     { letter: 'Ac', href: 'today-columns.html' },
     { letter: 'Bc', href: 'edge-columns.html' },
     { letter: 'Cc', href: 'toolbar-columns.html' },
-    { letter: 'Ccm', href: 'toolbar-move-icon-columns.html' }
+    { letter: 'Ccm', href: 'toolbar-move-icon-columns.html' },
+    { letter: 'Cct', href: 'toolbar-tip-columns.html' }
   ] : [
     { letter: 'A', href: 'today.html' },
     { letter: 'B', href: 'edge.html' },
@@ -288,6 +298,7 @@
   const toolbar = $('div', { class: 'block-toolbar', role: 'toolbar', 'aria-label': 'Block tools', 'aria-orientation': 'horizontal' });
   const GRIP = CONFIG.icon === 'arrows' ? 'dragMove' : 'dragBig';
   const edgeHandle = $('button', { class: 'edge-handle', 'aria-label': 'Drag to move. Arrow keys move too.', title: 'Drag to move' }, ICON[GRIP]);
+  editorTip(edgeHandle, true);
   const dropLine = $('div', { class: 'drop-line' });
   const menu = $('div', { class: 'menu', role: 'menu', hidden: '' });
   canvas.append(toolbar, dropLine, menu);
@@ -297,7 +308,7 @@
   const edgeUp = $('button', { class: 'icon-btn', 'aria-label': 'Move up', title: 'Move up', 'data-edge': 'up' }, ICON.up);
   const edgeDown = $('button', { class: 'icon-btn', 'aria-label': 'Move down', title: 'Move down', 'data-edge': 'down' }, ICON.down);
   const edgeMovers = $('div', { class: 'edge-movers' });
-  edgeMovers.append(edgeUp, edgeDown);
+  edgeMovers.append(editorTip(edgeUp), editorTip(edgeDown));
   edgeTools.append(edgeHandle);
   if (CONFIG.arrows && PAIRED) edgeTools.append(edgeMovers);
   if (CONFIG.handle === 'edge') canvas.append(edgeTools);
@@ -313,6 +324,7 @@
   if (CONFIG.hint) {
     canvas.append(hintEl);
     edgeHandle.removeAttribute('title'); // the label does the tooltip's job
+    delete edgeHandle.dataset.tip;
     const show = (on) => hintEl.classList.toggle('is-visible', on && !drag && edgeTools.classList.contains('is-visible'));
     edgeHandle.addEventListener('pointerenter', () => show(true));
     edgeHandle.addEventListener('pointerleave', () => show(false));
@@ -328,6 +340,45 @@
     snackbar.classList.add('is-visible');
     clearTimeout(snackTimer);
     snackTimer = setTimeout(() => snackbar.classList.remove('is-visible'), 2600);
+  }
+
+  // ---------- Tooltips ----------
+
+  // Turn a button's title into an editor-style tooltip (round 2 only).
+  function editorTip(el, isHandle) {
+    if (!EDITOR_TIPS || !el.title) return el;
+    el.dataset.tip = el.title;
+    if (isHandle || el.dataset.action === 'drag') el.dataset.handleTip = '1';
+    el.removeAttribute('title');
+    return el;
+  }
+  const tipEl = $('div', { class: 'tooltip', role: 'tooltip' });
+  document.body.append(tipEl);
+  let tipFor = null;
+  let tipTimer = null;
+  function hideTip() { clearTimeout(tipTimer); tipFor = null; tipEl.classList.remove('is-visible'); }
+  function showTip(el) {
+    if (drag || press) return;
+    tipEl.textContent = el.dataset.tip;
+    tipEl.classList.add('is-visible');
+    const r = el.getBoundingClientRect();
+    const t = tipEl.getBoundingClientRect();
+    tipEl.style.left = Math.max(4, r.left + r.width / 2 - t.width / 2) + 'px';
+    tipEl.style.top = (r.bottom + 6) + 'px';
+    if (el.dataset.handleTip) note('tip', 'Saw the drag handle’s tooltip');
+  }
+  function queueTip(el) {
+    if (el === tipFor) return;
+    hideTip();
+    if (!el) return;
+    tipFor = el;
+    tipTimer = setTimeout(() => { if (tipFor === el && el.isConnected) showTip(el); }, el.dataset.handleTip ? HANDLE_TIP_DELAY : TIP_DELAY);
+  }
+  if (EDITOR_TIPS) {
+    document.addEventListener('pointerover', (e) => queueTip(e.target.closest ? e.target.closest('[data-tip]') : null));
+    document.addEventListener('focusin', (e) => { if (e.target.matches && e.target.matches('[data-tip]:focus-visible')) queueTip(e.target); });
+    document.addEventListener('pointerdown', hideTip, true);
+    document.addEventListener('scroll', hideTip, true);
   }
 
   // ---------- Rendering ----------
@@ -360,7 +411,7 @@
 
   function toolButton(icon, label, action, extra) {
     const b = $('button', Object.assign({ class: 'icon-btn', 'aria-label': label, title: label, 'data-action': action }, extra || {}), ICON[icon]);
-    return b;
+    return editorTip(b);
   }
 
   function renderToolbar() {
@@ -563,6 +614,7 @@
     document.body.classList.add('is-grabbing');
     blockEls[drag.id].classList.add('is-dragging');
     hintEl.classList.remove('is-visible');
+    hideTip();
     chip = $('div', { class: 'drag-chip' }, ICON[ICON_FOR[BLOCKS[drag.id].type]] + '<span>' + BLOCKS[drag.id].name + '</span>');
     document.body.append(chip);
     window.getSelection().removeAllRanges();
@@ -876,17 +928,19 @@
       keys: count(/arrow keys/),
       misses: log.filter((l) => l.kind === 'miss').length,
       elsewhere: log.filter((l) => l.kind === 'alt').length,
+      tips: log.filter((l) => l.kind === 'tip').length,
       firstDrag
     };
   }
 
   /*
    * The completion code, for pasting into the testing tool:
-   *   Bh-1101-d3-p1-a5-k0-m2-o1-f45-t40.95.x.130-s180
+   *   Bh-1101-d3-p1-a5-k0-m2-o1-h2-f45-t40.95.x.130-s180
    *   prototype · each task right (1) or not (0) when they clicked Finished ·
    *   moves by dragging a handle · by dragging a picture itself · by arrows ·
    *   by keyboard · drags on things that aren't handles · looks at Move to or
-   *   List View · seconds to the first drag from a handle (x if none) ·
+   *   List View · times the drag handle's tooltip appeared · seconds to the
+   *   first drag from a handle (x if none) ·
    *   seconds until each task was first right (x if never) · seconds until
    *   they clicked Finished.
    * The testing tool shows the tasks, so the page doesn't know when each one
@@ -897,7 +951,7 @@
     return [
       LETTER,
       TASKS.map((t) => (t.done(order) ? 1 : 0)).join(''),
-      'd' + m.drags, 'p' + m.pictures, 'a' + m.arrows, 'k' + m.keys, 'm' + m.misses, 'o' + m.elsewhere,
+      'd' + m.drags, 'p' + m.pictures, 'a' + m.arrows, 'k' + m.keys, 'm' + m.misses, 'o' + m.elsewhere, 'h' + m.tips,
       'f' + (m.firstDrag ? m.firstDrag.sec : 'x'),
       't' + firstDone.map((f) => (f ? f.sec : 'x')).join('.'),
       's' + seconds()
@@ -948,7 +1002,8 @@
       Ac: 'Today, on the page with columns and a full-width cover',
       Bc: 'A grip on the block’s edge, on the page with columns and a full-width cover',
       Cc: 'A bigger handle in the toolbar, on the page with columns and a full-width cover',
-      Ccm: 'A bigger handle in the toolbar with a four-arrow move icon, on the page with columns and a full-width cover'
+      Ccm: 'A bigger handle in the toolbar with a four-arrow move icon, on the page with columns and a full-width cover',
+      Cct: 'A bigger handle in the toolbar whose tooltip appears straight away, on the page with columns and a full-width cover'
     }[LETTER] + (ROUND2 ? ' (round 2: the long page)' : '');
     notesEl.innerHTML =
       '<h2>' + LETTER + ' · Facilitator notes</h2><p>' + variant + '. Only you can see this panel; open the page without <code>?notes</code> for participants.</p>' +
@@ -960,6 +1015,7 @@
       '<dt>Moves with the keyboard</dt><dd>' + m.keys + '</dd>' +
       '<dt>Dragged on something that isn’t a handle</dt><dd>' + m.misses + '</dd>' +
       '<dt>Looked elsewhere (Move to, List View)</dt><dd>' + m.elsewhere + '</dd>' +
+      '<dt>Saw the drag handle’s tooltip</dt><dd>' + m.tips + '</dd>' +
       '<dt>First drag from a handle</dt><dd>' + (m.firstDrag ? m.firstDrag.at : '–') + '</dd>' +
       '</dl>' +
       '<div class="actions"><button class="btn" data-copy>Copy log</button></div>' +

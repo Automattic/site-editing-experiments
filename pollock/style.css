@@ -182,3 +182,7 @@ svg { display: block; }
 .edge-tools.is-inside { background: var(--white); box-shadow: 0 1px 4px rgba(0,0,0,.25); }
 .edge-tools.is-inside .edge-handle, .edge-tools.is-inside .edge-movers .icon-btn:not([disabled]) { color: var(--ink); }
 .edge-hint.is-right { transform: none; }
+
+/* The editor's tooltip: a small dark label under the control. */
+.tooltip { position: fixed; z-index: 400; display: none; padding: 4px 8px; border-radius: 2px; background: var(--ink); color: var(--white); font-size: 12px; line-height: 1.4; white-space: nowrap; pointer-events: none; }
+.tooltip.is-visible { display: block; }

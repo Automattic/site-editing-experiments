@@ -80,15 +80,59 @@ Start with: "This is a page on the website of a bakery, Rosa's Bakery, in the ed
 - **No difference**: people don't think of dragging blocks at all. The arrows, or Move to, are where to spend effort.
 - Lots of drags on the picture or the text in every prototype: people expect to grab the block itself, which is a bigger change than a handle.
 
+## Round 2
+
+Round 1 (above) ran on 10 November 2026: 15 people in Lyssna, each trying all three prototypes in one of three orders. What we learned:
+
+- **Order mattered more than the handle.** Everyone was slowest on their first prototype (about 2m 15s) and quickest on their third (about 50s), whichever it was. Averaged over positions, A, B and C were within 10 seconds of each other.
+- **Most people never dragged.** The move arrows were enough for short moves on an eight-block page, so many people used them for everything.
+- **A's handle was rarely found.** People who saw A first looked for a way to drag and gave up ("Is there a way to drag it?"). People who dragged in A had learned the handle in B or C first.
+- **C's tooltip led to the most "oh, you can drag it" moments**, but its toolbar covered the text above the block ("I have to click away to see it").
+- **B was liked by the people who found it** ("Having the handle here is much, much better"), but on first sight one person thought the dots were for selecting the block.
+- **We couldn't see what people did.** Lyssna gives times and recordings; the `?notes` log only runs for the facilitator; and about a third of the recordings had no usable think-aloud.
+- **Pictures should have been draggable.** In the editor today, a block that isn't text (such as an Image) can be dragged by the block itself, without a handle. Round 1 logged those drags as misses.
+
+Round 2 is in [`round-2/`](round-2/) and changes the test, not just the handle:
+
+| | Prototype | What changes |
+| --- | --- | --- |
+| A | [Today](round-2/today.html) | Control, as in round 1. |
+| B | [Edge grip](round-2/edge.html) | As in round 1. |
+| Bn | [Edge grip, no arrows](round-2/edge-no-arrows.html) | The toolbar has no move arrows, so dragging is the only way to move a block. Does anyone find the grip when they have to? |
+| Bh | [Edge grip, labelled](round-2/edge-hint.html) | A "Drag to move" label beside the grip, until the person's first drag from it. |
+| C | [Bigger toolbar handle](round-2/toolbar.html) | As in round 1. |
+
+What's new in all of them:
+
+- **A longer page, with long moves.** 22 blocks: the autumn news, Our breads, Order for the weekend, Opening hours, Visit us and Gift cards. Every task moves a block 10 or more places, so a drag is quicker than clicking an arrow, and the first task is the longest (the picture of the pumpkin loaf from near the bottom to the top). Dragging scrolls the page near its top and bottom edges.
+- **Tasks one at a time, on the page.** A card in the bottom right shows one task and "I've done this, next task". Each task is timed from when it appears, and the prototype records whether the page was right when the person said they were done.
+- **A completion code.** After the last task the card shows a code to copy into the next question in Lyssna, for example `Bh-1101-d3-p1-a5-k0-m2-o1-f45-t43.20.31.15`: the prototype; each task right (1) or not (0); moves by dragging a handle (`d`), by dragging a picture itself (`p`), by the arrows (`a`) and by the keyboard (`k`); drags on things that aren't handles (`m`); looks at Move to or List View (`o`); seconds to the first drag from a handle (`f`, or `x` for none); and seconds on each task (`t`).
+- **Pictures drag by themselves**, as in the editor: press on a picture and drag it. This is counted separately from handle drags (`p`), since the question is whether people find the handle.
+- **The toolbar fades** to nearly transparent when the pointer is away from it and its block, so it doesn't hide the text above. It comes back as soon as the pointer gets near.
+- **No Reset for participants.** Reset only shows with `?notes`, so nobody loses their place.
+
+### Running round 2
+
+- **One prototype per person.** Make a separate Lyssna test for each URL, each with its own participants, and no orders. About 8–10 people each.
+- **Screener:** "Have you used the WordPress block editor in the last year?" Screen out "Yes, often".
+- **Instructions in Lyssna:** "Follow the tasks in the box on the page. Please think aloud, in English, as you go. When you've finished, copy the code you're given." Then a text question: "Paste your code here."
+- **Questions after the task, in Lyssna** (show a screenshot of the handle for that prototype):
+  1. "What do you think this does?"
+  2. "If you wanted to move something on this page tomorrow, how would you do it?"
+  3. In B, Bn and Bh: "Did you notice the dots beside the text before you used them?"
+- **What to compare:** across prototypes, how many people dragged from a handle at all (`d` > 0), how soon (`f`), the time for task 1 (the first `t`), and how many got each task right. Bn against B shows whether people find the grip once the arrows aren't there; Bh against B shows what a label adds.
+
 ## How it maps to Gutenberg
 
 - **A** is `BlockMover` as it is now (`block-mover/index.tsx` and `style.scss` in `@wordpress/block-editor` 20.0.0): `.block-editor-block-mover__drag-handle` is `$block-toolbar-height * 0.5` wide with `overflow: hidden`, and has `tabIndex="-1"`.
 - **C** would be a change to that button's size, its icon (or the icon's dots) and its tab order, plus a toolbar group of its own. Keyboard moving would reuse the movers.
 - **B** would be a new block tool beside the block, like the block toolbar's popover but on the block's left edge, using `BlockDraggable`. It needs room to the left of the content, which narrow layouts and full-width blocks don't have; the real thing would need to tuck it inside the block there.
 - The drop line, the drag chip, and the movers' behaviour are the editor's, simplified: blocks only move within one list, so there's no nesting.
+- **Dragging a block itself** (round 2) follows `useBlockProps` and `onDragStart` in `block-list/use-block-props`: the block wrapper is `draggable` when it can be moved, and the drag is the block's when the block itself has focus rather than a text field in it, which is the case for an Image. Text blocks still select text when you drag across them. Dragging a multi-selection by any of its blocks isn't in the prototype.
+- **Bn** would mean taking `BlockMover`'s up and down buttons out; **Bh** would be a first-use label, like the editor's other first-use tips.
 
 ## Running it
 
-Plain HTML, CSS and JavaScript with no build step: `app.js` and `style.css` are shared, and each page sets `window.PROTOTYPE.handle` to `today`, `edge` or `toolbar`. Serve the repository root with any static server and open `pollock/`.
+Plain HTML, CSS and JavaScript with no build step: `app.js` and `style.css` are shared, and each page sets `window.PROTOTYPE.handle` to `today`, `edge` or `toolbar`. Round 2's pages also set `round: 2`, a `code` for the completion code, and `arrows: false` or `hint: true` where they need them. Serve the repository root with any static server and open `pollock/`.
 
 Icons are from `@wordpress/icons`. The bakery, its page and its copy are placeholders.

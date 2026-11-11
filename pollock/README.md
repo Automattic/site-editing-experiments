@@ -99,14 +99,15 @@ Round 2 is in [`round-2/`](round-2/) and changes the test, not just the handle:
 | A | [Today](round-2/today.html) | Control, as in round 1. |
 | B | [Edge grip](round-2/edge.html) | As in round 1. |
 | Bn | [Edge grip, no arrows](round-2/edge-no-arrows.html) | The toolbar has no move arrows, so dragging is the only way to move a block. Does anyone find the grip when they have to? |
-| Bh | [Edge grip, labelled](round-2/edge-hint.html) | A "Drag to move" label beside the grip, until the person's first drag from it. |
+| Bh | [Edge grip, labelled](round-2/edge-hint.html) | A "Drag to move" label beside the grip, shown straight away while the pointer is over the grip (not after the browser's tooltip delay). |
+| Bm | [Edge grip, move icon](round-2/edge-move-icon.html) | B with a four-arrow move icon in place of the six dots. |
 | C | [Bigger toolbar handle](round-2/toolbar.html) | As in round 1. |
+| Cm | [Bigger toolbar handle, move icon](round-2/toolbar-move-icon.html) | C with the four-arrow move icon. |
 
 What's new in all of them:
 
 - **A longer page, with long moves.** 22 blocks: the autumn news, Our breads, Order for the weekend, Opening hours, Visit us and Gift cards. Every task moves a block 10 or more places, so a drag is quicker than clicking an arrow, and the first task is the longest (the picture of the pumpkin loaf from near the bottom to the top). Dragging scrolls the page near its top and bottom edges.
-- **Tasks one at a time, on the page.** A card in the bottom right shows one task and "I've done this, next task". Each task is timed from when it appears, and the prototype records whether the page was right when the person said they were done.
-- **A completion code.** After the last task the card shows a code to copy into the next question in Lyssna, for example `Bh-1101-d3-p1-a5-k0-m2-o1-f45-t43.20.31.15`: the prototype; each task right (1) or not (0); moves by dragging a handle (`d`), by dragging a picture itself (`p`), by the arrows (`a`) and by the keyboard (`k`); drags on things that aren't handles (`m`); looks at Move to or List View (`o`); seconds to the first drag from a handle (`f`, or `x` for none); and seconds on each task (`t`).
+- **A Finished button and a completion code.** Lyssna shows the tasks, so the page only has a Finished button in the bottom right. Clicking it shows a code to copy into the next question in Lyssna, for example `Bh-1101-d3-p1-a5-k0-m2-o1-f45-t40.95.x.130-s180`: the prototype; each task right (1) or not (0) when they clicked Finished; moves by dragging a handle (`d`), by dragging a picture itself (`p`), by the arrows (`a`) and by the keyboard (`k`); drags on things that aren't handles (`m`); looks at Move to or List View (`o`); seconds to the first drag from a handle (`f`, or `x` for none); seconds until each task was first right (`t`, `x` for never); and seconds until Finished (`s`). The page can't see when Lyssna moves someone to the next task, so `t` is when each task was first done, counted from when the page opened. "Keep editing" goes back to the page, and clicking Finished again gives a new code.
 - **Pictures drag by themselves**, as in the editor: press on a picture and drag it. This is counted separately from handle drags (`p`), since the question is whether people find the handle.
 - **The toolbar fades** to nearly transparent when the pointer is away from it and its block, so it doesn't hide the text above. It comes back as soon as the pointer gets near.
 - **No Reset for participants.** Reset only shows with `?notes`, so nobody loses their place.
@@ -115,12 +116,14 @@ What's new in all of them:
 
 - **One prototype per person.** Make a separate Lyssna test for each URL, each with its own participants, and no orders. About 8–10 people each.
 - **Screener:** "Have you used the WordPress block editor in the last year?" Screen out "Yes, often".
-- **Instructions in Lyssna:** "Follow the tasks in the box on the page. Please think aloud, in English, as you go. When you've finished, copy the code you're given." Then a text question: "Paste your code here."
+- **Tasks in Lyssna:** put all four tasks in **one** live website task, as in round 1. Reloading or reopening the page starts it again, so separate tasks would each start from a fresh page. Add: "Please think aloud, in English, as you go. When you've done all four, click Finished in the bottom-right corner and copy the code." Then a required text question: "Paste your code here."
 - **Questions after the task, in Lyssna** (show a screenshot of the handle for that prototype):
   1. "What do you think this does?"
   2. "If you wanted to move something on this page tomorrow, how would you do it?"
   3. In B, Bn and Bh: "Did you notice the dots beside the text before you used them?"
-- **What to compare:** across prototypes, how many people dragged from a handle at all (`d` > 0), how soon (`f`), the time for task 1 (the first `t`), and how many got each task right. Bn against B shows whether people find the grip once the arrows aren't there; Bh against B shows what a label adds.
+- **What to compare:** across prototypes, how many people dragged from a handle at all (`d` > 0), how soon (`f`), the time to get task 1 right (the first `t`), and how many got each task right. Bn against B shows whether people find the grip once the arrows aren't there; Bh against B shows what a label adds; Bm against B and Cm against C show whether a move icon is recognised better than six dots. One round 1 participant suggested it: "if there was a cross, you know, to move it up, down, left and right, that would be more obvious".
+
+  Seven prototypes at 8–10 people each is 56–70 participants. To keep it smaller, run the comparisons you care about most: for example A, B, Bm, C and Cm for the icon, or A, B, Bn and Bh for the grip.
 
 ## How it maps to Gutenberg
 
@@ -133,6 +136,6 @@ What's new in all of them:
 
 ## Running it
 
-Plain HTML, CSS and JavaScript with no build step: `app.js` and `style.css` are shared, and each page sets `window.PROTOTYPE.handle` to `today`, `edge` or `toolbar`. Round 2's pages also set `round: 2`, a `code` for the completion code, and `arrows: false` or `hint: true` where they need them. Serve the repository root with any static server and open `pollock/`.
+Plain HTML, CSS and JavaScript with no build step: `app.js` and `style.css` are shared, and each page sets `window.PROTOTYPE.handle` to `today`, `edge` or `toolbar`. Round 2's pages also set `round: 2`, a `code` for the completion code, and `arrows: false`, `hint: true` or `icon: 'arrows'` where they need them. `@wordpress/icons` has no four-arrow move icon, so the prototype draws one to match: 1.5px strokes on a 24px grid. Serve the repository root with any static server and open `pollock/`.
 
 Icons are from `@wordpress/icons`. The bakery, its page and its copy are placeholders.

@@ -99,8 +99,10 @@ Round 2 is in [`round-2/`](round-2/) and changes the test, not just the handle:
 | A | [Today](round-2/today.html) | Control, as in round 1. |
 | B | [Edge grip](round-2/edge.html) | As in round 1. |
 | Bn | [Edge grip, no arrows](round-2/edge-no-arrows.html) | The toolbar has no move arrows, so dragging is the only way to move a block. Does anyone find the grip when they have to? |
-| Bh | [Edge grip, labelled](round-2/edge-hint.html) | A "Drag to move" label beside the grip, until the person's first drag from it. |
+| Bh | [Edge grip, labelled](round-2/edge-hint.html) | A "Drag to move" label beside the grip, shown straight away while the pointer is over the grip (not after the browser's tooltip delay). |
+| Bm | [Edge grip, move icon](round-2/edge-move-icon.html) | B with a four-arrow move icon in place of the six dots. |
 | C | [Bigger toolbar handle](round-2/toolbar.html) | As in round 1. |
+| Cm | [Bigger toolbar handle, move icon](round-2/toolbar-move-icon.html) | C with the four-arrow move icon. |
 
 What's new in all of them:
 
@@ -119,7 +121,9 @@ What's new in all of them:
   1. "What do you think this does?"
   2. "If you wanted to move something on this page tomorrow, how would you do it?"
   3. In B, Bn and Bh: "Did you notice the dots beside the text before you used them?"
-- **What to compare:** across prototypes, how many people dragged from a handle at all (`d` > 0), how soon (`f`), the time to get task 1 right (the first `t`), and how many got each task right. Bn against B shows whether people find the grip once the arrows aren't there; Bh against B shows what a label adds.
+- **What to compare:** across prototypes, how many people dragged from a handle at all (`d` > 0), how soon (`f`), the time to get task 1 right (the first `t`), and how many got each task right. Bn against B shows whether people find the grip once the arrows aren't there; Bh against B shows what a label adds; Bm against B and Cm against C show whether a move icon is recognised better than six dots. One round 1 participant suggested it: "if there was a cross, you know, to move it up, down, left and right, that would be more obvious".
+
+  Seven prototypes at 8–10 people each is 56–70 participants. To keep it smaller, run the comparisons you care about most: for example A, B, Bm, C and Cm for the icon, or A, B, Bn and Bh for the grip.
 
 ## How it maps to Gutenberg
 
@@ -132,6 +136,6 @@ What's new in all of them:
 
 ## Running it
 
-Plain HTML, CSS and JavaScript with no build step: `app.js` and `style.css` are shared, and each page sets `window.PROTOTYPE.handle` to `today`, `edge` or `toolbar`. Round 2's pages also set `round: 2`, a `code` for the completion code, and `arrows: false` or `hint: true` where they need them. Serve the repository root with any static server and open `pollock/`.
+Plain HTML, CSS and JavaScript with no build step: `app.js` and `style.css` are shared, and each page sets `window.PROTOTYPE.handle` to `today`, `edge` or `toolbar`. Round 2's pages also set `round: 2`, a `code` for the completion code, and `arrows: false`, `hint: true` or `icon: 'arrows'` where they need them. `@wordpress/icons` has no four-arrow move icon, so the prototype draws one to match: 1.5px strokes on a 24px grid. Serve the repository root with any static server and open `pollock/`.
 
 Icons are from `@wordpress/icons`. The bakery, its page and its copy are placeholders.

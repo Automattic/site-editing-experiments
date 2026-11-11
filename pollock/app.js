@@ -31,13 +31,15 @@
    *                   fades when the pointer is away from it, so it never hides
    *                   the text above the block.
    *   arrows: false   no move arrows in the toolbar (B without arrows).
-   *   hint:   true    a "Drag to move" label beside the edge grip until the
-   *                   first drag (B with a label).
+   *   hint:   true    a "Drag to move" label beside the edge grip while the
+   *                   pointer is over it (B with a label).
+   *   icon:   'arrows' a four-arrow move icon on the edge grip or the bigger
+   *                   toolbar handle, in place of the six dots.
    *   code:   'Bh'    the short name that starts the completion code.
    *   directDrag      pictures drag by themselves, as in the editor. On by
    *                   default in round 2, off in round 1.
    */
-  const CONFIG = Object.assign({ handle: 'today', round: 1, arrows: true, hint: false }, window.PROTOTYPE || {});
+  const CONFIG = Object.assign({ handle: 'today', round: 1, arrows: true, hint: false, icon: 'dots' }, window.PROTOTYPE || {});
   const ROUND2 = CONFIG.round === 2;
   // As in the editor today, a block that isn't text (here, a picture) can be
   // dragged by itself, without a handle: BlockListBlock is draggable when the
@@ -50,7 +52,9 @@
     { letter: 'B', href: 'edge.html' },
     { letter: 'Bn', href: 'edge-no-arrows.html' },
     { letter: 'Bh', href: 'edge-hint.html' },
-    { letter: 'C', href: 'toolbar.html' }
+    { letter: 'Bm', href: 'edge-move-icon.html' },
+    { letter: 'C', href: 'toolbar.html' },
+    { letter: 'Cm', href: 'toolbar-move-icon.html' }
   ] : [
     { letter: 'A', href: 'today.html' },
     { letter: 'B', href: 'edge.html' },
@@ -70,6 +74,8 @@
     // The editor's dragHandle: 0.5px squares with a 1.5px stroke, so 2px dots.
     dragToday: svg(dots([9, 15], [6, 12, 18], 0.5) + ['M9.25 5.75H8.75V6.25H9.25V5.75Z', 'M9.25 11.75H8.75V12.25H9.25V11.75Z', 'M9.25 17.75H8.75V18.25H9.25V17.75Z', 'M15.25 5.75H14.75V6.25H15.25V5.75Z', 'M15.25 11.75H14.75V12.25H15.25V11.75Z', 'M15.25 17.75H14.75V18.25H15.25V17.75Z'].map((d) => '<path d="' + d + '"/>').join('')),
     // The same grid with dots you can see: 3px, rounded.
+    // A four-arrow move icon, drawn to match: 1.5px strokes on a 24px grid.
+    dragMove: svg('<path d="M12 3.75V20.25M3.75 12H20.25"/><path d="M9.5 6.25L12 3.75L14.5 6.25M9.5 17.75L12 20.25L14.5 17.75M6.25 9.5L3.75 12L6.25 14.5M17.75 9.5L20.25 12L17.75 14.5" stroke-linecap="round" stroke-linejoin="round"/>'),
     dragBig: '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">' + [9, 15].flatMap((x) => [6, 12, 18].map((y) => '<circle cx="' + x + '" cy="' + y + '" r="1.75" fill="currentColor"/>')).join('') + '</svg>',
     up: svg('<path d="M7 13L12 9L17 13"/>'),
     down: svg('<path d="M7 11L12 15L17 11"/>'),
@@ -229,14 +235,22 @@
 
   // Toolbar, edge handle, drop line, menu: one of each, moved around.
   const toolbar = $('div', { class: 'block-toolbar', role: 'toolbar', 'aria-label': 'Block tools', 'aria-orientation': 'horizontal' });
-  const edgeHandle = $('button', { class: 'edge-handle', 'aria-label': 'Drag to move. Arrow keys move too.', title: 'Drag to move' }, ICON.dragBig);
+  const GRIP = CONFIG.icon === 'arrows' ? 'dragMove' : 'dragBig';
+  const edgeHandle = $('button', { class: 'edge-handle', 'aria-label': 'Drag to move. Arrow keys move too.', title: 'Drag to move' }, ICON[GRIP]);
   const dropLine = $('div', { class: 'drop-line' });
   const menu = $('div', { class: 'menu', role: 'menu', hidden: '' });
   canvas.append(toolbar, dropLine, menu);
   if (CONFIG.handle === 'edge') canvas.append(edgeHandle);
   const hintEl = $('div', { class: 'edge-hint', 'aria-hidden': 'true', text: 'Drag to move' });
-  if (CONFIG.hint) canvas.append(hintEl);
-  let hasDragged = false;
+  if (CONFIG.hint) {
+    canvas.append(hintEl);
+    edgeHandle.removeAttribute('title'); // the label does the tooltip's job
+    const show = (on) => hintEl.classList.toggle('is-visible', on && !drag && edgeHandle.classList.contains('is-visible'));
+    edgeHandle.addEventListener('pointerenter', () => show(true));
+    edgeHandle.addEventListener('pointerleave', () => show(false));
+    edgeHandle.addEventListener('focus', () => requestAnimationFrame(() => show(true)));
+    edgeHandle.addEventListener('blur', () => show(false));
+  }
 
   const snackbar = $('div', { class: 'snackbar', role: 'status' });
   document.body.append(snackbar);
@@ -300,7 +314,7 @@
     const groups = [];
     if (CONFIG.handle === 'toolbar') {
       const g = $('div', { class: 'tb-group' });
-      const h = toolButton('dragBig', 'Drag to move. Arrow keys move too.', 'drag', { class: 'icon-btn drag-big', title: 'Drag to move' });
+      const h = toolButton(GRIP, 'Drag to move. Arrow keys move too.', 'drag', { class: 'icon-btn drag-big', title: 'Drag to move' });
       h.dataset.handle = 'toolbar';
       g.append(h);
       groups.push(g);
@@ -348,7 +362,6 @@
         edgeHandle.classList.add('is-visible');
         hintEl.style.top = (el.offsetTop + firstLineCentre(el) - 13) + 'px';
         hintEl.style.left = (el.offsetLeft - 46) + 'px';
-        hintEl.classList.toggle('is-visible', !hasDragged);
       } else if (document.activeElement !== edgeHandle) {
         edgeHandle.classList.remove('is-visible');
         hintEl.classList.remove('is-visible');
@@ -425,6 +438,7 @@
     selected = drag.id;
     document.body.classList.add('is-grabbing');
     blockEls[drag.id].classList.add('is-dragging');
+    hintEl.classList.remove('is-visible');
     chip = $('div', { class: 'drag-chip' }, ICON[ICON_FOR[BLOCKS[drag.id].type]] + '<span>' + BLOCKS[drag.id].name + '</span>');
     document.body.append(chip);
     window.getSelection().removeAllRanges();
@@ -488,7 +502,6 @@
     const rest = order.filter((id) => id !== drag.id);
     rest.splice(drag.index, 0, drag.id);
     const label = drag.source === 'picture' ? 'dragged the picture itself' : 'dragged from the ' + drag.source + ' handle';
-    if (drag.source === 'block-edge') hasDragged = true;
     if (!commit(rest, label)) note('other', 'Dragged ' + describe(drag.id) + ' and dropped it where it was');
     endDrag();
   }
@@ -672,7 +685,7 @@
     note(b === listViewBtn ? 'alt' : 'other', 'Clicked ' + b.getAttribute('aria-label'));
     toast('That isn’t part of this prototype.');
   }));
-  resetBtn.addEventListener('click', () => { resetState(); hasDragged = false; cardOpen = false; buildBlocks(); render(); renderCard(); });
+  resetBtn.addEventListener('click', () => { resetState(); cardOpen = false; buildBlocks(); render(); renderCard(); });
 
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
@@ -776,8 +789,10 @@
       A: 'Today: the toolbar handle as Gutenberg draws it',
       B: 'A grip on the block’s edge',
       Bn: 'A grip on the block’s edge, and no move arrows',
-      Bh: 'A grip on the block’s edge, labelled “Drag to move” until the first drag',
-      C: 'A bigger handle in the toolbar'
+      Bh: 'A grip on the block’s edge, labelled “Drag to move” while the pointer is over it',
+      Bm: 'A grip on the block’s edge, with a four-arrow move icon',
+      C: 'A bigger handle in the toolbar',
+      Cm: 'A bigger handle in the toolbar, with a four-arrow move icon'
     }[LETTER] + (ROUND2 ? ' (round 2: the long page)' : '');
     notesEl.innerHTML =
       '<h2>' + LETTER + ' · Facilitator notes</h2><p>' + variant + '. Only you can see this panel; open the page without <code>?notes</code> for participants.</p>' +

@@ -388,6 +388,45 @@ await step(
 	}
 );
 
+await step(
+	'near the bottom of the screen, the list opens above instead',
+	async () => {
+		// Make the window end just below the paragraph's toolbar.
+		const size = page.viewportSize();
+		const t = await page.evaluate( () =>
+			document
+				.querySelector( '.block-editor-block-switcher > button' )
+				.getBoundingClientRect()
+		);
+		await page.setViewportSize( {
+			width: size.width,
+			height: Math.round( t.bottom + 140 ),
+		} );
+		await wait( 600 );
+		await page.locator( '.nevelson-switcher-label' ).first().click();
+		await wait( 600 );
+		const r = await page.evaluate( () => {
+			const m = document
+				.querySelector( '.block-editor-block-switcher__popover' )
+				?.getBoundingClientRect();
+			const b = document
+				.querySelector( '.block-editor-block-switcher > button' )
+				.getBoundingClientRect();
+			return m && { bottom: m.bottom, top: m.top, button: b.top };
+		} );
+		expect( r, 'no list of blocks' );
+		expect(
+			r.bottom <= r.button && r.button - r.bottom < 20 && r.top >= 0,
+			`the list is at ${ r.top }–${ r.bottom }, the button at ${ r.button }`
+		);
+		await shot( '00c-transform-above' );
+		await page.keyboard.press( 'Escape' );
+		await wait( 300 );
+		await page.setViewportSize( size );
+		await wait( 400 );
+	}
+);
+
 await step( 'the pencil opens it, to the right of the block', async () => {
 	await page.locator( BUTTON ).first().click();
 	await wait( 400 );

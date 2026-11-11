@@ -33,6 +33,10 @@
    *   arrows: false   no move arrows in the toolbar (B without arrows).
    *   hint:   true    a "Drag to move" label beside the edge grip while the
    *                   pointer is over it (B with a label).
+   *   layout: 'columns' the round 2 page with a full-width cover and the
+   *                   opening hours and directions side by side in two
+   *                   columns, so handles have to cope with blocks that
+   *                   have no margin beside them.
    *   icon:   'arrows' a four-arrow move icon on the edge grip or the bigger
    *                   toolbar handle, in place of the six dots.
    *   code:   'Bh'    the short name that starts the completion code.
@@ -54,7 +58,10 @@
     { letter: 'Bh', href: 'edge-hint.html' },
     { letter: 'Bm', href: 'edge-move-icon.html' },
     { letter: 'C', href: 'toolbar.html' },
-    { letter: 'Cm', href: 'toolbar-move-icon.html' }
+    { letter: 'Cm', href: 'toolbar-move-icon.html' },
+    { letter: 'Ac', href: 'today-columns.html' },
+    { letter: 'Bc', href: 'edge-columns.html' },
+    { letter: 'Cc', href: 'toolbar-columns.html' }
   ] : [
     { letter: 'A', href: 'today.html' },
     { letter: 'B', href: 'edge.html' },
@@ -77,6 +84,8 @@
     // A four-arrow move icon, drawn to match: 1.5px strokes on a 24px grid.
     dragMove: svg('<path d="M12 3.75V20.25M3.75 12H20.25"/><path d="M9.5 6.25L12 3.75L14.5 6.25M9.5 17.75L12 20.25L14.5 17.75M6.25 9.5L3.75 12L6.25 14.5M17.75 9.5L20.25 12L17.75 14.5" stroke-linecap="round" stroke-linejoin="round"/>'),
     dragBig: '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">' + [9, 15].flatMap((x) => [6, 12, 18].map((y) => '<circle cx="' + x + '" cy="' + y + '" r="1.75" fill="currentColor"/>')).join('') + '</svg>',
+    columns: svg('<path d="M14.75 5.75H19C19.6904 5.75 20.25 6.30964 20.25 7V17C20.25 17.6904 19.6904 18.25 19 18.25H14.75M14.75 5.75V18.25M14.75 5.75H9.25M14.75 18.25H9.25M9.25 18.25H5C4.30964 18.25 3.75 17.6904 3.75 17V7C3.75 6.30964 4.30964 5.75 5 5.75H9.25M9.25 18.25V5.75"/>'),
+    cover: svg('<path d="M20.25 18.75V5.25C20.25 4.42157 19.5784 3.75 18.75 3.75H5.25C4.42157 3.75 3.75 4.42157 3.75 5.25V18.75C3.75 19.5784 4.42157 20.25 5.25 20.25H18.75C19.5784 20.25 20.25 19.5784 20.25 18.75Z"/><path d="M11.5 13.4V3.75H16.5V13.4L14 10.3L11.5 13.4Z" fill="currentColor" stroke="none"/>'),
     up: svg('<path d="M7 13L12 9L17 13"/>'),
     down: svg('<path d="M7 11L12 15L17 11"/>'),
     more: svg(dots([12], [6, 12, 18], 0.5) + '<path d="M11.75 18.25L12.25 18.25L12.25 17.75L11.75 17.75Z"/><path d="M11.75 12.25L12.25 12.25L12.25 11.75L11.75 11.75Z"/><path d="M11.75 6.25L12.25 6.25L12.25 5.75L11.75 5.75Z"/>'),
@@ -106,8 +115,9 @@
     closed: { type: 'paragraph', name: 'Paragraph', html: 'We’re closed on Mondays.' },
     button: { type: 'buttons', name: 'Buttons', html: 'Order online' }
   };
-  const ICON_FOR = { heading: 'heading', paragraph: 'paragraph', quote: 'quote', image: 'image', buttons: 'buttons' };
-  const after = (o, a, b) => o.indexOf(a) === o.indexOf(b) + 1;
+  const ICON_FOR = { heading: 'heading', paragraph: 'paragraph', quote: 'quote', image: 'image', buttons: 'buttons', columns: 'columns', cover: 'cover' };
+  // a comes straight after b, in the same list (the page, or one column).
+  const after = (o, a, b) => { const l = lists[listOf(b)]; return !!l && l.indexOf(a) === l.indexOf(b) + 1; };
 
   // Round 1: eight blocks, short moves.
   const START_1 = ['title', 'intro', 'quote', 'picture', 'order-heading', 'order-text', 'closed', 'button'];
@@ -144,15 +154,47 @@
     { text: 'Move the quote from Ana so it comes straight after the first paragraph (“From this week…”).', done: (o) => after(o, 'quote', 'intro') }
   ];
 
-  const START = ROUND2 ? START_2 : START_1;
-  const TASKS = ROUND2 ? TASKS_2 : TASKS_1;
+  // Round 2, columns layout: the same page with a full-width cover, and the
+  // opening hours and directions side by side in a Columns block.
+  Object.assign(BLOCKS, {
+    cover: { type: 'cover', name: 'Cover', html: 'Fresh every morning', sub: 'Baked on Mill Lane since 1998', full: true },
+    columns: { type: 'columns', name: 'Columns', html: 'Opening hours and Visit us', columns: ['col-left', 'col-right'] }
+  });
+  const LISTS_3 = {
+    root: ['title', 'intro', 'closed', 'cover', 'breads-heading', 'sourdough', 'rye', 'focaccia', 'buns', 'order-heading', 'order-text', 'columns', 'quote', 'gifts-heading', 'gifts', 'picture', 'newsletter', 'button'],
+    'col-left': ['hours-heading', 'hours-week', 'hours-sat'],
+    'col-right': ['parking', 'visit-heading', 'address']
+  };
+  const TASKS_3 = [
+    TASKS_2[0],
+    { text: '“We’re closed on Mondays” is in the wrong place. Move it to the opening hours, straight after “Saturday, 8am to 2pm.”', done: (o) => after(o, 'closed', 'hours-sat') },
+    { text: 'In “Visit us”, the paragraph about parking is above the heading. Move it so it comes last in that column, after the address.', done: (o) => after(o, 'parking', 'address') },
+    { text: 'Move the “Fresh every morning” banner so it comes straight after the Order online button, at the end of the page.', done: (o) => after(o, 'cover', 'button') }
+  ];
+
+  const COLUMNS = ROUND2 && CONFIG.layout === 'columns';
+  const START_LISTS = COLUMNS ? LISTS_3 : { root: ROUND2 ? START_2 : START_1 };
+  const START = Object.values(START_LISTS).flat();
+  const TASKS = COLUMNS ? TASKS_3 : ROUND2 ? TASKS_2 : TASKS_1;
+  const LIST_NAMES = { root: 'the page', 'col-left': 'the left column', 'col-right': 'the right column' };
 
   // ---------- State ----------
 
-  let order, past, future, selected, hovered, t0, log, firstDone;
+  // lists: { root: [ids], 'col-left': [ids], … } — the page and each column.
+  // order: every block, page order, columns' contents straight after them.
+  let lists, order, past, future, selected, hovered, t0, log, firstDone;
+
+  const cloneLists = (l) => JSON.parse(JSON.stringify(l));
+  function listOf(id) { return Object.keys(lists).find((k) => lists[k].includes(id)); }
+  function flatten(l) {
+    const out = [];
+    (function walk(key) { l[key].forEach((id) => { out.push(id); (BLOCKS[id].columns || []).forEach(walk); }); })('root');
+    return out;
+  }
+  function setLists(l) { lists = l; order = flatten(l); }
 
   function resetState() {
-    order = START.slice();
+    setLists(cloneLists(START_LISTS));
     past = [];
     future = [];
     selected = null;
@@ -226,6 +268,9 @@
     if (b.type === 'quote') el.innerHTML = '<blockquote><p contenteditable="true" style="margin:0">' + b.html + '</p><cite contenteditable="true">' + b.cite + '</cite></blockquote>';
     if (b.type === 'image') el.innerHTML = '<figure><div class="picture" draggable="false">' + (b.art === 'buns' ? BUNS : LOAF) + '</div><figcaption contenteditable="true">' + b.caption + '</figcaption></figure>';
     if (b.type === 'buttons') el.innerHTML = '<span class="wp-button" contenteditable="true">' + b.html + '</span>';
+    if (b.type === 'cover') el.innerHTML = '<div class="cover-bg"><h2 contenteditable="true">' + b.html + '</h2><p contenteditable="true">' + b.sub + '</p></div>';
+    if (b.type === 'columns') el.innerHTML = '<div class="wp-columns">' + b.columns.map((k) => '<div class="wp-column" data-list="' + k + '"></div>').join('') + '</div>';
+    if (b.full) el.classList.add('alignfull');
     return el;
   }
   function buildBlocks() {
@@ -265,7 +310,13 @@
   // ---------- Rendering ----------
 
   function render() {
-    order.forEach((id) => canvas.insertBefore(blockEls[id], toolbar));
+    lists.root.forEach((id) => canvas.insertBefore(blockEls[id], toolbar));
+    Object.keys(lists).forEach((k) => {
+      if (k === 'root') return;
+      const col = canvas.querySelector('.wp-column[data-list="' + k + '"]');
+      lists[k].forEach((id) => col.append(blockEls[id]));
+    });
+    canvas.style.setProperty('--full-w', scroller.clientWidth + 'px');
     Object.entries(blockEls).forEach(([id, el]) => {
       el.classList.toggle('is-selected', id === selected);
       el.classList.toggle('is-hovered', id === hovered && id !== selected && !drag);
@@ -293,7 +344,8 @@
     toolbar.innerHTML = '';
     if (!selected || drag) { toolbar.classList.remove('is-visible'); return; }
     const b = BLOCKS[selected];
-    const i = order.indexOf(selected);
+    const own = lists[listOf(selected)];
+    const i = own.indexOf(selected);
 
     const first = $('div', { class: 'tb-group' });
     first.append(toolButton(ICON_FOR[b.type], b.name, 'switcher'));
@@ -307,7 +359,7 @@
     const up = toolButton('up', 'Move up', 'up');
     const down = toolButton('down', 'Move down', 'down');
     if (i === 0) up.disabled = true;
-    if (i === order.length - 1) down.disabled = true;
+    if (i === own.length - 1) down.disabled = true;
     movers.append(up, down);
     if (CONFIG.arrows) first.append(movers);
 
@@ -323,7 +375,7 @@
 
     const tools = $('div', { class: 'tb-group' });
     tools.append(toolButton('align', 'Align text', 'align'));
-    if (b.type !== 'image' && b.type !== 'buttons') {
+    if (!['image', 'buttons', 'columns', 'cover'].includes(b.type)) {
       tools.append(toolButton('bold', 'Bold', 'bold'), toolButton('italic', 'Italic', 'italic'));
     }
     tools.append(toolButton('link', 'Link', 'link'));
@@ -337,7 +389,29 @@
     toolbar.classList.add('is-visible');
   }
 
+  // Where an element is, relative to the canvas (blocks in columns have other
+  // offset parents, so offsetTop isn't enough).
+  function rel(el) {
+    const r = el.getBoundingClientRect();
+    const c = canvas.getBoundingClientRect();
+    return { top: r.top - c.top, left: r.left - c.left, right: r.right - c.left, bottom: r.bottom - c.top, width: r.width, height: r.height };
+  }
+
+  // The edge grip goes in the margin to the left of a block when there's room
+  // (36px clear of whatever is to its left), and just inside the block's
+  // top-left corner when there isn't: full-width blocks, and blocks in any
+  // column but the first.
+  function gripFitsOutside(id) {
+    const el = blockEls[id];
+    const r = rel(el);
+    let limit = rel(scroller).left;
+    const col = el.parentElement.closest('.wp-column');
+    if (col && col.previousElementSibling) limit = rel(col.previousElementSibling).right;
+    return r.left - limit >= 40;
+  }
+
   function firstLineCentre(el) {
+    if (el.classList.contains('block-cover') || el.classList.contains('block-columns')) return 20;
     const inner = el.querySelector('h1, h2, p, .picture, .wp-button');
     if (!inner) return 16;
     if (inner.classList.contains('picture')) return 20;
@@ -348,20 +422,28 @@
 
   function position() {
     if (selected && !drag) {
-      const el = blockEls[selected];
-      toolbar.style.top = (el.offsetTop - 48 - 14) + 'px';
-      toolbar.style.left = (el.offsetLeft - 6) + 'px';
+      const r = rel(blockEls[selected]);
+      toolbar.style.top = (r.top - 48 - 14) + 'px';
+      // A full-width block's toolbar sits over its corner, as in the editor.
+      toolbar.style.left = (BLOCKS[selected].full ? r.left + 12 : r.left - 6) + 'px';
     }
     if (CONFIG.handle === 'edge') {
       const id = drag ? null : (hovered || selected);
       if (id) {
         const el = blockEls[id];
-        edgeHandle.style.top = (el.offsetTop + firstLineCentre(el) - 16) + 'px';
-        edgeHandle.style.left = (el.offsetLeft - 40) + 'px';
+        const r = rel(el);
+        const outside = gripFitsOutside(id);
+        const top = outside ? r.top + firstLineCentre(el) - 16 : r.top + 6;
+        const left = outside ? r.left - 40 : r.left + 6;
+        edgeHandle.style.top = top + 'px';
+        edgeHandle.style.left = left + 'px';
+        edgeHandle.classList.toggle('is-inside', !outside);
         edgeHandle.dataset.id = id;
         edgeHandle.classList.add('is-visible');
-        hintEl.style.top = (el.offsetTop + firstLineCentre(el) - 13) + 'px';
-        hintEl.style.left = (el.offsetLeft - 46) + 'px';
+        // The label goes to the left of the grip outside, and to its right inside.
+        hintEl.style.top = (top + 3) + 'px';
+        hintEl.style.left = (outside ? left - 6 : left + 34) + 'px';
+        hintEl.classList.toggle('is-right', !outside);
       } else if (document.activeElement !== edgeHandle) {
         edgeHandle.classList.remove('is-visible');
         hintEl.classList.remove('is-visible');
@@ -372,13 +454,19 @@
   // ---------- Moving ----------
 
   function commit(next, method) {
-    if (next.join() === order.join()) return false;
-    const moved = selected || (drag && drag.id);
-    past.push(order);
+    if (JSON.stringify(next) === JSON.stringify(lists)) return false;
+    const moved = (drag && drag.id) || selected;
+    const fromList = listOf(moved);
+    const from = lists[fromList].indexOf(moved);
+    past.push(lists);
     future = [];
-    const from = order.indexOf(moved);
-    order = next;
-    note('move', describe(moved) + ' ' + (order.indexOf(moved) < from ? 'up' : 'down') + ' ' + Math.abs(order.indexOf(moved) - from) + ' · ' + method);
+    setLists(next);
+    const toList = listOf(moved);
+    const to = lists[toList].indexOf(moved);
+    const where = fromList === toList
+      ? (to < from ? 'up' : 'down') + ' ' + Math.abs(to - from)
+      : 'from ' + LIST_NAMES[fromList] + ' to ' + LIST_NAMES[toList];
+    note('move', describe(moved) + ' ' + where + ' · ' + method);
     return true;
   }
 
@@ -389,12 +477,13 @@
   };
 
   function nudge(id, delta, method) {
-    const i = order.indexOf(id);
+    const key = listOf(id);
+    const i = lists[key].indexOf(id);
     const j = i + delta;
-    if (j < 0 || j >= order.length) return;
-    const next = order.slice();
-    next.splice(i, 1);
-    next.splice(j, 0, id);
+    if (j < 0 || j >= lists[key].length) return;
+    const next = cloneLists(lists);
+    next[key].splice(i, 1);
+    next[key].splice(j, 0, id);
     selected = id;
     commit(next, method);
     render();
@@ -402,15 +491,15 @@
 
   function undo() {
     if (!past.length) return;
-    future.push(order);
-    order = past.pop();
+    future.push(lists);
+    setLists(past.pop());
     note('other', 'Undo');
     render();
   }
   function redo() {
     if (!future.length) return;
-    past.push(order);
-    order = future.pop();
+    past.push(lists);
+    setLists(future.pop());
     note('other', 'Redo');
     render();
   }
@@ -433,7 +522,7 @@
   }
 
   function startDrag() {
-    drag = { id: press.id, source: press.source, index: order.indexOf(press.id) };
+    drag = { id: press.id, source: press.source, list: listOf(press.id), index: lists[listOf(press.id)].indexOf(press.id) };
     press = null;
     selected = drag.id;
     document.body.classList.add('is-grabbing');
@@ -455,23 +544,40 @@
     if (!drag) return;
     chip.style.left = (e.clientX + 14) + 'px';
     chip.style.top = (e.clientY + 14) + 'px';
-    updateDrop(e.clientY);
+    updateDrop(e.clientY, e.clientX);
   }
 
-  function updateDrop(y) {
-    const rest = order.filter((id) => id !== drag.id);
+  // Which list the pointer is over: a column, if it's inside one (and that
+  // column isn't part of the block being dragged), or else the page.
+  function dropList(x, y) {
+    for (const col of canvas.querySelectorAll('.wp-column')) {
+      if (blockEls[drag.id].contains(col)) continue;
+      const r = col.getBoundingClientRect();
+      if (x >= r.left && x <= r.right && y >= r.top - 14 && y <= r.bottom + 14) return col.dataset.list;
+    }
+    return 'root';
+  }
+
+  function updateDrop(y, x) {
+    if (x == null) x = drag.x;
+    drag.x = x;
+    const key = dropList(x, y);
+    const rest = lists[key].filter((id) => id !== drag.id);
     let index = rest.length;
     for (let i = 0; i < rest.length; i++) {
       const r = blockEls[rest[i]].getBoundingClientRect();
       if (y < r.top + r.height / 2) { index = i; break; }
     }
+    drag.list = key;
     drag.index = index;
-    const top = index < rest.length
-      ? blockEls[rest[index]].offsetTop - 14
-      : blockEls[rest[rest.length - 1]].offsetTop + blockEls[rest[rest.length - 1]].offsetHeight + 14;
+    let top;
+    if (!rest.length) top = rel(canvas.querySelector('.wp-column[data-list="' + key + '"]')).top;
+    else if (index < rest.length) top = rel(blockEls[rest[index]]).top - 14;
+    else top = rel(blockEls[rest[rest.length - 1]]).bottom + 14;
+    const box = key === 'root' ? { left: 0, width: canvas.clientWidth } : rel(canvas.querySelector('.wp-column[data-list="' + key + '"]'));
     dropLine.style.top = top + 'px';
-    dropLine.style.left = '0px';
-    dropLine.style.width = '100%';
+    dropLine.style.left = box.left + 'px';
+    dropLine.style.width = box.width + 'px';
     dropLine.classList.add('is-visible');
   }
 
@@ -483,7 +589,7 @@
       let dy = 0;
       if (lastPointer.y < r.top + edge) dy = -Math.ceil((r.top + edge - lastPointer.y) / 4);
       if (lastPointer.y > r.bottom - edge) dy = Math.ceil((lastPointer.y - (r.bottom - edge)) / 4);
-      if (dy) { scroller.scrollTop += dy; updateDrop(lastPointer.y); }
+      if (dy) { scroller.scrollTop += dy; updateDrop(lastPointer.y, lastPointer.x); }
     }
     requestAnimationFrame(autoScroll);
   }
@@ -499,10 +605,11 @@
       return;
     }
     if (!drag) return;
-    const rest = order.filter((id) => id !== drag.id);
-    rest.splice(drag.index, 0, drag.id);
-    const label = drag.source === 'picture' ? 'dragged the picture itself' : 'dragged from the ' + drag.source + ' handle';
-    if (!commit(rest, label)) note('other', 'Dragged ' + describe(drag.id) + ' and dropped it where it was');
+    const next = cloneLists(lists);
+    Object.keys(next).forEach((k) => { next[k] = next[k].filter((id) => id !== drag.id); });
+    next[drag.list].splice(drag.index, 0, drag.id);
+    const label = drag.source === 'picture' ? 'dragged the block itself' : 'dragged from the ' + drag.source + ' handle';
+    if (!commit(next, label)) note('other', 'Dragged ' + describe(drag.id) + ' and dropped it where it was');
     endDrag();
   }
 
@@ -541,12 +648,13 @@
     const block = target.closest('.block');
     if (!block) return null;
     if (target.closest('.picture')) return 'the picture itself';
+    if (target.closest('.cover-bg') && !target.isContentEditable) return 'the cover itself';
     return 'the text of ' + describe(block.dataset.id);
   }
 
   document.addEventListener('pointerdown', (e) => {
     if (e.target.closest('[data-handle], .edge-handle') || e.button !== 0) return;
-    if (DIRECT_DRAG && e.target.closest('.picture')) return;
+    if (DIRECT_DRAG && (e.target.closest('.picture') || (e.target.closest('.cover-bg') && !e.target.isContentEditable))) return;
     const label = labelFor(e.target);
     attempt = label ? { x: e.clientX, y: e.clientY, label, logged: false } : null;
   }, true);
@@ -565,7 +673,7 @@
   // ---------- Events ----------
 
   canvas.addEventListener('pointerdown', (e) => {
-    const picture = DIRECT_DRAG && e.target.closest('.picture');
+    const picture = DIRECT_DRAG && (e.target.closest('.picture') || (e.target.closest('.cover-bg') && !e.target.isContentEditable));
     if (picture) {
       const id = picture.closest('.block').dataset.id;
       closeMenu();
@@ -593,12 +701,21 @@
   scroller.addEventListener('pointermove', (e) => {
     if (drag || press) return;
     if (ROUND2) fadeToolbar(e.clientX, e.clientY);
+    // The innermost block under the pointer (a block in a column, not the
+    // Columns block around it). The margin to a block's left counts as the
+    // block only where its grip goes there.
     let id = null;
+    let best = Infinity;
     for (const bid of order) {
       const r = blockEls[bid].getBoundingClientRect();
-      if (e.clientY >= r.top - 14 && e.clientY <= r.bottom + 14 && e.clientX >= r.left - 56 && e.clientX <= r.right + 8) { id = bid; break; }
+      const reach = CONFIG.handle === 'edge' && gripFitsOutside(bid) ? 56 : 0;
+      const pad = listOf(bid) === 'root' ? 14 : 0;
+      if (e.clientY >= r.top - pad && e.clientY <= r.bottom + pad && e.clientX >= r.left - reach && e.clientX <= r.right + 8) {
+        const area = r.width * r.height;
+        if (area < best) { best = area; id = bid; }
+      }
     }
-    if (e.target.closest('.block-toolbar')) id = hovered;
+    if (e.target.closest('.block-toolbar, .edge-handle')) id = hovered;
     if (id !== hovered) {
       hovered = id;
       Object.entries(blockEls).forEach(([bid, el]) => el.classList.toggle('is-hovered', bid === hovered && bid !== selected));
@@ -719,7 +836,7 @@
     const firstDrag = moves.find((m) => /dragged from/.test(m.text));
     return {
       drags: count(/dragged from/),
-      pictures: count(/dragged the picture/),
+      pictures: count(/dragged the block itself/),
       arrows: count(/Move (up|down) arrow/),
       keys: count(/arrow keys/),
       misses: log.filter((l) => l.kind === 'miss').length,
@@ -792,7 +909,10 @@
       Bh: 'A grip on the block’s edge, labelled “Drag to move” while the pointer is over it',
       Bm: 'A grip on the block’s edge, with a four-arrow move icon',
       C: 'A bigger handle in the toolbar',
-      Cm: 'A bigger handle in the toolbar, with a four-arrow move icon'
+      Cm: 'A bigger handle in the toolbar, with a four-arrow move icon',
+      Ac: 'Today, on the page with columns and a full-width cover',
+      Bc: 'A grip on the block’s edge, on the page with columns and a full-width cover',
+      Cc: 'A bigger handle in the toolbar, on the page with columns and a full-width cover'
     }[LETTER] + (ROUND2 ? ' (round 2: the long page)' : '');
     notesEl.innerHTML =
       '<h2>' + LETTER + ' · Facilitator notes</h2><p>' + variant + '. Only you can see this panel; open the page without <code>?notes</code> for participants.</p>' +

@@ -107,10 +107,40 @@ Round 2 is in [`round-2/`](round-2/) and changes the test, not just the handle:
 What's new in all of them:
 
 - **A longer page, with long moves.** 22 blocks: the autumn news, Our breads, Order for the weekend, Opening hours, Visit us and Gift cards. Every task moves a block 10 or more places, so a drag is quicker than clicking an arrow, and the first task is the longest (the picture of the pumpkin loaf from near the bottom to the top). Dragging scrolls the page near its top and bottom edges.
-- **A Finished button and a completion code.** Lyssna shows the tasks, so the page only has a Finished button in the bottom right. Clicking it shows a code to copy into the next question in Lyssna, for example `Bh-1101-d3-p1-a5-k0-m2-o1-f45-t40.95.x.130-s180`: the prototype; each task right (1) or not (0) when they clicked Finished; moves by dragging a handle (`d`), by dragging a picture itself (`p`), by the arrows (`a`) and by the keyboard (`k`); drags on things that aren't handles (`m`); looks at Move to or List View (`o`); seconds to the first drag from a handle (`f`, or `x` for none); seconds until each task was first right (`t`, `x` for never); and seconds until Finished (`s`). The page can't see when Lyssna moves someone to the next task, so `t` is when each task was first done, counted from when the page opened. "Keep editing" goes back to the page, and clicking Finished again gives a new code.
+- **A Finished button and a completion code.** Lyssna shows the tasks, so the page only has a Finished button in the bottom right. Clicking it shows a code to copy into the next question in Lyssna, for example `Bh-1101-d3-p1-a5-k0-m2-o1-f45-t40.95.x.130-s180`: the prototype; each task right (1) or not (0) when they clicked Finished; moves by dragging a handle (`d`), by dragging a picture or cover itself (`p`), by the arrows (`a`) and by the keyboard (`k`); drags on things that aren't handles (`m`); looks at Move to or List View (`o`); seconds to the first drag from a handle (`f`, or `x` for none); seconds until each task was first right (`t`, `x` for never); and seconds until Finished (`s`). The page can't see when Lyssna moves someone to the next task, so `t` is when each task was first done, counted from when the page opened. "Keep editing" goes back to the page, and clicking Finished again gives a new code.
 - **Pictures drag by themselves**, as in the editor: press on a picture and drag it. This is counted separately from handle drags (`p`), since the question is whether people find the handle.
 - **The toolbar fades** to nearly transparent when the pointer is away from it and its block, so it doesn't hide the text above. It comes back as soon as the pointer gets near.
 - **No Reset for participants.** Reset only shows with `?notes`, so nobody loses their place.
+
+### Columns and full width
+
+The edge grip sits in the margin to the left of a block. Real pages don't always have that margin: a block in the second of two columns has the first column beside it, and a full-width block runs to the edge of the screen. So round 2 has a second page layout, `layout: 'columns'`, with:
+
+- a full-width **Cover** ("Fresh every morning") after the first paragraph,
+- **Opening hours** and **Visit us** side by side in a **Columns** block, 32px apart.
+
+On that page the edge grip goes in the margin where there's at least 40px clear of whatever is to the block's left, and otherwise just inside the block's top-left corner, on a white chip with a shadow so it shows on any background. In practice:
+
+- blocks on the page, and in the left column, get the grip in the margin, as before;
+- the Cover gets it inside its top-left corner, which works;
+- blocks in the right column get it inside too, where it covers the first letter or two of their text.
+
+That last case is the cost of the edge grip, and the reason to test it on this page. The toolbar handle (A and C) doesn't have the problem, but its toolbar covers the block above, as it does everywhere.
+
+| | Prototype |
+| --- | --- |
+| Ac | [Today, columns page](round-2/today-columns.html) |
+| Bc | [Edge grip, columns page](round-2/edge-columns.html) |
+| Cc | [Bigger toolbar handle, columns page](round-2/toolbar-columns.html) |
+
+The tasks change on this page so that each layout gets used:
+
+1. Put the picture of the pumpkin loaf at the very top (a long move on the page, as before).
+2. Move "We're closed on Mondays" into the left column, after "Saturday, 8am to 2pm." (from the page into a column).
+3. In "Visit us", move the parking paragraph from above the heading to the end of that column (within the right column, where the grip has to sit inside the block).
+4. Move the "Fresh every morning" banner to the end of the page, after the Order online button (a full-width block).
+
+Blocks can be dragged from the page into a column, out of one, and between columns. The move arrows move a block within its own list (the page or a column), as in the editor. The Cover can also be dragged by its background, like a picture. In the completion code, `p` counts those drags too.
 
 ### Running round 2
 
@@ -136,6 +166,6 @@ What's new in all of them:
 
 ## Running it
 
-Plain HTML, CSS and JavaScript with no build step: `app.js` and `style.css` are shared, and each page sets `window.PROTOTYPE.handle` to `today`, `edge` or `toolbar`. Round 2's pages also set `round: 2`, a `code` for the completion code, and `arrows: false`, `hint: true` or `icon: 'arrows'` where they need them. `@wordpress/icons` has no four-arrow move icon, so the prototype draws one to match: 1.5px strokes on a 24px grid. Serve the repository root with any static server and open `pollock/`.
+Plain HTML, CSS and JavaScript with no build step: `app.js` and `style.css` are shared, and each page sets `window.PROTOTYPE.handle` to `today`, `edge` or `toolbar`. Round 2's pages also set `round: 2`, a `code` for the completion code, and `arrows: false`, `hint: true`, `icon: 'arrows'` or `layout: 'columns'` where they need them. Blocks are kept as lists, one for the page and one per column, so they can move between them. `@wordpress/icons` has no four-arrow move icon, so the prototype draws one to match: 1.5px strokes on a 24px grid. Serve the repository root with any static server and open `pollock/`.
 
 Icons are from `@wordpress/icons`. The bakery, its page and its copy are placeholders.

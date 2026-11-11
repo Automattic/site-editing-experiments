@@ -104,6 +104,18 @@ const panel = () =>
 		};
 	}, PANEL );
 
+// Whether the panel offers to edit or leave a pattern.
+const patternButtons = () =>
+	page.evaluate( () =>
+		[ ...document.querySelectorAll( '.nevelson-panel button' ) ]
+			.map( ( b ) => b.textContent.trim() )
+			.filter( ( t ) => /^(Edit|Exit) pattern$/.test( t ) )
+	);
+const selectedMode = () =>
+	page.evaluate( () => {
+		const be = window.wp.data.select( 'core/block-editor' );
+		return be.getBlockEditingMode( be.getSelectedBlockClientId() );
+	} );
 // A block's box in the editor window.
 const blockBox = ( clientId ) =>
 	page.evaluate( ( id ) => {
@@ -556,6 +568,9 @@ await step( 'a full-width section gets it over the canvas edge', async () => {
 	await wait( 400 );
 	const p = await panel();
 	expect( p.side === 'over', `side is ${ p.side }` );
+	// The pattern itself is a block like any other, with no Edit pattern.
+	const b2 = await patternButtons();
+	expect( ! b2.length, `the panel has ${ b2.join( ', ' ) }` );
 	await page.locator( `${ PANEL } button[aria-label="Close"]` ).click();
 	await wait( 400 );
 	const x = await extras();
@@ -674,6 +689,13 @@ await step(
 			c.at( -1 )?.startsWith( 'Heading' ),
 			`panel shows ${ c.join( ' > ' ) }`
 		);
+		// Patterns aren't content-only: the heading is like any other.
+		expect(
+			( await selectedMode() ) === 'default',
+			`the heading is ${ await selectedMode() }`
+		);
+		const b = await patternButtons();
+		expect( ! b.length, `the panel has ${ b.join( ', ' ) }` );
 		await shot( '05-in-a-pattern' );
 	}
 );

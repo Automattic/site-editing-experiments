@@ -83,8 +83,8 @@ $soft: #757575;
 }
 
 // The block's name, icon and description are in the heading: not again in
-// the settings. (A block in a section keeps the row for its parent.)
-.nevelson-body .block-editor-block-card:not(.is-parent) {
+// the settings.
+.nevelson-body .block-editor-block-card {
 	display: none;
 }
 

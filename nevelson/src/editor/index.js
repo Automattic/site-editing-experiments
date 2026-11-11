@@ -13,16 +13,9 @@
 import { registerPlugin } from '@wordpress/plugins';
 import { useSelect, useDispatch, useRegistry } from '@wordpress/data';
 import { store as blockEditorStore } from '@wordpress/block-editor';
-import {
-	createPortal,
-	useEffect,
-	useMemo,
-	useRef,
-	useState,
-} from '@wordpress/element';
+import { createPortal, useEffect, useRef, useState } from '@wordpress/element';
 
 import { FloatingPanel } from './panel';
-import { createSectionEntry } from './sections';
 import './toolbar';
 import { store as nevelsonStore } from './store';
 import './style.scss';
@@ -206,24 +199,6 @@ function Nevelson() {
 		}
 	}, [ area, disableComplementaryArea ] );
 
-	// Always the selected block's own settings, in sections too.
-	const sections = useMemo(
-		() => createSectionEntry( registry ),
-		[ registry ]
-	);
-	useEffect( () => {
-		const selection = () =>
-			registry.select( blockEditorStore ).getSelectedBlockClientId();
-		let prev = selection();
-		return registry.subscribe( () => {
-			const now = selection();
-			if ( now !== prev ) {
-				prev = now;
-				setTimeout( sections.check, 0 );
-			}
-		} );
-	}, [ registry, sections ] );
-
 	// The panel opens from the block toolbar's settings button, and stays
 	// open from block to block until it's closed.
 	const open = useSelect(
@@ -237,11 +212,7 @@ function Nevelson() {
 		if ( ! doc ) {
 			return;
 		}
-		const down = ( event ) => {
-			if ( sections.onPointerDown( event ) ) {
-				event.preventDefault();
-				event.stopImmediatePropagation();
-			}
+		const down = () => {
 			// The page's card closes when you go back to the page, as
 			// Judd's popovers do.
 			const { getActiveComplementaryArea } =
@@ -255,38 +226,12 @@ function Nevelson() {
 					.disableComplementaryArea( SCOPE );
 			}
 		};
-		// Core leaves a section over a few moments after a click outside it,
-		// so check more than once. Checking again changes nothing.
-		const click = () =>
-			[ 30, 250, 600 ].forEach( ( ms ) =>
-				setTimeout( sections.check, ms )
-			);
-		const keep = ( event ) => {
-			if ( sections.swallow() ) {
-				event.preventDefault();
-				event.stopImmediatePropagation();
-				return true;
-			}
-			return false;
-		};
-		const clickOrKeep = ( event ) => {
-			if ( ! keep( event ) ) {
-				click();
-			}
-		};
 		// On the canvas' window, capturing, so Nevelson hears clicks before
 		// anything in the editor does.
 		const win = doc.defaultView;
-		const mouse = [ 'mousedown', 'mouseup' ];
 		win.addEventListener( 'pointerdown', down, true );
-		win.addEventListener( 'click', clickOrKeep, true );
-		mouse.forEach( ( t ) => win.addEventListener( t, keep, true ) );
-		return () => {
-			win.removeEventListener( 'pointerdown', down, true );
-			win.removeEventListener( 'click', clickOrKeep, true );
-			mouse.forEach( ( t ) => win.removeEventListener( t, keep, true ) );
-		};
-	}, [ doc, registry, sections ] );
+		return () => win.removeEventListener( 'pointerdown', down, true );
+	}, [ doc, registry ] );
 
 	const [ offset, setOffset ] = useState( null );
 

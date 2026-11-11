@@ -25,9 +25,9 @@
 
   /*
    * Round 2 adds, per page:
-   *   round:  2       a longer page where the moves are long, tasks shown one
-   *                   at a time in a card on the page, a completion code at the
-   *                   end to paste into the testing tool, and a toolbar that
+   *   round:  2       a longer page where the moves are long, a Finished
+   *                   button that shows a completion code to paste into the
+   *                   testing tool (which shows the tasks), and a toolbar that
    *                   fades when the pointer is away from it, so it never hides
    *                   the text above the block.
    *   arrows: false   no move arrows in the toolbar (B without arrows).
@@ -143,7 +143,7 @@
 
   // ---------- State ----------
 
-  let order, past, future, selected, hovered, t0, log, firstDone, taskIndex, taskStart, results;
+  let order, past, future, selected, hovered, t0, log, firstDone;
 
   function resetState() {
     order = START.slice();
@@ -154,9 +154,6 @@
     t0 = performance.now();
     log = [];
     firstDone = TASKS.map(() => null);
-    taskIndex = 0;
-    taskStart = 0;
-    results = [];
   }
 
   const seconds = () => Math.round((performance.now() - t0) / 1000);
@@ -675,7 +672,7 @@
     note(b === listViewBtn ? 'alt' : 'other', 'Clicked ' + b.getAttribute('aria-label'));
     toast('That isn’t part of this prototype.');
   }));
-  resetBtn.addEventListener('click', () => { resetState(); hasDragged = false; buildBlocks(); render(); renderCard(); });
+  resetBtn.addEventListener('click', () => { resetState(); hasDragged = false; cardOpen = false; buildBlocks(); render(); renderCard(); });
 
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
@@ -697,7 +694,7 @@
   function checkTasks() {
     TASKS.forEach((t, i) => {
       if (t.done(order) && !firstDone[i]) {
-        firstDone[i] = elapsed();
+        firstDone[i] = { at: elapsed(), sec: seconds() };
         note('task', 'Task ' + (i + 1) + ' done');
       }
     });
@@ -720,53 +717,54 @@
 
   /*
    * The completion code, for pasting into the testing tool:
-   *   Bh-1101-d3-p1-a5-k0-m2-o1-f45-t43.20.31.15
-   *   prototype · each task right (1) or not (0) when they said it was done ·
+   *   Bh-1101-d3-p1-a5-k0-m2-o1-f45-t40.95.x.130-s180
+   *   prototype · each task right (1) or not (0) when they clicked Finished ·
    *   moves by dragging a handle · by dragging a picture itself · by arrows ·
-   *   by keyboard · drags on things that
-   *   aren't handles · looks at Move to or List View · seconds to the first
-   *   drag from a handle (x if none) · seconds spent on each task.
+   *   by keyboard · drags on things that aren't handles · looks at Move to or
+   *   List View · seconds to the first drag from a handle (x if none) ·
+   *   seconds until each task was first right (x if never) · seconds until
+   *   they clicked Finished.
+   * The testing tool shows the tasks, so the page doesn't know when each one
+   * starts; when each was first right is the next best thing.
    */
   function completionCode() {
     const m = summary();
     return [
       LETTER,
-      results.map((r) => (r.right ? 1 : 0)).join(''),
+      TASKS.map((t) => (t.done(order) ? 1 : 0)).join(''),
       'd' + m.drags, 'p' + m.pictures, 'a' + m.arrows, 'k' + m.keys, 'm' + m.misses, 'o' + m.elsewhere,
       'f' + (m.firstDrag ? m.firstDrag.sec : 'x'),
-      't' + results.map((r) => r.secs).join('.')
+      't' + firstDone.map((f) => (f ? f.sec : 'x')).join('.'),
+      's' + seconds()
     ].join('-');
   }
 
-  // Round 2: the tasks, one at a time, in a card on the page.
+  // Round 2: a Finished button that shows the code. Clicking it again later
+  // gives a new code, in case someone carries on after all.
   let cardEl = null;
+  let cardOpen = false;
   function renderCard() {
     if (!ROUND2) return;
-    if (!cardEl) { cardEl = $('section', { class: 'task-card', 'aria-live': 'polite', 'aria-label': 'Your task' }); document.body.append(cardEl); }
-    if (taskIndex < TASKS.length) {
-      const last = taskIndex === TASKS.length - 1;
-      cardEl.innerHTML = '<p class="task-count">Task ' + (taskIndex + 1) + ' of ' + TASKS.length + '</p><p class="task-text">' + TASKS[taskIndex].text + '</p><button class="btn btn-primary">' + (last ? 'I’ve done this, finish' : 'I’ve done this, next task') + '</button>';
-      cardEl.querySelector('button').addEventListener('click', finishTask);
-    } else {
-      const code = completionCode();
-      cardEl.innerHTML = '<p class="task-count">All done, thank you</p><p class="task-text">Please copy this code into the next question:</p><textarea class="task-code" readonly rows="2" aria-label="Your code">' + code + '</textarea><button class="btn btn-primary">Copy code</button>';
-      const input = cardEl.querySelector('textarea');
-      input.addEventListener('focus', () => input.select());
+    if (!cardEl) { cardEl = $('section', { class: 'task-card', 'aria-live': 'polite', 'aria-label': 'Finish' }); document.body.append(cardEl); }
+    cardEl.classList.toggle('is-open', cardOpen);
+    if (!cardOpen) {
+      cardEl.innerHTML = '<button class="btn btn-primary">Finished</button>';
       cardEl.querySelector('button').addEventListener('click', () => {
-        input.select();
-        (navigator.clipboard ? navigator.clipboard.writeText(code) : Promise.reject()).then(() => toast('Code copied.'), () => { try { document.execCommand('copy'); toast('Code copied.'); } catch (e) { toast('Select the code and copy it.'); } });
+        cardOpen = true;
+        note('task', 'Clicked Finished. Code ' + completionCode());
+        renderCard();
       });
+      return;
     }
-  }
-  function finishTask() {
-    const right = TASKS[taskIndex].done(order);
-    const secs = seconds() - taskStart;
-    results.push({ right, secs });
-    note('task', 'Said task ' + (taskIndex + 1) + ' was done after ' + secs + 's: ' + (right ? 'right' : 'not right'));
-    taskIndex += 1;
-    taskStart = seconds();
-    if (taskIndex === TASKS.length) note('task', 'Finished. Code ' + completionCode());
-    renderCard();
+    const code = completionCode();
+    cardEl.innerHTML = '<p class="task-count">Thank you</p><p class="task-text">Please copy this code into the next question:</p><textarea class="task-code" readonly rows="2" aria-label="Your code">' + code + '</textarea><button class="btn btn-primary">Copy code</button><button class="btn btn-link task-back">Keep editing</button>';
+    const input = cardEl.querySelector('textarea');
+    input.addEventListener('focus', () => input.select());
+    cardEl.querySelector('.btn-primary').addEventListener('click', () => {
+      input.select();
+      (navigator.clipboard ? navigator.clipboard.writeText(code) : Promise.reject()).then(() => toast('Code copied.'), () => { try { document.execCommand('copy'); toast('Code copied.'); } catch (e) { toast('Select the code and copy it.'); } });
+    });
+    cardEl.querySelector('.task-back').addEventListener('click', () => { cardOpen = false; note('task', 'Went back to editing'); renderCard(); });
   }
 
   let notesEl = null;
@@ -783,7 +781,7 @@
     }[LETTER] + (ROUND2 ? ' (round 2: the long page)' : '');
     notesEl.innerHTML =
       '<h2>' + LETTER + ' · Facilitator notes</h2><p>' + variant + '. Only you can see this panel; open the page without <code>?notes</code> for participants.</p>' +
-      '<h3>Tasks</h3><ol>' + TASKS.map((t, i) => '<li class="' + (t.done(order) ? 'is-done' : '') + '">' + t.text + (firstDone[i] ? ' <small>(' + firstDone[i] + ')</small>' : '') + '</li>').join('') + '</ol>' +
+      '<h3>Tasks</h3><ol>' + TASKS.map((t, i) => '<li class="' + (t.done(order) ? 'is-done' : '') + '">' + t.text + (firstDone[i] ? ' <small>(' + firstDone[i].at + ')</small>' : '') + '</li>').join('') + '</ol>' +
       '<h3>Summary</h3><dl>' +
       '<dt>Moves by dragging a handle</dt><dd>' + m.drags + '</dd>' +
       (DIRECT_DRAG ? '<dt>Moves by dragging a picture itself</dt><dd>' + m.pictures + '</dd>' : '') +

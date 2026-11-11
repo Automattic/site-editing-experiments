@@ -148,9 +148,12 @@ svg { display: block; }
 .edge-hint { position: absolute; z-index: 15; display: none; transform: translateX(-100%); height: 26px; padding: 0 8px; border-radius: 4px; background: var(--ink); color: var(--white); font-size: 12px; line-height: 26px; white-space: nowrap; pointer-events: none; }
 .edge-hint.is-visible { display: block; }
 
-.task-card { position: fixed; right: 16px; bottom: 16px; z-index: 250; width: 280px; padding: 16px; background: var(--white); border: 1px solid var(--ink); border-radius: 4px; box-shadow: 0 8px 24px rgba(0,0,0,.15); }
+.task-card { position: fixed; right: 16px; bottom: 16px; z-index: 250; }
+.task-card.is-open { width: 280px; padding: 16px; background: var(--white); border: 1px solid var(--ink); border-radius: 4px; box-shadow: 0 8px 24px rgba(0,0,0,.15); }
+.task-card:not(.is-open) .btn { box-shadow: 0 4px 12px rgba(0,0,0,.15); padding: 0 20px; }
 .task-card .task-count { margin: 0 0 4px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--ink-3); }
 .task-card .task-text { margin: 0 0 12px; font-size: 15px; line-height: 1.45; }
 .task-card .task-code { display: block; width: 100%; margin: 0 0 12px; padding: 8px; border: 1px solid var(--line); border-radius: 2px; font: 13px/1.4 ui-monospace, Menlo, monospace; resize: none; word-break: break-all; }
-.task-card .btn { width: 100%; }
+.task-card.is-open .btn { width: 100%; }
+.task-card .task-back { margin-top: 4px; }
 .has-notes ~ .task-card, body:has(.notes) .task-card { right: 384px; }

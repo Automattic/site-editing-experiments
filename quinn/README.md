@@ -20,13 +20,15 @@ The build is `gutenberg.zip` in this folder, the PR's own build at `6450b2f`, ke
 
 Click the menu in the header. Where the Navigation block's sidebar would list the Page List, it lists the pages themselves, with their child pages indented under them (Our story and Team, under About). Each row has:
 
-- a **drag handle**: drag a page up or down among the pages at its level, and its child pages go with it. While you drag, a chip with the page's title follows the cursor, like the one shown when dragging blocks. Focus the handle and use the up and down arrow keys to do the same from the keyboard.
+- a **drag handle**: drag a page up or down, and its child pages go with it. Drop it next to a page at another level and it moves to that level, so a child page can become a top-level page, or the other way round. Drop it just below a page that has child pages and it becomes the first of them. The drop line is indented to the level it will land at. While you drag, a chip with the page's title follows the cursor, like the one shown when dragging blocks. Focus the handle and use the up and down arrow keys to move a page among the pages at its level from the keyboard.
 - an **In menu** switch: turn it off and the page leaves the menu. Pages that are off are still published, at their usual address.
-- a **⋮ menu** with Move up, Move down and Add link after.
+- a **⋮ menu** with Move up, Move down, Move out of its parent page, Move under the page before it, and Add link after.
 
 ![Dragging Catering: a dark chip with its title follows the cursor, the row it came from is faded, and a line shows where it will land](screenshots/drag-chip.png)
 
-![The ⋮ menu for Menu, with Move up, Move down and Add link after](screenshots/options-menu.png)
+![The ⋮ menu for Our story, under About: Move up, Move down, Move out of About, Move under Catering, and Add link after](screenshots/options-menu.png)
+
+Moving a page in or out of another page changes its parent, and so its address: Our story under About is at /about/our-story/, and at the top level it's at /our-story/.
 
 Neither the Page List nor its pages can be selected on their own: clicking one in the canvas selects the menu. The Page List never appears in the Navigation block's list of items, even when the menu has other links. Its Parent page setting and Detach button are out of reach inside a menu as a result, and Add link after does the detaching instead.
 
@@ -91,7 +93,7 @@ Detach, from a Page List's toolbar outside a menu, and Add link after both keep 
 
 - **Site-wide order.** Reordering here changes the order of every Page List and of the Pages screen. That's the model F tested: the list *is* the menu. But someone moving Catering up in the header may not expect the footer's page list to change too. An order saved on the block would affect only this menu, at the cost of new pages needing a place in it.
 - **Hidden parents.** Hiding a parent hides its child pages. F did the opposite: it promoted the child pages to the top level. Which matches what people expect?
-- **Putting a page under another.** F's ⋮ menu also had "Put under About" and "Take out from under About", which change the page's parent and its address. This leaves those to the page's own settings.
+- **Changing a page's address.** Moving a page in or out of another page changes its address, and nothing warns about that. Should it, as it does for the order changing everywhere?
 - **Where the list lives.** The pages are in the Navigation block's sidebar. Would people also look for them on the Pages screen, as in O'Keeffe?
 - **Dragging in the canvas.** Moving items in and out of the pages works in the sidebar. In the canvas, the pages can't be dragged, and other items can't be dropped among them.
 - **Links between pages.** Add link after, and dragging a link among the pages, detach the whole menu to put one link between two pages. Is that a surprise, even with the note in the ⋮ menu? The alternative is a Page List that can hold links of its own.

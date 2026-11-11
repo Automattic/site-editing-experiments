@@ -416,9 +416,9 @@ body.nevelson-faded .block-editor-block-toolbar .nevelson-moved {
 	pointer-events: none;
 }
 
-// The list of blocks to turn a block into opens downward, just below the
-// block's name, scrolling inside if it's taller than the room there. Core
-// places it with inline styles, hence !important.
+// The list of blocks to turn a block into opens just below the block's name,
+// or above it where there isn't room below, scrolling inside if it's taller
+// than the room there. Core places it with inline styles, hence !important.
 .block-editor-block-switcher__popover.components-popover {
 	position: fixed !important;
 	top: var(--nevelson-switcher-top) !important;
@@ -427,7 +427,7 @@ body.nevelson-faded .block-editor-block-toolbar .nevelson-moved {
 	translate: none !important;
 
 	.components-popover__content {
-		max-height: calc(100vh - var(--nevelson-switcher-top, 0px) - 12px) !important;
+		max-height: var(--nevelson-switcher-max, calc(100vh - var(--nevelson-switcher-top, 0px) - 12px)) !important;
 		overflow-y: auto !important;
 	}
 }

@@ -36,6 +36,11 @@ const chevronDown = (
 	</SVG>
 );
 
+// The space kept between the list and the edge of the screen, and how much of
+// the list there must be room for below the button for it to open there.
+const MARGIN = 12;
+const ENOUGH = 320;
+
 /**
  * In the list of blocks to turn a block into, its styles come first, above
  * the blocks. Core puts them last; moving them in the page (not only how
@@ -91,9 +96,11 @@ function NameInSwitcher( { clientId } ) {
 	}, [ clientId ] );
 	const canSwitch = !! button?.closest( '.block-editor-block-switcher' );
 
-	// The list opens downward, just below the button, whatever room there
-	// is: core would flip it above when it's taller than the room below.
-	// Nevelson keeps where in CSS variables, so the styles place it.
+	// The list opens downward, just below the button, where there's room
+	// for it (or at least for most of it). Where there isn't, as for a block
+	// near the bottom of the screen, it opens above, so it isn't squeezed
+	// against the bottom with its previews running off the screen. Nevelson
+	// keeps where in CSS variables, so the styles place it.
 	useEffect( () => {
 		if ( ! button ) {
 			return;
@@ -105,6 +112,16 @@ function NameInSwitcher( { clientId } ) {
 				return;
 			}
 			const r = button.getBoundingClientRect();
+			const content = document.querySelector(
+				'.block-editor-block-switcher__popover .components-popover__content'
+			);
+			const tall = content ? content.scrollHeight + 2 : 0;
+			const below = window.innerHeight - r.bottom - 8 - MARGIN;
+			const above = r.top - 8 - MARGIN;
+			const down = below >= Math.min( tall, ENOUGH ) || below >= above;
+			const room = Math.max( down ? below : above, 0 );
+			const height = Math.min( tall, room );
+			const top = down ? r.bottom + 8 : r.top - 8 - height;
 			const body = document.body.style;
 			body.setProperty(
 				'--nevelson-switcher-left',
@@ -112,7 +129,11 @@ function NameInSwitcher( { clientId } ) {
 			);
 			body.setProperty(
 				'--nevelson-switcher-top',
-				`${ Math.round( r.bottom + 8 ) }px`
+				`${ Math.round( top ) }px`
+			);
+			body.setProperty(
+				'--nevelson-switcher-max',
+				`${ Math.floor( room ) }px`
 			);
 			stylesFirst();
 		};

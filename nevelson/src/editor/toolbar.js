@@ -37,6 +37,31 @@ const chevronDown = (
 );
 
 /**
+ * In the list of blocks to turn a block into, its styles come first, above
+ * the blocks. Core puts them last; moving them in the page (not only how
+ * they look) keeps the arrow keys going top to bottom. If the first block in
+ * the list had the focus, as it does when the list opens, the first style
+ * gets it instead.
+ */
+function stylesFirst() {
+	const list = document.querySelector(
+		'.block-editor-block-switcher__popover .block-editor-block-switcher__container'
+	);
+	const styles = list?.querySelector(
+		':scope > .block-editor-block-switcher__styles__menugroup'
+	);
+	if ( ! styles || list.firstElementChild === styles ) {
+		return;
+	}
+	const first = list.querySelector( '[role="menuitem"], button' );
+	const focused = first && first === first.ownerDocument.activeElement;
+	list.insertBefore( styles, list.firstElementChild );
+	if ( focused ) {
+		styles.querySelector( '[role="menuitem"], button' )?.focus();
+	}
+}
+
+/**
  * The block's name, and a chevron, in the toolbar's block switcher, after the
  * block's icon: the whole thing is one button that opens the list of blocks
  * to turn it into, below it. Blocks that can't be turned into others have an
@@ -89,6 +114,7 @@ function NameInSwitcher( { clientId } ) {
 				'--nevelson-switcher-top',
 				`${ Math.round( r.bottom + 8 ) }px`
 			);
+			stylesFirst();
 		};
 		place();
 		return () => window.cancelAnimationFrame( frame );

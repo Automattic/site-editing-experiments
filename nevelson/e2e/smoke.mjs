@@ -341,7 +341,48 @@ await step(
 			r.top >= r.bottom && r.top - r.bottom < 20,
 			'it didn’t open below'
 		);
+		// The block's styles come first, above the blocks to turn it into.
+		const groups = await page.evaluate( () =>
+			[
+				...document.querySelectorAll(
+					'.block-editor-block-switcher__container > .components-menu-group'
+				),
+			].map( ( g ) =>
+				g.classList.contains(
+					'block-editor-block-switcher__styles__menugroup'
+				)
+					? 'styles'
+					: 'blocks'
+			)
+		);
+		expect(
+			groups[ 0 ] === 'styles',
+			`the list is ${ groups.join( ', ' ) }`
+		);
 		await shot( '00b-transform' );
+		// And choosing one still works.
+		await page
+			.locator(
+				'.block-editor-block-switcher__styles__menugroup [role="menuitem"]',
+				{ hasText: 'Display' }
+			)
+			.click();
+		await wait( 400 );
+		const cls = await page.evaluate(
+			( id ) =>
+				window.wp.data
+					.select( 'core/block-editor' )
+					.getBlockAttributes( id ).className,
+			para.id
+		);
+		expect(
+			/is-style-(text-)?display/.test( cls || '' ),
+			`class is ${ cls }`
+		);
+		await page.evaluate( () =>
+			window.wp.data.dispatch( 'core/editor' ).undo()
+		);
+		await wait( 300 );
 		await page.keyboard.press( 'Escape' );
 		await wait( 300 );
 	}

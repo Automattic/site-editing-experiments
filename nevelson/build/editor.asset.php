@@ -5,6 +5,7 @@
 		'wp-blocks',
 		'wp-components',
 		'wp-compose',
+		'wp-core-data',
 		'wp-data',
 		'wp-element',
 		'wp-hooks',
@@ -12,5 +13,5 @@
 		'wp-plugins',
 		'wp-primitives'
 	),
-	'version' => 'ac2ad00225728cb9172e'
+	'version' => '1619b0736ff8fdd79796'
 );

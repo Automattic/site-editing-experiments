@@ -666,68 +666,132 @@ await step( 'a full-width section gets it over the canvas edge', async () => {
 	await shot( '03-wide' );
 } );
 
-await step( 'Settings opens the page in a card below the button', async () => {
-	await select( para.id );
-	await settingsToggle().click();
-	await wait( 600 );
-	expect(
-		( await area() ) === 'edit-post/document',
-		`sidebar is ${ await area() }`
-	);
-	const r = await page.evaluate( () => {
-		const card = document
-			.querySelector( '.interface-interface-skeleton__sidebar' )
-			.getBoundingClientRect();
-		const button = document
-			.querySelector(
-				'.editor-header__settings [aria-controls^="edit-post"]'
-			)
-			.getBoundingClientRect();
-		const frame = document
-			.querySelector( 'iframe[name="editor-canvas"]' )
-			.getBoundingClientRect();
-		const tab = document.querySelector( '[data-tab-id="edit-post/block"]' );
-		return {
-			card: card.toJSON(),
-			button: button.toJSON(),
-			frameWidth: frame.width,
-			blockTab: !! tab && tab.offsetParent !== null,
-		};
-	} );
-	expect(
-		Math.abs( r.card.right - r.button.right ) < 2,
-		'card is not under the button'
-	);
-	expect(
-		r.card.top > r.button.bottom && r.card.top - r.button.bottom < 32,
-		'card is not just below the header'
-	);
-	expect( r.frameWidth === 1440, `the page is ${ r.frameWidth } wide` );
-	expect( ! r.blockTab, 'the Block tab shows' );
-	const p = await panel();
-	expect( p, 'the panel went away' );
-	expect(
-		p.right <= r.card.left || p.left >= r.card.right,
-		'the panel is under the card'
-	);
-	await shot( '04-page' );
-} );
+await step(
+	'the page’s settings are a Page tab in the Document overview',
+	async () => {
+		await select( para.id );
+		expect(
+			( await settingsToggle().count() ) === 0 ||
+				! ( await settingsToggle().isVisible() ),
+			'the Settings button shows'
+		);
+		await page
+			.locator( '.editor-document-tools__document-overview-toggle' )
+			.click();
+		await wait( 600 );
+		const tabs = await page.evaluate( () =>
+			[
+				...document.querySelectorAll(
+					'.editor-list-view-sidebar [role="tab"]'
+				),
+			].map( ( t ) => t.textContent.trim() )
+		);
+		expect(
+			tabs.join() === 'List View,Outline,Page',
+			`the tabs are ${ tabs.join( ', ' ) }`
+		);
+		await page.locator( '.nevelson-page-tab' ).click();
+		await wait( 600 );
+		expect(
+			( await area() ) === 'edit-post/document',
+			`sidebar is ${ await area() }`
+		);
+		const r = await page.evaluate( () => {
+			const box = ( s ) =>
+				document.querySelector( s )?.getBoundingClientRect().toJSON();
+			const settings = box( '.interface-interface-skeleton__sidebar' );
+			const overview = box( '.editor-list-view-sidebar' );
+			const head = box(
+				'.editor-list-view-sidebar .block-editor-tabbed-sidebar__tablist-and-close-button'
+			);
+			const at = document.elementFromPoint(
+				settings.left + 40,
+				settings.top + 40
+			);
+			const frame = box( 'iframe[name="editor-canvas"]' );
+			const tab = document.querySelector( '.nevelson-page-tab' );
+			return {
+				settings,
+				overview,
+				head,
+				frameLeft: frame.left,
+				onTop: !! at?.closest(
+					'.interface-interface-skeleton__sidebar'
+				),
+				selected: tab.getAttribute( 'aria-selected' ),
+				text: document.querySelector(
+					'.interface-interface-skeleton__sidebar'
+				).textContent,
+				blockTab: !! document.querySelector(
+					'[data-tab-id="edit-post/block"]'
+				)?.offsetParent,
+			};
+		} );
+		expect(
+			Math.abs( r.settings.left - r.overview.left ) < 2 &&
+				Math.abs( r.settings.width - r.overview.width ) < 2 &&
+				Math.abs( r.settings.top - r.head.bottom ) < 2 &&
+				Math.abs( r.settings.bottom - r.overview.bottom ) < 2,
+			'the settings aren’t in the overview, under its tabs'
+		);
+		expect( r.onTop, 'the settings are under the list' );
+		expect( r.selected === 'true', 'Page isn’t the chosen tab' );
+		expect( /Status/.test( r.text ), 'no Status in the page’s settings' );
+		expect( ! r.blockTab, 'the Block tab shows' );
+		expect(
+			r.frameLeft >= r.overview.right - 1,
+			'the overview is over the page'
+		);
+		const p = await panel();
+		expect( p, 'the panel went away' );
+		expect( p.left >= r.overview.right, 'the panel is over the overview' );
+		await shot( '04-page' );
+	}
+);
 
-await step( 'selecting a block keeps the card on the page', async () => {
-	await select( paras[ 1 ].id );
-	await wait( 600 );
-	expect(
-		( await area() ) === 'edit-post/document',
-		`sidebar is ${ await area() }`
-	);
-	expect( await panel(), 'no panel' );
-} );
-
-await step( 'a click on the page closes the card', async () => {
+await step( 'selecting a block keeps the Page tab open', async () => {
 	await canvas.locator( `#block-${ paras[ 1 ].id }` ).click();
-	await wait( 500 );
-	expect( ( await area() ) === null, `sidebar is ${ await area() }` );
+	await wait( 600 );
+	expect(
+		( await area() ) === 'edit-post/document',
+		`sidebar is ${ await area() }`
+	);
 	expect( await panel(), 'no panel' );
+} );
+
+await step( 'List View goes back to the list', async () => {
+	await page
+		.locator( '.editor-list-view-sidebar [role="tab"]', {
+			hasText: 'List View',
+		} )
+		.click();
+	await wait( 600 );
+	expect( ( await area() ) === null, `sidebar is ${ await area() }` );
+	const shown = await page.evaluate(
+		() =>
+			!! document.querySelector(
+				'.editor-list-view-sidebar .block-editor-list-view-tree'
+			)?.offsetParent
+	);
+	expect( shown, 'the list isn’t showing' );
+} );
+
+await step( 'closing the overview closes the page’s settings', async () => {
+	await page.locator( '.nevelson-page-tab' ).click();
+	await wait( 500 );
+	await page
+		.locator(
+			'.editor-list-view-sidebar .block-editor-tabbed-sidebar__close-button'
+		)
+		.click();
+	await wait( 600 );
+	expect( ( await area() ) === null, `sidebar is ${ await area() }` );
+	expect(
+		! ( await page.evaluate( () =>
+			window.wp.data.select( 'core/editor' ).isListViewOpened()
+		) ),
+		'the overview is open'
+	);
 } );
 
 // Clicks a block where you'd click it: near its top left.

@@ -23,7 +23,8 @@ import {
 
 import { FloatingPanel } from './panel';
 import { createSectionEntry } from './sections';
-import { store as nevelsonStore } from './toolbar';
+import './toolbar';
+import { store as nevelsonStore } from './store';
 import './style.scss';
 
 const SCOPE = 'core';

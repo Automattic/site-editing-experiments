@@ -197,6 +197,17 @@ const extras = () =>
 		};
 	} );
 
+// Opens a tab in the block's settings, if it has tabs.
+const openTab = async ( name ) => {
+	const tab = page.locator(
+		`${ PANEL } [role="tab"][aria-label="${ name }"]`
+	);
+	if ( await tab.count() ) {
+		await tab.first().click();
+		await wait( 300 );
+	}
+};
+
 const select = ( clientId ) =>
 	page.evaluate(
 		( id ) =>
@@ -376,6 +387,7 @@ await step(
 			! MOVED.some( ( l ) => head.dropdownsInBand.includes( l ) ),
 			`alignment dropdowns are in the band: ${ head.dropdownsInBand.join( ', ' ) }`
 		);
+		await openTab( 'Styles' );
 		await page
 			.locator( '.nevelson-text-alignment button[aria-label="Center"]' )
 			.click();
@@ -398,21 +410,26 @@ await step(
 		await page.keyboard.press( 'ControlOrMeta+z' );
 		await page.keyboard.press( 'ControlOrMeta+z' );
 		await wait( 300 );
-		const t = await toolbar();
-		expect(
-			t && ! MOVED.some( ( l ) => t.labels.includes( l ) ),
-			'the toolbar by the block has more than the basics'
+		// While the panel's open, the toolbar by the block is hidden.
+		const hidden = await page.evaluate(
+			() =>
+				window.getComputedStyle(
+					document.querySelector(
+						'.block-editor-block-contextual-toolbar'
+					)
+				).visibility === 'hidden'
 		);
-		expect(
-			[ 'Drag', 'Bold', 'Block settings', 'Options' ].every( ( l ) =>
-				t.labels.includes( l )
-			),
-			'the basics aren’t by the block'
-		);
+		expect( hidden, 'the toolbar by the block shows' );
+		// A paragraph has no actions, so no Settings tab: no tabs at all.
+		const tabCount = await page
+			.locator( `${ PANEL } [role="tablist"] [role="tab"]` )
+			.count();
+		expect( tabCount === 0, `the paragraph has ${ tabCount } tabs` );
 	}
 );
 
 await step( 'a setting in the panel changes the block', async () => {
+	await openTab( 'Styles' );
 	await page
 		.locator( `${ PANEL } [role="radio"][aria-label="Large"]` )
 		.click();
@@ -451,6 +468,7 @@ await step( 'it follows the block as the page scrolls', async () => {
 } );
 
 await step( 'a colour picker opens over the panel', async () => {
+	await openTab( 'Styles' );
 	await page
 		.locator(
 			`${ PANEL } .block-editor-tools-panel-color-gradient-settings__dropdown`
@@ -476,6 +494,33 @@ await step( 'a colour picker opens over the panel', async () => {
 	await shot( '02-colour' );
 	await page.keyboard.press( 'Escape' );
 	await wait( 200 );
+} );
+
+await step( 'pop-outs from the panel open to its side', async () => {
+	await openTab( 'Styles' );
+	await page
+		.locator(
+			`${ PANEL } .block-editor-tools-panel-color-gradient-settings__dropdown`
+		)
+		.first()
+		.click();
+	await wait( 500 );
+	const r = await page.evaluate( () => {
+		const pop = document.querySelector( '.nevelson-side-popover' );
+		if ( ! pop ) {
+			return 'no pop-out';
+		}
+		const card = document
+			.querySelector( '.nevelson-panel' )
+			.getBoundingClientRect();
+		const b = pop.getBoundingClientRect();
+		return b.right <= card.left || b.left >= card.right
+			? true
+			: 'over the panel';
+	} );
+	expect( r === true, String( r ) );
+	await page.keyboard.press( 'Escape' );
+	await wait( 300 );
 } );
 
 await step( 'a full-width section gets it over the canvas edge', async () => {
@@ -629,10 +674,11 @@ await step(
 await step(
 	'an image’s other tools are a list of settings, each with its name',
 	async () => {
+		await openTab( 'Settings' );
 		await wait( 300 );
 		const r = await page.evaluate( () => {
 			const band = document
-				.querySelector( '.nevelson-panel .nevelson-band' )
+				.querySelector( '.nevelson-panel .nevelson-actions-slot' )
 				.getBoundingClientRect();
 			const rows = [
 				...document.querySelectorAll( '.nevelson-moved button' ),
@@ -656,6 +702,33 @@ await step(
 			`the list has ${ r.names.join( ', ' ) }`
 		);
 		expect( r.fullWidth, 'the tools aren’t rows as wide as the panel' );
+		const tabs = await page.evaluate( () =>
+			[
+				...document.querySelectorAll(
+					'.nevelson-body .nevelson-tab-label'
+				),
+			].map( ( l ) => l.textContent )
+		);
+		expect(
+			[ 'Content', 'Settings', 'Styles' ].every( ( t ) =>
+				tabs.includes( t )
+			),
+			`the tabs say ${ tabs.join( ', ' ) }`
+		);
+		const width = await page.evaluate(
+			() => document.querySelector( '.nevelson-panel' ).offsetWidth
+		);
+		expect(
+			width === 360,
+			`with three tabs, the panel is ${ width } wide`
+		);
+		await openTab( 'Styles' );
+		expect(
+			( await page.locator( `${ PANEL } .nevelson-alignment` ).count() ) >
+				0,
+			'Alignment isn’t with the styles'
+		);
+		await openTab( 'Settings' );
 		expect( ! r.parent, 'the parent block’s button is in the list' );
 		await shot( '05b-image-tools' );
 	}
@@ -713,9 +786,9 @@ await step( 'closed, it stays closed until the button opens it', async () => {
 	await page.locator( BUTTON ).first().click();
 	await wait( 400 );
 	expect( await panel(), 'the button didn’t open it' );
-	await page.locator( BUTTON ).first().click();
+	await page.locator( `${ PANEL } button[aria-label="Close"]` ).click();
 	await wait( 400 );
-	expect( ( await panel() ) === null, 'the button didn’t close it' );
+	expect( ( await panel() ) === null, 'Close didn’t close it' );
 	await page.locator( BUTTON ).first().click();
 	await wait( 400 );
 } );

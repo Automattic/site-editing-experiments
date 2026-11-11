@@ -14,6 +14,11 @@ $soft: #757575;
 	flex-direction: column;
 	width: 300px;
 	box-sizing: border-box;
+
+	// With three tabs or more, wide enough for their names.
+	&.has-many-tabs:not(.is-sheet) {
+		width: 360px;
+	}
 	background: #fff;
 	border-radius: 12px;
 	box-shadow: 0 16px 40px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(0, 0, 0, 0.08);
@@ -326,23 +331,16 @@ body.nevelson-movers-inside .block-editor-block-toolbar__block-controls {
 	display: none !important;
 }
 
-// The panel's band, where the tools that aren't in the block's toolbar sit,
-// as a list of settings, each with its icon and name. The tools themselves
-// are core's, in the block toolbar's popover, placed over the band by
-// Nevelson.
-.nevelson-band {
-	display: none;
-	flex: none;
-	padding: 6px;
-	border-bottom: 1px solid #f0f0f0;
-
-	.has-tools:not(.is-sheet) > & {
-		display: block;
-	}
+// The Actions panel's place for core's tools, which Nevelson puts over it.
+.nevelson-actions-slot {
+	min-height: 40px;
 }
 
-.nevelson-band-bar {
-	height: var(--nevelson-band-height, 0);
+// A tool whose place isn't showing: another tab, the Actions panel closed,
+// or scrolled out of the settings.
+.block-editor-block-contextual-toolbar .block-editor-block-toolbar .nevelson-moved.nevelson-offstage {
+	visibility: hidden;
+	pointer-events: none;
 }
 
 // While the panel's open, the toolbar's popover goes over the panel, so the
@@ -432,4 +430,51 @@ body.nevelson-faded .block-editor-block-toolbar .nevelson-moved {
 		max-height: calc(100vh - var(--nevelson-switcher-top, 0px) - 12px) !important;
 		overflow-y: auto !important;
 	}
+}
+
+// A pop-out opened from the panel opens to its side, not over it.
+.components-popover.nevelson-side-popover {
+	position: fixed !important;
+	top: var(--nevelson-popout-top) !important;
+	left: var(--nevelson-popout-left) !important;
+	right: auto !important;
+	bottom: auto !important;
+	transform: none !important;
+	translate: none !important;
+
+	.components-popover__arrow {
+		display: none;
+	}
+}
+
+// While the panel's open, the block's toolbar is hidden until it's closed:
+// everything it has is in the panel. Its tools in the panel stay showing.
+body.nevelson-open .block-editor-block-popover:has(.block-editor-block-contextual-toolbar) {
+	.block-editor-block-contextual-toolbar {
+		visibility: hidden;
+	}
+
+	.nevelson-moved:not(.nevelson-offstage) {
+		visibility: visible;
+	}
+}
+
+// The tabs in the panel's settings have their names, beside their icons, at
+// the tab's left. (Core's wrapper for the icon grows to fill the tab, which
+// would centre the icon and push the name away.)
+.nevelson-body [role="tablist"] [role="tab"] {
+	justify-content: flex-start;
+	gap: 4px;
+	padding-left: 10px !important;
+	padding-right: 10px !important;
+
+	> :first-child {
+		flex: none !important;
+	}
+}
+
+.nevelson-tab-label {
+	font-size: 12px;
+	font-weight: 500;
+	white-space: nowrap;
 }

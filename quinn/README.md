@@ -30,6 +30,12 @@ Click the menu in the header. Where the Navigation block's sidebar would list th
 
 Neither the Page List nor its pages can be selected on their own: clicking one in the canvas selects the menu. The Page List never appears in the Navigation block's list of items, even when the menu has other links. Its Parent page setting and Detach button are out of reach inside a menu as a result, and Add link after does the detaching instead.
 
+### On the Navigation screen
+
+The site editor's **Navigation** screen, at Appearance > Editor > Navigation, shows a menu the same way: its pages, to switch on and off and reorder, then its other links. This works in the extensible site editor's Navigation screen too. Before this, a menu of only a Page List showed its pages as a list you could look at but not change.
+
+![The site editor's Navigation screen: the dark sidebar lists Header navigation's pages, with Thank you for your order switched off, and a Review 1 change button](screenshots/navigation-screen.png)
+
 ### Adding links
 
 When the menu is only pages, an **Add link** button sits below them. It adds a link after the pages and opens its search. Once the menu has other links, the usual list of items appears below the pages, with only those links in it.

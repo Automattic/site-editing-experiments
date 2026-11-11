@@ -3,7 +3,7 @@
  * View and Outline.
  *
  * Core's overview has no place for another tab, so Nevelson adds a button to
- * its tab list. The tab's content is core's own sidebar for the page (the
+ * the start of its tab list, so Page comes first. The tab's content is core's own sidebar for the page (the
  * editor's Page or Template settings), placed over the overview's tab panel:
  * Page is open when that sidebar is, and the List View and Outline tabs, or
  * closing the overview, close it.
@@ -22,19 +22,31 @@ export const isWide = () => window.matchMedia( '(min-width: 782px)' ).matches;
 
 const TABLIST = '.editor-list-view-sidebar [role="tablist"]';
 
-// The overview's tab list, once it's open.
+// The overview's tab list, once it's open, and a place at its start for the
+// Page tab, which comes first.
 function useTabList( open ) {
 	const [ list, setList ] = useState( null );
+	const [ slot ] = useState( () => {
+		const el = document.createElement( 'span' );
+		el.className = 'nevelson-page-tab-slot';
+		return el;
+	} );
 	useEffect( () => {
 		const find = () => {
 			const found = open ? document.querySelector( TABLIST ) : null;
+			if ( found && found.firstChild !== slot ) {
+				found.insertBefore( slot, found.firstChild );
+			}
 			setList( ( prev ) => ( prev === found ? prev : found ) );
 		};
 		find();
 		const t = setInterval( find, 300 );
-		return () => clearInterval( t );
-	}, [ open ] );
-	return list;
+		return () => {
+			clearInterval( t );
+			slot.remove();
+		};
+	}, [ open, slot ] );
+	return { list, slot };
 }
 
 export default function PageTab( { loading } ) {
@@ -56,7 +68,7 @@ export default function PageTab( { loading } ) {
 	const { enableComplementaryArea, disableComplementaryArea } =
 		useDispatch( 'core/interface' );
 	const { setIsListViewOpened } = useDispatch( 'core/editor' );
-	const list = useTabList( listOpen );
+	const { list, slot } = useTabList( listOpen );
 	const on = pageOpen && listOpen && isWide();
 
 	// Page lives in the overview: opening the page's settings some other way
@@ -89,15 +101,20 @@ export default function PageTab( { loading } ) {
 					.disableComplementaryArea( SCOPE );
 			}
 		};
-		// And on along it to Page with the arrow keys, from the last of
-		// core's tabs.
+		// And back along it to Page with the arrow keys, from the first of
+		// core's tabs, or Home from any of them.
 		const key = ( event ) => {
-			const tabs = list.querySelectorAll( '[role="tab"]' );
+			const tabs = list.querySelectorAll(
+				'[role="tab"]:not(.nevelson-page-tab)'
+			);
 			const page = list.querySelector( '.nevelson-page-tab' );
+			const core = [ ...tabs ].includes( event.target );
 			if (
 				page &&
-				[ 'ArrowRight', 'End' ].includes( event.key ) &&
-				event.target === tabs[ tabs.length - 2 ]
+				core &&
+				( event.key === 'Home' ||
+					( event.key === 'ArrowLeft' &&
+						event.target === tabs[ 0 ] ) )
 			) {
 				event.preventDefault();
 				event.stopPropagation();
@@ -178,15 +195,15 @@ export default function PageTab( { loading } ) {
 				pageOpen ? null : enableComplementaryArea( SCOPE, DOCUMENT )
 			}
 			onKeyDown={ ( event ) => {
-				// Back along the tab list with the arrow keys.
-				if ( [ 'ArrowLeft', 'Home' ].includes( event.key ) ) {
+				// On along the tab list with the arrow keys.
+				if ( [ 'ArrowRight', 'End' ].includes( event.key ) ) {
 					const tabs = list.querySelectorAll(
 						'[role="tab"]:not(.nevelson-page-tab)'
 					);
 					const to =
-						event.key === 'Home'
-							? tabs[ 0 ]
-							: tabs[ tabs.length - 1 ];
+						event.key === 'End'
+							? tabs[ tabs.length - 1 ]
+							: tabs[ 0 ];
 					to?.focus();
 					to?.click();
 				}
@@ -194,6 +211,6 @@ export default function PageTab( { loading } ) {
 		>
 			{ label }
 		</button>,
-		list
+		slot
 	);
 }

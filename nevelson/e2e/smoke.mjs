@@ -687,7 +687,7 @@ await step(
 			].map( ( t ) => t.textContent.trim() )
 		);
 		expect(
-			tabs.join() === 'List View,Outline,Page',
+			tabs.join() === 'Page,List View,Outline',
 			`the tabs are ${ tabs.join( ', ' ) }`
 		);
 		await page.locator( '.nevelson-page-tab' ).click();

@@ -207,6 +207,11 @@ body.nevelson [data-tab-id="edit-post/block"] {
 		visibility: hidden;
 	}
 
+	// The Page tab comes first in the overview's tab list.
+	.nevelson-page-tab-slot {
+		display: contents;
+	}
+
 	// While Page is open, the overview's own panels are hidden, and the line
 	// under its tabs moves under Page.
 	body.nevelson-page-on .editor-list-view-sidebar {

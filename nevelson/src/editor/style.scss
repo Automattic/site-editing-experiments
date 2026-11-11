@@ -447,18 +447,6 @@ body.nevelson-faded .block-editor-block-toolbar .nevelson-moved {
 	}
 }
 
-// While the panel's open, the block's toolbar is hidden until it's closed:
-// everything it has is in the panel. Its tools in the panel stay showing.
-body.nevelson-open .block-editor-block-popover:has(.block-editor-block-contextual-toolbar) {
-	.block-editor-block-contextual-toolbar {
-		visibility: hidden;
-	}
-
-	.nevelson-moved:not(.nevelson-offstage) {
-		visibility: visible;
-	}
-}
-
 // The tabs in the panel's settings have their names, beside their icons, at
 // the tab's left. (Core's wrapper for the icon grows to fill the tab, which
 // would centre the icon and push the name away.)

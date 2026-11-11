@@ -451,7 +451,7 @@ export function FloatingPanel( {
 						top: canvas.top,
 						right: canvas.right,
 						bottom: canvas.top,
-				  };
+					};
 
 			el.classList.toggle( 'is-sheet', sheet );
 			const size = { width: el.offsetWidth, height: el.scrollHeight };

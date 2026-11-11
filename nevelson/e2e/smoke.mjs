@@ -130,7 +130,7 @@ const withToolbar = async ( clientId ) => {
 				top: Math.min( b.top, t.top ),
 				right: Math.max( b.right, t.right ),
 				bottom: Math.max( b.bottom, t.bottom ),
-		  }
+			}
 		: b;
 };
 

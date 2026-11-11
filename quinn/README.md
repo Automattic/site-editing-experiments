@@ -55,6 +55,10 @@ Dragging does the same, in the sidebar:
 
 Either way, the pages turn into links first, in the order shown and without hidden pages, and the menu becomes an ordinary menu of links. One Undo puts the Page List back.
 
+Before any of these turns the pages into links, the Detach dialog asks, saying what you did and what follows: new pages won't be added to the menu automatically, and pages that are switched off are left out. Cancel keeps the Page List, and anything you dragged goes back where it was.
+
+![Dragging Catering out of the pages: the Detach Page List dialog says the menu's pages will become links, with Cancel and Detach](screenshots/detach-dialog.png)
+
 ![After dragging Catering below the shop link: the sidebar lists the menu's links, Home, About with Our story and Team, Menu, Visit us, Thank you for your order, the shop link, then Catering](screenshots/dragged-out.png)
 
 ### Order is page order

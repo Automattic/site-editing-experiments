@@ -120,6 +120,20 @@ const blockBox = ( clientId ) =>
 		};
 	}, clientId );
 
+// A block's box with its toolbar's, which the panel goes beside too.
+const withToolbar = async ( clientId ) => {
+	const b = await blockBox( clientId );
+	const t = await toolbar();
+	return t
+		? {
+				left: Math.min( b.left, t.left ),
+				top: Math.min( b.top, t.top ),
+				right: Math.max( b.right, t.right ),
+				bottom: Math.max( b.bottom, t.bottom ),
+		  }
+		: b;
+};
+
 // Where the panel's top should be: level with the block's, unless that would
 // take it out of the canvas.
 const expectedTop = ( p, b ) =>
@@ -331,7 +345,9 @@ await step( 'the pencil opens it, to the right of the block', async () => {
 	expect( p.side === 'right', `side is ${ p.side }` );
 	expect( p.left > b.right, 'panel overlaps the block' );
 	expect(
-		Math.abs( p.top - ( await expectedTop( p, b ) ) ) < 2,
+		Math.abs(
+			p.top - ( await expectedTop( p, await withToolbar( para.id ) ) )
+		) < 2,
 		'panel is not level with the block'
 	);
 	expect( p.title === 'Paragraph', `panel shows ${ p.title }` );
@@ -410,16 +426,20 @@ await step(
 		await page.keyboard.press( 'ControlOrMeta+z' );
 		await page.keyboard.press( 'ControlOrMeta+z' );
 		await wait( 300 );
-		// While the panel's open, the toolbar by the block is hidden.
-		const hidden = await page.evaluate(
-			() =>
-				window.getComputedStyle(
-					document.querySelector(
-						'.block-editor-block-contextual-toolbar'
-					)
-				).visibility === 'hidden'
+		// While the panel's open, the toolbar by the block shows too, and
+		// the panel doesn't cover it.
+		const t = await toolbar();
+		const p = await panel();
+		expect( t && t.labels.length, 'the toolbar by the block is hidden' );
+		expect(
+			! (
+				p.left < t.right &&
+				p.right > t.left &&
+				p.top < t.bottom &&
+				p.bottom > t.top
+			),
+			'the panel covers the toolbar'
 		);
-		expect( hidden, 'the toolbar by the block shows' );
 		// A paragraph has no actions, so no Settings tab: no tabs at all.
 		const tabCount = await page
 			.locator( `${ PANEL } [role="tablist"] [role="tab"]` )
@@ -445,7 +465,7 @@ await step( 'it follows the block as the page scrolls', async () => {
 	await select( list.id );
 	await wait( 400 );
 	const before = await panel();
-	const b0 = await blockBox( list.id );
+	const b0 = await withToolbar( list.id );
 	expect(
 		Math.abs( before.top - ( await expectedTop( before, b0 ) ) ) < 2,
 		'panel is not level with the list'
@@ -454,7 +474,7 @@ await step( 'it follows the block as the page scrolls', async () => {
 	await page.mouse.wheel( 0, 200 );
 	await wait( 500 );
 	const after = await panel();
-	const b1 = await blockBox( list.id );
+	const b1 = await withToolbar( list.id );
 	expect( b1.top < b0.top - 100, 'the page did not scroll' );
 	expect(
 		Math.abs( after.top - ( await expectedTop( after, b1 ) ) ) < 2,

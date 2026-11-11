@@ -330,6 +330,28 @@ function blocksBox( iframe, clientIds ) {
 	return union( rects );
 }
 
+// The block toolbar's box by the block, with the handle and movers that sit
+// out to its left, so the panel can stay clear of it. (Not the tools placed
+// in the panel, which are in the toolbar too.)
+function toolbarBox() {
+	const bar = document.querySelector(
+		'.block-editor-block-popover .block-editor-block-contextual-toolbar'
+	);
+	if ( ! bar ) {
+		return null;
+	}
+	const rects = [
+		bar,
+		...bar.querySelectorAll(
+			'.block-editor-block-toolbar__block-controls, .block-editor-block-mover'
+		),
+	]
+		.filter( ( el ) => ! el.closest( '.nevelson-moved' ) )
+		.map( ( el ) => el.getBoundingClientRect() )
+		.filter( ( r ) => r.width && r.height );
+	return union( rects );
+}
+
 /**
  * The panel's heading: the block's icon and name, with its description as
  * the heading's title text, or how many blocks are selected.
@@ -387,6 +409,8 @@ export function FloatingPanel( {
 		let last = '';
 		let shown = '';
 		let actions = -1;
+		let bar = null;
+		let barFor = '';
 		const popout = {};
 		const marked = new Set();
 		const tick = () => {
@@ -407,12 +431,27 @@ export function FloatingPanel( {
 			} = live.current;
 			const own = blocksBox( iframe, ids );
 			const sheet = isSheet( canvas );
-			const block = own || {
-				left: canvas.right,
-				top: canvas.top,
-				right: canvas.right,
-				bottom: canvas.top,
-			};
+			// The toolbar shows with the panel, so it goes beside both. While
+			// you type, core hides the toolbar: keep to where it was, so the
+			// panel doesn't jump as you start and stop.
+			const now = typing ? null : toolbarBox();
+			if ( now || barFor !== ids.join() ) {
+				bar = now;
+				barFor = ids.join();
+			}
+			const near =
+				bar &&
+				own &&
+				bar.bottom > own.top - 120 &&
+				bar.top < own.bottom + 120;
+			const block = own
+				? union( near ? [ own, bar ] : [ own ] )
+				: {
+						left: canvas.right,
+						top: canvas.top,
+						right: canvas.right,
+						bottom: canvas.top,
+				  };
 
 			el.classList.toggle( 'is-sheet', sheet );
 			const size = { width: el.offsetWidth, height: el.scrollHeight };
@@ -494,7 +533,7 @@ export function FloatingPanel( {
 		};
 	}, [] );
 
-	// While the panel's open, the block toolbar is in it, not by the block.
+	// While the panel's open, the toolbar's other tools are in it.
 	useLayoutEffect( () => {
 		document.body.classList.add( 'nevelson-open' );
 		return () => document.body.classList.remove( 'nevelson-open' );

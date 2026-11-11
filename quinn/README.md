@@ -10,7 +10,7 @@ It's [O'Keeffe](../okeeffe/)'s prototype F, "All pages with menu switches", in t
 
 Locally, check out the `add/page-list-reorder-and-hide-pages` branch of Gutenberg and build it. There's no experiment to turn on.
 
-The build is `gutenberg.zip` in this folder, the PR's own build at `5443f24`, kept here because the PR's builds expire after 14 days. When the PR changes, replace it: download `gutenberg.zip` from the PR's latest **Build Gutenberg Plugin Zip** run, or check out the branch and run `npm ci` and `NO_CHECKS=true npm run build:plugin-zip`.
+The build is `gutenberg.zip` in this folder, the PR's own build at `aff5dee`, kept here because the PR's builds expire after 14 days. When the PR changes, replace it: download `gutenberg.zip` from the PR's latest **Build Gutenberg Plugin Zip** run, or check out the branch and run `npm ci` and `NO_CHECKS=true npm run build:plugin-zip`.
 
 ## What's in it
 
@@ -30,6 +30,12 @@ Click the menu in the header. Where the Navigation block's sidebar would list th
 
 Neither the Page List nor its pages can be selected on their own: clicking one in the canvas selects the menu. The Page List never appears in the Navigation block's list of items, even when the menu has other links. Its Parent page setting and Detach button are out of reach inside a menu as a result, and Add link after does the detaching instead.
 
+### On the Navigation screen
+
+The site editor's **Navigation** screen, at Appearance > Editor > Navigation, shows a menu the same way: its pages, to switch on and off and reorder, then its other links. This works in the extensible site editor's Navigation screen too. Before this, a menu of only a Page List showed its pages as a list you could look at but not change.
+
+![The site editor's Navigation screen: the dark sidebar lists Header navigation's pages, with Thank you for your order switched off, and a Review 1 change button](screenshots/navigation-screen.png)
+
 ### Adding links
 
 When the menu is only pages, an **Add link** button sits below them. It adds a link after the pages and opens its search. Once the menu has other links, the usual list of items appears below the pages, with only those links in it.
@@ -41,6 +47,15 @@ When the menu is only pages, an **Add link** button sits below them. It adds a l
 A link can't go between two pages of a Page List. So **Add link after** in a page's ⋮ menu turns the menu's pages into links first, as Detach does, then adds the new link after that page and opens its search. The ⋮ menu says so. From then on the menu is links, which no longer update as pages change.
 
 ![After Add link after Menu: the sidebar lists the pages as links, with a new Navigation Link after Menu, and its search is open in the header](screenshots/add-link-after.png)
+
+Dragging does the same, in the sidebar:
+
+- drag another item of the menu, such as a custom or post link, from the list below the pages onto one of the pages, and it lands just before or after that page, at that page's level.
+- drag a page by its handle onto the list of the menu's other items, and a line shows where it will land, before or after the item under it. Its child pages go with it.
+
+Either way, the pages turn into links first, in the order shown and without hidden pages, and the menu becomes an ordinary menu of links. One Undo puts the Page List back.
+
+![After dragging Catering below the shop link: the sidebar lists the menu's links, Home, About with Our story and Team, Menu, Visit us, Thank you for your order, the shop link, then Catering](screenshots/dragged-out.png)
 
 ### Order is page order
 
@@ -74,7 +89,8 @@ Detach, from a Page List's toolbar outside a menu, and Add link after both keep 
 - **Hidden parents.** Hiding a parent hides its child pages. F did the opposite: it promoted the child pages to the top level. Which matches what people expect?
 - **Putting a page under another.** F's ⋮ menu also had "Put under About" and "Take out from under About", which change the page's parent and its address. This leaves those to the page's own settings.
 - **Where the list lives.** The pages are in the Navigation block's sidebar. Would people also look for them on the Pages screen, as in O'Keeffe?
-- **Links between pages.** Add link after detaches the whole menu to put one link between two pages. Is that a surprise, even with the note in the ⋮ menu? The alternative is a Page List that can hold links of its own.
+- **Dragging in the canvas.** Moving items in and out of the pages works in the sidebar. In the canvas, the pages can't be dragged, and other items can't be dropped among them.
+- **Links between pages.** Add link after, and dragging a link among the pages, detach the whole menu to put one link between two pages. Is that a surprise, even with the note in the ⋮ menu? The alternative is a Page List that can hold links of its own.
 - **Removing the pages.** With the Page List out of reach, the only way to take every page out of a menu is to switch each one off. Does it need a "Remove pages" action, or the Parent page setting, in the menu's sidebar?
 - **The canvas's + button.** The menu's + in the canvas adds a Page Link, labelled "Select page", which here can't link to a page. In a menu with a Page List it should probably add a custom link, as the sidebar's Add link button does.
 - **Many pages.** The panel lists every page, up to the 100 that Page List loads in the editor. A site with hundreds would need search or collapsed sections.

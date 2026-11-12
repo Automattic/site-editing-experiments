@@ -50,9 +50,9 @@
    *                   and dragged.
    *   restDrag: true  (round 3) as Squarespace does: until you click into a
    *                   block to type, the whole block is a drag handle. Hover
-   *                   shows its outline and type; the first click selects it;
-   *                   a second click puts the caret where you clicked; Escape
-   *                   or clicking elsewhere stops editing.
+   *                   shows its outline and type; a click selects it and puts
+   *                   the caret where you clicked, and from then on it no
+   *                   longer drags; Escape or clicking elsewhere stops editing.
    *   cursor: 'move'  (round 3) the four-arrow move cursor over things you can
    *                   drag and while dragging, instead of the hand.
    *   handleTip: 'instant'  the drag handle's tooltip appears as soon as the
@@ -91,7 +91,8 @@
     { letter: 'W3', href: 'toolbar-wing.html' },
     { letter: 'D3', href: 'toolbar-arrows.html' },
     { letter: 'O3', href: 'outline.html' },
-    { letter: 'S3', href: 'rest-drag.html' }
+    { letter: 'S3', href: 'rest-drag.html' },
+    { letter: 'M3', href: 'move-cursor.html' }
   ] : ROUND2 ? [
     { letter: 'A', href: 'today.html' },
     { letter: 'B', href: 'edge.html' },
@@ -784,8 +785,10 @@
       const id = press.id;
       press = null;
       cleanupListeners();
-      if (selected === id) {
-        // Second click: edit the text, with the caret where they clicked.
+      {
+        // A click (no drag) selects the block and starts editing its text,
+        // with the caret where they clicked. Until then it only drags.
+        selected = id;
         editingId = id;
         render();
         const range = document.caretRangeFromPoint ? document.caretRangeFromPoint(e.clientX, e.clientY) : null;
@@ -800,9 +803,6 @@
           if (first) first.focus();
         }
         if (editingId) note('other', 'Clicked into ' + describe(id) + ' to edit it');
-      } else {
-        selected = id;
-        render();
       }
       return;
     }
@@ -1156,7 +1156,8 @@
       L3: 'Round 3: the toolbar’s handle labelled “Move”',
       D3: 'Round 3: no separate handle; drag the move arrows',
       O3: 'Round 3: today’s toolbar, and the selected block’s outline can be dragged',
-      S3: 'Round 3: today’s toolbar, and every block drags from anywhere until you click into it to type (as Squarespace does)'
+      S3: 'Round 3: today’s toolbar, and every block drags from anywhere until you click into it to type (as Squarespace does)',
+      M3: 'Round 3: the control with the four-arrow move cursor instead of the hand'
     }[LETTER] + (ROUND3 ? '' : ROUND2 ? ' (round 2: the long page)' : '');
     notesEl.innerHTML =
       '<h2>' + LETTER + ' · Facilitator notes</h2><p>' + variant + '. Only you can see this panel; open the page without <code>?notes</code> for participants.</p>' +

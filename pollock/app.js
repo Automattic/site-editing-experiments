@@ -37,6 +37,11 @@
    *                   opening hours and directions side by side in two
    *                   columns, so handles have to cope with blocks that
    *                   have no margin beside them.
+   *   handle: 'wing' (round 3) the drag handle and the arrows are the toolbar's
+   *                   first group, and the toolbar shifts left so that group
+   *                   sticks out past the block's left edge, like the edge
+   *                   grip, but floating with the toolbar.
+   *   handle: 'label' (round 3) the toolbar's handle says "Move" beside its dots.
    *   handleTip: 'instant'  the drag handle's tooltip appears as soon as the
    *                   pointer is over it, instead of after the editor's usual
    *                   delay.
@@ -47,7 +52,9 @@
    *                   default in round 2, off in round 1.
    */
   const CONFIG = Object.assign({ handle: 'today', round: 1, arrows: true, hint: false, icon: 'dots' }, window.PROTOTYPE || {});
-  const ROUND2 = CONFIG.round === 2;
+  // Round 3 keeps everything round 2 added; only its tasks and handles differ.
+  const ROUND2 = CONFIG.round >= 2;
+  const ROUND3 = CONFIG.round === 3;
   // As in the editor today, a block that isn't text (here, a picture) can be
   // dragged by itself, without a handle: BlockListBlock is draggable when the
   // block, not a text field in it, has focus. Round 1 didn't have this.
@@ -65,7 +72,11 @@
   const HANDLE_TIP_DELAY = CONFIG.handleTip === 'instant' ? 0 : TIP_DELAY;
   const NOTES = new URLSearchParams(location.search).has('notes') || location.hash === '#notes';
   const LETTER = CONFIG.code || { today: 'A', edge: 'B', toolbar: 'C' }[CONFIG.handle];
-  const PAGES = ROUND2 ? [
+  const PAGES = ROUND3 ? [
+    { letter: 'A3', href: 'control.html' },
+    { letter: 'W3', href: 'toolbar-wing.html' },
+    { letter: 'L3', href: 'toolbar-label.html' }
+  ] : ROUND2 ? [
     { letter: 'A', href: 'today.html' },
     { letter: 'B', href: 'edge.html' },
     { letter: 'Bn', href: 'edge-no-arrows.html' },
@@ -188,10 +199,20 @@
     { text: 'Move the “Fresh every morning” banner so it comes straight after the Order online button, at the end of the page.', done: (o) => after(o, 'cover', 'button') }
   ];
 
+  // Round 3: every task moves a text block (or the banner) first, since in
+  // round 2 nearly everyone did task 1 by dragging the picture itself, which
+  // never needs a handle.
+  const TASKS_4 = [
+    TASKS_3[1],
+    { text: 'Move the quote from Ana so it comes straight after the first paragraph (“From this week…”).', done: (o) => after(o, 'quote', 'intro') },
+    TASKS_3[2],
+    TASKS_3[3]
+  ];
+
   const COLUMNS = ROUND2 && CONFIG.layout === 'columns';
   const START_LISTS = COLUMNS ? LISTS_3 : { root: ROUND2 ? START_2 : START_1 };
   const START = Object.values(START_LISTS).flat();
-  const TASKS = COLUMNS ? TASKS_3 : ROUND2 ? TASKS_2 : TASKS_1;
+  const TASKS = ROUND3 ? TASKS_4 : COLUMNS ? TASKS_3 : ROUND2 ? TASKS_2 : TASKS_1;
   const LIST_NAMES = { root: 'the page', 'col-left': 'the left column', 'col-right': 'the right column' };
 
   // ---------- State ----------
@@ -423,6 +444,15 @@
 
     const first = $('div', { class: 'tb-group' });
     first.append(toolButton(ICON_FOR[b.type], b.name, 'switcher'));
+    const bigHandle = (label) => {
+      const h = toolButton(GRIP, 'Drag to move. Arrow keys move too.', 'drag', { class: 'icon-btn drag-big' + (label ? ' drag-label' : ''), title: 'Drag to move' });
+      if (label) h.append($('span', { text: 'Move' }));
+      h.dataset.handle = 'toolbar';
+      return h;
+    };
+    const wing = CONFIG.handle === 'wing' ? $('div', { class: 'tb-group tb-wing' }) : null;
+    if (wing) wing.append(bigHandle(false));
+    if (CONFIG.handle === 'label') first.append(bigHandle(true));
     if (CONFIG.handle === 'today') {
       // As BlockMover draws it: tabIndex -1, 24px wide, icon clipped.
       const h = toolButton('dragToday', 'Drag', 'drag', { class: 'icon-btn drag-today', tabindex: '-1' });
@@ -442,9 +472,9 @@
     if (i === own.length - 1) down.disabled = true;
     movers.append(up, down);
     // With the edge grip, the arrows move out of the toolbar to sit beside it.
-    if (CONFIG.arrows && !(CONFIG.handle === 'edge' && PAIRED)) first.append(movers);
+    if (CONFIG.arrows && !(CONFIG.handle === 'edge' && PAIRED)) (wing || first).append(movers);
 
-    const groups = [];
+    const groups = wing ? [wing] : [];
     if (CONFIG.handle === 'toolbar' && !PAIRED) {
       // Round 1: the bigger handle in a group of its own, at the start.
       const g = $('div', { class: 'tb-group' });
@@ -507,7 +537,14 @@
       const r = rel(blockEls[selected]);
       toolbar.style.top = (r.top - 48 - 14) + 'px';
       // A full-width block's toolbar sits over its corner, as in the editor.
-      toolbar.style.left = (BLOCKS[selected].full ? r.left + 12 : r.left - 6) + 'px';
+      let left = BLOCKS[selected].full ? r.left + 12 : r.left - 6;
+      const wingEl = toolbar.querySelector('.tb-wing');
+      if (wingEl) {
+        // The move group sticks out past the block's left edge, as far as the
+        // screen allows (a full-width block has no room, so it stays inside).
+        left = Math.max(left - wingEl.offsetWidth, rel(scroller).left + 8);
+      }
+      toolbar.style.left = left + 'px';
     }
     if (CONFIG.handle === 'edge') {
       const id = drag ? null : (hovered || selected);
@@ -1003,8 +1040,11 @@
       Bc: 'A grip on the block’s edge, on the page with columns and a full-width cover',
       Cc: 'A bigger handle in the toolbar, on the page with columns and a full-width cover',
       Ccm: 'A bigger handle in the toolbar with a four-arrow move icon, on the page with columns and a full-width cover',
-      Cct: 'A bigger handle in the toolbar whose tooltip appears straight away, on the page with columns and a full-width cover'
-    }[LETTER] + (ROUND2 ? ' (round 2: the long page)' : '');
+      Cct: 'A bigger handle in the toolbar whose tooltip appears straight away, on the page with columns and a full-width cover',
+      A3: 'Round 3 control: today’s toolbar handle',
+      W3: 'Round 3: the handle and arrows as the toolbar’s first group, sticking out past the block’s left edge',
+      L3: 'Round 3: the toolbar’s handle labelled “Move”'
+    }[LETTER] + (ROUND3 ? '' : ROUND2 ? ' (round 2: the long page)' : '');
     notesEl.innerHTML =
       '<h2>' + LETTER + ' · Facilitator notes</h2><p>' + variant + '. Only you can see this panel; open the page without <code>?notes</code> for participants.</p>' +
       '<h3>Tasks</h3><ol>' + TASKS.map((t, i) => '<li class="' + (t.done(order) ? 'is-done' : '') + '">' + t.text + (firstDone[i] ? ' <small>(' + firstDone[i].at + ')</small>' : '') + '</li>').join('') + '</ol>' +

@@ -186,3 +186,7 @@ svg { display: block; }
 /* The editor's tooltip: a small dark label under the control. */
 .tooltip { position: fixed; z-index: 400; display: none; padding: 4px 8px; border-radius: 2px; background: var(--ink); color: var(--white); font-size: 12px; line-height: 1.4; white-space: nowrap; pointer-events: none; }
 .tooltip.is-visible { display: block; }
+
+/* Round 3: the labelled handle. */
+.icon-btn.drag-label { width: auto; gap: 2px; padding: 0 12px 0 8px; font-size: 13px; font-weight: 500; }
+.icon-btn.drag-label:hover { color: var(--ink); }

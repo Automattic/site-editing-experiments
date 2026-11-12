@@ -116,21 +116,20 @@ svg { display: block; }
 .field:hover { outline-color: #8c8f94; }
 .field:focus { outline: 2px solid var(--blue); background: var(--blue-tint); }
 
-/* ---------- marked: dimmed, labelled, and a step before editing ---------- */
+/* ---------- marked: shown on hover, one click to unlock ---------- */
 
-.is-gated .part-inner { opacity: .4; }
-.gate { position: absolute; inset: 0; width: 100%; padding: 0; border: 2px dashed #8c8f94; border-radius: 0; background: repeating-linear-gradient(135deg, rgba(30,30,30,.05) 0 8px, transparent 8px 16px); display: flex; align-items: flex-start; justify-content: center; }
-.gate:hover, .gate:focus-visible, .gate[aria-expanded="true"] { border-color: var(--blue); background-color: rgba(56,88,233,.06); outline-offset: -4px; }
+/* Locked, the header and footer look like the rest of the page. The button
+   covers the part; its outline and label show while the pointer is over it,
+   while it has keyboard focus, or after one tap on a touch screen. */
+.gate { position: absolute; inset: 0; width: 100%; padding: 0; border: 2px solid transparent; border-radius: 0; background: transparent; display: flex; align-items: flex-start; justify-content: center; cursor: pointer; }
+.gate:hover, .gate:focus-visible, .gate.is-shown { border-color: var(--blue); background-color: rgba(56,88,233,.06); outline-offset: -4px; }
 /* The label sits on the part's top edge, so it never covers the words. */
-.gate-label { transform: translateY(-50%); display: flex; align-items: baseline; gap: 10px; padding: 8px 14px; background: var(--ink); color: var(--white); border-radius: 999px; font-size: 13px; box-shadow: 0 2px 8px rgba(0,0,0,.2); }
-.gate-label span { color: #d5d5d8; }
-.gate[disabled] { cursor: default; }
-.gate[disabled] .gate-label span { display: none; }
-.is-waiting .part-inner { opacity: .25; }
-
-.gate-offer { position: absolute; z-index: 30; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(420px, calc(100% - 32px)); padding: 16px; background: var(--white); color: var(--ink); border: 1px solid var(--ink); border-radius: 6px; box-shadow: 0 8px 28px rgba(0,0,0,.25); font: 14px/1.45 system-ui, sans-serif; text-align: left; }
-.gate-offer p { margin-bottom: 12px; }
-.gate-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.gate-label { transform: translateY(-50%); display: flex; align-items: center; gap: 10px; padding: 5px 6px 5px 14px; background: var(--ink); color: var(--white); border-radius: 999px; font-size: 13px; box-shadow: 0 2px 8px rgba(0,0,0,.2); opacity: 0; transition: opacity .1s; }
+.gate:hover .gate-label, .gate:focus-visible .gate-label, .gate.is-shown .gate-label { opacity: 1; }
+.gate-label em { padding: 3px 12px; border-radius: 999px; background: var(--white); color: var(--ink); font-style: normal; font-weight: 600; }
+@media (prefers-reduced-motion: reduce) {
+  .gate-label { transition: none; }
+}
 
 .is-site-editing { display: block; outline: 3px solid var(--blue); outline-offset: -3px; z-index: 5; }
 .is-site-editing:focus { outline: 3px solid var(--blue); }
@@ -139,26 +138,6 @@ svg { display: block; }
 .site-banner { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; margin: 0 -40px 24px; padding: 10px 16px 10px 40px; background: var(--blue); color: var(--white); font: 14px/1.4 system-ui, sans-serif; }
 .site-banner .btn-primary { background: var(--white); border-color: var(--white); color: var(--blue-dark); font-weight: 600; }
 .site-banner .btn-primary:hover { background: var(--blue-tint); }
-.is-dimmed { opacity: .3; }
-
-/* ---------- ask: the dialog, and the answer once given ---------- */
-
-.ask { width: min(460px, calc(100vw - 32px)); padding: 24px; border: 1px solid var(--ink); border-radius: 8px; box-shadow: 0 16px 48px rgba(0,0,0,.3); color: var(--ink); }
-.ask::backdrop { background: rgba(0,0,0,.4); }
-.ask h2 { margin: 0 0 8px; font-size: 20px; }
-.ask h2:focus { outline: none; }
-.ask p { margin: 0 0 16px; color: var(--ink-2); }
-.ask-option { display: block; width: 100%; margin: 0 0 10px; padding: 14px 16px; text-align: left; background: var(--white); border: 1px solid var(--ink); border-radius: 6px; }
-.ask-option:hover { background: var(--blue-tint); border-color: var(--blue); }
-.ask-option strong { display: block; font-size: 16px; }
-.ask-option span { display: block; margin-top: 2px; color: var(--ink-2); }
-.ask-option em { display: inline-block; margin-top: 6px; padding: 1px 8px; border-radius: 999px; background: var(--ink); color: var(--white); font-style: normal; font-size: 12px; }
-.ask .ask-foot { margin: 14px 0 0; font-size: 13px; }
-
-.scope-chip { position: absolute; z-index: 4; right: 12px; margin: 0; padding: 4px 10px; background: var(--white); border: 1px solid var(--line); border-radius: 999px; box-shadow: 0 1px 4px rgba(0,0,0,.12); font: 12px/1.4 system-ui, sans-serif; color: var(--ink-2); white-space: nowrap; }
-.part-header .scope-chip { top: calc(100% + 8px); }
-.part-footer .scope-chip { bottom: calc(100% + 8px); }
-.scope-chip .link { margin-left: 6px; font-size: 12px; }
 
 /* ---------- site: labels that are always there ---------- */
 
@@ -210,7 +189,7 @@ svg { display: block; }
 .notes .log li { padding: 4px 0; border-bottom: 1px solid var(--line-2); }
 .notes .log time { color: var(--ink-3); margin-right: 6px; }
 .notes .log .is-edit { color: var(--blue-dark); }
-.notes .log .is-gate, .notes .log .is-ask, .notes .log .is-site { color: #7a4a00; }
+.notes .log .is-gate, .notes .log .is-site { color: #7a4a00; }
 .notes .log .is-undo { color: #b32d2e; }
 .notes .log .is-check { color: #8a1f6a; font-weight: 600; }
 .notes .log .is-task { color: var(--green); font-weight: 600; }

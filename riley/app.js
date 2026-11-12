@@ -1,19 +1,29 @@
 /*
  * Riley · This page or every page?
  *
- * One simulated site editor, three variants. The site, its pages, the editor
- * around it, the tasks and the log are the same in all three. Only the way the
+ * One simulated site editor, five variants. The site, its pages, the editor
+ * around it, the tasks and the log are the same in all five. Only the way the
  * shared header and footer are treated changes:
  *
- *   marked  The header and footer are dimmed and labelled "Shown on every
- *           page". Clicking one offers "Edit header for the whole site"; only
- *           then can it be changed.
- *   ask     The header and footer look like the rest of the page. The first
- *           change to one asks "Every page" or "Just this page".
- *   site    No gate and no question. The header and footer carry "Site header"
+ *   plain   The control. The header and footer look and behave like the rest
+ *           of the page. Nothing says they are shared.
+ *   marked  The header and footer look like the rest of the page until the
+ *           pointer is over one. Then it is outlined and labelled "Shown on
+ *           every page" with an "Edit header" button, and one click unlocks
+ *           it. It locks again as soon as the person works anywhere else.
+ *   site    No lock and no question. The header and footer carry "Site header"
  *           and "Site footer" labels, the page's content carries the page's
  *           name, and the top bar lists the whole site's parts beside the
  *           pages.
+ *   told    Looks like the control. After each change to the header or footer
+ *           a message says "Updated on all 3 pages", with Undo. It doesn't
+ *           ask anything and doesn't get in the way.
+ *   summary Looks like the control. Save lists what changed and where ("On
+ *           every page", "Only on the About page") before saving.
+ *
+ * An earlier version had a fourth treatment, "ask" (the first change asks
+ * "Every page" or "Just this page"). It was dropped after review; it is in
+ * this folder's history.
  *
  * Each HTML page picks its variant with <body data-variant="…">.
  *
@@ -25,11 +35,15 @@
   'use strict';
 
   const VARIANTS = {
-    marked: { code: 'RM', letter: 'A', name: 'Marked before editing: the header and footer are dimmed, labelled, and need a deliberate step to edit' },
-    ask: { code: 'RA', letter: 'B', name: 'Ask on the first change: the header and footer look like the page, and the first change asks every page or just this page' },
-    site: { code: 'RS', letter: 'C', name: 'Always labelled: Site header, Site footer and the page’s name are always shown, with no gate and no question' }
+    plain: { code: 'RP', letter: '0', name: 'Control: the header and footer look and behave like the rest of the page, and nothing says they are shared' },
+    marked: { code: 'RM', letter: 'A', name: 'Shown on hover: pointing at the header or footer shows “Shown on every page” and an Edit button, and one click unlocks it' },
+    site: { code: 'RS', letter: 'C', name: 'Always labelled: Site header, Site footer and the page’s name are always shown, with no lock and no question' },
+    told: { code: 'RT', letter: 'D', name: 'Told after the change: nothing is marked, and each change to the header or footer is followed by “Updated on all 3 pages” with Undo' },
+    summary: { code: 'RU', letter: 'E', name: 'Summary at save: nothing is marked, and Save lists what changed on every page and what changed on one page' }
   };
   const VARIANT = VARIANTS[document.body.dataset.variant] ? document.body.dataset.variant : 'marked';
+  // These three show the header and footer exactly like the rest of the page.
+  const UNMARKED = ['plain', 'told', 'summary'].includes(VARIANT);
   const NOTES = new URLSearchParams(location.search).has('notes') || location.hash === '#notes';
 
   const PAGES = [
@@ -118,38 +132,38 @@
 
   // ---------- State ----------
 
-  let site;          // the site as it is now: header, footer, pages, and any per-page copies (own)
+  let site;          // the site as it is now: header, footer and pages
   let view;          // { page, preview }
-  let gateOpen;      // marked: which part's "edit for the whole site?" offer is open
-  let siteEdit;      // marked: which part is being edited for the whole site
-  let choice;        // ask: { header: 'all' | 'page', footer: … } once answered
-  let lastEdit;      // ask: the last change to each shared part, so its answer can be changed
+  let siteEdit;      // marked: which part is unlocked for editing
+  let gateShown;     // marked: which part's label a tap has shown (touch has no hover)
+  let unsaved;       // summary: what has changed since the last save, one entry per bit of text
   let sharedEdits;   // every change to a shared part, and whether another page was looked at since
   let log, stats, startedAt, firstDone, ticked;
   let editing = null; // the text being edited and what it said before
-  let asking = null;  // ask: what the open dialog is about
+  let lastPointer = 'mouse';
+  let hoverTimer = null;
 
   function reset() {
     site = JSON.parse(JSON.stringify(START));
-    site.own = { home: {}, about: {}, contact: {} };
     view = { page: 'home', preview: false };
-    gateOpen = null;
     siteEdit = null;
-    choice = {};
-    lastEdit = {};
+    gateShown = null;
+    unsaved = [];
+    hideTold();
     sharedEdits = [];
     log = [];
     stats = {
       edits: { header: 0, footer: 0, body: 0 },
-      gateClicks: 0, gateThrough: 0, gateBack: 0,
-      asked: 0, askAll: 0, askPage: 0, askChanged: 0,
+      gateShown: 0, gateThrough: 0,
+      told: 0, toldUndo: 0,
+      sumShown: 0, sumSaved: 0, sumBack: 0,
       whole: 0, previews: 0, previewPages: {}, saves: 0
     };
     startedAt = Date.now();
     firstDone = [];
     ticked = [];
     editing = null;
-    asking = null;
+    clearTimeout(hoverTimer);
   }
 
   // ---------- Helpers ----------
@@ -162,42 +176,56 @@
     return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
   }
 
-  // What a page shows for a bit of text. A page with its own copy of the
-  // header or footer (ask, "Just this page") shows that; otherwise the shared one.
+  // What a page shows for a bit of text. The header and footer are stored once.
   function value(part, key, page) {
-    if (part === 'body') return site.pages[page][key];
-    const own = site.own[page][part];
-    return own ? own[key] : site[part][key];
-  }
-
-  /*
-   * Change one bit of the header or footer.
-   *   scope 'all'   every page shows the new text, including pages with their own copy.
-   *   scope 'page'  the page gets its own copy of the part, and only that changes.
-   * Returns what's needed to take the change back (see revertShared).
-   */
-  function applyShared(part, key, text, page, scope) {
-    const before = { key, text, page, scope, shared: site[part][key], own: {}, hadOwn: !!site.own[page][part] };
-    PAGES.forEach((p) => { if (site.own[p.id][part]) before.own[p.id] = site.own[p.id][part][key]; });
-    if (scope === 'all') {
-      site[part][key] = text;
-      PAGES.forEach((p) => { if (site.own[p.id][part]) site.own[p.id][part][key] = text; });
-    } else {
-      if (!site.own[page][part]) site.own[page][part] = Object.assign({}, site[part]);
-      site.own[page][part][key] = text;
-    }
-    return before;
-  }
-
-  function revertShared(part, rec) {
-    site[part][rec.key] = rec.shared;
-    Object.keys(rec.own).forEach((p) => { if (site.own[p][part]) site.own[p][part][rec.key] = rec.own[p]; });
-    if (!rec.hadOwn) delete site.own[rec.page][part];
+    return part === 'body' ? site.pages[page][key] : site[part][key];
   }
 
   function note(kind, text) {
     log.push({ at: elapsed(), kind, text });
     renderNotes();
+  }
+
+  // told: the message after a change to the header or footer. It stays for a
+  // while, longer if the pointer or keyboard focus is on it, and has Undo.
+  let toldEl = null;
+  let toldTimer = null;
+  let toldRec = null;
+  function hideTold() {
+    clearTimeout(toldTimer);
+    toldRec = null;
+    if (toldEl) toldEl.classList.remove('is-shown');
+  }
+  function tell(rec) {
+    if (!toldEl) {
+      toldEl = document.createElement('div');
+      toldEl.className = 'told';
+      toldEl.setAttribute('role', 'status');
+      document.body.append(toldEl);
+      toldEl.addEventListener('click', (e) => { if (e.target.closest('[data-undo]')) undoTold(); });
+      const wait = () => { clearTimeout(toldTimer); toldTimer = setTimeout(() => { if (toldEl.matches(':hover, :focus-within')) wait(); else hideTold(); }, 10000); };
+      toldEl.wait = wait;
+    }
+    toldRec = rec;
+    stats.told++;
+    toldEl.innerHTML = '<p><strong>Updated on all ' + PAGES.length + ' pages.</strong> The ' + rec.part + ' is the same on ' + PAGES.map((p) => p.name).join(', ').replace(/, ([^,]*)$/, ' and $1') + '.</p><button class="btn" data-undo>Undo</button>';
+    toldEl.classList.toggle('has-notes', NOTES);
+    toldEl.classList.add('is-shown');
+    toldEl.wait();
+    note('told', 'Message shown: “Updated on all ' + PAGES.length + ' pages” (' + rec.part + ', ' + fieldName(rec.key) + ')');
+  }
+  function undoTold() {
+    const rec = toldRec;
+    if (!rec) return;
+    hideTold();
+    commitEditing();
+    if (site[rec.part][rec.key] === rec.now) site[rec.part][rec.key] = rec.before;
+    const i = sharedEdits.indexOf(rec.entry);
+    if (i > -1) sharedEdits.splice(i, 1);
+    stats.toldUndo++;
+    note('undo', 'Used Undo in the message: the ' + rec.part + ' (' + fieldName(rec.key) + ') went back to “' + rec.before + '” on every page');
+    render('[data-part="' + rec.part + '"][data-key="' + rec.key + '"]');
+    checkTasks();
   }
 
   let toastTimer = null;
@@ -215,8 +243,8 @@
   // Can this part's text be edited right now?
   function editable(part) {
     if (view.preview) return false;
-    if (VARIANT !== 'marked') return true;
-    return part === 'body' ? !siteEdit : siteEdit === part;
+    if (VARIANT !== 'marked' || part === 'body') return true;
+    return siteEdit === part;
   }
 
   // One bit of text: editable in the editor, plain in the preview.
@@ -272,30 +300,23 @@
     const name = part;
     if (view.preview) return '<' + tag + ' class="part part-' + part + '">' + inner + '</' + tag + '>';
 
+    if (UNMARKED) {
+      return '<' + tag + ' class="part part-' + part + '" data-region="' + part + '">' + inner + '</' + tag + '>';
+    }
+
     if (VARIANT === 'marked') {
       if (siteEdit === part) {
         return '<' + tag + ' class="part part-' + part + ' is-site-editing" tabindex="-1" data-region="' + part + '">' +
           '<div class="site-banner"><p><strong>Editing the ' + name + ' for the whole site.</strong> Changes show on every page.</p><button class="btn btn-primary" data-done>Done</button></div>' +
           '<div class="part-inner">' + inner + '</div></' + tag + '>';
       }
-      const others = !!siteEdit; // the other shared part is being edited: this one just waits
-      return '<' + tag + ' class="part part-' + part + ' is-gated' + (others ? ' is-waiting' : '') + '" data-region="' + part + '">' +
+      // Locked. It looks like the rest of the page until the pointer is over
+      // it (or it has keyboard focus, or it has been tapped once).
+      return '<' + tag + ' class="part part-' + part + ' is-gated" data-region="' + part + '">' +
         '<div class="part-inner" inert>' + inner + '</div>' +
-        '<button class="gate" data-gate="' + part + '"' + (others ? ' disabled' : '') + ' aria-label="The ' + name + ' is shown on every page. Click to change it."' + (gateOpen === part ? ' aria-expanded="true"' : '') + '>' +
-        '<span class="gate-label"><strong>Shown on every page</strong><span>Click to change the ' + name + '</span></span></button>' +
-        (gateOpen === part
-          ? '<div class="gate-offer" role="group" aria-label="Edit the ' + name + '">' +
-            '<p><strong>The ' + name + ' is the same on every page.</strong> A change here shows on Home, About and Contact.</p>' +
-            '<div class="gate-actions"><button class="btn btn-primary" data-gate-go="' + part + '">Edit ' + name + ' for the whole site</button><button class="btn" data-gate-back>Leave it</button></div></div>'
-          : '') +
+        '<button class="gate' + (gateShown === part ? ' is-shown' : '') + '" data-gate="' + part + '" aria-label="The ' + name + ' is shown on every page. Edit ' + name + '.">' +
+        '<span class="gate-label"><strong>Shown on every page</strong><em>Edit ' + name + '</em></span></button>' +
         '</' + tag + '>';
-    }
-
-    if (VARIANT === 'ask') {
-      const chip = choice[part]
-        ? '<p class="scope-chip">Changes to the ' + name + ' apply to <strong>' + (choice[part] === 'all' ? 'every page' : 'just this page') + '</strong> <button class="link" data-change="' + part + '">Change</button></p>'
-        : '';
-      return '<' + tag + ' class="part part-' + part + '" data-region="' + part + '">' + inner + chip + '</' + tag + '>';
     }
 
     // site
@@ -304,11 +325,10 @@
   }
 
   function bodyPart() {
-    const dim = VARIANT === 'marked' && siteEdit && !view.preview;
     const tab = VARIANT === 'site' && !view.preview
       ? '<p class="part-tab">' + pageName(view.page) + ' page<span> · only on this page</span></p>'
       : '';
-    return '<main class="part part-body' + (tab ? ' has-tab' : '') + (dim ? ' is-dimmed' : '') + '"' + (dim ? ' inert' : '') + ' data-region="body">' + tab + bodyInner() + '</main>';
+    return '<main class="part part-body' + (tab ? ' has-tab' : '') + '" data-region="body">' + tab + bodyInner() + '</main>';
   }
 
   // ---------- Drawing the editor ----------
@@ -372,7 +392,6 @@
   function goPage(page) {
     if (page === view.page) return;
     commitEditing();
-    if (asking) return; // the change is waiting for an answer first
     leaveGate('switched page');
     const from = view.page;
     view.page = page;
@@ -384,7 +403,6 @@
 
   function togglePreview() {
     commitEditing();
-    if (asking) return; // the change is waiting for an answer first
     leaveGate('opened the preview');
     view.preview = !view.preview;
     if (view.preview) {
@@ -415,7 +433,6 @@
   // site: "Site header" and "Site footer" in the top bar show where that part is.
   function wholeSite(part) {
     commitEditing();
-    if (asking) return;
     stats.whole++;
     note('site', 'Used Whole site › Site ' + part + ' (on the ' + pageName(view.page) + ' page)');
     const el = app.querySelector('[data-region="' + part + '"]');
@@ -426,31 +443,50 @@
     el.classList.add('is-flash');
   }
 
-  // ---------- marked: the gate ----------
+  // ---------- marked: shown on hover, one click to unlock ----------
 
-  function openGate(part) {
-    if (gateOpen === part) return;
-    if (gateOpen) backOut('clicked the ' + part);
-    stats.gateClicks++;
-    gateOpen = part;
-    note('gate', 'Clicked the ' + part + ' (marked “Shown on every page”) on ' + pageName(view.page));
-    render('[data-gate-go]');
+  // Draw one shared part again without touching the rest of the page, so
+  // whatever the person has just clicked into keeps its focus and caret.
+  function redrawPart(part) {
+    const el = app.querySelector('[data-region="' + part + '"]');
+    if (el) el.outerHTML = sharedPart(part);
   }
 
-  function backOut(how) {
-    if (!gateOpen) return;
-    const part = gateOpen;
-    gateOpen = null;
-    stats.gateBack++;
-    note('gate', 'Backed out of editing the ' + part + ' (' + how + ')');
-    return part;
+  function hideGate() {
+    if (!gateShown) return;
+    gateShown = null;
+    app.querySelectorAll('.gate.is-shown').forEach((g) => g.classList.remove('is-shown'));
   }
 
-  function throughGate(part) {
-    gateOpen = null;
+  // The label counts as seen once the pointer has rested on the part for a moment.
+  function gateSeen(part, how) {
+    stats.gateShown++;
+    note('gate', '“Shown on every page” appeared on the ' + part + ' (' + how + ') on ' + pageName(view.page));
+  }
+
+  function gateClick(part) {
+    // Touch has no hover: the first tap shows the label, the second unlocks.
+    if (lastPointer === 'touch' && gateShown !== part) {
+      hideGate();
+      gateShown = part;
+      const g = app.querySelector('[data-gate="' + part + '"]');
+      if (g) g.classList.add('is-shown');
+      gateSeen(part, 'tap');
+      return;
+    }
+    unlock(part);
+  }
+
+  function unlock(part) {
+    clearTimeout(hoverTimer);
+    commitEditing();
+    gateShown = null;
+    if (siteEdit && siteEdit !== part) {
+      note('gate', 'The ' + siteEdit + ' locked again (moved to the ' + part + ')');
+    }
     siteEdit = part;
     stats.gateThrough++;
-    note('gate', 'Went through: editing the ' + part + ' for the whole site, from ' + pageName(view.page));
+    note('gate', 'Unlocked the ' + part + ' with one click, on ' + pageName(view.page));
     render('[data-region="' + part + '"]');
   }
 
@@ -459,15 +495,42 @@
     commitEditing();
     const part = siteEdit;
     siteEdit = null;
-    note('gate', 'Finished editing the ' + part + ' for the whole site (' + how + ')');
+    note('gate', 'The ' + part + ' locked again (' + how + ')');
     return part;
   }
 
-  // Anything that moves away (another page, the preview) closes the offer or the editing state.
+  // Working anywhere else locks the part again. Only that part is redrawn.
+  function relock(how) {
+    if (!siteEdit) return;
+    const part = siteEdit;
+    if (editing && editing.el.closest('[data-region="' + part + '"]')) commitEditing();
+    siteEdit = null;
+    note('gate', 'The ' + part + ' locked again (' + how + ')');
+    redrawPart(part);
+  }
+
+  // Anything that moves away (another page, the preview) locks it again.
   function leaveGate(how) {
-    backOut(how);
+    gateShown = null;
     doneSiteEdit(how);
   }
+
+  app.addEventListener('pointerdown', (e) => { lastPointer = e.pointerType || 'mouse'; }, true);
+
+  app.addEventListener('pointerover', (e) => {
+    if (e.pointerType === 'touch') return;
+    const gate = e.target.closest && e.target.closest('[data-gate]');
+    if (!gate || (e.relatedTarget && gate.contains(e.relatedTarget))) return;
+    const part = gate.dataset.gate;
+    clearTimeout(hoverTimer);
+    hoverTimer = setTimeout(() => gateSeen(part, 'hover'), 400);
+  });
+
+  app.addEventListener('pointerout', (e) => {
+    const gate = e.target.closest && e.target.closest('[data-gate]');
+    if (!gate || (e.relatedTarget && gate.contains(e.relatedTarget))) return;
+    clearTimeout(hoverTimer);
+  });
 
   // ---------- Editing text ----------
 
@@ -497,34 +560,41 @@
 
     if (part === 'body') {
       site.pages[page][key] = now;
+      track(part, page, key, before, now);
       stats.edits.body++;
       note('edit', 'Edited the ' + pageName(page) + ' page’s content (' + fieldName(key) + '): “' + before + '” → “' + now + '”');
       checkTasks();
       return;
     }
 
-    // ask: the first change to this part asks where it should apply.
-    if (VARIANT === 'ask' && !choice[part]) {
-      openAsk({ part, key, page, before, text: now });
-      return;
-    }
-    saveShared(part, key, page, before, now, VARIANT === 'ask' ? choice[part] : 'all');
+    site[part][key] = now;
+    track(part, page, key, before, now);
+    const entry = { part, page, checked: false };
+    sharedEdits.push(entry);
+    stats.edits[part]++;
+    note('edit', 'Edited the ' + part + ' (' + fieldName(key) + ') on ' + pageName(page) + ': “' + before + '” → “' + now + '”. Applies to every page.');
+    if (VARIANT === 'told') tell({ part, key, before, now, entry });
+    checkTasks();
   }
 
-  function saveShared(part, key, page, before, now, scope) {
-    const rec = applyShared(part, key, now, page, scope);
-    rec.before = before;
-    lastEdit[part] = rec;
-    sharedEdits.push({ part, page, checked: false });
-    stats.edits[part]++;
-    note('edit', 'Edited the ' + part + ' (' + fieldName(key) + ') on ' + pageName(page) + ': “' + before + '” → “' + now + '”. ' +
-      (scope === 'all' ? 'Applies to every page.' : 'Applies to ' + pageName(page) + ' only; it now has its own ' + part + '.'));
-    checkTasks();
+  // Keep one entry per bit of text changed since the last save: what it said
+  // at the last save and what it says now. Changing it back removes the entry.
+  function track(part, page, key, before, now) {
+    const id = part === 'body' ? 'body:' + page + ':' + key : part + ':' + key;
+    const found = unsaved.find((c) => c.id === id);
+    if (found) {
+      found.now = now;
+      if (found.now === found.before) unsaved.splice(unsaved.indexOf(found), 1);
+    } else {
+      unsaved.push({ id, part, page, key, before, now });
+    }
   }
 
   app.addEventListener('focusin', (e) => {
     const el = e.target.closest('.field');
     if (el && (!editing || editing.el !== el)) editing = { el, before: clean(el.textContent) };
+    // marked: moving into text outside the unlocked part locks it again.
+    if (el && siteEdit && !el.closest('[data-region="' + siteEdit + '"]')) relock('moved to other text');
   });
 
   app.addEventListener('focusout', (e) => {
@@ -549,8 +619,8 @@
       }
       return;
     }
-    if (e.key === 'Escape' && gateOpen) {
-      const part = backOut('Escape');
+    if (e.key === 'Escape' && siteEdit) {
+      const part = doneSiteEdit('Escape');
       render('[data-gate="' + part + '"]');
     }
   });
@@ -576,147 +646,93 @@
     if (on('data-preview')) { togglePreview(); return; }
     if (on('data-save')) { save(); return; }
     if (on('data-finish')) { finish(); return; }
-    if ((el = on('data-gate-go'))) { throughGate(el.dataset.gateGo); return; }
-    if (on('data-gate-back')) { const part = backOut('Leave it'); render('[data-gate="' + part + '"]'); return; }
-    if ((el = on('data-gate'))) { openGate(el.dataset.gate); return; }
+    if ((el = on('data-gate'))) { gateClick(el.dataset.gate); return; }
     if (on('data-done')) { const part = doneSiteEdit('Done'); render('[data-gate="' + part + '"]'); return; }
-    if ((el = on('data-change'))) { openAsk({ part: el.dataset.change, change: true }); return; }
-    // A click anywhere else closes the offer.
-    if (gateOpen && !e.target.closest('.gate-offer')) { backOut('clicked elsewhere'); render(); }
+    // A click anywhere else hides a tapped label and locks an unlocked part.
+    hideGate();
+    if (siteEdit && !e.target.closest('[data-region="' + siteEdit + '"]')) relock('clicked elsewhere');
   });
 
   function save() {
     commitEditing();
-    if (asking) return;
     stats.saves++;
     note('save', 'Clicked Save on ' + pageName(view.page) + (siteEdit ? ' (while editing the ' + siteEdit + ' for the whole site)' : ''));
+    if (VARIANT === 'summary') {
+      if (unsaved.length) openSummary();
+      else toast('Nothing new to save.');
+      return;
+    }
+    unsaved = [];
     toast('Saved.');
   }
 
-  // ---------- ask: every page or just this page? ----------
+  // ---------- summary: what changed and where, before saving ----------
 
-  let dialog = null;
+  let summaryEl = null;
+  let summaryAnswered = false;
 
-  /*
-   * Two uses. With a waiting change ({ part, key, page, before, text }), it
-   * asks where that change should apply. With { part, change: true } it's the
-   * "Change" link: the last change to that part moves to the new answer.
-   */
-  function openAsk(about) {
-    if (!dialog) {
-      dialog = document.createElement('dialog');
-      dialog.className = 'ask';
-      dialog.setAttribute('aria-labelledby', 'ask-title');
-      document.body.append(dialog);
-      dialog.addEventListener('click', (e) => {
-        const btn = e.target.closest('button');
-        if (!btn) return;
-        if (btn.dataset.scope) answerAsk(btn.dataset.scope);
-        else closeAsk('Cancel');
+  function openSummary() {
+    if (!summaryEl) {
+      summaryEl = document.createElement('dialog');
+      summaryEl.className = 'summary';
+      summaryEl.setAttribute('aria-labelledby', 'summary-title');
+      document.body.append(summaryEl);
+      summaryEl.addEventListener('click', (e) => {
+        if (e.target.closest('[data-confirm]')) {
+          summaryAnswered = true;
+          stats.sumSaved++;
+          unsaved = [];
+          note('save', 'Saved from the summary');
+          summaryEl.close();
+          toast('Saved.');
+        } else if (e.target.closest('[data-back]')) {
+          summaryEl.close();
+        }
       });
-      // Escape closes it without an answer.
-      dialog.addEventListener('cancel', (e) => { e.preventDefault(); closeAsk('Escape'); });
-      // Keep Tab inside the dialog.
-      dialog.addEventListener('keydown', (e) => {
-        if (e.key !== 'Tab') return;
-        const stops = Array.from(dialog.querySelectorAll('button'));
-        const first = stops[0];
-        const last = stops[stops.length - 1];
-        if (e.shiftKey && (document.activeElement === first || !stops.includes(document.activeElement))) { e.preventDefault(); last.focus(); }
-        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+      // Escape and Keep editing both end here.
+      summaryEl.addEventListener('close', () => {
+        if (!summaryAnswered) {
+          stats.sumBack++;
+          note('save', 'Went back to editing from the summary without saving');
+        }
+        const btn = app.querySelector('[data-save]');
+        if (btn) btn.focus();
       });
     }
-    asking = about;
-    const part = about.part;
-    const name = part;
-    const page = about.change ? lastEdit[part].page : about.page;
-    const current = about.change ? choice[part] : null;
-    const pageLabel = page === view.page ? 'Just this page' : 'Just the ' + pageName(page) + ' page';
-    const option = (scope, title, line) => '<button class="ask-option" data-scope="' + scope + '"' + (current === scope ? ' aria-pressed="true"' : '') + '><strong>' + title + '</strong><span>' + line + '</span>' + (current === scope ? '<em>Chosen now</em>' : '') + '</button>';
-    dialog.innerHTML =
-      '<h2 id="ask-title" tabindex="-1">' + (about.change ? 'Where should changes to the ' + name + ' apply?' : 'Where should this change apply?') + '</h2>' +
-      '<p>' + (about.change
-        ? 'Your last change to the ' + name + ' was “' + esc(lastEdit[part].text) + '”, made on the ' + pageName(page) + ' page. It will move to match your answer.'
-        : 'You changed the ' + name + ' on the ' + pageName(page) + ' page.') + '</p>' +
-      option('all', 'Every page', 'The ' + name + ' changes on every page of the site.') +
-      option('page', pageLabel, 'Only the ' + pageName(page) + ' page changes. Other pages keep the ' + name + ' as it was.') +
-      '<p class="ask-foot">' + (about.change ? '' : 'Your answer will be used for other changes to the ' + name + '. You can change it later. ') + '<button class="link">' + (about.change ? 'Close' : 'Cancel this change') + '</button></p>';
-    dialog.showModal();
-    dialog.querySelector('h2').focus();
-    if (about.change) {
-      note('ask', 'Opened “Change” for the ' + name + ' (now: ' + scopeName(choice[part]) + ')');
-    } else {
-      stats.asked++;
-      note('ask', 'Dialog appeared: first change to the ' + name + ', on ' + pageName(page));
-    }
-  }
-
-  const scopeName = (scope) => (scope === 'all' ? 'Every page' : 'Just this page');
-
-  function answerAsk(scope) {
-    const about = asking;
-    const part = about.part;
-    asking = null;
-    dialog.close();
-    if (about.change) {
-      const was = choice[part];
-      if (was === scope) {
-        note('ask', 'Kept the choice for the ' + part + ': ' + scopeName(scope));
-      } else {
-        // Take the last change back and make it again with the new answer.
-        const rec = lastEdit[part];
-        revertShared(part, rec);
-        const again = applyShared(part, rec.key, rec.text, rec.page, scope);
-        again.before = rec.before;
-        lastEdit[part] = again;
-        choice[part] = scope;
-        stats.askChanged++;
-        // Moving a change is itself a change to a shared part: did they go and look?
-        sharedEdits.push({ part, page: rec.page, checked: false });
-        note('ask', 'Changed the choice for the ' + part + ': ' + scopeName(was) + ' → ' + scopeName(scope) + '. The last change (“' + rec.text + '”, on ' + pageName(rec.page) + ') now applies to ' + (scope === 'all' ? 'every page' : pageName(rec.page) + ' only'));
-        checkTasks();
-      }
-      render('[data-change="' + part + '"]');
-      return;
-    }
-    choice[part] = scope;
-    stats[scope === 'all' ? 'askAll' : 'askPage']++;
-    note('ask', 'Answered: ' + scopeName(scope) + ' (' + part + ')');
-    saveShared(part, about.key, about.page, about.before, about.text, scope);
-    render('[data-part="' + part + '"][data-key="' + about.key + '"]');
-  }
-
-  function closeAsk(how) {
-    const about = asking;
-    asking = null;
-    dialog.close();
-    if (about.change) {
-      note('ask', 'Closed “Change” for the ' + about.part + ' without changing it (' + how + ')');
-      render('[data-change="' + about.part + '"]');
-      return;
-    }
-    note('ask', 'Dialog closed without an answer (' + how + '). The change to the ' + about.part + ' was undone');
-    render('[data-part="' + about.part + '"][data-key="' + about.key + '"]'); // puts the old text back
+    summaryAnswered = false;
+    const cap = (t) => t.charAt(0).toUpperCase() + t.slice(1);
+    const row = (c) => '<li><strong>' + (c.part === 'body' ? cap(fieldName(c.key)) : cap(c.part) + ' · ' + (/^menu/.test(c.key) ? 'menu item' : fieldName(c.key))) + '</strong><span>“' + esc(c.before) + '” → “' + esc(c.now) + '”</span></li>';
+    const shared = unsaved.filter((c) => c.part !== 'body');
+    let groups = shared.length ? '<h3>On every page</h3><ul>' + shared.map(row).join('') + '</ul>' : '';
+    const counts = [];
+    if (shared.length) counts.push(shared.length + ' on every page');
+    PAGES.forEach((p) => {
+      const own = unsaved.filter((c) => c.part === 'body' && c.page === p.id);
+      if (!own.length) return;
+      groups += '<h3>Only on the ' + p.name + ' page</h3><ul>' + own.map(row).join('') + '</ul>';
+      counts.push(own.length + ' on ' + p.name + ' only');
+    });
+    summaryEl.innerHTML = '<h2 id="summary-title" tabindex="-1">Save ' + unsaved.length + (unsaved.length === 1 ? ' change?' : ' changes?') + '</h2>' + groups +
+      '<div class="finish-actions"><button class="btn btn-primary" data-confirm>Save</button><button class="link" data-back>Keep editing</button></div>';
+    stats.sumShown++;
+    note('save', 'Summary shown: ' + counts.join(', '));
+    summaryEl.showModal();
+    summaryEl.querySelector('h2').focus();
   }
 
   // ---------- Tasks, the completion code and the notes panel ----------
 
-  // 0 not changed · 1 changed, the same on every page · 2 changed on Home only · 3 something else
+  // 0 not changed · 1 changed (it changes on every page; no prototype can change one page's)
   function taglineState() {
-    const now = PAGES.map((p) => value('header', 'tagline', p.id));
-    const start = START.header.tagline;
-    if (now.every((t) => t === start)) return 0;
-    if (now.every((t) => t === now[0])) return 1;
-    if (now[0] !== start && now[1] === start && now[2] === start) return 2;
-    return 3;
+    return site.header.tagline === START.header.tagline ? 0 : 1;
   }
-  const TAGLINE_STATES = ['not changed', 'changed on every page', 'changed on Home only', 'different on some pages'];
+  const TAGLINE_STATES = ['not changed', 'changed on every page'];
 
   const TASKS = [
     { text: 'Update the phone number.', hint: 'Footer, shared. Ticks when every page shows a new number.', done: () => PAGES.every((p) => value('footer', 'phone', p.id) !== START.footer.phone) },
     { text: 'Change the main heading on the About page.', hint: 'This page only.', done: () => site.pages.about.title !== START.pages.about.title },
     { text: 'Rename “Contact” in the menu to “Find us”.', hint: 'Header, shared. Ticks when every page’s menu says Find us.', done: () => PAGES.every((p) => /^find us$/i.test(value('header', 'menu2', p.id))) },
-    { text: 'A different line under the site name, on Home only.', hint: 'A probe. Ticks if the line is changed at all; tick it yourself if they explain why not.', done: () => taglineState() > 0, state: () => 'Line under the site name: ' + TAGLINE_STATES[taglineState()] },
+    { text: 'A different line under the site name, on Home only.', hint: 'A probe: it can’t be done, since the line is the same on every page. Ticks if the line is changed at all; tick it yourself if they explain why not.', done: () => taglineState() > 0, state: () => 'Line under the site name: ' + TAGLINE_STATES[taglineState()] },
     { text: 'Check the site as a visitor would.', hint: 'Ticks when the preview is opened.', done: () => stats.previews > 0, state: () => 'Seen in the preview: ' + (previewPages().join(', ') || 'nothing yet') }
   ];
 
@@ -735,45 +751,46 @@
 
   /*
    * The completion code, for pasting into the testing tool. For example:
-   *   RM-11101-h2-f1-b1-c2.3-g3.2.1-p1.3-v1-s245
-   *   variant (RM marked, RA ask, RS site) ·
+   *   RM-11101-h2-f1-b1-c2.3-g4.2-p1.3-v1-s245
+   *   variant (RP control, RM shown on hover, RS always labelled, RT told
+   *   after the change, RU summary at save) ·
    *   the five tasks when Finished was clicked: 1 or 0 for tasks 1, 2, 3 and 5,
-   *   and for task 4 the line under the site name: 0 not changed, 1 changed on
-   *   every page, 2 changed on Home only, 3 something else ·
+   *   and for task 4 the line under the site name: 0 not changed, 1 changed
+   *   (which changes it on every page) ·
    *   edits to the header (h), the footer (f) and page content (b) ·
    *   c: changes to a shared part that were followed by a look at another
-   *   page, then all changes to a shared part (in ask, moving a change with
-   *   "Change" counts as one) ·
-   *   one part that depends on the variant:
-   *     marked  g: clicks on the gated header or footer, went through, backed out
-   *     ask     q: dialogs shown, Every page, Just this page, later changes of answer
+   *   page, then all changes to a shared part ·
+   *   one part that depends on the variant (the control has none):
+   *     marked  g: times the label was shown (a hover that rested, or a tap), times unlocked
    *     site    w: uses of Site header and Site footer in the top bar
+   *     told    t: messages shown, times Undo was used in one
+   *     summary u: summaries shown, saved from one, went back without saving
    *   p: times the preview was opened, then pages seen in it ·
    *   v: clicks on Save · s: seconds until Finished.
    */
   function completionCode() {
     const own = {
-      marked: 'g' + [stats.gateClicks, stats.gateThrough, stats.gateBack].join('.'),
-      ask: 'q' + [stats.asked, stats.askAll, stats.askPage, stats.askChanged].join('.'),
-      site: 'w' + stats.whole
+      marked: 'g' + [stats.gateShown, stats.gateThrough].join('.'),
+      site: 'w' + stats.whole,
+      told: 't' + [stats.told, stats.toldUndo].join('.'),
+      summary: 'u' + [stats.sumShown, stats.sumSaved, stats.sumBack].join('.')
     }[VARIANT];
     return [
       VARIANTS[VARIANT].code,
       TASKS.map((t, i) => (i === 3 ? taglineState() : (t.done() ? 1 : 0))).join(''),
       'h' + stats.edits.header, 'f' + stats.edits.footer, 'b' + stats.edits.body,
-      'c' + checkedCount() + '.' + sharedEdits.length,
-      own,
+      'c' + checkedCount() + '.' + sharedEdits.length
+    ].concat(own ? [own] : [], [
       'p' + stats.previews + '.' + previewPages().length,
       'v' + stats.saves,
       's' + seconds()
-    ].join('-');
+    ]).join('-');
   }
 
   // Finished shows the code in a dialog. Clicking Finished again later gives a new code.
   let finishEl = null;
   function finish() {
     commitEditing();
-    if (asking) return;
     if (!finishEl) {
       finishEl = document.createElement('dialog');
       finishEl.className = 'finish';
@@ -841,9 +858,10 @@
       (firstDone[i] ? ' <time>' + firstDone[i].at + '</time>' : '') +
       '<small>' + t.hint + (t.state ? ' ' + t.state() + '.' : '') + '</small></li>').join('');
     const own = {
-      marked: '<dt>Clicks on the marked header or footer</dt><dd>' + stats.gateClicks + '</dd><dt>Went through to edit</dt><dd>' + stats.gateThrough + '</dd><dt>Backed out</dt><dd>' + stats.gateBack + '</dd>',
-      ask: '<dt>Dialogs shown</dt><dd>' + stats.asked + '</dd><dt>Answered Every page</dt><dd>' + stats.askAll + '</dd><dt>Answered Just this page</dt><dd>' + stats.askPage + '</dd><dt>Changed the answer later</dt><dd>' + stats.askChanged + '</dd>',
-      site: '<dt>Uses of Site header or Site footer in the top bar</dt><dd>' + stats.whole + '</dd>'
+      marked: '<dt>Times “Shown on every page” appeared</dt><dd>' + stats.gateShown + '</dd><dt>Times unlocked</dt><dd>' + stats.gateThrough + '</dd>',
+      site: '<dt>Uses of Site header or Site footer in the top bar</dt><dd>' + stats.whole + '</dd>',
+      told: '<dt>Times “Updated on all 3 pages” was shown</dt><dd>' + stats.told + '</dd><dt>Times Undo was used in it</dt><dd>' + stats.toldUndo + '</dd>',
+      summary: '<dt>Save summaries shown</dt><dd>' + stats.sumShown + '</dd><dt>Saved from the summary</dt><dd>' + stats.sumSaved + '</dd><dt>Went back without saving</dt><dd>' + stats.sumBack + '</dd>'
     }[VARIANT];
     notesEl.innerHTML =
       '<div class="notes-head"><h2>' + VARIANTS[VARIANT].letter + ' · Facilitator notes</h2><nav class="switcher" aria-label="Variant">' + links + '</nav></div>' +
@@ -854,7 +872,7 @@
       '<dt>Edits to the footer</dt><dd>' + stats.edits.footer + '</dd>' +
       '<dt>Edits to page content</dt><dd>' + stats.edits.body + '</dd>' +
       '<dt>Header or footer changes followed by a look at another page</dt><dd>' + checkedCount() + ' of ' + sharedEdits.length + '</dd>' +
-      own +
+      (own || '') +
       '<dt>Preview opened</dt><dd>' + stats.previews + '</dd>' +
       '<dt>Pages seen in the preview</dt><dd>' + (previewPages().join(', ') || 'none') + '</dd>' +
       '<dt>Saves</dt><dd>' + stats.saves + '</dd></dl>' +

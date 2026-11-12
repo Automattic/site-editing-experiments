@@ -50,9 +50,9 @@
    *                   and dragged.
    *   restDrag: true  (round 3) as Squarespace does: until you click into a
    *                   block to type, the whole block is a drag handle. Hover
-   *                   shows its outline and type; the first click selects it;
-   *                   a second click puts the caret where you clicked; Escape
-   *                   or clicking elsewhere stops editing.
+   *                   shows its outline and type; a click selects it and puts
+   *                   the caret where you clicked, and from then on it no
+   *                   longer drags; Escape or clicking elsewhere stops editing.
    *   cursor: 'move'  (round 3) the four-arrow move cursor over things you can
    *                   drag and while dragging, instead of the hand.
    *   handleTip: 'instant'  the drag handle's tooltip appears as soon as the
@@ -784,8 +784,10 @@
       const id = press.id;
       press = null;
       cleanupListeners();
-      if (selected === id) {
-        // Second click: edit the text, with the caret where they clicked.
+      {
+        // A click (no drag) selects the block and starts editing its text,
+        // with the caret where they clicked. Until then it only drags.
+        selected = id;
         editingId = id;
         render();
         const range = document.caretRangeFromPoint ? document.caretRangeFromPoint(e.clientX, e.clientY) : null;
@@ -800,9 +802,6 @@
           if (first) first.focus();
         }
         if (editingId) note('other', 'Clicked into ' + describe(id) + ' to edit it');
-      } else {
-        selected = id;
-        render();
       }
       return;
     }

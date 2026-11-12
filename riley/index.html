@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Riley · This page or every page?</title>
+<style>
+  body { margin: 0; background: #F4F2EE; color: #1A1A1A; font-family: system-ui, sans-serif; }
+  main { max-width: 720px; margin: 0 auto; padding: 64px 24px; }
+  h1 { margin: 0 0 8px; font-size: 32px; }
+  p { margin: 0 0 16px; color: #3A3A3A; line-height: 1.5; }
+  .lede { margin-bottom: 32px; }
+  ul { list-style: none; margin: 0 0 32px; padding: 0; display: grid; gap: 12px; }
+  a.card { display: block; padding: 20px; background: #fff; border-radius: 10px; color: inherit; text-decoration: none; border: 1px solid #E2DED6; }
+  a.card:hover, a.card:focus-visible { border-color: #3858E9; }
+  strong { display: block; font-size: 18px; margin-bottom: 4px; }
+  em { display: block; margin: -2px 0 6px; font-style: normal; font-weight: 600; font-size: 14px; color: #3A3A3A; }
+  span { color: #4A4A4A; font-size: 15px; line-height: 1.5; }
+  a { color: #3858E9; }
+</style>
+</head>
+<body>
+<main>
+  <h1>This page or every page?</h1>
+  <p class="lede">A site's header and footer are shared by every page, but nothing in the editor says so, so people can't tell whether a change affects the page they're on or the whole site. These three prototypes are the same small site in the same simple editor, and differ only in how the header and footer are treated, so a test can tell whether marking shared parts before someone edits them works better than explaining afterwards.</p>
+  <ul>
+    <li><a class="card" href="marked.html"><strong>A · Marked before editing</strong><em>Dimmed, labelled, and a step to take first</em><span>The header and footer are dimmed and labelled "Shown on every page". Clicking one offers "Edit header for the whole site"; only then can it be changed, and it keeps saying so until Done.</span></a></li>
+    <li><a class="card" href="ask.html"><strong>B · Ask on the first change</strong><em>Nothing marked, then a question</em><span>The header and footer look like the rest of the page. The first change to one asks "Every page" or "Just this page", and remembers the answer.</span></a></li>
+    <li><a class="card" href="site.html"><strong>C · Always labelled</strong><em>Site header, Site footer and the page's name</em><span>No step and no question. The header, the footer and the page's own content each carry a label, and the top bar lists the whole site's parts beside its pages.</span></a></li>
+  </ul>
+  <p>Add <code>?notes</code> (or <code>#notes</code>) to any of them for the facilitator panel, or open <a href="marked.html?notes">A</a>, <a href="ask.html?notes">B</a> or <a href="site.html?notes">C</a> with it: it lists the tasks and logs every edit, which part it was in, and whether the person looked at another page afterwards. Finished, in the bar at the bottom, gives a code to paste into a testing tool. Reload a page to start again. The test script is in the <a href="https://github.com/Automattic/site-editing-experiments/tree/trunk/riley">README</a>. The bike repair shop and its pages are placeholders.</p>
+</main>
+</body>
+</html>

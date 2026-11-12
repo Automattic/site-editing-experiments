@@ -37,7 +37,6 @@
     { id: 'about', name: 'About', path: 'about' },
     { id: 'contact', name: 'Contact', path: 'contact' }
   ];
-  const PART_NAME = { header: 'header', footer: 'footer' };
 
   // ---------- The starting site ----------
 
@@ -93,12 +92,21 @@
     }
   };
 
-  // What each editable bit is called in the log.
+  // What each editable bit is called, in the log and for screen readers.
   const FIELD_NAME = {
     name: 'site name', tagline: 'line under the site name',
     menu0: 'menu item 1', menu1: 'menu item 2', menu2: 'menu item 3',
     address: 'address', phone: 'phone number', hours: 'opening hours', copyright: 'copyright line',
-    title: 'main heading', intro: 'first paragraph', caption: 'picture caption'
+    title: 'main heading', intro: 'first paragraph', caption: 'picture caption',
+    servicesTitle: 'second heading',
+    s1Title: 'first service, name', s1Text: 'first service, description',
+    s2Title: 'second service, name', s2Text: 'second service, description',
+    s3Title: 'third service, name', s3Text: 'third service, description',
+    dropTitle: 'third heading', dropText: 'last paragraph',
+    whoTitle: 'second heading', whoText: 'second paragraph',
+    howTitle: 'third heading', howText: 'third paragraph',
+    hereTitle: 'second heading', hereText: 'second paragraph',
+    bookTitle: 'third heading', bookText: 'third paragraph'
   };
 
   // Placeholder pictures, drawn here so the page loads nothing else.
@@ -120,7 +128,6 @@
   let log, stats, startedAt, firstDone, ticked;
   let editing = null; // the text being edited and what it said before
   let asking = null;  // ask: what the open dialog is about
-  let cardOpen = false;
 
   function reset() {
     site = JSON.parse(JSON.stringify(START));
@@ -143,7 +150,6 @@
     ticked = [];
     editing = null;
     asking = null;
-    cardOpen = false;
   }
 
   // ---------- Helpers ----------
@@ -217,7 +223,8 @@
   function text(tag, part, key, cls) {
     const content = esc(value(part, key, view.page));
     if (!editable(part)) return '<' + tag + (cls ? ' class="' + cls + '"' : '') + '>' + content + '</' + tag + '>';
-    return '<' + tag + ' class="field' + (cls ? ' ' + cls : '') + '" contenteditable="true" spellcheck="false" data-part="' + part + '" data-key="' + key + '">' + content + '</' + tag + '>';
+    const label = (part === 'body' ? pageName(view.page) + ' page' : 'Site ' + part) + ': ' + FIELD_NAME[key];
+    return '<' + tag + ' class="field' + (cls ? ' ' + cls : '') + '" contenteditable="true" spellcheck="false" role="textbox" aria-label="' + esc(label) + '" data-part="' + part + '" data-key="' + key + '">' + content + '</' + tag + '>';
   }
 
   function headerInner() {
@@ -236,9 +243,9 @@
   function footerInner() {
     const f = (tag, key, cls) => text(tag, 'footer', key, cls);
     return '<div class="footer-cols">' +
-      '<div><p class="footer-label">Find us</p>' + f('p', 'address') + '</div>' +
+      '<div><p class="footer-label">Where we are</p>' + f('p', 'address') + '</div>' +
       '<div><p class="footer-label">Phone</p>' + f('p', 'phone') + '</div>' +
-      '<div><p class="footer-label">Open</p>' + f('p', 'hours') + '</div>' +
+      '<div><p class="footer-label">Opening hours</p>' + f('p', 'hours') + '</div>' +
       '</div>' + f('p', 'copyright', 'copyright');
   }
 
@@ -262,7 +269,7 @@
   function sharedPart(part) {
     const tag = part;
     const inner = part === 'header' ? headerInner() : footerInner();
-    const name = PART_NAME[part];
+    const name = part;
     if (view.preview) return '<' + tag + ' class="part part-' + part + '">' + inner + '</' + tag + '>';
 
     if (VARIANT === 'marked') {
@@ -312,7 +319,7 @@
     if (view.preview) {
       return '<header class="topbar"><span class="logo" aria-hidden="true">P</span>' +
         '<p class="topbar-text"><strong>Preview.</strong> This is the site as visitors see it. Use its menu to move between pages.</p>' +
-        '<span class="spacer"></span><button class="btn btn-primary" data-preview>Back to editing</button></header>';
+        '<button class="btn btn-primary" data-preview>Back to editing</button></header>';
     }
     const pages = PAGES.map((p) => '<button data-page="' + p.id + '"' + (p.id === view.page ? ' aria-current="page"' : '') + '>' + p.name + '</button>').join('');
     // Only the site variant lists the whole site's parts beside the pages.
@@ -338,10 +345,10 @@
       '<div class="canvas-scroll"><div class="canvas">' +
       (view.preview ? '<p class="address-bar" aria-label="Web address"><span>pennywheel.example/' + path + '</span></p>' : '') +
       '<div class="sheet">' + sharedPart('header') + bodyPart() + sharedPart('footer') + '</div>' +
-      '</div></div>';
+      '</div></div>' +
+      '<div class="bottombar"><button class="btn btn-primary" data-finish>Finished</button><p>Click Finished when you’ve done everything you were asked to.</p></div>';
     app.querySelector('.canvas-scroll').scrollTop = scrollTop;
     if (focus) { const el = app.querySelector(focus); if (el) el.focus({ preventScroll: true }); }
-    renderCard();
     renderNotes();
   }
 
@@ -356,7 +363,7 @@
     sharedEdits.forEach((e) => {
       if (e.checked || e.page === page) return;
       e.checked = true;
-      const label = PART_NAME[e.part] + ' on ' + pageName(e.page);
+      const label = e.part + ' on ' + pageName(e.page);
       if (!parts.includes(label)) parts.push(label);
     });
     if (parts.length) note('check', 'Looked at ' + pageName(page) + ' (' + where + ') after changing the ' + parts.join(' and the '));
@@ -410,7 +417,7 @@
     commitEditing();
     if (asking) return;
     stats.whole++;
-    note('site', 'Used Whole site › Site ' + PART_NAME[part] + ' (on the ' + pageName(view.page) + ' page)');
+    note('site', 'Used Whole site › Site ' + part + ' (on the ' + pageName(view.page) + ' page)');
     const el = app.querySelector('[data-region="' + part + '"]');
     el.scrollIntoView({ block: 'center' });
     el.focus({ preventScroll: true });
@@ -423,10 +430,10 @@
 
   function openGate(part) {
     if (gateOpen === part) return;
-    if (gateOpen) backOut('clicked the ' + PART_NAME[part]);
+    if (gateOpen) backOut('clicked the ' + part);
     stats.gateClicks++;
     gateOpen = part;
-    note('gate', 'Clicked the ' + PART_NAME[part] + ' (marked “Shown on every page”) on ' + pageName(view.page));
+    note('gate', 'Clicked the ' + part + ' (marked “Shown on every page”) on ' + pageName(view.page));
     render('[data-gate-go]');
   }
 
@@ -435,7 +442,7 @@
     const part = gateOpen;
     gateOpen = null;
     stats.gateBack++;
-    note('gate', 'Backed out of editing the ' + PART_NAME[part] + ' (' + how + ')');
+    note('gate', 'Backed out of editing the ' + part + ' (' + how + ')');
     return part;
   }
 
@@ -443,7 +450,7 @@
     gateOpen = null;
     siteEdit = part;
     stats.gateThrough++;
-    note('gate', 'Went through: editing the ' + PART_NAME[part] + ' for the whole site, from ' + pageName(view.page));
+    note('gate', 'Went through: editing the ' + part + ' for the whole site, from ' + pageName(view.page));
     render('[data-region="' + part + '"]');
   }
 
@@ -452,7 +459,7 @@
     commitEditing();
     const part = siteEdit;
     siteEdit = null;
-    note('gate', 'Finished editing the ' + PART_NAME[part] + ' for the whole site (' + how + ')');
+    note('gate', 'Finished editing the ' + part + ' for the whole site (' + how + ')');
     return part;
   }
 
@@ -466,9 +473,9 @@
 
   const clean = (s) => s.replace(/\s+/g, ' ').trim();
 
-  function fieldName(part, key) {
-    return FIELD_NAME[key] || ('“' + (part === 'body' ? START.pages[view.page][key] : START[part][key]) + '”').replace(/^“(.{28}).+”$/, '“$1…”');
-  }
+  const fieldName = (key) => FIELD_NAME[key];
+  // Where a bit of text is: "header", "footer" or "About page's content".
+  const whereName = (part, page) => (part === 'body' ? pageName(page) + ' page’s content' : part);
 
   // Store what was typed, if it changed. Called when the text loses focus.
   function commitEditing() {
@@ -478,14 +485,20 @@
     const part = el.dataset.part;
     const key = el.dataset.key;
     const now = clean(el.textContent);
-    if (!now || now === before) { el.textContent = before; return; }
-    el.textContent = now;
     const page = view.page;
+    if (!now) {
+      // Emptied: the old text goes back, and the log says so.
+      el.textContent = before;
+      note('undo', 'Emptied the ' + fieldName(key) + ' in the ' + whereName(part, page) + (part === 'body' ? '' : ' on ' + pageName(page)) + '. The old text was put back: “' + before + '”');
+      return;
+    }
+    if (now === before) { el.textContent = before; return; }
+    el.textContent = now;
 
     if (part === 'body') {
       site.pages[page][key] = now;
       stats.edits.body++;
-      note('edit', 'Edited the ' + pageName(page) + ' page’s content (' + fieldName(part, key) + '): “' + before + '” → “' + now + '”');
+      note('edit', 'Edited the ' + pageName(page) + ' page’s content (' + fieldName(key) + '): “' + before + '” → “' + now + '”');
       checkTasks();
       return;
     }
@@ -504,8 +517,8 @@
     lastEdit[part] = rec;
     sharedEdits.push({ part, page, checked: false });
     stats.edits[part]++;
-    note('edit', 'Edited the ' + PART_NAME[part] + ' (' + fieldName(part, key) + ') on ' + pageName(page) + ': “' + before + '” → “' + now + '”. ' +
-      (scope === 'all' ? 'Applies to every page.' : 'Applies to ' + pageName(page) + ' only; it now has its own ' + PART_NAME[part] + '.'));
+    note('edit', 'Edited the ' + part + ' (' + fieldName(key) + ') on ' + pageName(page) + ': “' + before + '” → “' + now + '”. ' +
+      (scope === 'all' ? 'Applies to every page.' : 'Applies to ' + pageName(page) + ' only; it now has its own ' + part + '.'));
     checkTasks();
   }
 
@@ -523,7 +536,17 @@
     if (el) {
       // Each bit of text is one line: Enter finishes, Escape puts it back.
       if (e.key === 'Enter') { e.preventDefault(); el.blur(); }
-      if (e.key === 'Escape') { if (editing) el.textContent = editing.before; el.blur(); }
+      if (e.key === 'Escape') {
+        if (editing) {
+          const typed = clean(el.textContent);
+          const part = el.dataset.part;
+          if (typed !== editing.before) {
+            note('undo', 'Gave up a change with Escape, in the ' + whereName(part, view.page) + (part === 'body' ? '' : ' on ' + pageName(view.page)) + ' (' + fieldName(el.dataset.key) + '): “' + typed + '” was not kept');
+          }
+          el.textContent = editing.before;
+        }
+        el.blur();
+      }
       return;
     }
     if (e.key === 'Escape' && gateOpen) {
@@ -552,6 +575,7 @@
     if ((el = on('data-whole'))) { wholeSite(el.dataset.whole); return; }
     if (on('data-preview')) { togglePreview(); return; }
     if (on('data-save')) { save(); return; }
+    if (on('data-finish')) { finish(); return; }
     if ((el = on('data-gate-go'))) { throughGate(el.dataset.gateGo); return; }
     if (on('data-gate-back')) { const part = backOut('Leave it'); render('[data-gate="' + part + '"]'); return; }
     if ((el = on('data-gate'))) { openGate(el.dataset.gate); return; }
@@ -565,7 +589,7 @@
     commitEditing();
     if (asking) return;
     stats.saves++;
-    note('save', 'Clicked Save on ' + pageName(view.page) + (siteEdit ? ' (while editing the ' + PART_NAME[siteEdit] + ' for the whole site)' : ''));
+    note('save', 'Clicked Save on ' + pageName(view.page) + (siteEdit ? ' (while editing the ' + siteEdit + ' for the whole site)' : ''));
     toast('Saved.');
   }
 
@@ -604,7 +628,7 @@
     }
     asking = about;
     const part = about.part;
-    const name = PART_NAME[part];
+    const name = part;
     const page = about.change ? lastEdit[part].page : about.page;
     const current = about.change ? choice[part] : null;
     const pageLabel = page === view.page ? 'Just this page' : 'Just the ' + pageName(page) + ' page';
@@ -637,7 +661,7 @@
     if (about.change) {
       const was = choice[part];
       if (was === scope) {
-        note('ask', 'Kept the choice for the ' + PART_NAME[part] + ': ' + scopeName(scope));
+        note('ask', 'Kept the choice for the ' + part + ': ' + scopeName(scope));
       } else {
         // Take the last change back and make it again with the new answer.
         const rec = lastEdit[part];
@@ -647,7 +671,9 @@
         lastEdit[part] = again;
         choice[part] = scope;
         stats.askChanged++;
-        note('ask', 'Changed the choice for the ' + PART_NAME[part] + ': ' + scopeName(was) + ' → ' + scopeName(scope) + '. The last change (“' + rec.text + '”, on ' + pageName(rec.page) + ') now applies to ' + (scope === 'all' ? 'every page' : pageName(rec.page) + ' only'));
+        // Moving a change is itself a change to a shared part: did they go and look?
+        sharedEdits.push({ part, page: rec.page, checked: false });
+        note('ask', 'Changed the choice for the ' + part + ': ' + scopeName(was) + ' → ' + scopeName(scope) + '. The last change (“' + rec.text + '”, on ' + pageName(rec.page) + ') now applies to ' + (scope === 'all' ? 'every page' : pageName(rec.page) + ' only'));
         checkTasks();
       }
       render('[data-change="' + part + '"]');
@@ -655,7 +681,7 @@
     }
     choice[part] = scope;
     stats[scope === 'all' ? 'askAll' : 'askPage']++;
-    note('ask', 'Answered: ' + scopeName(scope) + ' (' + PART_NAME[part] + ')');
+    note('ask', 'Answered: ' + scopeName(scope) + ' (' + part + ')');
     saveShared(part, about.key, about.page, about.before, about.text, scope);
     render('[data-part="' + part + '"][data-key="' + about.key + '"]');
   }
@@ -665,11 +691,11 @@
     asking = null;
     dialog.close();
     if (about.change) {
-      note('ask', 'Closed “Change” for the ' + PART_NAME[about.part] + ' without changing it (' + how + ')');
+      note('ask', 'Closed “Change” for the ' + about.part + ' without changing it (' + how + ')');
       render('[data-change="' + about.part + '"]');
       return;
     }
-    note('ask', 'Dialog closed without an answer (' + how + '). The change to the ' + PART_NAME[about.part] + ' was undone');
+    note('ask', 'Dialog closed without an answer (' + how + '). The change to the ' + about.part + ' was undone');
     render('[data-part="' + about.part + '"][data-key="' + about.key + '"]'); // puts the old text back
   }
 
@@ -716,7 +742,8 @@
    *   every page, 2 changed on Home only, 3 something else ·
    *   edits to the header (h), the footer (f) and page content (b) ·
    *   c: changes to a shared part that were followed by a look at another
-   *   page, then all changes to a shared part ·
+   *   page, then all changes to a shared part (in ask, moving a change with
+   *   "Change" counts as one) ·
    *   one part that depends on the variant:
    *     marked  g: clicks on the gated header or footer, went through, backed out
    *     ask     q: dialogs shown, Every page, Just this page, later changes of answer
@@ -742,48 +769,47 @@
     ].join('-');
   }
 
-  // The Finished button, and the code it shows. Clicking it again later gives a new code.
-  let cardEl = null;
-  function renderCard() {
-    if (!cardEl) { cardEl = document.createElement('section'); cardEl.className = 'task-card'; cardEl.setAttribute('aria-label', 'Finish'); document.body.append(cardEl); }
-    cardEl.classList.toggle('is-open', cardOpen);
-    if (!cardOpen) {
-      cardEl.innerHTML = '<button class="btn btn-primary">Finished</button>';
-      cardEl.querySelector('button').addEventListener('click', () => {
-        commitEditing();
-        if (asking) return;
-        cardOpen = true;
-        const unchecked = sharedEdits.filter((e) => !e.checked).length;
-        if (sharedEdits.length) {
-          note('check', unchecked
-            ? 'Finished without looking at another page after ' + unchecked + ' of ' + sharedEdits.length + ' changes to the header or footer'
-            : 'Looked at another page after every change to the header or footer (' + sharedEdits.length + ')');
-        }
-        note('task', 'Clicked Finished. Code ' + completionCode());
-        renderCard();
-        cardEl.querySelector('textarea').focus();
+  // Finished shows the code in a dialog. Clicking Finished again later gives a new code.
+  let finishEl = null;
+  function finish() {
+    commitEditing();
+    if (asking) return;
+    if (!finishEl) {
+      finishEl = document.createElement('dialog');
+      finishEl.className = 'finish';
+      finishEl.setAttribute('aria-labelledby', 'finish-title');
+      document.body.append(finishEl);
+      finishEl.addEventListener('close', () => {
+        note('task', 'Went back to editing');
+        const btn = app.querySelector('[data-finish]');
+        if (btn) btn.focus();
       });
-      return;
+      finishEl.addEventListener('click', (e) => {
+        if (e.target.closest('[data-back]')) { finishEl.close(); return; }
+        if (!e.target.closest('[data-copy-code]')) return;
+        const input = finishEl.querySelector('textarea');
+        input.select();
+        (navigator.clipboard ? navigator.clipboard.writeText(input.value) : Promise.reject()).then(
+          () => toast('Code copied.'),
+          () => { try { document.execCommand('copy'); toast('Code copied.'); } catch (err) { toast('Select the code and copy it.'); } }
+        );
+      });
+    }
+    const unchecked = sharedEdits.filter((e) => !e.checked).length;
+    if (sharedEdits.length) {
+      note('check', unchecked
+        ? 'Finished without looking at another page after ' + unchecked + ' of ' + sharedEdits.length + ' changes to the header or footer'
+        : 'Looked at another page after every change to the header or footer (' + sharedEdits.length + ')');
     }
     const code = completionCode();
-    cardEl.innerHTML = '<p class="task-count">Thank you</p><p class="task-text">Please copy this code into the next question:</p>' +
+    note('task', 'Clicked Finished. Code ' + code);
+    finishEl.innerHTML = '<h2 id="finish-title">Thank you</h2><p>Please copy this code into the next question:</p>' +
       '<textarea class="task-code" readonly rows="2" aria-label="Your code">' + code + '</textarea>' +
-      '<button class="btn btn-primary">Copy code</button><button class="link task-back">Keep editing</button>';
-    const input = cardEl.querySelector('textarea');
-    input.addEventListener('focus', () => input.select());
-    cardEl.querySelector('.btn-primary').addEventListener('click', () => {
-      input.select();
-      (navigator.clipboard ? navigator.clipboard.writeText(code) : Promise.reject()).then(
-        () => toast('Code copied.'),
-        () => { try { document.execCommand('copy'); toast('Code copied.'); } catch (err) { toast('Select the code and copy it.'); } }
-      );
-    });
-    cardEl.querySelector('.task-back').addEventListener('click', () => {
-      cardOpen = false;
-      note('task', 'Went back to editing');
-      renderCard();
-      cardEl.querySelector('button').focus();
-    });
+      '<div class="finish-actions"><button class="btn btn-primary" data-copy-code>Copy code</button><button class="link" data-back>Keep editing</button></div>';
+    finishEl.showModal();
+    const input = finishEl.querySelector('textarea');
+    input.focus();
+    input.select();
   }
 
   let notesEl = null;

@@ -19,7 +19,8 @@ What's the same in all three:
 - **The site**: an invented bike repair shop, Pennywheel Bike Repair, with three pages, Home, About and Contact. Every page has the same header (the site's name, a line under it, and a menu of the three pages) and the same footer (address, phone number, opening hours and a copyright line). Each page has its own headings, paragraphs and a picture.
 - **The editor**: a top bar with the pages, Preview site and Save, around the page. Click any text to change it; Enter or clicking away finishes, Escape puts it back. Menu items can be renamed the same way.
 - **Preview site** shows the site as a visitor sees it, with a menu that works. Back to editing returns to the editor, on the page you ended on.
-- **The tasks, the log and the Finished button.**
+- **The tasks, the log and the Finished button**, in a bar along the bottom of the editor.
+- **The browser tab's title**, "Pennywheel Bike Repair · Site editor", so it doesn't name the prototype. The address still does (`marked.html`, `ask.html`, `site.html`); hide it or use a link shortener if that matters for your test.
 
 Nothing is saved anywhere. Reload the page to start again.
 
@@ -32,20 +33,20 @@ Add `?notes` or `#notes` to the address (`marked.html?notes`) for a panel on the
 - a log of everything, with times since the page opened (or since Reset), and **Copy log** to paste it into your notes,
 - A | B | C links to switch prototype, and **Reset**, which puts the site back and clears the log.
 
-The log records every switch of page; every edit, with the part it was in (header, footer, or which page's content), the old and new text, and whether it applied to every page or one; opening and leaving the preview and each page visited in it; Save; and Finished.
+The log records every switch of page; every edit, with the part it was in (header, footer, or which page's content), the old and new text, and whether it applied to every page or one; changes given up with Escape, and text that was emptied and put back; opening and leaving the preview and each page visited in it; Save; and Finished.
 
-**"Looked at another page"** is the thing to watch. After each change to the header or footer, the log notes the first time the person looks at a different page from the one they made the change on, in the editor or the preview. Someone who checks another page is either unsure whether the change spread or confirming that it did; ask which. When they click Finished, the log says how many changes to the header or footer were never checked.
+**"Looked at another page"** is the thing to watch. After each change to the header or footer, the log notes the first time the person looks at a different page from the one they made the change on, in the editor or the preview. Someone who checks another page is either unsure whether the change spread or confirming that it did; ask which. In B, moving a change with the Change link counts as a change too. When they click Finished, the log says how many changes to the header or footer were never checked.
 
 ## The completion code
 
-The **Finished** button in the bottom left shows a code to copy into the next question of an unmoderated testing tool, for example `RM-11101-h2-f1-b1-c2.3-g3.2.1-p1.3-v1-s245`. "Keep editing" goes back to the page, and clicking Finished again gives a new code.
+The **Finished** button in the bar at the bottom shows a code to copy into the next question of an unmoderated testing tool, for example `RM-11101-h2-f1-b1-c2.3-g3.2.1-p1.3-v1-s245`. "Keep editing" goes back to the page, and clicking Finished again gives a new code.
 
 | Part | Meaning |
 | --- | --- |
 | `RM`, `RA`, `RS` | The prototype: A marked, B ask, C always labelled. |
 | `11101` | The five tasks when Finished was clicked. Tasks 1, 2, 3 and 5: 1 for reached, 0 for not. Task 1 needs a new phone number on every page, and task 3 needs "Find us" in every page's menu. Task 4 is the line under the site name: 0 not changed, 1 changed on every page, 2 changed on Home only, 3 anything else. |
 | `h2-f1-b1` | Edits to the header, the footer and page content. |
-| `c2.3` | Changes to the header or footer that were followed by a look at another page, then all changes to the header or footer. |
+| `c2.3` | Changes to the header or footer that were followed by a look at another page, then all changes to the header or footer. In B, moving a change with the Change link counts as one. |
 | `g3.2.1` | A only: clicks on the marked header or footer, times the person went through, times they backed out. |
 | `q2.1.1.0` | B only: dialogs shown, "Every page" answers, "Just this page" answers, later changes of answer. |
 | `w2` | C only: uses of Site header and Site footer in the top bar. |

@@ -2,6 +2,8 @@
 
 Prototypes exploring site editing interactions. Each experiment lives in its own folder, named after an artist, in alphabetical order as they're added (Albers, Bourgeois, Cassatt, and so on). Most are plain HTML, CSS and JavaScript, served with GitHub Pages; WordPress plugins say so and explain how to run them.
 
+The project these experiments serve, and how we're working, is in [PLAN.md](PLAN.md).
+
 ## Experiments
 
 - [Albers](albers/), section editing modes: add, move and delete sections, and hover a section to edit its layout from presets and add or remove items, edit its content in place, or move and resize items freely with grid and snap guides.

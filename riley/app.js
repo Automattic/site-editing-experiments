@@ -1,8 +1,8 @@
 /*
  * Riley · This page or every page?
  *
- * One simulated site editor, three variants. The site, its pages, the editor
- * around it, the tasks and the log are the same in all three. Only the way the
+ * One simulated site editor, five variants. The site, its pages, the editor
+ * around it, the tasks and the log are the same in all five. Only the way the
  * shared header and footer are treated changes:
  *
  *   plain   The control. The header and footer look and behave like the rest
@@ -15,6 +15,11 @@
  *           and "Site footer" labels, the page's content carries the page's
  *           name, and the top bar lists the whole site's parts beside the
  *           pages.
+ *   told    Looks like the control. After each change to the header or footer
+ *           a message says "Updated on all 3 pages", with Undo. It doesn't
+ *           ask anything and doesn't get in the way.
+ *   summary Looks like the control. Save lists what changed and where ("On
+ *           every page", "Only on the About page") before saving.
  *
  * An earlier version had a fourth treatment, "ask" (the first change asks
  * "Every page" or "Just this page"). It was dropped after review; it is in
@@ -32,9 +37,13 @@
   const VARIANTS = {
     plain: { code: 'RP', letter: '0', name: 'Control: the header and footer look and behave like the rest of the page, and nothing says they are shared' },
     marked: { code: 'RM', letter: 'A', name: 'Shown on hover: pointing at the header or footer shows “Shown on every page” and an Edit button, and one click unlocks it' },
-    site: { code: 'RS', letter: 'C', name: 'Always labelled: Site header, Site footer and the page’s name are always shown, with no lock and no question' }
+    site: { code: 'RS', letter: 'C', name: 'Always labelled: Site header, Site footer and the page’s name are always shown, with no lock and no question' },
+    told: { code: 'RT', letter: 'D', name: 'Told after the change: nothing is marked, and each change to the header or footer is followed by “Updated on all 3 pages” with Undo' },
+    summary: { code: 'RU', letter: 'E', name: 'Summary at save: nothing is marked, and Save lists what changed on every page and what changed on one page' }
   };
   const VARIANT = VARIANTS[document.body.dataset.variant] ? document.body.dataset.variant : 'marked';
+  // These three show the header and footer exactly like the rest of the page.
+  const UNMARKED = ['plain', 'told', 'summary'].includes(VARIANT);
   const NOTES = new URLSearchParams(location.search).has('notes') || location.hash === '#notes';
 
   const PAGES = [
@@ -127,6 +136,7 @@
   let view;          // { page, preview }
   let siteEdit;      // marked: which part is unlocked for editing
   let gateShown;     // marked: which part's label a tap has shown (touch has no hover)
+  let unsaved;       // summary: what has changed since the last save, one entry per bit of text
   let sharedEdits;   // every change to a shared part, and whether another page was looked at since
   let log, stats, startedAt, firstDone, ticked;
   let editing = null; // the text being edited and what it said before
@@ -138,11 +148,15 @@
     view = { page: 'home', preview: false };
     siteEdit = null;
     gateShown = null;
+    unsaved = [];
+    hideTold();
     sharedEdits = [];
     log = [];
     stats = {
       edits: { header: 0, footer: 0, body: 0 },
       gateShown: 0, gateThrough: 0,
+      told: 0, toldUndo: 0,
+      sumShown: 0, sumSaved: 0, sumBack: 0,
       whole: 0, previews: 0, previewPages: {}, saves: 0
     };
     startedAt = Date.now();
@@ -170,6 +184,48 @@
   function note(kind, text) {
     log.push({ at: elapsed(), kind, text });
     renderNotes();
+  }
+
+  // told: the message after a change to the header or footer. It stays for a
+  // while, longer if the pointer or keyboard focus is on it, and has Undo.
+  let toldEl = null;
+  let toldTimer = null;
+  let toldRec = null;
+  function hideTold() {
+    clearTimeout(toldTimer);
+    toldRec = null;
+    if (toldEl) toldEl.classList.remove('is-shown');
+  }
+  function tell(rec) {
+    if (!toldEl) {
+      toldEl = document.createElement('div');
+      toldEl.className = 'told';
+      toldEl.setAttribute('role', 'status');
+      document.body.append(toldEl);
+      toldEl.addEventListener('click', (e) => { if (e.target.closest('[data-undo]')) undoTold(); });
+      const wait = () => { clearTimeout(toldTimer); toldTimer = setTimeout(() => { if (toldEl.matches(':hover, :focus-within')) wait(); else hideTold(); }, 10000); };
+      toldEl.wait = wait;
+    }
+    toldRec = rec;
+    stats.told++;
+    toldEl.innerHTML = '<p><strong>Updated on all ' + PAGES.length + ' pages.</strong> The ' + rec.part + ' is the same on ' + PAGES.map((p) => p.name).join(', ').replace(/, ([^,]*)$/, ' and $1') + '.</p><button class="btn" data-undo>Undo</button>';
+    toldEl.classList.toggle('has-notes', NOTES);
+    toldEl.classList.add('is-shown');
+    toldEl.wait();
+    note('told', 'Message shown: “Updated on all ' + PAGES.length + ' pages” (' + rec.part + ', ' + fieldName(rec.key) + ')');
+  }
+  function undoTold() {
+    const rec = toldRec;
+    if (!rec) return;
+    hideTold();
+    commitEditing();
+    if (site[rec.part][rec.key] === rec.now) site[rec.part][rec.key] = rec.before;
+    const i = sharedEdits.indexOf(rec.entry);
+    if (i > -1) sharedEdits.splice(i, 1);
+    stats.toldUndo++;
+    note('undo', 'Used Undo in the message: the ' + rec.part + ' (' + fieldName(rec.key) + ') went back to “' + rec.before + '” on every page');
+    render('[data-part="' + rec.part + '"][data-key="' + rec.key + '"]');
+    checkTasks();
   }
 
   let toastTimer = null;
@@ -244,7 +300,7 @@
     const name = part;
     if (view.preview) return '<' + tag + ' class="part part-' + part + '">' + inner + '</' + tag + '>';
 
-    if (VARIANT === 'plain') {
+    if (UNMARKED) {
       return '<' + tag + ' class="part part-' + part + '" data-region="' + part + '">' + inner + '</' + tag + '>';
     }
 
@@ -504,6 +560,7 @@
 
     if (part === 'body') {
       site.pages[page][key] = now;
+      track(part, page, key, before, now);
       stats.edits.body++;
       note('edit', 'Edited the ' + pageName(page) + ' page’s content (' + fieldName(key) + '): “' + before + '” → “' + now + '”');
       checkTasks();
@@ -511,10 +568,26 @@
     }
 
     site[part][key] = now;
-    sharedEdits.push({ part, page, checked: false });
+    track(part, page, key, before, now);
+    const entry = { part, page, checked: false };
+    sharedEdits.push(entry);
     stats.edits[part]++;
     note('edit', 'Edited the ' + part + ' (' + fieldName(key) + ') on ' + pageName(page) + ': “' + before + '” → “' + now + '”. Applies to every page.');
+    if (VARIANT === 'told') tell({ part, key, before, now, entry });
     checkTasks();
+  }
+
+  // Keep one entry per bit of text changed since the last save: what it said
+  // at the last save and what it says now. Changing it back removes the entry.
+  function track(part, page, key, before, now) {
+    const id = part === 'body' ? 'body:' + page + ':' + key : part + ':' + key;
+    const found = unsaved.find((c) => c.id === id);
+    if (found) {
+      found.now = now;
+      if (found.now === found.before) unsaved.splice(unsaved.indexOf(found), 1);
+    } else {
+      unsaved.push({ id, part, page, key, before, now });
+    }
   }
 
   app.addEventListener('focusin', (e) => {
@@ -584,7 +657,67 @@
     commitEditing();
     stats.saves++;
     note('save', 'Clicked Save on ' + pageName(view.page) + (siteEdit ? ' (while editing the ' + siteEdit + ' for the whole site)' : ''));
+    if (VARIANT === 'summary') {
+      if (unsaved.length) openSummary();
+      else toast('Nothing new to save.');
+      return;
+    }
+    unsaved = [];
     toast('Saved.');
+  }
+
+  // ---------- summary: what changed and where, before saving ----------
+
+  let summaryEl = null;
+  let summaryAnswered = false;
+
+  function openSummary() {
+    if (!summaryEl) {
+      summaryEl = document.createElement('dialog');
+      summaryEl.className = 'summary';
+      summaryEl.setAttribute('aria-labelledby', 'summary-title');
+      document.body.append(summaryEl);
+      summaryEl.addEventListener('click', (e) => {
+        if (e.target.closest('[data-confirm]')) {
+          summaryAnswered = true;
+          stats.sumSaved++;
+          unsaved = [];
+          note('save', 'Saved from the summary');
+          summaryEl.close();
+          toast('Saved.');
+        } else if (e.target.closest('[data-back]')) {
+          summaryEl.close();
+        }
+      });
+      // Escape and Keep editing both end here.
+      summaryEl.addEventListener('close', () => {
+        if (!summaryAnswered) {
+          stats.sumBack++;
+          note('save', 'Went back to editing from the summary without saving');
+        }
+        const btn = app.querySelector('[data-save]');
+        if (btn) btn.focus();
+      });
+    }
+    summaryAnswered = false;
+    const cap = (t) => t.charAt(0).toUpperCase() + t.slice(1);
+    const row = (c) => '<li><strong>' + (c.part === 'body' ? cap(fieldName(c.key)) : cap(c.part) + ' · ' + (/^menu/.test(c.key) ? 'menu item' : fieldName(c.key))) + '</strong><span>“' + esc(c.before) + '” → “' + esc(c.now) + '”</span></li>';
+    const shared = unsaved.filter((c) => c.part !== 'body');
+    let groups = shared.length ? '<h3>On every page</h3><ul>' + shared.map(row).join('') + '</ul>' : '';
+    const counts = [];
+    if (shared.length) counts.push(shared.length + ' on every page');
+    PAGES.forEach((p) => {
+      const own = unsaved.filter((c) => c.part === 'body' && c.page === p.id);
+      if (!own.length) return;
+      groups += '<h3>Only on the ' + p.name + ' page</h3><ul>' + own.map(row).join('') + '</ul>';
+      counts.push(own.length + ' on ' + p.name + ' only');
+    });
+    summaryEl.innerHTML = '<h2 id="summary-title" tabindex="-1">Save ' + unsaved.length + (unsaved.length === 1 ? ' change?' : ' changes?') + '</h2>' + groups +
+      '<div class="finish-actions"><button class="btn btn-primary" data-confirm>Save</button><button class="link" data-back>Keep editing</button></div>';
+    stats.sumShown++;
+    note('save', 'Summary shown: ' + counts.join(', '));
+    summaryEl.showModal();
+    summaryEl.querySelector('h2').focus();
   }
 
   // ---------- Tasks, the completion code and the notes panel ----------
@@ -619,7 +752,8 @@
   /*
    * The completion code, for pasting into the testing tool. For example:
    *   RM-11101-h2-f1-b1-c2.3-g4.2-p1.3-v1-s245
-   *   variant (RP control, RM shown on hover, RS always labelled) ·
+   *   variant (RP control, RM shown on hover, RS always labelled, RT told
+   *   after the change, RU summary at save) ·
    *   the five tasks when Finished was clicked: 1 or 0 for tasks 1, 2, 3 and 5,
    *   and for task 4 the line under the site name: 0 not changed, 1 changed
    *   (which changes it on every page) ·
@@ -629,13 +763,17 @@
    *   one part that depends on the variant (the control has none):
    *     marked  g: times the label was shown (a hover that rested, or a tap), times unlocked
    *     site    w: uses of Site header and Site footer in the top bar
+   *     told    t: messages shown, times Undo was used in one
+   *     summary u: summaries shown, saved from one, went back without saving
    *   p: times the preview was opened, then pages seen in it ·
    *   v: clicks on Save · s: seconds until Finished.
    */
   function completionCode() {
     const own = {
       marked: 'g' + [stats.gateShown, stats.gateThrough].join('.'),
-      site: 'w' + stats.whole
+      site: 'w' + stats.whole,
+      told: 't' + [stats.told, stats.toldUndo].join('.'),
+      summary: 'u' + [stats.sumShown, stats.sumSaved, stats.sumBack].join('.')
     }[VARIANT];
     return [
       VARIANTS[VARIANT].code,
@@ -721,7 +859,9 @@
       '<small>' + t.hint + (t.state ? ' ' + t.state() + '.' : '') + '</small></li>').join('');
     const own = {
       marked: '<dt>Times “Shown on every page” appeared</dt><dd>' + stats.gateShown + '</dd><dt>Times unlocked</dt><dd>' + stats.gateThrough + '</dd>',
-      site: '<dt>Uses of Site header or Site footer in the top bar</dt><dd>' + stats.whole + '</dd>'
+      site: '<dt>Uses of Site header or Site footer in the top bar</dt><dd>' + stats.whole + '</dd>',
+      told: '<dt>Times “Updated on all 3 pages” was shown</dt><dd>' + stats.told + '</dd><dt>Times Undo was used in it</dt><dd>' + stats.toldUndo + '</dd>',
+      summary: '<dt>Save summaries shown</dt><dd>' + stats.sumShown + '</dd><dt>Saved from the summary</dt><dd>' + stats.sumSaved + '</dd><dt>Went back without saving</dt><dd>' + stats.sumBack + '</dd>'
     }[VARIANT];
     notesEl.innerHTML =
       '<div class="notes-head"><h2>' + VARIANTS[VARIANT].letter + ' · Facilitator notes</h2><nav class="switcher" aria-label="Variant">' + links + '</nav></div>' +

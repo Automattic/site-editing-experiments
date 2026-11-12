@@ -1,4 +1,4 @@
-/* Riley · This page or every page? Shared styles for all three variants. */
+/* Riley · This page or every page? Shared styles for all the variants. */
 
 :root {
   --ink: #1e1e1e;
@@ -189,7 +189,7 @@ svg { display: block; }
 .notes .log li { padding: 4px 0; border-bottom: 1px solid var(--line-2); }
 .notes .log time { color: var(--ink-3); margin-right: 6px; }
 .notes .log .is-edit { color: var(--blue-dark); }
-.notes .log .is-gate, .notes .log .is-site { color: #7a4a00; }
+.notes .log .is-gate, .notes .log .is-site, .notes .log .is-told { color: #7a4a00; }
 .notes .log .is-undo { color: #b32d2e; }
 .notes .log .is-check { color: #8a1f6a; font-weight: 600; }
 .notes .log .is-task { color: var(--green); font-weight: 600; }
@@ -197,3 +197,29 @@ svg { display: block; }
 .switcher { display: flex; gap: 4px; }
 .switcher a { width: 28px; height: 28px; border-radius: 3px; border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; font-weight: 600; color: var(--ink); text-decoration: none; }
 .switcher a[aria-current="page"] { background: var(--ink); border-color: var(--ink); color: var(--white); }
+
+/* ---------- told: the message after a change to the header or footer ---------- */
+
+.told { position: fixed; left: 24px; bottom: 72px; z-index: 350; display: flex; align-items: center; gap: 16px; max-width: min(520px, calc(100vw - 48px)); padding: 12px 12px 12px 16px; background: var(--ink); color: var(--white); border-radius: 6px; box-shadow: 0 8px 28px rgba(0,0,0,.3); font-size: 14px; opacity: 0; visibility: hidden; transition: opacity .15s, visibility .15s; }
+.told.is-shown { opacity: 1; visibility: visible; }
+.told.has-notes { max-width: min(520px, calc(100vw - 408px)); }
+.told p { margin: 0; color: #d5d5d8; }
+.told strong { color: var(--white); }
+.told .btn { flex: none; border-color: var(--white); color: var(--ink); font-weight: 600; }
+@media (prefers-reduced-motion: reduce) {
+  .told { transition: none; }
+}
+
+/* ---------- summary: what changed and where, before saving ---------- */
+
+.summary { width: min(480px, calc(100vw - 32px)); max-height: calc(100vh - 48px); overflow: auto; padding: 24px; border: 1px solid var(--ink); border-radius: 8px; box-shadow: 0 16px 48px rgba(0,0,0,.3); color: var(--ink); }
+.summary::backdrop { background: rgba(0,0,0,.4); }
+.summary h2 { margin: 0 0 4px; font-size: 20px; }
+.summary h2:focus { outline: none; }
+.summary h3 { margin: 16px 0 6px; font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--ink-2); }
+.summary ul { list-style: none; margin: 0; padding: 0; border: 1px solid var(--line); border-radius: 6px; }
+.summary li { padding: 10px 12px; border-bottom: 1px solid var(--line-2); overflow-wrap: anywhere; }
+.summary li:last-child { border-bottom: none; }
+.summary li strong { display: block; }
+.summary li span { display: block; margin-top: 2px; color: var(--ink-2); }
+.summary .finish-actions { margin-top: 20px; }

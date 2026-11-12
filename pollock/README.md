@@ -237,6 +237,70 @@ Set it up as round 2, with these changes:
 - **For S3**, also check what it costs: the `?notes` log records "Clicked into … to edit it", and the follow-up asks whether editing text got harder. A design that makes moving easier but editing harder isn't a win.
 - **For D3**, check the follow-up answers and the log: if people only ever click the arrows and never drag them, it's no better than today.
 
+### Round 3 results
+
+Round 3 ran on 12 November 2026 in Lyssna: six tests, one prototype each, 6 people each. Six people gave no code.
+
+| | A3 control | W3 wing | D3 arrows | O3 outline | S3 anywhere | M3 cursor |
+| --- | --- | --- | --- | --- | --- | --- |
+| Codes received | 5/6 | 6/6 | 4/6 | 5/6 | 4/6 | 6/6 |
+| Dragged to move a block | 4/5 | 6/6 | 2/4 | 3/5 | 4/4 | 6/6 |
+| All four tasks right | 4/5 | 3/6 | 1/4 | 2/5 | 3/4 | 3/6 |
+| Drags on things that aren't handles (all) | 5 | 6 | 21 | 18 | 2 | 19 |
+| First drag (median) | 81s | 67s | 157s | 80s | 62s | 86s |
+| Time to Finished (median) | 248s | 212s | 316s | 372s | 192s | 253s |
+| Said the dots (D3: the arrows) drag | 5/6 | 5/6 | 1/6 | 2/6 | 4/6 | 6/6 |
+
+- **The control did far better than in round 2** (4 of 5 finished, against 0 of 4). The groups are small, and round 3's first task moves a text block, so people looked for a handle and found it; in round 2 they first dragged the picture by itself, expected text to do the same, and got stuck. Either way, **the control moved more between rounds than any design differed from it**: tests of 5–6 people a group can't separate these designs.
+- **No new design beat the control** by the margin set beforehand.
+- **Taking the handle away made things worse.** D3 (drag the arrows) had the most failed drags; only 1 of 6 realised the arrows drag ("I thought I would be able to drag this box… this didn't seem possible"; "it's NOT intuitive"). O3's outline was found by few ("I used the blue frame"), and most still read the dots as "options".
+- **W3 and M3 made no clear difference.**
+- **S3 had the best signs**: the fewest failed drags, the fastest first drag and the fastest finish, with people doing what they'd tried in round 2 ("Can I just drag and drop? Yeah"). But only 4 gave codes, and its editing cost wasn't measured.
+
+## Round 4
+
+Round 4 is in [`round-4/`](round-4/). It tests the one promising idea, S3, against today's editor, with more people, and measures what it costs when you want to edit text rather than move it.
+
+| | Prototype | |
+| --- | --- | --- |
+| A4 | [Control](round-4/control.html) | Today's editor, as A3. |
+| S4 | [Drag from anywhere until you type](round-4/rest-drag.html) | As S3: hover shows the outline, the block type and the hand cursor; press anywhere and drag; one click puts the caret in and it stops dragging. |
+
+Both use the hand cursor and today's toolbar handle, so S4 differs from the control in one way.
+
+**Tasks.** Round 3's four moves, then two text edits:
+
+1. Move "We're closed on Mondays" into the left column, after "Saturday, 8am to 2pm."
+2. Move the quote from Ana so it comes straight after the first paragraph.
+3. In "Visit us", move the parking paragraph to the end of that column.
+4. Move the "Fresh every morning" banner to after the Order online button.
+5. Rosa now closes at 3pm on Saturdays. Change "Saturday, 8am to 2pm." so it says 3pm.
+6. In the first paragraph, change "autumn bakes" to "winter bakes".
+
+The edits are checked from the page's text when Finished is clicked, along with the moves, so a block knocked out of place while someone tries to select its words shows up as a move that's no longer right.
+
+**The code** has six task digits, and adds `b` (moves by dragging the block itself, without a handle; `d` now counts only handle drags), `u` (undos) and `z` (blocks picked up and dropped where they were, which is what usually happens when someone drags across words to select them in S4 before clicking in).
+
+### Running round 4
+
+- **Two tests, 20 people each**, 40 in all. Recruit until each has 20 codes. Same screener as before; exclude anyone from rounds 1–3.
+- **Task text:** the six tasks above, then "Please think aloud in English as you go… When you've done all six, click **Finished** in the bottom-left corner and copy the code it gives you."
+- **Follow-up questions**, the same in both, with `pollock-A3-handle.png` (the toolbar is the same in both):
+  1. "How easy or hard was it to **move** things on this page?" (1 very hard – 7 very easy)
+  2. "How easy or hard was it to **change the text**?" (1 very hard – 7 very easy)
+  3. "Did anything move when you didn't mean it to?" (Yes / No / Not sure), and "What happened?" (open text)
+  4. "If you wanted to move something on this page, how would you do it?" (open text)
+  5. "In this picture, what do you think the dotted button does?" (open text)
+
+### What would decide it
+
+S4 is worth building if it makes **moving** clearly better and **editing** no worse:
+
+- **Moving is better** if either more people get all four moves right, by 4 or more of 20, or the same number do and the median time to finish the moves (the fourth `t`) is at least 30 seconds faster, or the "move" rating is at least 1 point higher.
+- **Editing is no worse** if as many people get both edits right (within 2 of 20), the "change the text" rating is no more than half a point lower, and no more people say something moved when they didn't mean it to (within 2 of 20, checked against `z` and `u`).
+
+If moving is better but editing is worse, the idea needs work before it's built: for example, only making a block draggable from anywhere after a short hover, or only outside its text.
+
 ## How it maps to Gutenberg
 
 - **A** is `BlockMover` as it is now (`block-mover/index.tsx` and `style.scss` in `@wordpress/block-editor` 20.0.0): `.block-editor-block-mover__drag-handle` is `$block-toolbar-height * 0.5` wide with `overflow: hidden`, and has `tabIndex="-1"`.

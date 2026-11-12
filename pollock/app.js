@@ -68,6 +68,9 @@
   // Round 3 keeps everything round 2 added; only its tasks and handles differ.
   const ROUND2 = CONFIG.round >= 2;
   const ROUND3 = CONFIG.round === 3;
+  // Round 4: today's editor against drag-from-anywhere (S3), with two tasks
+  // that edit text, to see what dragging from anywhere costs when editing.
+  const ROUND4 = CONFIG.round === 4;
   // As in the editor today, a block that isn't text (here, a picture) can be
   // dragged by itself, without a handle: BlockListBlock is draggable when the
   // block, not a text field in it, has focus. Round 1 didn't have this.
@@ -86,7 +89,10 @@
   const HANDLE_TIP_DELAY = CONFIG.handleTip === 'instant' ? 0 : TIP_DELAY;
   const NOTES = new URLSearchParams(location.search).has('notes') || location.hash === '#notes';
   const LETTER = CONFIG.code || { today: 'A', edge: 'B', toolbar: 'C' }[CONFIG.handle];
-  const PAGES = ROUND3 ? [
+  const PAGES = ROUND4 ? [
+    { letter: 'A4', href: 'control.html' },
+    { letter: 'S4', href: 'rest-drag.html' }
+  ] : ROUND3 ? [
     { letter: 'A3', href: 'control.html' },
     { letter: 'W3', href: 'toolbar-wing.html' },
     { letter: 'D3', href: 'toolbar-arrows.html' },
@@ -229,7 +235,15 @@
   const COLUMNS = ROUND2 && CONFIG.layout === 'columns';
   const START_LISTS = COLUMNS ? LISTS_3 : { root: ROUND2 ? START_2 : START_1 };
   const START = Object.values(START_LISTS).flat();
-  const TASKS = ROUND3 ? TASKS_4 : COLUMNS ? TASKS_3 : ROUND2 ? TASKS_2 : TASKS_1;
+  // Round 4: round 3's four moves, then two text edits. Edits are checked
+  // from the page's text, so a block dragged by accident while someone tries
+  // to select its words still shows up as a broken move.
+  const textOf = (id) => (blockEls[id] ? blockEls[id].textContent : '');
+  const TASKS_5 = TASKS_4.concat([
+    { text: 'Rosa now closes at 3pm on Saturdays. Change “Saturday, 8am to 2pm.” so it says 3pm.', done: () => /3\s*pm/i.test(textOf('hours-sat')) && !/2\s*pm/i.test(textOf('hours-sat')) },
+    { text: 'In the first paragraph, change “autumn bakes” to “winter bakes”.', done: () => /winter bakes/i.test(textOf('intro')) && !/autumn bakes/i.test(textOf('intro')) }
+  ]);
+  const TASKS = ROUND4 ? TASKS_5 : ROUND3 ? TASKS_4 : COLUMNS ? TASKS_3 : ROUND2 ? TASKS_2 : TASKS_1;
   const LIST_NAMES = { root: 'the page', 'col-left': 'the left column', 'col-right': 'the right column' };
 
   // ---------- State ----------
@@ -1051,7 +1065,7 @@
   });
 
   window.addEventListener('resize', position);
-  canvas.addEventListener('input', position);
+  canvas.addEventListener('input', () => { position(); checkTasks(); renderNotes(); });
 
   // ---------- Tasks and notes ----------
 
@@ -1067,9 +1081,12 @@
   function summary() {
     const moves = log.filter((l) => l.kind === 'move');
     const count = (re) => moves.filter((m) => re.test(m.text)).length;
-    const firstDrag = moves.find((m) => /dragged from/.test(m.text));
+    const firstDrag = moves.find((m) => /dragged from/.test(m.text)); // a handle or, with restDrag, the block itself
     return {
-      drags: count(/dragged from/),
+      drags: count(/dragged from the (?!block itself)/),
+      bodies: count(/dragged from the block itself/),
+      undos: log.filter((l) => l.text === 'Undo').length,
+      putBack: log.filter((l) => /and dropped it where it was/.test(l.text)).length,
       pictures: count(/dragged the block itself/),
       arrows: count(/Move (up|down) arrow/),
       keys: count(/arrow keys/),
@@ -1083,6 +1100,9 @@
   /*
    * The completion code, for pasting into the testing tool:
    *   Bh-1101-d3-p1-a5-k0-m2-o1-h2-f45-t40.95.x.130-s180
+   *   (with restDrag, b = moves by dragging the block itself, no handle; in
+   *   round 4, u = undos, z = blocks picked up and dropped where they were,
+   *   and there are six tasks: four moves, two edits)
    *   prototype · each task right (1) or not (0) when they clicked Finished ·
    *   moves by dragging a handle · by dragging a picture itself · by arrows ·
    *   by keyboard · drags on things that aren't handles · looks at Move to or
@@ -1099,6 +1119,8 @@
       LETTER,
       TASKS.map((t) => (t.done(order) ? 1 : 0)).join(''),
       'd' + m.drags, 'p' + m.pictures, 'a' + m.arrows, 'k' + m.keys, 'm' + m.misses, 'o' + m.elsewhere, 'h' + m.tips,
+      ...(REST_DRAG || ROUND4 ? ['b' + m.bodies] : []),
+      ...(ROUND4 ? ['u' + m.undos, 'z' + m.putBack] : []),
       'f' + (m.firstDrag ? m.firstDrag.sec : 'x'),
       't' + firstDone.map((f) => (f ? f.sec : 'x')).join('.'),
       's' + seconds()
@@ -1157,13 +1179,17 @@
       D3: 'Round 3: no separate handle; drag the move arrows',
       O3: 'Round 3: today’s toolbar, and the selected block’s outline can be dragged',
       S3: 'Round 3: today’s toolbar, and every block drags from anywhere until you click into it to type (as Squarespace does)',
-      M3: 'Round 3: the control with the four-arrow move cursor instead of the hand'
-    }[LETTER] + (ROUND3 ? '' : ROUND2 ? ' (round 2: the long page)' : '');
+      M3: 'Round 3: the control with the four-arrow move cursor instead of the hand',
+      A4: 'Round 4 control: today’s editor, with four moves and two text edits',
+      S4: 'Round 4: drag any block from anywhere until you click into it to type, with four moves and two text edits'
+    }[LETTER] + (ROUND3 || ROUND4 ? '' : ROUND2 ? ' (round 2: the long page)' : '');
     notesEl.innerHTML =
       '<h2>' + LETTER + ' · Facilitator notes</h2><p>' + variant + '. Only you can see this panel; open the page without <code>?notes</code> for participants.</p>' +
       '<h3>Tasks</h3><ol>' + TASKS.map((t, i) => '<li class="' + (t.done(order) ? 'is-done' : '') + '">' + t.text + (firstDone[i] ? ' <small>(' + firstDone[i].at + ')</small>' : '') + '</li>').join('') + '</ol>' +
       '<h3>Summary</h3><dl>' +
       '<dt>Moves by dragging a handle</dt><dd>' + m.drags + '</dd>' +
+      (REST_DRAG ? '<dt>Moves by dragging the block itself</dt><dd>' + m.bodies + '</dd>' : '') +
+      '<dt>Undos</dt><dd>' + m.undos + '</dd>' +
       (DIRECT_DRAG ? '<dt>Moves by dragging a picture itself</dt><dd>' + m.pictures + '</dd>' : '') +
       '<dt>Moves with the arrows</dt><dd>' + m.arrows + '</dd>' +
       '<dt>Moves with the keyboard</dt><dd>' + m.keys + '</dd>' +

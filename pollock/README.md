@@ -176,6 +176,64 @@ Decide these before the results come in. With 10 people a group, a difference of
 - **Does an instant tooltip help people find the handle?** Cct against Cc: more people drag from a handle (`d` > 0, by 3 or more of 10), sooner (`f`). `h` shows whether they saw the tooltip at all: if most people in Cc never see it (`h0`), the editor's delay is hiding it.
 - **Is the edge grip worth its problems?** It covers text in the right column, needs a new kind of block tool and changes the arrows' place, so it has to win clearly. Only consider it if Bc beats the best of Cc, Ccm and Cct by 3 or more of 10 people dragging from a handle, **and** isn't worse on task 3 (the move inside the right column, where the grip sits over the text), **and** doesn't have more drags across text (`m`). Otherwise, the toolbar handle is the answer.
 
+### Round 2 results
+
+Round 2 ran on 11 November 2026 in Lyssna: five tests, one prototype each, **5 people each** (not the 10 planned). Three people gave no code: two didn't see it, and one couldn't finish because Lyssna's task window covered the page.
+
+| | Ac today | Bc edge grip | Cc bigger | Ccm move icon | Cct instant tooltip |
+| --- | --- | --- | --- | --- | --- |
+| Dragged from a handle | 2/4 | 5/5 | 3/4 | 3/4 | 1/5 |
+| All four tasks right | 0/4 | 4/5 | 3/4 | 3/4 | 0/5 |
+| Said the handle drags or moves | 1/5 | 4/5 | 2/5 | 3/5 | 1/5 |
+| Named the handle as how they'd move things | 1/5 | 5/5 | 3/5 | 3/5 | 2/5 |
+| Drags on things that aren't handles (all) | 22 | 7 | 13 | 9 | 5 |
+| First drag from a handle (median) | 263s | 158s | 90s | 141s | 113s (one person) |
+
+- **A bigger toolbar handle beats today's.** In Ac nobody finished all four tasks, the two who used the handle found it after 3–5 minutes, and four of five thought it opened a menu.
+- **The move icon made no difference** against the dots.
+- **The instant tooltip didn't help.** Most people in Cct saw "Drag to move" and still said the dots were for "more options".
+- **The edge grip was best at being recognised** (all five noticed it, four straight away) and wasn't worse in the right column, but it fell just short of the bar set beforehand (5/5 against the toolbar's 3/4) with half the planned sample, and it wasn't found any sooner.
+- **Task 1 didn't test the handles.** Nearly everyone dragged the picture itself to the top, then tried to drag text blocks the same way and got stuck: people expect any block to drag by itself. Without a handle they could find, they went to Options → Move to, then copy and paste.
+- **The six dots read as "more options" in the toolbar**, where they sit near the ⋮ Options button. On the block's edge, they read as a grip.
+
+## Round 3
+
+Round 3 is in [`round-3/`](round-3/). It tests ways to get the edge grip's recognition without its problems, and without taking more toolbar space, against the control, on round 2's columns page.
+
+| | Prototype | What changes |
+| --- | --- | --- |
+| A3 | [Control](round-3/control.html) | Today's toolbar handle, as in Ac, with the hand cursor. |
+| W3 | [Toolbar wing](round-3/toolbar-wing.html) | The drag handle (bigger dots) and the arrows become the toolbar's first group, and the toolbar shifts left so that group sticks out past the block's left edge, where the edge grip was. It stays part of the toolbar, so it floats: in the right column it sticks out over the gap rather than covering text, and on the full-width banner it stays on screen. |
+| D3 | [Draggable arrows](round-3/toolbar-arrows.html) | No separate handle: the move arrows are the handle. Click one to move a step, as now; press and drag either to move the block anywhere. In round 2 the arrows were what people found, so dragging is where they already look. At the ends of a list the arrow that can't step looks disabled but still takes a drag. Their tooltips say "Move up. Drag to move anywhere." |
+| O3 | [Drag by the outline](round-3/outline.html) | Today's toolbar, unchanged, and the selected block's outline can be grabbed and dragged: over it, the outline thickens and the cursor changes. People expected to drag a block by itself; this lets them, without the text-selection problem, by grabbing its edge. |
+
+**The move cursor.** W3, D3 and O3 use the four-arrow move cursor over everything you can drag, and while dragging, instead of the hand. The control keeps the hand, as in the editor. So the cursor isn't tested on its own: it's part of each new design.
+
+A labelled handle ("⠿ Move") was built and dropped before testing: it takes too much toolbar space.
+
+The tasks change so that the first ones move text blocks, which need a handle:
+
+1. Move "We're closed on Mondays" into the left column, after "Saturday, 8am to 2pm." (from the page into a column).
+2. Move the quote from Ana so it comes straight after the first paragraph (a long move up the page).
+3. In "Visit us", move the parking paragraph to the end of that column (within the right column).
+4. Move the "Fresh every morning" banner to the end of the page, after the Order online button (a full-width block).
+
+Everything else is as in round 2: editor tooltips, the Finished button bottom left, the completion code, pictures and the banner drag by themselves. In the code, drags from the arrows and from the outline count as handle drags (`d`); the facilitator log says which.
+
+### Running round 3
+
+Set it up as round 2, with these changes:
+
+- **Four tests, 10 people each**, 40 in all. Recruit until each test has 10 codes, not 10 starts.
+- **Task text in Lyssna:** the four tasks above, then "Please think aloud in English as you go… When you've done all four, click **Finished** in the bottom-left corner and copy the code it gives you."
+- **Follow-up screenshots:** `pollock-A3-handle.png`, `pollock-W3-handle.png`, `pollock-D3-handle.png`, `pollock-O3-handle.png`. Ask "In this picture, what do you think the dotted button does?" (A3, W3, O3) or "…what do you think the up and down arrows do?" (D3), and "If you wanted to move something on this page, how would you do it?" In O3 also ask "Did you know you could drag a selected block by its outline?" (Yes, and I did / Yes, but I didn't / No).
+
+### What would decide it
+
+- **Does each new design beat the control?** W3, D3 and O3 against A3: more people drag from a handle (`d` > 0, by 3 or more of 10), more get all four tasks right, and fewer drag on things that aren't handles (`m`).
+- **Which is best?** Among those that beat the control, prefer the one more people drag with, by 3 or more of 10. Within that, prefer the smaller change to the editor: D3 (no new control), then O3 (no new control, but a new behaviour), then W3 (moves the toolbar).
+- **For D3**, check the follow-up answers and the log: if people only ever click the arrows and never drag them, it's no better than today.
+
 ## How it maps to Gutenberg
 
 - **A** is `BlockMover` as it is now (`block-mover/index.tsx` and `style.scss` in `@wordpress/block-editor` 20.0.0): `.block-editor-block-mover__drag-handle` is `$block-toolbar-height * 0.5` wide with `overflow: hidden`, and has `tabIndex="-1"`.

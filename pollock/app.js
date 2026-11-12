@@ -37,6 +37,19 @@
    *                   opening hours and directions side by side in two
    *                   columns, so handles have to cope with blocks that
    *                   have no margin beside them.
+   *   handle: 'wing' (round 3) the drag handle and the arrows are the toolbar's
+   *                   first group, and the toolbar shifts left so that group
+   *                   sticks out past the block's left edge, like the edge
+   *                   grip, but floating with the toolbar.
+   *   handle: 'label' (tried for round 3, not tested) the toolbar's handle says
+   *                   "Move" beside its dots.
+   *   handle: 'arrows' (round 3) no separate handle: the move arrows are the
+   *                   handle. Click one to move a step; press and drag them to
+   *                   move the block anywhere.
+   *   outline: true   (round 3) the selected block's outline can be grabbed
+   *                   and dragged.
+   *   cursor: 'move'  (round 3) the four-arrow move cursor over things you can
+   *                   drag and while dragging, instead of the hand.
    *   handleTip: 'instant'  the drag handle's tooltip appears as soon as the
    *                   pointer is over it, instead of after the editor's usual
    *                   delay.
@@ -47,7 +60,9 @@
    *                   default in round 2, off in round 1.
    */
   const CONFIG = Object.assign({ handle: 'today', round: 1, arrows: true, hint: false, icon: 'dots' }, window.PROTOTYPE || {});
-  const ROUND2 = CONFIG.round === 2;
+  // Round 3 keeps everything round 2 added; only its tasks and handles differ.
+  const ROUND2 = CONFIG.round >= 2;
+  const ROUND3 = CONFIG.round === 3;
   // As in the editor today, a block that isn't text (here, a picture) can be
   // dragged by itself, without a handle: BlockListBlock is draggable when the
   // block, not a text field in it, has focus. Round 1 didn't have this.
@@ -65,7 +80,12 @@
   const HANDLE_TIP_DELAY = CONFIG.handleTip === 'instant' ? 0 : TIP_DELAY;
   const NOTES = new URLSearchParams(location.search).has('notes') || location.hash === '#notes';
   const LETTER = CONFIG.code || { today: 'A', edge: 'B', toolbar: 'C' }[CONFIG.handle];
-  const PAGES = ROUND2 ? [
+  const PAGES = ROUND3 ? [
+    { letter: 'A3', href: 'control.html' },
+    { letter: 'W3', href: 'toolbar-wing.html' },
+    { letter: 'D3', href: 'toolbar-arrows.html' },
+    { letter: 'O3', href: 'outline.html' }
+  ] : ROUND2 ? [
     { letter: 'A', href: 'today.html' },
     { letter: 'B', href: 'edge.html' },
     { letter: 'Bn', href: 'edge-no-arrows.html' },
@@ -188,10 +208,20 @@
     { text: 'Move the “Fresh every morning” banner so it comes straight after the Order online button, at the end of the page.', done: (o) => after(o, 'cover', 'button') }
   ];
 
+  // Round 3: every task moves a text block (or the banner) first, since in
+  // round 2 nearly everyone did task 1 by dragging the picture itself, which
+  // never needs a handle.
+  const TASKS_4 = [
+    TASKS_3[1],
+    { text: 'Move the quote from Ana so it comes straight after the first paragraph (“From this week…”).', done: (o) => after(o, 'quote', 'intro') },
+    TASKS_3[2],
+    TASKS_3[3]
+  ];
+
   const COLUMNS = ROUND2 && CONFIG.layout === 'columns';
   const START_LISTS = COLUMNS ? LISTS_3 : { root: ROUND2 ? START_2 : START_1 };
   const START = Object.values(START_LISTS).flat();
-  const TASKS = COLUMNS ? TASKS_3 : ROUND2 ? TASKS_2 : TASKS_1;
+  const TASKS = ROUND3 ? TASKS_4 : COLUMNS ? TASKS_3 : ROUND2 ? TASKS_2 : TASKS_1;
   const LIST_NAMES = { root: 'the page', 'col-left': 'the left column', 'col-right': 'the right column' };
 
   // ---------- State ----------
@@ -242,6 +272,7 @@
     return el;
   };
 
+  if (CONFIG.cursor === 'move') document.documentElement.classList.add('cursor-move');
   const app = $('div', { class: 'app' + (NOTES ? ' has-notes' : '') });
   document.getElementById('app').replaceWith(app);
 
@@ -300,8 +331,12 @@
   const edgeHandle = $('button', { class: 'edge-handle', 'aria-label': 'Drag to move. Arrow keys move too.', title: 'Drag to move' }, ICON[GRIP]);
   editorTip(edgeHandle, true);
   const dropLine = $('div', { class: 'drop-line' });
+  // The selected block's outline, as four strips you can grab.
+  const outlineEl = $('div', { class: 'outline-grab', 'aria-hidden': 'true' });
+  ['top', 'right', 'bottom', 'left'].forEach((side) => outlineEl.append($('div', { class: 'outline-' + side, 'data-handle': 'outline' })));
   const menu = $('div', { class: 'menu', role: 'menu', hidden: '' });
   canvas.append(toolbar, dropLine, menu);
+  if (CONFIG.outline) canvas.append(outlineEl);
   // The edge grip and, beside it, the move arrows: both ways to move a block,
   // kept together wherever they go.
   const edgeTools = $('div', { class: 'edge-tools' });
@@ -423,6 +458,15 @@
 
     const first = $('div', { class: 'tb-group' });
     first.append(toolButton(ICON_FOR[b.type], b.name, 'switcher'));
+    const bigHandle = (label) => {
+      const h = toolButton(GRIP, 'Drag to move. Arrow keys move too.', 'drag', { class: 'icon-btn drag-big' + (label ? ' drag-label' : ''), title: 'Drag to move' });
+      if (label) h.append($('span', { text: 'Move' }));
+      h.dataset.handle = 'toolbar';
+      return h;
+    };
+    const wing = CONFIG.handle === 'wing' ? $('div', { class: 'tb-group tb-wing' }) : null;
+    if (wing) wing.append(bigHandle(false));
+    if (CONFIG.handle === 'label') first.append(bigHandle(true));
     if (CONFIG.handle === 'today') {
       // As BlockMover draws it: tabIndex -1, 24px wide, icon clipped.
       const h = toolButton('dragToday', 'Drag', 'drag', { class: 'icon-btn drag-today', tabindex: '-1' });
@@ -436,15 +480,20 @@
       first.append(h);
     }
     const movers = $('div', { class: 'movers' });
-    const up = toolButton('up', 'Move up', 'up');
-    const down = toolButton('down', 'Move down', 'down');
-    if (i === 0) up.disabled = true;
-    if (i === own.length - 1) down.disabled = true;
+    const arrowsDrag = CONFIG.handle === 'arrows';
+    const up = toolButton('up', arrowsDrag ? 'Move up. Drag to move anywhere.' : 'Move up', 'up');
+    const down = toolButton('down', arrowsDrag ? 'Move down. Drag to move anywhere.' : 'Move down', 'down');
+    if (arrowsDrag) { up.dataset.handle = 'arrows'; down.dataset.handle = 'arrows'; movers.classList.add('is-draggable'); }
+    // Draggable arrows stay grabbable at the ends of a list: they just can't
+    // step any further, so they look disabled but still take a drag.
+    const off = (btn) => { if (arrowsDrag) { btn.setAttribute('aria-disabled', 'true'); btn.classList.add('is-off'); } else btn.disabled = true; };
+    if (i === 0) off(up);
+    if (i === own.length - 1) off(down);
     movers.append(up, down);
     // With the edge grip, the arrows move out of the toolbar to sit beside it.
-    if (CONFIG.arrows && !(CONFIG.handle === 'edge' && PAIRED)) first.append(movers);
+    if (CONFIG.arrows && !(CONFIG.handle === 'edge' && PAIRED)) (wing || first).append(movers);
 
-    const groups = [];
+    const groups = wing ? [wing] : [];
     if (CONFIG.handle === 'toolbar' && !PAIRED) {
       // Round 1: the bigger handle in a group of its own, at the start.
       const g = $('div', { class: 'tb-group' });
@@ -503,11 +552,29 @@
   }
 
   function position() {
+    if (CONFIG.outline && (!selected || drag)) outlineEl.classList.remove('is-visible');
     if (selected && !drag) {
       const r = rel(blockEls[selected]);
       toolbar.style.top = (r.top - 48 - 14) + 'px';
       // A full-width block's toolbar sits over its corner, as in the editor.
-      toolbar.style.left = (BLOCKS[selected].full ? r.left + 12 : r.left - 6) + 'px';
+      let left = BLOCKS[selected].full ? r.left + 12 : r.left - 6;
+      const wingEl = toolbar.querySelector('.tb-wing');
+      if (wingEl) {
+        // The move group sticks out past the block's left edge, as far as the
+        // screen allows (a full-width block has no room, so it stays inside).
+        left = Math.max(left - wingEl.offsetWidth, rel(scroller).left + 8);
+      }
+      toolbar.style.left = left + 'px';
+      if (CONFIG.outline) {
+        // A full-width block's outline sits just inside it, on screen.
+        const pad = BLOCKS[selected].full ? -10 : 10;
+        outlineEl.style.top = (r.top - Math.abs(pad)) + 'px';
+        outlineEl.style.left = (r.left - pad) + 'px';
+        outlineEl.style.width = (r.width + 2 * pad) + 'px';
+        outlineEl.style.height = (r.height + 2 * Math.abs(pad)) + 'px';
+        outlineEl.querySelectorAll('[data-handle]').forEach((el) => { el.dataset.id = selected; });
+        outlineEl.classList.add('is-visible');
+      }
     }
     if (CONFIG.handle === 'edge') {
       const id = drag ? null : (hovered || selected);
@@ -593,6 +660,7 @@
   // ---------- Dragging ----------
 
   let press = null; // a pointer down on a handle, not yet a drag
+  let swallowClick = false; // a drag from the arrows ends with a click to ignore
   let drag = null;  // { id, source, index }
   let lastPointer = null;
   let chip = null;
@@ -608,6 +676,7 @@
   }
 
   function startDrag() {
+    swallowClick = press.source === 'arrows';
     drag = { id: press.id, source: press.source, list: listOf(press.id), index: lists[listOf(press.id)].indexOf(press.id) };
     press = null;
     selected = drag.id;
@@ -682,6 +751,12 @@
   }
 
   function onDragUp() {
+    if (press && press.source === 'arrows') {
+      // A click on a draggable arrow: the click handler moves the block a step.
+      press = null;
+      cleanupListeners();
+      return;
+    }
     if (press) {
       // A click on the handle with no drag: the handle selects its block, nothing else.
       if (press.source !== 'picture') note('other', 'Clicked the ' + press.source + ' drag handle without dragging');
@@ -771,7 +846,9 @@
     }
     const handle = e.target.closest('[data-handle], .edge-handle');
     if (handle) {
-      onHandleDown(e, handle.classList.contains('edge-handle') ? handle.dataset.id : selected, handle.classList.contains('edge-handle') ? 'block-edge' : 'toolbar');
+      if (handle.disabled) return;
+      const source = handle.classList.contains('edge-handle') ? 'block-edge' : handle.dataset.handle || 'toolbar';
+      onHandleDown(e, handle.dataset.id || (handle.classList.contains('edge-handle') ? handle.dataset.id : selected), source);
       return;
     }
     if (e.target.closest('.block-toolbar, .menu, .edge-tools')) return;
@@ -802,7 +879,7 @@
         if (area < best) { best = area; id = bid; }
       }
     }
-    if (e.target.closest('.block-toolbar, .edge-tools')) id = hovered;
+    if (e.target.closest('.block-toolbar, .edge-tools, .outline-grab')) id = hovered;
     if (id !== hovered) {
       hovered = id;
       Object.entries(blockEls).forEach(([bid, el]) => el.classList.toggle('is-hovered', bid === hovered && bid !== selected));
@@ -831,8 +908,9 @@
   });
 
   toolbar.addEventListener('click', (e) => {
+    if (swallowClick) { swallowClick = false; return; }
     const btn = e.target.closest('[data-action]');
-    if (!btn || btn.disabled) return;
+    if (!btn || btn.disabled || btn.getAttribute('aria-disabled') === 'true') return;
     const a = btn.dataset.action;
     if (a === 'up') nudge(selected, -1, 'Move up arrow');
     else if (a === 'down') nudge(selected, 1, 'Move down arrow');
@@ -1003,8 +1081,13 @@
       Bc: 'A grip on the block’s edge, on the page with columns and a full-width cover',
       Cc: 'A bigger handle in the toolbar, on the page with columns and a full-width cover',
       Ccm: 'A bigger handle in the toolbar with a four-arrow move icon, on the page with columns and a full-width cover',
-      Cct: 'A bigger handle in the toolbar whose tooltip appears straight away, on the page with columns and a full-width cover'
-    }[LETTER] + (ROUND2 ? ' (round 2: the long page)' : '');
+      Cct: 'A bigger handle in the toolbar whose tooltip appears straight away, on the page with columns and a full-width cover',
+      A3: 'Round 3 control: today’s toolbar handle',
+      W3: 'Round 3: the handle and arrows as the toolbar’s first group, sticking out past the block’s left edge',
+      L3: 'Round 3: the toolbar’s handle labelled “Move”',
+      D3: 'Round 3: no separate handle; drag the move arrows',
+      O3: 'Round 3: today’s toolbar, and the selected block’s outline can be dragged'
+    }[LETTER] + (ROUND3 ? '' : ROUND2 ? ' (round 2: the long page)' : '');
     notesEl.innerHTML =
       '<h2>' + LETTER + ' · Facilitator notes</h2><p>' + variant + '. Only you can see this panel; open the page without <code>?notes</code> for participants.</p>' +
       '<h3>Tasks</h3><ol>' + TASKS.map((t, i) => '<li class="' + (t.done(order) ? 'is-done' : '') + '">' + t.text + (firstDone[i] ? ' <small>(' + firstDone[i].at + ')</small>' : '') + '</li>').join('') + '</ol>' +

@@ -91,7 +91,8 @@
     { letter: 'W3', href: 'toolbar-wing.html' },
     { letter: 'D3', href: 'toolbar-arrows.html' },
     { letter: 'O3', href: 'outline.html' },
-    { letter: 'S3', href: 'rest-drag.html' }
+    { letter: 'S3', href: 'rest-drag.html' },
+    { letter: 'M3', href: 'move-cursor.html' }
   ] : ROUND2 ? [
     { letter: 'A', href: 'today.html' },
     { letter: 'B', href: 'edge.html' },
@@ -1155,7 +1156,8 @@
       L3: 'Round 3: the toolbar’s handle labelled “Move”',
       D3: 'Round 3: no separate handle; drag the move arrows',
       O3: 'Round 3: today’s toolbar, and the selected block’s outline can be dragged',
-      S3: 'Round 3: today’s toolbar, and every block drags from anywhere until you click into it to type (as Squarespace does)'
+      S3: 'Round 3: today’s toolbar, and every block drags from anywhere until you click into it to type (as Squarespace does)',
+      M3: 'Round 3: the control with the four-arrow move cursor instead of the hand'
     }[LETTER] + (ROUND3 ? '' : ROUND2 ? ' (round 2: the long page)' : '');
     notesEl.innerHTML =
       '<h2>' + LETTER + ' · Facilitator notes</h2><p>' + variant + '. Only you can see this panel; open the page without <code>?notes</code> for participants.</p>' +

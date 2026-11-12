@@ -211,3 +211,10 @@ svg { display: block; }
 .cursor-move .drag-today, .cursor-move .drag-big, .cursor-move .edge-handle,
 .cursor-move .movers.is-draggable .icon-btn, .cursor-move .outline-grab > div { cursor: move; }
 .cursor-move .is-grabbing, .cursor-move .is-grabbing * { cursor: move !important; }
+
+/* Round 3, rest drag: blocks are draggable until you click into them. */
+.rest-drag .block:not(.is-editing), .rest-drag .block:not(.is-editing) * { cursor: grab; user-select: none; }
+.rest-drag.cursor-move .block:not(.is-editing), .rest-drag.cursor-move .block:not(.is-editing) * { cursor: move; }
+.rest-drag .block.is-editing::after { border-style: dashed; }
+.type-tab { position: absolute; z-index: 16; display: none; height: 18px; padding: 0 6px; border-radius: 2px; background: var(--blue); color: var(--white); font-size: 11px; font-weight: 600; line-height: 18px; text-transform: uppercase; letter-spacing: .04em; pointer-events: none; }
+.type-tab.is-visible { display: block; }

@@ -48,6 +48,11 @@
    *                   move the block anywhere.
    *   outline: true   (round 3) the selected block's outline can be grabbed
    *                   and dragged.
+   *   restDrag: true  (round 3) as Squarespace does: until you click into a
+   *                   block to type, the whole block is a drag handle. Hover
+   *                   shows its outline and type; the first click selects it;
+   *                   a second click puts the caret where you clicked; Escape
+   *                   or clicking elsewhere stops editing.
    *   cursor: 'move'  (round 3) the four-arrow move cursor over things you can
    *                   drag and while dragging, instead of the hand.
    *   handleTip: 'instant'  the drag handle's tooltip appears as soon as the
@@ -76,6 +81,7 @@
   // instead of the browser's own, as the block toolbar does. Round 1's pages
   // keep the browser's tooltips they were tested with.
   const EDITOR_TIPS = ROUND2;
+  const REST_DRAG = !!CONFIG.restDrag;
   const TIP_DELAY = 700;
   const HANDLE_TIP_DELAY = CONFIG.handleTip === 'instant' ? 0 : TIP_DELAY;
   const NOTES = new URLSearchParams(location.search).has('notes') || location.hash === '#notes';
@@ -84,7 +90,8 @@
     { letter: 'A3', href: 'control.html' },
     { letter: 'W3', href: 'toolbar-wing.html' },
     { letter: 'D3', href: 'toolbar-arrows.html' },
-    { letter: 'O3', href: 'outline.html' }
+    { letter: 'O3', href: 'outline.html' },
+    { letter: 'S3', href: 'rest-drag.html' }
   ] : ROUND2 ? [
     { letter: 'A', href: 'today.html' },
     { letter: 'B', href: 'edge.html' },
@@ -229,6 +236,7 @@
   // lists: { root: [ids], 'col-left': [ids], … } — the page and each column.
   // order: every block, page order, columns' contents straight after them.
   let lists, order, past, future, selected, hovered, t0, log, firstDone;
+  let editingId = null; // with restDrag: the block whose text is being edited
 
   const cloneLists = (l) => JSON.parse(JSON.stringify(l));
   function listOf(id) { return Object.keys(lists).find((k) => lists[k].includes(id)); }
@@ -273,6 +281,7 @@
   };
 
   if (CONFIG.cursor === 'move') document.documentElement.classList.add('cursor-move');
+  if (REST_DRAG) document.documentElement.classList.add('rest-drag');
   const app = $('div', { class: 'app' + (NOTES ? ' has-notes' : '') });
   document.getElementById('app').replaceWith(app);
 
@@ -331,12 +340,15 @@
   const edgeHandle = $('button', { class: 'edge-handle', 'aria-label': 'Drag to move. Arrow keys move too.', title: 'Drag to move' }, ICON[GRIP]);
   editorTip(edgeHandle, true);
   const dropLine = $('div', { class: 'drop-line' });
+  // With restDrag: the hovered block's type, on a tab at its top-left corner.
+  const typeTab = $('div', { class: 'type-tab', 'aria-hidden': 'true' });
   // The selected block's outline, as four strips you can grab.
   const outlineEl = $('div', { class: 'outline-grab', 'aria-hidden': 'true' });
   ['top', 'right', 'bottom', 'left'].forEach((side) => outlineEl.append($('div', { class: 'outline-' + side, 'data-handle': 'outline' })));
   const menu = $('div', { class: 'menu', role: 'menu', hidden: '' });
   canvas.append(toolbar, dropLine, menu);
   if (CONFIG.outline) canvas.append(outlineEl);
+  if (REST_DRAG) canvas.append(typeTab);
   // The edge grip and, beside it, the move arrows: both ways to move a block,
   // kept together wherever they go.
   const edgeTools = $('div', { class: 'edge-tools' });
@@ -427,6 +439,12 @@
     });
     canvas.style.setProperty('--full-w', scroller.clientWidth + 'px');
     Object.entries(blockEls).forEach(([id, el]) => {
+      if (REST_DRAG) {
+        // Text is only editable in the block you've clicked into.
+        const editing = id === editingId;
+        el.classList.toggle('is-editing', editing);
+        el.querySelectorAll('[contenteditable]').forEach((t) => t.setAttribute('contenteditable', editing ? 'true' : 'false'));
+      }
       el.classList.toggle('is-selected', id === selected);
       el.classList.toggle('is-hovered', id === hovered && id !== selected && !drag);
     });
@@ -552,6 +570,17 @@
   }
 
   function position() {
+    if (REST_DRAG) {
+      const id = !drag && hovered && hovered !== selected ? hovered : null;
+      if (id) {
+        const r = rel(blockEls[id]);
+        typeTab.textContent = BLOCKS[id].name;
+        typeTab.style.top = (r.top - 6 - 18) + 'px';
+        typeTab.style.left = (BLOCKS[id].full ? r.left + 8 : r.left - 6) + 'px';
+        if (BLOCKS[id].full) typeTab.style.top = (r.top + 8) + 'px';
+      }
+      typeTab.classList.toggle('is-visible', !!id);
+    }
     if (CONFIG.outline && (!selected || drag)) outlineEl.classList.remove('is-visible');
     if (selected && !drag) {
       const r = rel(blockEls[selected]);
@@ -750,7 +779,33 @@
     requestAnimationFrame(autoScroll);
   }
 
-  function onDragUp() {
+  function onDragUp(e) {
+    if (press && press.source === 'block') {
+      const id = press.id;
+      press = null;
+      cleanupListeners();
+      if (selected === id) {
+        // Second click: edit the text, with the caret where they clicked.
+        editingId = id;
+        render();
+        const range = document.caretRangeFromPoint ? document.caretRangeFromPoint(e.clientX, e.clientY) : null;
+        const field = range && range.startContainer.parentElement && range.startContainer.parentElement.closest('[contenteditable="true"]');
+        if (field) {
+          field.focus();
+          const sel = window.getSelection();
+          sel.removeAllRanges();
+          sel.addRange(range);
+        } else {
+          const first = blockEls[id].querySelector('[contenteditable="true"]');
+          if (first) first.focus();
+        }
+        if (editingId) note('other', 'Clicked into ' + describe(id) + ' to edit it');
+      } else {
+        selected = id;
+        render();
+      }
+      return;
+    }
     if (press && press.source === 'arrows') {
       // A click on a draggable arrow: the click handler moves the block a step.
       press = null;
@@ -770,7 +825,9 @@
     const next = cloneLists(lists);
     Object.keys(next).forEach((k) => { next[k] = next[k].filter((id) => id !== drag.id); });
     next[drag.list].splice(drag.index, 0, drag.id);
-    const label = drag.source === 'picture' ? 'dragged the block itself' : 'dragged from the ' + drag.source + ' handle';
+    const label = drag.source === 'picture' ? 'dragged the block itself'
+      : drag.source === 'block' ? 'dragged from the block itself (no handle)'
+      : 'dragged from the ' + drag.source + ' handle';
     if (!commit(next, label)) note('other', 'Dragged ' + describe(drag.id) + ' and dropped it where it was');
     endDrag();
   }
@@ -817,6 +874,7 @@
   document.addEventListener('pointerdown', (e) => {
     if (e.target.closest('[data-handle], .edge-handle') || e.button !== 0) return;
     if (DIRECT_DRAG && (e.target.closest('.picture') || (e.target.closest('.cover-bg') && !e.target.isContentEditable))) return;
+    if (REST_DRAG && e.target.closest('.block') && e.target.closest('.block').dataset.id !== editingId && !e.target.closest('.block-toolbar')) return;
     const label = labelFor(e.target);
     attempt = label ? { x: e.clientX, y: e.clientY, label, logged: false } : null;
   }, true);
@@ -835,7 +893,8 @@
   // ---------- Events ----------
 
   canvas.addEventListener('pointerdown', (e) => {
-    const picture = DIRECT_DRAG && (e.target.closest('.picture') || (e.target.closest('.cover-bg') && !e.target.isContentEditable));
+    // A picture, or a cover's background (not its text), drags by itself.
+    const picture = DIRECT_DRAG && (e.target.closest('.picture') || (!e.target.isContentEditable && e.target.closest('.cover-bg')));
     if (picture) {
       const id = picture.closest('.block').dataset.id;
       closeMenu();
@@ -843,6 +902,15 @@
       blockEls[id].focus({ preventScroll: true });
       onHandleDown(e, id, 'picture');
       return;
+    }
+    if (REST_DRAG && !e.target.closest('.block-toolbar, .menu, .edge-tools, .outline-grab, [data-handle]')) {
+      const blockEl = e.target.closest('.block');
+      if (blockEl && blockEl.dataset.id !== editingId) {
+        closeMenu();
+        if (editingId) { editingId = null; render(); }
+        onHandleDown(e, blockEl.dataset.id, 'block');
+        return;
+      }
     }
     const handle = e.target.closest('[data-handle], .edge-handle');
     if (handle) {
@@ -859,7 +927,7 @@
   });
 
   scroller.addEventListener('pointerdown', (e) => {
-    if (e.target === scroller || e.target === canvas) { selected = null; closeMenu(); render(); }
+    if (e.target === scroller || e.target === canvas) { selected = null; editingId = null; closeMenu(); render(); }
   });
 
   scroller.addEventListener('pointermove', (e) => {
@@ -967,11 +1035,12 @@
     note(b === listViewBtn ? 'alt' : 'other', 'Clicked ' + b.getAttribute('aria-label'));
     toast('That isn’t part of this prototype.');
   }));
-  resetBtn.addEventListener('click', () => { resetState(); cardOpen = false; buildBlocks(); render(); renderCard(); });
+  resetBtn.addEventListener('click', () => { resetState(); cardOpen = false; editingId = null; buildBlocks(); render(); renderCard(); });
 
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
       if (drag || press) { cancelDrag(); return; }
+      if (editingId) { editingId = null; document.activeElement.blur(); render(); return; }
       closeMenu();
     }
     const inText = e.target.isContentEditable;
@@ -1086,7 +1155,8 @@
       W3: 'Round 3: the handle and arrows as the toolbar’s first group, sticking out past the block’s left edge',
       L3: 'Round 3: the toolbar’s handle labelled “Move”',
       D3: 'Round 3: no separate handle; drag the move arrows',
-      O3: 'Round 3: today’s toolbar, and the selected block’s outline can be dragged'
+      O3: 'Round 3: today’s toolbar, and the selected block’s outline can be dragged',
+      S3: 'Round 3: today’s toolbar, and every block drags from anywhere until you click into it to type (as Squarespace does)'
     }[LETTER] + (ROUND3 ? '' : ROUND2 ? ' (round 2: the long page)' : '');
     notesEl.innerHTML =
       '<h2>' + LETTER + ' · Facilitator notes</h2><p>' + variant + '. Only you can see this panel; open the page without <code>?notes</code> for participants.</p>' +

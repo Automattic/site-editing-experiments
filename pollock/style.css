@@ -190,3 +190,24 @@ svg { display: block; }
 /* Round 3: the labelled handle. */
 .icon-btn.drag-label { width: auto; gap: 2px; padding: 0 12px 0 8px; font-size: 13px; font-weight: 500; }
 .icon-btn.drag-label:hover { color: var(--ink); }
+
+/* Round 3: arrows you can drag. */
+.movers.is-draggable .icon-btn { cursor: grab; }
+.movers.is-draggable .icon-btn.is-off { color: #ccc; }
+
+/* Round 3: the selected block's outline, as four strips you can grab. */
+.outline-grab { position: absolute; z-index: 14; display: none; pointer-events: none; }
+.outline-grab.is-visible { display: block; }
+.outline-grab > div { position: absolute; pointer-events: auto; cursor: grab; }
+.outline-top { top: 0; left: 0; right: 0; height: 10px; }
+.outline-bottom { bottom: 0; left: 0; right: 0; height: 10px; }
+.outline-left { top: 0; bottom: 0; left: 0; width: 10px; }
+.outline-right { top: 0; bottom: 0; right: 0; width: 10px; }
+/* Over the outline, the whole outline thickens to show it can be grabbed. */
+.outline-grab::before { content: ""; position: absolute; inset: 6px; border: 3px solid var(--blue); border-radius: 3px; opacity: 0; transition: opacity .1s; }
+.outline-grab:has(> div:hover)::before, .is-grabbing .outline-grab::before { opacity: 1; }
+
+/* Round 3: the four-arrow move cursor instead of the hand. */
+.cursor-move .drag-today, .cursor-move .drag-big, .cursor-move .edge-handle,
+.cursor-move .movers.is-draggable .icon-btn, .cursor-move .outline-grab > div { cursor: move; }
+.cursor-move .is-grabbing, .cursor-move .is-grabbing * { cursor: move !important; }

@@ -908,7 +908,9 @@
 
   canvas.addEventListener('pointerdown', (e) => {
     // A picture, or a cover's background (not its text), drags by itself.
-    const picture = DIRECT_DRAG && (e.target.closest('.picture') || (!e.target.isContentEditable && e.target.closest('.cover-bg')));
+    // With restDrag, a cover is like any other block: drag it from anywhere,
+    // click its text to type (so its background isn't a picture here).
+    const picture = DIRECT_DRAG && (e.target.closest('.picture') || (!REST_DRAG && !e.target.isContentEditable && e.target.closest('.cover-bg')));
     if (picture) {
       const id = picture.closest('.block').dataset.id;
       closeMenu();

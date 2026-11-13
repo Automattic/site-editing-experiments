@@ -91,7 +91,8 @@
   const LETTER = CONFIG.code || { today: 'A', edge: 'B', toolbar: 'C' }[CONFIG.handle];
   const PAGES = ROUND4 ? [
     { letter: 'A4', href: 'control.html' },
-    { letter: 'S4', href: 'rest-drag.html' }
+    { letter: 'S4', href: 'rest-drag.html' },
+    { letter: 'W4', href: 'toolbar-wing.html' }
   ] : ROUND3 ? [
     { letter: 'A3', href: 'control.html' },
     { letter: 'W3', href: 'toolbar-wing.html' },
@@ -239,7 +240,9 @@
   // from the page's text, so a block dragged by accident while someone tries
   // to select its words still shows up as a broken move.
   const textOf = (id) => (blockEls[id] ? blockEls[id].textContent : '');
-  const TASKS_5 = TASKS_4.concat([
+  // Task 1 moves the picture, which drags by itself: it teaches people that
+  // blocks drag by themselves, as it did in round 2, before the text moves.
+  const TASKS_5 = [TASKS_2[0]].concat(TASKS_4, [
     { text: 'Rosa now closes at 3pm on Saturdays. Change “Saturday, 8am to 2pm.” so it says 3pm.', done: () => /3\s*pm/i.test(textOf('hours-sat')) && !/2\s*pm/i.test(textOf('hours-sat')) },
     { text: 'In the first paragraph, change “autumn bakes” to “winter bakes”.', done: () => /winter bakes/i.test(textOf('intro')) && !/autumn bakes/i.test(textOf('intro')) }
   ]);
@@ -1089,6 +1092,14 @@
       bodies: count(/dragged from the block itself/),
       undos: log.filter((l) => l.text === 'Undo').length,
       putBack: log.filter((l) => /and dropped it where it was/.test(l.text)).length,
+      // Did they see the drag handle's tooltip before their first drag that
+      // moved a text block (handle or, with restDrag, the block itself)?
+      tipFirst: (() => {
+        const drag = log.findIndex((l) => l.kind === 'move' && /dragged from/.test(l.text));
+        if (drag < 0) return 'x';
+        const tip = log.findIndex((l) => l.kind === 'tip');
+        return tip >= 0 && tip < drag ? 1 : 0;
+      })(),
       pictures: count(/dragged the block itself/),
       arrows: count(/Move (up|down) arrow/),
       keys: count(/arrow keys/),
@@ -1104,7 +1115,8 @@
    *   Bh-1101-d3-p1-a5-k0-m2-o1-h2-f45-t40.95.x.130-s180
    *   (with restDrag, b = moves by dragging the block itself, no handle; in
    *   round 4, u = undos, z = blocks picked up and dropped where they were,
-   *   and there are six tasks: four moves, two edits)
+   *   v = saw the drag handle's tooltip before their first drag (1, 0, or x
+   *   for no drag), and there are seven tasks: five moves, two edits)
    *   prototype · each task right (1) or not (0) when they clicked Finished ·
    *   moves by dragging a handle · by dragging a picture itself · by arrows ·
    *   by keyboard · drags on things that aren't handles · looks at Move to or
@@ -1122,7 +1134,7 @@
       TASKS.map((t) => (t.done(order) ? 1 : 0)).join(''),
       'd' + m.drags, 'p' + m.pictures, 'a' + m.arrows, 'k' + m.keys, 'm' + m.misses, 'o' + m.elsewhere, 'h' + m.tips,
       ...(REST_DRAG || ROUND4 ? ['b' + m.bodies] : []),
-      ...(ROUND4 ? ['u' + m.undos, 'z' + m.putBack] : []),
+      ...(ROUND4 ? ['u' + m.undos, 'z' + m.putBack, 'v' + m.tipFirst] : []),
       'f' + (m.firstDrag ? m.firstDrag.sec : 'x'),
       't' + firstDone.map((f) => (f ? f.sec : 'x')).join('.'),
       's' + seconds()
@@ -1182,8 +1194,9 @@
       O3: 'Round 3: today’s toolbar, and the selected block’s outline can be dragged',
       S3: 'Round 3: today’s toolbar, and every block drags from anywhere until you click into it to type (as Squarespace does)',
       M3: 'Round 3: the control with the four-arrow move cursor instead of the hand',
-      A4: 'Round 4 control: today’s editor, with four moves and two text edits',
-      S4: 'Round 4: drag any block from anywhere until you click into it to type, with four moves and two text edits'
+      A4: 'Round 4 control: today’s editor, with five moves and two text edits',
+      S4: 'Round 4: drag any block from anywhere until you click into it to type, with five moves and two text edits',
+      W4: 'Round 4: the toolbar wing (handle and arrows sticking out past the block’s left edge), with five moves and two text edits'
     }[LETTER] + (ROUND3 || ROUND4 ? '' : ROUND2 ? ' (round 2: the long page)' : '');
     notesEl.innerHTML =
       '<h2>' + LETTER + ' · Facilitator notes</h2><p>' + variant + '. Only you can see this panel; open the page without <code>?notes</code> for participants.</p>' +
@@ -1192,6 +1205,7 @@
       '<dt>Moves by dragging a handle</dt><dd>' + m.drags + '</dd>' +
       (REST_DRAG ? '<dt>Moves by dragging the block itself</dt><dd>' + m.bodies + '</dd>' : '') +
       '<dt>Undos</dt><dd>' + m.undos + '</dd>' +
+      '<dt>Saw the handle’s tooltip before the first drag</dt><dd>' + m.tipFirst + '</dd>' +
       (DIRECT_DRAG ? '<dt>Moves by dragging a picture itself</dt><dd>' + m.pictures + '</dd>' : '') +
       '<dt>Moves with the arrows</dt><dd>' + m.arrows + '</dd>' +
       '<dt>Moves with the keyboard</dt><dd>' + m.keys + '</dd>' +

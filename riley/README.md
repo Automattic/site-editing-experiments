@@ -10,17 +10,17 @@ The idea being tested: people understand the scope of a change when shared parts
 
 | | Prototype | How the header and footer are treated |
 | --- | --- | --- |
-| 0 | [Control](plain.html) | The header and footer look and behave like the rest of the page: no label, no step. Text is edited in place, and changes to the header and footer apply everywhere without saying so. This is the baseline the other two are compared with. |
+| 0 | [Control](plain.html) | After the WordPress editor as it is today. The header and footer are edited in place like the rest of the page, with no label and no step. The only sign that they are different is the one the WordPress editor gives shared parts: a purple outline around the header or footer while the pointer is over it or its text is being edited, where the page's own content has a grey and blue one. Changes to the header and footer apply everywhere without saying so. This is the baseline the others are compared with. |
 | A | [Shown on hover](marked.html) | The header and footer look like the rest of the page until the pointer is over one. Then it's outlined and labelled "Shown on every page", with an "Edit header" (or "Edit footer") button. One click anywhere on it unlocks it: a banner says "Editing the header for the whole site. Changes show on every page", and its text can be changed. It locks again as soon as the person clicks or types anywhere else, or presses Done. On a touch screen, where there's no hover, the first tap shows the label and the second unlocks. |
 | C | [Always labelled](site.html) | No lock and no question. The header and footer carry a small label that's always there, "Site header" and "Site footer", and the page's own content carries a matching one with its name ("About page"). While you're typing in one, its label adds "the same on every page" or "only on this page". The top bar lists "Whole site: Site header, Site footer" beside "Pages: Home, About, Contact"; choosing Site header or Site footer scrolls to it and highlights it. Text is edited in place, and changes to the header and footer apply everywhere. |
-| D | [Told after the change](told.html) | Looks and behaves like the control. After each change to the header or footer, a message appears at the bottom of the editor: "Updated on all 3 pages. The footer is the same on Home, About and Contact", with an Undo button. It asks nothing and blocks nothing, and goes away after ten seconds. Changes to a page's own content show no message. |
-| E | [Summary at save](summary.html) | Looks and behaves like the control until Save. Save then lists what has changed since the last save, grouped by where it applies: "On every page" (header and footer changes) and "Only on the About page" (that page's own content), each with the old and new text. "Save" confirms; "Keep editing" goes back. |
+| D | [Told after the change](told.html) | Looks and behaves like the control, purple outline included. After each change to the header or footer, a message appears at the bottom of the editor: "Updated on all 3 pages. The footer is the same on Home, About and Contact", with an Undo button. It asks nothing and blocks nothing, and goes away after ten seconds. Changes to a page's own content show no message. |
+| E | [Summary at save](summary.html) | Looks and behaves like the control, purple outline included, until Save. Save then lists what has changed since the last save, grouped by where it applies: "On every page" (header and footer changes) and "Only on the About page" (that page's own content), each with the old and new text. "Save" confirms; "Keep editing" goes back. |
 
 Changes after a first review:
 
 - **A** used to dim the header and footer all the time and open a popup with "Edit header for the whole site" and "Leave it" before anything could be changed. That was too heavy a step. The message and the button now appear on hover, and one click unlocks.
 - **B, ask on the first change**, was dropped. It asked "Every page" or "Just this page" after the first change to the header or footer. The question came too late, once the change was already made, and it wasn't clear which part of the page it was about. Asking may suit style changes better than changes to words; that's a separate idea to test. The code is in this folder's history.
-- **The control** was added, so the test can tell whether marking helps at all, not only which marking people prefer.
+- **The control** was added, so the test can tell whether marking helps at all, not only which marking people prefer. It first had no marking of any kind, which isn't what people get today, so it now has the WordPress editor's purple outline.
 - **D and E** were added to try saying what happened after the change instead of marking before it. D keeps what was useful about B's timing, without the question. E is the cheapest thing to build and the latest to speak.
 
 What's the same in all five:
@@ -88,7 +88,7 @@ Start with: "This is the website of a bike repair shop, Pennywheel Bike Repair, 
 
 1. "The shop's phone number has changed to 01632 960 852. Update it and save."
    Then, before they look anywhere else: **"Which pages will show the new number?"**
-   *Watch for:* in A, whether they read "Shown on every page" before they click or click straight through it, and whether the unlock feels like help or an obstacle. In C, whether they notice the Site footer label at all. In D, whether they see the message and what they take "all 3 pages" to mean. In E, whether they read the summary or click Save straight through it. In the control, what they assume with nothing to go on. In all three, whether they go and check another page, and whether their answer was right.
+   *Watch for:* in A, whether they read "Shown on every page" before they click or click straight through it, and whether the unlock feels like help or an obstacle. In C, whether they notice the Site footer label at all. In D, whether they see the message and what they take "all 3 pages" to mean. In E, whether they read the summary or click Save straight through it. In the control, whether anyone notices the purple outline, and what they take it to mean. In all three, whether they go and check another page, and whether their answer was right.
 2. "On the About page, change the main heading to something friendlier, and save."
    Then: **"Which pages changed?"**
    *Watch for:* whether anyone now thinks a heading is shared too. In A and C, does the difference between the two kinds of thing hold up? In A, the footer locks again when they start on the heading; does anyone notice or mind? In D there's no message here; does anyone notice its absence? In E, do they read "Only on the About page"?
@@ -109,7 +109,7 @@ Start with: "This is the website of a bike repair shop, Pennywheel Bike Repair, 
 - In C: "Did you notice the labels on the page? What's the difference between Site header and Home page?"
 - In D: "A message appeared after some of your changes. What did it say? Why did it appear for some changes and not others?"
 - In E: "What did you see when you saved? What was it for?"
-- In the control: "Was there anything on the page that told you which changes would show on other pages?"
+- In the control: "Was there anything on the page that told you which changes would show on other pages?" If they don't mention it: "Some parts had a purple outline. What did you make of that?"
 
 ### What to watch for
 
@@ -127,7 +127,7 @@ Start with: "This is the website of a bike repair shop, Pennywheel Bike Repair, 
 - **C (always labelled)**: people answer as well as in A with no lock in the way, and use the words "site header" or "whole site" unprompted. It counts against C if nobody notices the labels and task 4 is changed everywhere without comment.
 - **D (told after the change)**: people see the message, answer "all of them" for tasks 1 and 3 without checking, and in task 4 either say beforehand that the line can't differ on one page or use Undo once the message appears. It counts against D if people don't see the message, or see it and can't say what it meant.
 - **E (summary at save)**: people read the summary, and it changes what they say or do: they answer correctly after saving, or go back in task 4. It counts against E if they save without reading, which would make it the control with an extra click.
-- **The control**: people answer as well as in the others. Then none of this is what helps, and none is worth building.
+- **The control**: people answer as well as in the others. Then the purple outline is already enough, and none of the others is worth building.
 - **No difference, and wrong answers everywhere**: marking isn't enough on its own, and the next thing to try is showing the other pages changing as the edit is made.
 
 A and C aren't exclusive. If each helps in a different way (A makes people stop, C gives them the words), the next round can put C's labels and A's lock together. D and E can be added to either.

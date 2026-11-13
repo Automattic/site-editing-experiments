@@ -18,6 +18,8 @@
   --site-cream: #f4efe6;
   --whole: #6b2fa0;      /* site variant: the colour of the whole site's parts */
   --whole-tint: #f5effb;
+  --synced: #7a00df;     /* the control: the WordPress editor's colour for shared parts */
+  --synced-tint: #f6edfd;
 }
 
 * { box-sizing: border-box; }
@@ -115,6 +117,15 @@ svg { display: block; }
 .menu-item.field { display: inline-block; max-width: 100%; }
 .field:hover { outline-color: #8c8f94; }
 .field:focus { outline: 2px solid var(--blue); background: var(--blue-tint); }
+
+/* ---------- the control (and D and E, which build on it): the purple outline ---------- */
+
+/* As in the WordPress editor today: a shared part is outlined in purple while
+   the pointer is over it or something in it is being edited, and its text
+   takes the same colour. No words. */
+.is-core-part:hover, .is-core-part:focus-within { outline: 2px solid var(--synced); outline-offset: -2px; }
+.is-core-part .field:hover { outline-color: var(--synced); }
+.is-core-part .field:focus { outline: 2px solid var(--synced); background: var(--synced-tint); }
 
 /* ---------- marked: shown on hover, one click to unlock ---------- */
 

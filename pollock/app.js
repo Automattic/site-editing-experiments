@@ -300,6 +300,8 @@
 
   if (CONFIG.cursor === 'move') document.documentElement.classList.add('cursor-move');
   if (REST_DRAG) document.documentElement.classList.add('rest-drag');
+  // Round 4 onwards: the core editor's block outline, and no toolbar fade-in.
+  if (CONFIG.round >= 4) document.documentElement.classList.add('core-outline');
   const app = $('div', { class: 'app' + (NOTES ? ' has-notes' : '') });
   document.getElementById('app').replaceWith(app);
 
@@ -485,7 +487,9 @@
     return editorTip(b);
   }
 
+  let toolbarFor = null;
   function renderToolbar() {
+    if (selected !== toolbarFor) { toolbar.classList.remove('is-faded'); toolbarFor = selected; }
     toolbar.innerHTML = '';
     if (!selected || drag) { toolbar.classList.remove('is-visible'); return; }
     const b = BLOCKS[selected];
@@ -1070,6 +1074,14 @@
   });
 
   window.addEventListener('resize', position);
+  canvas.addEventListener('focusin', (e) => {
+    const b = e.target.isContentEditable && e.target.closest('.block');
+    if (b) b.classList.add('has-text-focus');
+  });
+  canvas.addEventListener('focusout', (e) => {
+    const b = e.target.isContentEditable && e.target.closest('.block');
+    if (b) b.classList.remove('has-text-focus');
+  });
   canvas.addEventListener('input', () => { position(); checkTasks(); renderNotes(); });
 
   // ---------- Tasks and notes ----------

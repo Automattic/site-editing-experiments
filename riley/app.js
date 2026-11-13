@@ -5,8 +5,10 @@
  * around it, the tasks and the log are the same in all five. Only the way the
  * shared header and footer are treated changes:
  *
- *   plain   The control. The header and footer look and behave like the rest
- *           of the page. Nothing says they are shared.
+ *   plain   The control, after the WordPress editor as it is today. The header
+ *           and footer are edited like the rest of the page, and get a purple
+ *           outline while the pointer is over one or its text is being
+ *           edited. Nothing says in words that they are shared.
  *   marked  The header and footer look like the rest of the page until the
  *           pointer is over one. Then it is outlined and labelled "Shown on
  *           every page" with an "Edit header" button, and one click unlocks
@@ -35,14 +37,15 @@
   'use strict';
 
   const VARIANTS = {
-    plain: { code: 'RP', letter: '0', name: 'Control: the header and footer look and behave like the rest of the page, and nothing says they are shared' },
+    plain: { code: 'RP', letter: '0', name: 'Control: as the WordPress editor does today, the header and footer get a purple outline on hover and while editing, and nothing says in words that they are shared' },
     marked: { code: 'RM', letter: 'A', name: 'Shown on hover: pointing at the header or footer shows “Shown on every page” and an Edit button, and one click unlocks it' },
     site: { code: 'RS', letter: 'C', name: 'Always labelled: Site header, Site footer and the page’s name are always shown, with no lock and no question' },
-    told: { code: 'RT', letter: 'D', name: 'Told after the change: nothing is marked, and each change to the header or footer is followed by “Updated on all 3 pages” with Undo' },
-    summary: { code: 'RU', letter: 'E', name: 'Summary at save: nothing is marked, and Save lists what changed on every page and what changed on one page' }
+    told: { code: 'RT', letter: 'D', name: 'Told after the change: the control, and each change to the header or footer is followed by “Updated on all 3 pages” with Undo' },
+    summary: { code: 'RU', letter: 'E', name: 'Summary at save: the control, and Save lists what changed on every page and what changed on one page' }
   };
   const VARIANT = VARIANTS[document.body.dataset.variant] ? document.body.dataset.variant : 'marked';
-  // These three show the header and footer exactly like the rest of the page.
+  // These three treat the header and footer the way the control does: edited
+  // in place, with the purple outline the WordPress editor gives shared parts.
   const UNMARKED = ['plain', 'told', 'summary'].includes(VARIANT);
   const NOTES = new URLSearchParams(location.search).has('notes') || location.hash === '#notes';
 
@@ -301,7 +304,7 @@
     if (view.preview) return '<' + tag + ' class="part part-' + part + '">' + inner + '</' + tag + '>';
 
     if (UNMARKED) {
-      return '<' + tag + ' class="part part-' + part + '" data-region="' + part + '">' + inner + '</' + tag + '>';
+      return '<' + tag + ' class="part part-' + part + ' is-core-part" data-region="' + part + '">' + inner + '</' + tag + '>';
     }
 
     if (VARIANT === 'marked') {

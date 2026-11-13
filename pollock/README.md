@@ -259,33 +259,37 @@ Round 3 ran on 12 November 2026 in Lyssna: six tests, one prototype each, 6 peop
 
 ## Round 4
 
-Round 4 is in [`round-4/`](round-4/). It tests the one promising idea, S3, against today's editor, with more people, and measures what it costs when you want to edit text rather than move it.
+Round 4 is in [`round-4/`](round-4/). It tests the most promising idea, S3, and the toolbar wing against today's editor, with more people, and measures what drag-from-anywhere costs when you want to edit text rather than move it.
 
 | | Prototype | |
 | --- | --- | --- |
 | A4 | [Control](round-4/control.html) | Today's editor, as A3. |
 | S4 | [Drag from anywhere until you type](round-4/rest-drag.html) | As S3: hover shows the outline, the block type and the hand cursor; press anywhere and drag; one click puts the caret in and it stops dragging. |
+| W4 | [Toolbar wing](round-4/toolbar-wing.html) | As W3: the handle and arrows are the toolbar's first group, sticking out past the block's left edge. |
 
-Both use the hand cursor and today's toolbar handle, so S4 differs from the control in one way.
+All three use the hand cursor, so each new one differs from the control in one way.
 
-**Tasks.** Round 3's four moves, then two text edits:
+**Tasks.** The picture first, then round 3's four moves, then two text edits:
 
-1. Move "We're closed on Mondays" into the left column, after "Saturday, 8am to 2pm."
-2. Move the quote from Ana so it comes straight after the first paragraph.
-3. In "Visit us", move the parking paragraph to the end of that column.
-4. Move the "Fresh every morning" banner to after the Order online button.
-5. Rosa now closes at 3pm on Saturdays. Change "Saturday, 8am to 2pm." so it says 3pm.
-6. In the first paragraph, change "autumn bakes" to "winter bakes".
+1. Put the picture of the pumpkin loaf at the very top of the page, above "Autumn at Rosa's".
+2. Move "We're closed on Mondays" into the left column, after "Saturday, 8am to 2pm."
+3. Move the quote from Ana so it comes straight after the first paragraph.
+4. In "Visit us", move the parking paragraph to the end of that column.
+5. Move the "Fresh every morning" banner to after the Order online button.
+6. Rosa now closes at 3pm on Saturdays. Change "Saturday, 8am to 2pm." so it says 3pm.
+7. In the first paragraph, change "autumn bakes" to "winter bakes".
+
+Task 1 is there on purpose. The picture drags by itself, as in the editor, so it teaches people that blocks drag by themselves, which is what happened in round 2 and how many real users start. Round 3 left it out, and the control did much better; round 4 puts it back to see how each design copes after it.
 
 The edits are checked from the page's text when Finished is clicked, along with the moves, so a block knocked out of place while someone tries to select its words shows up as a move that's no longer right.
 
-**The code** has six task digits, and adds `b` (moves by dragging the block itself, without a handle; `d` now counts only handle drags), `u` (undos) and `z` (blocks picked up and dropped where they were, which is what usually happens when someone drags across words to select them in S4 before clicking in).
+**The code** has seven task digits, and adds `b` (moves by dragging the block itself, without a handle; `d` now counts only handle drags), `u` (undos), `z` (blocks picked up and dropped where they were, which is what usually happens when someone drags across words to select them in S4 before clicking in) and `v` (whether they saw the drag handle's tooltip, "Drag" or "Drag to move", before their first drag of a text block: `1`, `0`, or `x` if they never dragged one). `v` tells us whether people find the handle by its look or by hovering until the tooltip names it.
 
 ### Running round 4
 
-- **Two tests, 20 people each**, 40 in all. Recruit until each has 20 codes. Same screener as before; exclude anyone from rounds 1–3.
-- **Task text:** the six tasks above, then "Please think aloud in English as you go… When you've done all six, click **Finished** in the bottom-left corner and copy the code it gives you."
-- **Follow-up questions**, the same in both, with `pollock-A3-handle.png` (the toolbar is the same in both):
+- **Three tests, 20 people each**, 60 in all. Recruit until each has 20 codes. Same screener as before; exclude anyone from rounds 1–3.
+- **Task text:** the seven tasks above, then "Please think aloud in English as you go… When you've done all seven, click **Finished** in the bottom-left corner and copy the code it gives you."
+- **Follow-up questions**, the same in all three, with `pollock-A3-handle.png` for A4 and S4 and `pollock-W3-handle.png` for W4:
   1. "How easy or hard was it to **move** things on this page?" (1 very hard – 7 very easy)
   2. "How easy or hard was it to **change the text**?" (1 very hard – 7 very easy)
   3. "Did anything move when you didn't mean it to?" (Yes / No / Not sure), and "What happened?" (open text)
@@ -294,12 +298,14 @@ The edits are checked from the page's text when Finished is clicked, along with 
 
 ### What would decide it
 
-S4 is worth building if it makes **moving** clearly better and **editing** no worse:
+Each of S4 and W4 is compared with A4. One is worth building if it makes **moving** clearly better and **editing** no worse:
 
-- **Moving is better** if either more people get all four moves right, by 4 or more of 20, or the same number do and the median time to finish the moves (the fourth `t`) is at least 30 seconds faster, or the "move" rating is at least 1 point higher.
+- **Moving is better** if either more people get all five moves right, by 4 or more of 20, or the same number do and the median time to finish the moves (the fifth `t`) is at least 30 seconds faster, or the "move" rating is at least 1 point higher.
 - **Editing is no worse** if as many people get both edits right (within 2 of 20), the "change the text" rating is no more than half a point lower, and no more people say something moved when they didn't mean it to (within 2 of 20, checked against `z` and `u`).
 
-If moving is better but editing is worse, the idea needs work before it's built: for example, only making a block draggable from anywhere after a short hover, or only outside its text.
+W4 doesn't change editing, so for it only moving matters. If both S4 and W4 pass, prefer the one with more people getting all five moves right; if they're within 4 of 20, prefer W4, the smaller change. Compare `v` across the three too: if most people in A4 only find the handle after its tooltip, its look isn't doing the work.
+
+If S4's moving is better but its editing is worse, the idea needs work before it's built: for example, only making a block draggable from anywhere after a short hover, or only outside its text.
 
 ## How it maps to Gutenberg
 

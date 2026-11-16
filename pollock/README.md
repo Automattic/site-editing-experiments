@@ -307,6 +307,29 @@ W4 doesn't change editing, so for it only moving matters. If both S4 and W4 pass
 
 If S4's moving is better but its editing is worse, the idea needs work before it's built: for example, only making a block draggable from anywhere after a short hover, or only outside its text.
 
+### Round 4 results
+
+Round 4 ran on 13 November 2026 in Lyssna: three tests, 20 people each. 1 (A4), 3 (S4) and 4 (W4) people gave no code; they count as wrong on every task. The full write-up is the paper, [`paper/pollock-drag-and-drop-paper.pdf`](paper/pollock-drag-and-drop-paper.pdf). The data are in [`results/round-4.csv`](results/round-4.csv), and [`results/analyse_round_4.py`](results/analyse_round_4.py) reproduces the table below.
+
+| | A4 control | S4 anywhere | W4 wing |
+| --- | --- | --- | --- |
+| All five moves right | 5 | **12** (p = .054) | 7 (p = .73) |
+| Move into a column (task 2) right | 9 | **16** (p = .048) | 9 |
+| Median time to finish the moves | 299s | **182s** (p = .042) | 269s |
+| "How easy was moving?" mean, 1–7 | 5.40 | **6.75** (p < .001) | 6.10 (p = .018) |
+| Failed drag attempts, total | 133 | **8** | 53 |
+| Both edits right | 18 | 16 | 16 |
+| "How easy was changing the text?" mean | 6.75 | 6.90 | 6.55 |
+| Said something moved unintentionally | 2 | 0 | 3 |
+| Picked up a block and dropped it in place | 9 | **1** (p = .008) | 6 |
+
+p values compare with A4: Fisher's exact test for counts, Mann–Whitney U for ratings and times. The time to finish ranks people who never finished all five moves as slowest.
+
+- **S4 passes every rule set beforehand.** Moving is better on all three tests: 7 more people got all five moves right, it was faster, and the rating was 1.35 points higher. Editing is no worse on all three.
+- **W4 passes only on the rating.** It made no difference to completion or to the move into a column.
+- **The headline count is just short of significance.** All five moves right, 12 against 5, has p = .054 across all 20; among people who gave a code it is 12/17 against 5/19, p = .018. The clearer differences are the rating, the move into a column, failed drags, and blocks dropped back in place. Averaged over the five moves, the groups got about as many right (3.75, 3.90, 3.15): S4's gain is in finishing everything, and in the hardest move.
+- **The handle's look does little.** Half of the 12 A4 participants who dragged a text block by the handle had seen its tooltip first. People who hadn't used it described the dots as for alignment, bullet points or a menu.
+
 ## How it maps to Gutenberg
 
 - **A** is `BlockMover` as it is now (`block-mover/index.tsx` and `style.scss` in `@wordpress/block-editor` 20.0.0): `.block-editor-block-mover__drag-handle` is `$block-toolbar-height * 0.5` wide with `overflow: hidden`, and has `tabIndex="-1"`.
@@ -314,6 +337,7 @@ If S4's moving is better but its editing is worse, the idea needs work before it
 - **B** would be a new block tool beside the block, like the block toolbar's popover but on the block's left edge, using `BlockDraggable`. It needs room to the left of the content, which narrow layouts and full-width blocks don't have; the real thing would need to tuck it inside the block there.
 - The drop line, the drag chip, and the movers' behaviour are the editor's, simplified. Round 1 had one list of blocks; round 2's columns page nests blocks one level deep (columns), but not further.
 - **Dragging a block itself** (round 2) follows `useBlockProps` and `onDragStart` in `block-list/use-block-props`: the block wrapper is `draggable` when it can be moved, and the drag is the block's when the block itself has focus rather than a text field in it, which is the case for an Image. Text blocks still select text when you drag across them. Dragging a multi-selection by any of its blocks isn't in the prototype.
+- **S** (drag from anywhere until you type) would make the block wrapper from `useBlockProps` draggable whenever the block isn't in text-editing mode, rather than only for blocks without a text field such as Image. A first click would still put the caret where you clicked. Still to work out: which block a press picks up inside a Group or Columns, what replaces hover on touch screens, and how the mode is announced to screen readers.
 - **Bn** would mean taking `BlockMover`'s up and down buttons out; **Bh** would be a first-use label, like the editor's other first-use tips.
 
 ## Running it

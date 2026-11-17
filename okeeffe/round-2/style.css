@@ -64,8 +64,6 @@ a { color: var(--blue); }
 
 .workspace { flex: 1; display: flex; flex-wrap: wrap; }
 .panel { flex: 1 1 420px; min-width: 0; background: var(--white); border-right: 1px solid var(--line); padding: 20px 20px 40px; display: flex; flex-direction: column; gap: 16px; }
-.workspace.no-preview .panel { border-right: none; }
-.workspace.no-preview .panel > * { width: 100%; max-width: 760px; margin-left: auto; margin-right: auto; }
 .stage { flex: 999 1 520px; min-width: 0; background: #e2e2e5; padding: 16px 20px 32px; display: flex; flex-direction: column; gap: 10px; }
 .stage-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; font-size: 12px; color: var(--ink-2); }
 .seg { display: inline-grid; grid-auto-flow: column; border: 1px solid #949494; border-radius: 4px; overflow: hidden; background: var(--white); }
@@ -205,7 +203,6 @@ a { color: var(--blue); }
 /* ---------- The site preview ---------- */
 
 .site { background: var(--site-ground); color: var(--site-ink); border: 1px solid #d6d0c4; border-radius: 6px; overflow: hidden; font-family: Georgia, "Times New Roman", serif; }
-.stage.phone .site { width: 100%; max-width: 390px; margin: 0 auto; }
 .site-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 28px; padding: 20px 28px; border-bottom: 1px solid var(--site-line); }
 .site-name { font-size: 22px; font-weight: 600; border: none; background: none; padding: 0; color: inherit; font-family: inherit; }
 .site-nav { font-family: system-ui, sans-serif; }
@@ -221,18 +218,8 @@ a { color: var(--blue); }
 .site-nav .sub a { display: flex; padding: 8px 14px; font-size: 14px; }
 .site-tag { font-size: 10px; font-weight: 600; border-radius: 3px; padding: 1px 5px; background: #50575e; color: #fff; }
 .menu-toggle { display: none; height: 40px; padding: 0 12px; border: 1px solid #d6c7ad; border-radius: 6px; background: none; font-family: system-ui, sans-serif; color: var(--site-ink); }
-.stage.phone .site-header { padding: 16px 20px; }
-.stage.phone .menu-toggle { display: inline-flex; align-items: center; gap: 6px; }
-.stage.phone .site-nav { display: none; flex-basis: 100%; }
-.stage.phone .site-nav.open { display: block; }
-.stage.phone .site-nav > ul { flex-direction: column; gap: 0; }
-.stage.phone .site-nav li { border-top: 1px solid #f3ece0; }
-.stage.phone .site-nav a { padding: 12px 0; }
-.stage.phone .site-nav .sub { display: block; position: static; border: none; background: none; padding: 0 0 6px 16px; }
 .site-hero { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 28px; align-items: center; padding: 48px 28px; }
-.stage.phone .site-hero { padding: 32px 20px; }
 .site-hero h1 { margin: 0 0 14px; font-size: 42px; line-height: 1.05; font-weight: 500; }
-.stage.phone .site-hero h1 { font-size: 32px; }
 .site-hero p { margin: 0; font-family: system-ui, sans-serif; font-size: 15px; line-height: 1.55; color: var(--site-ink-2); max-width: 380px; }
 .site-photo { height: 200px; border-radius: 6px; background: #eadcc4; display: flex; align-items: center; justify-content: center; font-family: system-ui, sans-serif; font-size: 13px; color: var(--site-ink-2); }
 .site-draft-note { margin-top: 12px; display: inline-block; font-family: system-ui, sans-serif; font-size: 12px; background: var(--amber-tint); color: var(--amber-ink); padding: 4px 8px; border-radius: 4px; }
@@ -303,7 +290,9 @@ button.row-title:hover { text-decoration: underline; }
 .site-nav.selectable.selected { outline: 2px solid var(--blue); }
 .site-nav.selectable a:hover { text-decoration: none; }
 /* An emptied menu keeps a place on the site, so it can still be selected. */
-.site-nav.selectable.empty { min-width: 120px; min-height: 32px; outline: 1.5px dashed #b9ad98; }
+.site-nav.selectable.empty { min-width: 120px; min-height: 32px; outline: 1.5px dashed #b9ad98; border: none; padding: 0; }
+.site-nav-empty { display: block; width: 120px; height: 32px; border: none; background: none; padding: 0; cursor: pointer; border-radius: 2px; }
+.site-nav.selectable.empty > ul { display: none; }
 
 /* The Navigation sidebar: a third column, so the header menu stays in view beside it. */
 .navside { flex: 0 0 clamp(240px, 26%, 300px); min-width: 0; overflow: hidden; background: var(--white); border-left: 1px solid var(--line); display: flex; flex-direction: column; }

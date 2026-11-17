@@ -36,6 +36,9 @@
  * Changing it. Wrap every change the person makes in commit(fn, message): it keeps the
  * Undo snapshot, notes the first change to what the menu shows (the code's f part),
  * re-checks the tasks, saves to sessionStorage, renders and shows the message with Undo.
+ * Undo is one level: the message's button, or Ctrl+Z / Cmd+Z, until the next change.
+ * commit(fn, message, { quiet }) shows no message (a dialog is about to open), and
+ * { keepUndo } makes the change part of the one before, so one Undo takes back both.
  * Inside fn, call the model functions:
  *   setExcluded(pageId, off)            automatic menu: switch a page off / on
  *   convertToLinks('links'|'advanced')  today's published pages become links, same order
@@ -62,10 +65,15 @@
  * the dialog and counts it; the dialog's confirm button runs actions.convert, which counts
  * the confirm, converts (advanced in menu-switches, links elsewhere) and then runs the
  * `then` step. Cancelling is logged by closeDialog(). The words are in convertCopy().
+ * Every dialog (ui.dialog) is opened with openDialog(d), which logs it, and closed by its
+ * own action, by closeDialog(how) or by Undo. A dialog whose page or link has gone closes
+ * itself (dialogSubject()). The Undo message is never shown while a dialog is open.
  *
  * Logging and counting (none of this is undone by Undo):
  *   log(kind, text)            kinds: visit, page, menu, order, dialog, sidebar, tried,
- *                              undo, task. Use 'tried' for clicks that do nothing.
+ *                              undo, task, reload. Use 'tried' for clicks that do nothing.
+ *                              Log after commit(): the "Task N reached" lines that the
+ *                              change set off are added straight after the next log line.
  *   countReorder(how)          how: 'drag' | 'move' (the code's r part)
  *   stats.own                  the arm's own count (k): sidebar opens are counted by
  *                              openSidebar(); B counts popovers; F counts switches.
@@ -132,7 +140,10 @@
   let firstDone = [];
   let ticked = [];
   let undo = null;
-  let toastTimer = null;
+  // Task lines wait here until the action that reached them has been logged.
+  let pendingTaskLines = [];
+  // The control's Page List row. No page id can be this: ids are made of a-z, 0-9 and "-".
+  const PAGE_LIST = '#page-list';
 
   // ---------- Keeping it across a reload ----------
 
@@ -140,7 +151,11 @@
   // fresh. If it isn't available, everything simply lives in memory.
   function save() {
     try {
-      sessionStorage.setItem(STORE_KEY, JSON.stringify({ state, stats, events, startedAt, firstDone, ticked, current: ui.current, sidebar: ui.sidebar }));
+      sessionStorage.setItem(STORE_KEY, JSON.stringify({
+        state, stats, events, startedAt, firstDone, ticked, current: ui.current, sidebar: ui.sidebar,
+        // What was open, so that a reload can say what it closed.
+        dialog: ui.dialog ? dialogLabel(ui.dialog) : null, finish: finishStep
+      }));
     } catch (e) { /* in memory only */ }
   }
 
@@ -157,6 +172,13 @@
       ui.current = saved.current && page(saved.current) ? saved.current : 'home';
       // A reload leaves the Navigation sidebar as it was, without counting another opening.
       ui.sidebar = IN_SIDEBAR && !!saved.sidebar;
+      // A reload closes whatever dialog was open: say so, so that dialogs shown, confirmed
+      // and cancelled still add up.
+      events.push({ at: elapsed(), kind: 'reload', text: 'Page reloaded' });
+      if (saved.dialog) events.push({ at: elapsed(), kind: 'dialog', text: saved.dialog + ' dialog closed by reload' });
+      if (saved.finish === 'ask') events.push({ at: elapsed(), kind: 'task', text: '“Have you done every task?” was open and was closed by the reload (not counted as turning back)' });
+      if (saved.finish === 'code') events.push({ at: elapsed(), kind: 'task', text: 'The completion code was showing and was closed by the reload' });
+      save();
       return true;
     } catch (e) { return false; }
   }
@@ -175,6 +197,16 @@
 
   function log(kind, text) {
     events.push({ at: elapsed(), kind, text });
+    // "Task N reached" goes after the action that reached it.
+    if (pendingTaskLines.length) { events.push(...pendingTaskLines); pendingTaskLines = []; }
+    save();
+    renderNotes();
+  }
+
+  function flushTaskLines() {
+    if (!pendingTaskLines.length) return;
+    events.push(...pendingTaskLines);
+    pendingTaskLines = [];
     save();
     renderNotes();
   }
@@ -470,17 +502,21 @@
 
   // ---------- Changes (each one can be undone) ----------
 
-  function commit(fn, message) {
+  // opts.quiet: no message yet (a dialog is about to open; the flow shows one when it ends).
+  // opts.keepUndo: this change finishes a flow that began with the last one, so Undo still
+  // goes back to before that one.
+  function commit(fn, message, opts) {
+    const o = opts || {};
     const before = { state: clone(state), current: ui.current, message: message || '' };
     const sig = menuSignature();
     fn();
-    undo = before;
+    if (o.keepUndo && undo) undo.message = before.message; else undo = before;
     ui.more = null;
     if (!stats.firstMenuChange && menuSignature() !== sig) stats.firstMenuChange = Math.max(1, seconds());
     checkTasks();
     save();
     render();
-    if (message) showToast(message, true);
+    if (message && !o.quiet) showToast(message, true); else hideToast();
   }
 
   // ---------- Small render helpers ----------
@@ -763,7 +799,7 @@
         <span id="reorder-hint" class="visually-hidden">Your header menu follows the order of this list.</span>
         <ul class="list drag-list" aria-label="Pages">${pageTreeRows().map(switchRowHtml).join('')}</ul>
       </div>
-      <p class="footnote">Switched-on pages show in your header menu, in the order of this list. New pages are switched on when they're published. Pages that are off are still live at their address.</p>`;
+      <p class="footnote">Switched-on pages show in your header menu, in the order of this list. Pages that are off are still live at their address.</p>`;
   }
 
   // =======================================================================================
@@ -785,7 +821,7 @@
   //                             Link when it's selected, and + to add a page. An advanced
   //                             menu (menu-switches) also has Hide and "Add new pages
   //                             automatically".
-  // View state: ui.sidebar (open), ui.navSel ('page-list' or a link's id: the selected row),
+  // View state: ui.sidebar (open), ui.navSel (PAGE_LIST or a link's id: the selected row),
   // ui.navAdd ({ parent }: the page picker, for the end of the menu or a link's submenu).
 
   function openSidebar(how) {
@@ -932,16 +968,16 @@
   // block holding a Page List. Selecting the Page List row shows its Settings, where the
   // Detach Page List button is; selecting a page under it asks to detach.
   function navPageListHtml() {
-    const selected = ui.navSel === 'page-list';
+    const selected = ui.navSel === PAGE_LIST;
     const pages = automaticItems().map((e) => {
       const p = page(e.pageId);
-      return `<li class="row nav-row nav-inner" data-row="${esc(navKey(p.id))}">
+      return `<li class="row nav-row nav-inner" data-row="${esc(navKey(p.id))}" data-locked="${esc(q(p.title) + ' under the Page List')}">
         <div class="row-main"><span class="indent" style="width:${(e.depth + 1) * 16}px"></span><button type="button" class="nav-label" data-action="nav-locked" data-page="${esc(p.id)}" data-focus="nav-row:${esc(p.id)}">${esc(p.title)}</button></div>
       </li>`;
     }).join('');
     return `<ul class="list nav-list" aria-label="Navigation items">
-        <li class="row nav-row${selected ? ' selected' : ''}" data-row="nav:page-list">
-          <div class="row-main"><span class="nav-chevron">${ICON.chevron}</span><button type="button" class="nav-label" data-action="nav-select" data-id="page-list" data-focus="nav-row:page-list" aria-expanded="${selected}">Page List</button></div>
+        <li class="row nav-row${selected ? ' selected' : ''}" data-row="${esc(navKey(PAGE_LIST))}" data-locked="the Page List row">
+          <div class="row-main"><span class="nav-chevron">${ICON.chevron}</span><button type="button" class="nav-label" data-action="nav-select" data-id="${PAGE_LIST}" data-focus="nav-row:${PAGE_LIST}" aria-expanded="${selected}">Page List</button></div>
         </li>${pages}
       </ul>
       ${selected ? `<div class="nav-panel"><h3>Page List</h3><p class="nav-panel-sub">Settings</p><button type="button" class="btn nav-wide" data-action="nav-ask-detach" data-focus="nav-ask-detach">Detach Page List</button></div>` : ''}`;
@@ -967,7 +1003,7 @@
   function sidebarHtml() {
     if (!IN_SIDEBAR || !ui.sidebar) return '';
     // Undo, trash or a conversion can take the selected row away.
-    if (ui.navSel && !(ui.navSel === 'page-list' ? isAutomatic() && ARM === 'control' : itemById(ui.navSel))) ui.navSel = null;
+    if (ui.navSel && !(ui.navSel === PAGE_LIST ? isAutomatic() && ARM === 'control' : itemById(ui.navSel))) ui.navSel = null;
     if (ui.navAdd && (isAutomatic() || (ui.navAdd.parent && !itemById(ui.navAdd.parent)))) ui.navAdd = null;
     return `<aside class="navside" aria-label="Navigation">
       <div class="navside-head"><h2>Navigation</h2><button type="button" class="icon-btn" data-action="close-sidebar" data-focus="close-sidebar" aria-label="Close Navigation">${ICON.close}</button></div>
@@ -1043,7 +1079,7 @@
       ui.navSel = opening ? d.id : null;
       ui.navAdd = null; ui.more = null;
       ui.focus = 'nav-row:' + d.id;
-      if (opening) log('sidebar', d.id === 'page-list' ? 'Selected the Page List row: its settings are shown, with Detach Page List' : 'Selected the link ' + q(itemById(d.id).label) + ': its Text and Link are shown');
+      if (opening) log('sidebar', d.id === PAGE_LIST ? 'Selected the Page List row: its settings are shown, with Detach Page List' : 'Selected the link ' + q(itemById(d.id).label) + ': its Text and Link are shown');
       render();
       const panel = root.querySelector('.nav-panel, .nav-settings');
       if (panel) panel.scrollIntoView({ block: 'nearest' });
@@ -1052,6 +1088,13 @@
     // core does.
     'nav-locked'(d) {
       const p = page(d.page);
+      if (!p) return;
+      // Let go of after a drag that went nowhere: the try to drag is already in the log.
+      if (lockedDragged) {
+        log('tried', 'Let go on ' + q(p.title) + ' under the Page List: the Detach Page List dialog opens');
+        askConvert({ trigger: 'tried to drag ' + q(p.title) + ' under the Page List' });
+        return;
+      }
       log('tried', 'Tried to select ' + q(p.title) + ' under the Page List, which can’t be edited: the Detach Page List dialog opens instead');
       askConvert({ trigger: 'selected ' + q(p.title) + ' under the Page List' });
     },
@@ -1093,8 +1136,13 @@
     },
     'nav-remove'(d) {
       const it = itemById(d.item);
+      if (!it) return;
       const label = it.label;
-      commit(() => { removeLink(d.item); }, `"${label}" removed from the menu`);
+      // The keyboard goes to the row that takes its place, or the one above, or the + button.
+      const rows = navRows();
+      const at = rows.findIndex((r) => r.id === d.item);
+      const near = rows[at + 1] || rows[at - 1];
+      commit(() => { removeLink(d.item); ui.focus = near ? 'nav-row:' + near.id : 'nav-append'; }, `"${label}" removed from the menu`);
       log('menu', 'Link removed: ' + q(label) + ' (Remove, in the sidebar); its page is still published');
     },
     'nav-hide'(d) {
@@ -1152,20 +1200,60 @@
   // Show the confirm. d: { trigger: what the person did, pageId?: the page it was about,
   // then?: 'remove' | 'rename', what to do with that page once the menu is links }.
   function askConvert(d) {
-    // Where the keyboard was, so a cancelled dialog hands focus back.
-    const active = document.activeElement;
-    ui.dialog = Object.assign({ type: 'convert', from: active && active.dataset ? active.dataset.focus : null }, d);
-    ui.pop = null; ui.more = null;
     stats.dialogsShown++;
-    log('dialog', dialogName() + ' dialog shown (' + d.trigger + (d.pageId ? ', ' + q(page(d.pageId).title) : '') + ')');
-    render();
+    openDialog(Object.assign({ type: 'convert' }, d));
   }
 
   // ---------- Dialogs ----------
 
+  // What a dialog is called in the log.
+  function dialogLabel(d) {
+    return d.type === 'convert' ? dialogName() : { add: 'Add page', rename: 'Rename', trash: 'Move to trash', label: 'Rename in menu' }[d.type];
+  }
+
+  // The page or link a dialog is about. Undo, or anything else, may have taken it away.
+  function dialogSubject(d) {
+    if (d.type === 'label') { const it = itemById(d.itemId); return it && page(it.pageId) ? it : null; }
+    if (d.type === 'rename' || d.type === 'trash' || d.pageId) return page(d.pageId) || null;
+    return true;
+  }
+
+  // Every dialog opens here: it notes where the keyboard was (so a cancelled dialog hands
+  // focus back), and logs the opening.
+  function openDialog(d, note) {
+    const active = document.activeElement;
+    let from = null;
+    if (active && active.closest) {
+      if (active.closest('.moremenu') && ui.more) from = 'more:' + ui.more;
+      else if (active.closest('.pop') && ui.pop) from = 'pop:' + ui.pop;
+      else if (active.dataset) from = active.dataset.focus || null;
+    }
+    ui.dialog = Object.assign({ from }, d);
+    ui.pop = null; ui.more = null;
+    const subject = dialogSubject(ui.dialog);
+    if (!subject) { ui.dialog = null; render(); return; }
+    const about = [];
+    if (d.type === 'convert') about.push(d.trigger);
+    if (d.type === 'label') about.push(q(subject.label));
+    else if (subject !== true) about.push(q(subject.title));
+    if (note) about.push(note);
+    log('dialog', dialogLabel(d) + ' dialog shown' + (about.length ? ' (' + about.join(', ') + ')' : ''));
+    render();
+  }
+
+  // The dialog's page or link has gone: close it without a fuss.
+  function dropDialog() {
+    const d = ui.dialog;
+    if (!d) return;
+    ui.dialog = null;
+    log('dialog', dialogLabel(d) + ' dialog closed: what it was about is no longer there');
+    render();
+  }
+
   function dialogHtml() {
     const d = ui.dialog;
     if (!d) return '';
+    if (!dialogSubject(d)) { ui.dialog = null; return ''; }
     let body = '';
     if (d.type === 'add') {
       body = `<h2 id="dlg-title">New page</h2>
@@ -1193,9 +1281,9 @@
     }
     if (d.type === 'trash') {
       const p = page(d.pageId);
+      // The same words in every arm, and nothing about the menu.
       body = `<h2 id="dlg-title">Move "${esc(p.title)}" to trash?</h2>
-        <p>${isShown(p.id) || inMenu(p.id) ? 'It\'s in your header menu, and it will be taken out of it.' : 'It isn\'t in your header menu, so nothing else on your site changes.'}</p>
-        <p class="note">Undo puts it back in the same place.</p>
+        <p>Visitors won't be able to see this page any more.</p>
         <div class="dialog-actions">${btn('close-dialog', 'Cancel')}${btn('trash', 'Move to trash', { page: p.id }, 'btn-danger')}</div>`;
     }
     return `<div class="scrim" data-action="scrim"><div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dlg-title">${body}</div></div>`;
@@ -1204,10 +1292,12 @@
   function closeDialog(how) {
     const d = ui.dialog;
     if (!d) return;
-    if (d.type === 'convert') log('dialog', dialogName() + ' dialog cancelled (' + how + ')');
     if (d.from) ui.focus = d.from;
     ui.dialog = null;
+    log('dialog', dialogLabel(d) + ' dialog cancelled (' + how + ')' + (d.afterConvert ? '; the menu stays converted' : ''));
     render();
+    // B's Rename in menu, cancelled after the conversion: the flow's one message.
+    if (d.afterConvert && undo) showToast(undo.message, true);
   }
 
   // ---------- The site preview ----------
@@ -1230,7 +1320,7 @@
     return `<div class="site">
       <header class="site-header">
         <button type="button" class="site-name" data-action="visit" data-page="home" data-how="the site's name" data-focus="visit:home-logo">Rosa's Bakery</button>
-        <nav class="site-nav${IN_SIDEBAR ? ' selectable' : ''}${ui.sidebar ? ' selected' : ''}${nav ? '' : ' empty'}" aria-label="Site header menu"${select}><ul>${nav}</ul></nav>
+        <nav class="site-nav${IN_SIDEBAR ? ' selectable' : ''}${ui.sidebar ? ' selected' : ''}${nav ? '' : ' empty'}" aria-label="Site header menu"${select}><ul>${nav}</ul>${IN_SIDEBAR && !nav ? '<button type="button" class="site-nav-empty" data-focus="visit:empty-menu" aria-label="The header menu, which is empty"></button>' : ''}</nav>
       </header>
       <section class="site-hero"><div>${hero}${draft}</div><div class="site-photo" role="img" aria-label="Photo placeholder">Photo</div></section>
       <footer class="site-footer"><span>Rosa's Bakery</span></footer>
@@ -1252,6 +1342,13 @@
 
     const panel = ARM === 'explained' ? renderExplained() : ARM === 'switches' ? renderSwitches() : renderPlain();
     const cur = page(ui.current) || page('home') || state.pages[0];
+    const dialog = dialogHtml();
+    // When a dialog opened or closed: the second click of a double-click is ignored then.
+    if (ui.dialog !== drawnDialog) {
+      dialogChangedAt = Date.now();
+      if (ui.dialog) dialogOpenedAt = dialogChangedAt;
+      drawnDialog = ui.dialog;
+    }
 
     root.innerHTML = `
       <div class="app arm-${ARM}">
@@ -1268,7 +1365,7 @@
         </div>
         <div class="bottombar"><button type="button" class="btn btn-primary" data-action="finish" data-focus="finish">Finished</button><p>Click Finished when you've done everything you were asked to.</p></div>
       </div>
-      ${dialogHtml()}`;
+      ${dialog}`;
 
     const panelEl = root.querySelector('.panel');
     panelEl.scrollTop = panelScroll;
@@ -1294,27 +1391,63 @@
       const f = ui.flash;
       setTimeout(() => { if (ui.flash === f) ui.flash = null; }, 1700);
     }
+    syncToast();
+    save();
     renderNotes();
   }
 
-  function showToast(text, canUndo) {
+  // The message at the bottom, with Undo after a change. It stays for 12 seconds; the
+  // clock stops while the pointer is over it or the keyboard is in it, and while a dialog
+  // covers it (an Undo message is never shown with a dialog open).
+  const TOAST_MS = 12000;
+  let toast = null;
+
+  function toastEl() {
     let t = document.getElementById('toast');
     if (!t) {
       t = document.createElement('div');
       t.id = 'toast';
       t.className = 'toast';
       t.setAttribute('role', 'status');
+      t.hidden = true;
       document.body.appendChild(t);
+      t.addEventListener('pointerenter', () => { if (toast) { toast.hover = true; syncToast(); } });
+      t.addEventListener('pointerleave', () => { if (toast) { toast.hover = false; syncToast(); } });
+      t.addEventListener('focusin', () => { if (toast) { toast.focus = true; syncToast(); } });
+      t.addEventListener('focusout', () => { if (toast) { toast.focus = false; syncToast(); } });
     }
+    return t;
+  }
+
+  function syncToast() {
+    const t = toastEl();
+    if (!toast) { t.hidden = true; return; }
+    const covered = toast.canUndo && (!!ui.dialog || !!finishStep);
+    t.hidden = covered;
+    const paused = covered || toast.hover || toast.focus;
+    if (paused && toast.timer) {
+      clearTimeout(toast.timer);
+      toast.timer = null;
+      toast.left -= Date.now() - toast.since;
+    } else if (!paused && !toast.timer) {
+      toast.since = Date.now();
+      toast.timer = setTimeout(hideToast, Math.max(toast.left, 0));
+    }
+  }
+
+  function showToast(text, canUndo) {
+    const t = toastEl();
+    if (toast) clearTimeout(toast.timer);
     t.innerHTML = `<span>${esc(text)}</span>${canUndo ? '<button type="button" data-action="undo">Undo</button>' : ''}`;
     t.hidden = false;
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => { t.hidden = true; }, 7000);
+    toast = { canUndo: !!canUndo, left: TOAST_MS, since: 0, timer: null, hover: t.matches(':hover'), focus: false };
+    syncToast();
   }
 
   function hideToast() {
-    const t = document.getElementById('toast');
-    if (t) t.hidden = true;
+    if (toast) clearTimeout(toast.timer);
+    toast = null;
+    toastEl().hidden = true;
   }
 
   // ---------- Actions ----------
@@ -1347,7 +1480,7 @@
       moveEntry(kind, id, targetId, after);
       ui.flash = keyRow(kind === 'item' ? itemById(id).pageId : id);
       ui.focus = focus;
-    }, ARM === 'switches' ? `"${title}" moved. Your header menu follows this order.` : `"${title}" moved`);
+    }, `"${title}" moved`);
     const to = siblingIds(kind, id).indexOf(id) + 1;
     countReorder(how === 'drag' ? 'drag' : 'move');
     log('order', 'Reordered by ' + (how === 'drag' ? 'drag' : how === 'keys' ? 'the arrow keys on the handle (counted with Move up/down)' : 'Move up/down') + ': ' + q(title) + ' from place ' + from + ' to ' + to + (kind === 'item' ? ' among the menu’s links' : ' in page order'));
@@ -1394,9 +1527,11 @@
       commit(() => { state.fresh = state.fresh.filter((x) => x !== d.page); ui.pop = null; ui.focus = 'pop:' + keyRow(d.page); }, `"${p.title}" stays out of your menu`);
       log('menu', 'Kept ' + q(p.title) + ' out of the menu (popover, Keep it out)');
     },
-    'ask-convert'(d) { askConvert({ trigger: d.trigger === 'rename' ? 'Rename in menu' : d.trigger === 'remove' ? 'Remove from menu' : d.trigger, pageId: d.page || null, then: d.page ? d.trigger : null }); },
+    'ask-convert'(d) { if (d.page && !page(d.page)) return; askConvert({ trigger: d.trigger === 'rename' ? 'Rename in menu' : d.trigger === 'remove' ? 'Remove from menu' : d.trigger, pageId: d.page || null, then: d.page ? d.trigger : null }); },
     convert() {
       const d = ui.dialog;
+      if (!d || d.type !== 'convert') return;
+      if (!dialogSubject(d)) { dropDialog(); return; }
       const p = d.pageId ? page(d.pageId) : null;
       const mode = ARM === 'menu-switches' ? 'advanced' : 'links';
       ui.dialog = null;
@@ -1408,24 +1543,44 @@
         log('menu', 'Menu converted to links, and ' + q(p.title) + ' taken out of it (popover, Remove from menu)');
         return;
       }
+      // B's Rename in menu goes on to ask for the new name. Nothing is said about the
+      // conversion while that dialog is open: the flow shows one message when it ends.
+      const renaming = d.then === 'rename';
       commit(() => {
         convertToLinks(mode);
         if (p) ui.focus = 'pop:' + keyRow(p.id);
         else if (IN_SIDEBAR && state.menu.items.length) ui.focus = 'nav-row:' + state.menu.items[0].id;
       },
-        mode === 'advanced' ? 'Switched to an advanced menu' : ARM === 'explained' ? 'You now choose your menu\'s pages' : 'The menu\'s pages are now links');
+        mode === 'advanced' ? 'Switched to an advanced menu' : ARM === 'explained' ? 'You now choose your menu\'s pages' : 'The menu\'s pages are now links',
+        { quiet: renaming });
       log('menu', mode === 'advanced' ? 'Menu switched to an advanced menu (links, new pages still added)' : 'Menu converted to links');
-      if (d.then === 'rename') { ui.dialog = { type: 'label', itemId: linkFor(p.id).id }; render(); }
+      if (renaming) {
+        const link = linkFor(p.id);
+        if (link) { ui.focus = 'pop:' + keyRow(p.id); openDialog({ type: 'label', itemId: link.id, afterConvert: true }, 'after the conversion'); ui.dialog.from = 'pop:' + keyRow(p.id); }
+        else showToast(undo.message, true);
+      }
     },
-    'ask-label'(d) { ui.dialog = { type: 'label', itemId: d.item }; ui.pop = null; ui.more = null; render(); },
-    'save-label'(d) {
+    'ask-label'(d) { openDialog({ type: 'label', itemId: d.item }); },
+    'save-label'() {
+      const d = ui.dialog;
+      if (!d || d.type !== 'label') return;
+      if (!dialogSubject(d)) { dropDialog(); return; }
       const text = readName();
       if (!text) { invalidName(); return; }
-      const it = itemById(d.item);
+      const it = itemById(d.itemId);
       const old = it.label;
       ui.dialog = null;
-      if (text === old) { render(); return; }
-      commit(() => { setLinkLabel(d.item, text); ui.flash = keyRow(it.pageId); ui.focus = 'pop:' + keyRow(it.pageId); }, `"${old}" is now "${text}" in your menu`);
+      ui.focus = 'pop:' + keyRow(it.pageId);
+      if (text === old) {
+        log('dialog', 'Rename in menu dialog closed with Save, with the text unchanged' + (d.afterConvert ? '; the menu stays converted' : ''));
+        render();
+        if (d.afterConvert && undo) showToast(undo.message, true);
+        return;
+      }
+      // After B's conversion this is the end of one flow: one message, and Undo takes back
+      // the new name and the conversion together.
+      commit(() => { setLinkLabel(it.id, text); ui.flash = keyRow(it.pageId); ui.focus = 'pop:' + keyRow(it.pageId); },
+        `"${old}" is now "${text}" in your menu` + (d.afterConvert ? '. You now choose your menu\'s pages.' : ''), { keepUndo: !!d.afterConvert });
       log('menu', 'Renamed a link’s label: ' + q(old) + ' to ' + q(text) + ' (the page is still called ' + q(page(it.pageId).title) + ')');
     },
     indent(d) {
@@ -1471,12 +1626,16 @@
     visit(d) { visit(d.page, d.how || 'the preview'); ui.focus = 'visit:' + d.page; render(); },
     publish(d) {
       const p = page(d.page);
+      if (!p) return;
       const was = isShown(d.page);
-      commit(() => { publishPage(d.page); ui.pop = null; ui.flash = keyRow(d.page); }, `"${p.title}" is published`);
+      // The keyboard stays on the row: its marker (B's popover) or its ⋮ button.
+      const focus = (d.how === 'its marker' ? 'pop:' : 'more:') + keyRow(d.page);
+      commit(() => { publishPage(d.page); ui.pop = null; ui.flash = keyRow(d.page); ui.focus = focus; }, `"${p.title}" is published`);
       log('page', 'Published ' + q(p.title) + ' (from ' + (d.how || 'the Pages panel') + '); ' + (isShown(d.page) && !was ? 'it is now in the menu' : 'it is not in the menu'));
     },
-    'ask-add'() { ui.dialog = { type: 'add' }; ui.more = null; ui.pop = null; render(); },
+    'ask-add'() { openDialog({ type: 'add' }); },
     create(d) {
+      if (!ui.dialog || ui.dialog.type !== 'add') return;
       const title = readName();
       if (!title) { invalidName(); return; }
       ui.dialog = null;
@@ -1486,7 +1645,7 @@
         ui.flash = keyRow(id);
         ui.current = id;
         // In B the new page's popover opens, so its menu state is explained straight away.
-        if (ARM === 'explained') { ui.pop = keyRow(id); ui.focus = 'pop:' + keyRow(id); }
+        if (ARM === 'explained') { ui.pop = keyRow(id); ui.focus = 'pop:' + keyRow(id); popOpenedItselfAt = Date.now(); }
         else if (ARM === 'switches') ui.focus = 'sw:' + id;
         else ui.focus = 'more:' + keyRow(id);
       }, `"${title}" ${d.status === 'draft' ? 'saved as a draft' : 'published'}`);
@@ -1494,27 +1653,47 @@
       log('visit', 'The preview shows the new page, ' + q(title));
       if (ARM === 'explained') log('menu', 'Marker popover opened on its own after Add page: ' + q(title) + ' (not counted)');
     },
-    'ask-rename'(d) { ui.dialog = { type: 'rename', pageId: d.page }; ui.more = null; ui.pop = null; render(); },
-    rename(d) {
+    'ask-rename'(d) { openDialog({ type: 'rename', pageId: d.page }); },
+    rename() {
+      const dlg = ui.dialog;
+      if (!dlg || dlg.type !== 'rename') return;
+      if (!dialogSubject(dlg)) { dropDialog(); return; }
       const title = readName();
       if (!title) { invalidName(); return; }
+      const d = { page: dlg.pageId };
       const p = page(d.page);
       const old = p.title;
       ui.dialog = null;
-      if (title === old) { render(); return; }
+      if (title === old) {
+        if (dlg.from) ui.focus = dlg.from;
+        log('dialog', 'Rename dialog closed with Save, with the title unchanged');
+        render();
+        return;
+      }
       const link = linkFor(p.id);
       commit(() => { renamePage(d.page, title); ui.flash = keyRow(d.page); ui.focus = 'more:' + keyRow(d.page); }, `"${old}" is now "${title}"`);
       log('page', 'Renamed a page’s title: ' + q(old) + ' to ' + q(title) + (isAutomatic() ? (isShown(p.id) ? '; the menu follows' : '') : link ? '; its link in the menu still says ' + q(link.label) : ''));
     },
-    'ask-trash'(d) { ui.dialog = { type: 'trash', pageId: d.page }; ui.more = null; ui.pop = null; render(); },
-    trash(d) {
+    'ask-trash'(d) { openDialog({ type: 'trash', pageId: d.page }); },
+    trash() {
+      const dlg = ui.dialog;
+      if (!dlg || dlg.type !== 'trash') return;
+      if (!dialogSubject(dlg)) { dropDialog(); return; }
+      const d = { page: dlg.pageId };
       const p = page(d.page);
       ui.dialog = null;
-      commit(() => { trashPage(d.page); ui.pop = null; }, `"${p.title}" moved to trash`);
+      // The keyboard goes to the row that takes its place, or the one above.
+      const keys = [...root.querySelectorAll('.panel [data-row]')].map((el) => el.dataset.row);
+      const at = keys.indexOf(keyRow(d.page));
+      const near = keys[at + 1] || keys[at - 1];
+      commit(() => { trashPage(d.page); ui.pop = null; if (near) ui.focus = 'more:' + near; }, `"${p.title}" moved to trash`);
       log('page', 'Moved ' + q(p.title) + ' to trash');
     },
     'close-dialog'() { closeDialog('Cancel'); },
-    scrim(d, el, ev) { if (ev.target === el) closeDialog('clicked outside'); },
+    // A click outside a dialog closes it only if the pointer went down outside it too, and
+    // not in the dialog's first half second: the second click of a double-click on the
+    // button that opened it lands here.
+    scrim(d, el, ev) { if (ev.target === el && downOnScrim && Date.now() - dialogOpenedAt >= GUARD_MS) closeDialog('clicked outside'); },
 
     // Control and Q: the menu on the site, and its sidebar.
     'select-menu'(d, el, ev) {
@@ -1526,17 +1705,23 @@
     'close-sidebar'() { closeSidebar('close button'); },
     ...navActions,
 
-    undo() {
+    // One level of Undo: the last change, until the next one. From the message's button
+    // or with Ctrl+Z / Cmd+Z (how === 'keyboard').
+    undo(d) {
       if (!undo) return;
       const what = undo.message;
+      // Whatever is open may be about something Undo takes away, so it closes first.
+      const open = ui.dialog;
+      ui.dialog = null; ui.pop = null; ui.more = null; ui.navAdd = null;
+      if (drag) endDrag(null, true, 'interrupted');
       state = undo.state;
       ui.current = page(undo.current) ? undo.current : 'home';
       undo = null;
-      ui.pop = null; ui.more = null;
       stats.undos++;
       hideToast();
       checkTasks();
-      log('undo', 'Undo' + (what ? ': ' + what : ''));
+      if (open) log('dialog', dialogLabel(open) + ' dialog closed by Undo');
+      log('undo', (d && d.how === 'keyboard' ? 'Undo (keyboard)' : 'Undo') + (what ? ': ' + what : ''));
       render();
     },
     finish() { finish(); }
@@ -1557,14 +1742,30 @@
     render();
   }
 
+  // Double-clicks. The second click of a double-click on a button that opens or closes a
+  // dialog would land on whatever is there next (the scrim, which cancels the dialog; the
+  // page under a dialog that has just closed). So for half a second after a dialog opens or
+  // closes, a second click is ignored, and so is any click on the scrim; and a popover that
+  // has just opened by itself isn't closed by a click elsewhere.
+  const GUARD_MS = 500;
+  let drawnDialog = null;
+  let dialogChangedAt = 0;
+  let dialogOpenedAt = 0;
+  let popOpenedItselfAt = 0;
+  let downOnScrim = false;
+  document.addEventListener('pointerdown', (ev) => {
+    downOnScrim = !!(ev.target.classList && ev.target.classList.contains('scrim'));
+  }, true);
+
   document.addEventListener('click', (ev) => {
     if (ev.target.closest('a[href="#"]')) ev.preventDefault();
+    if (ev.detail > 1 && Date.now() - dialogChangedAt < GUARD_MS) return;
     // A click elsewhere in the preview closes the Navigation sidebar.
     if (ui.sidebar && ev.target.closest('.stage') && !ev.target.closest('.site-nav')) closeSidebar('clicked elsewhere in the preview');
     const el = ev.target.closest('[data-action]');
     if (!el) {
       // A click elsewhere closes an open popover or ⋮ menu.
-      if ((ui.pop || ui.more) && !ev.target.closest('.pop, .moremenu, .notes')) { ui.pop = null; ui.more = null; render(); }
+      if ((ui.pop || ui.more) && !ev.target.closest('.pop, .moremenu, .notes, #toast') && Date.now() - popOpenedItselfAt >= GUARD_MS) { ui.pop = null; ui.more = null; render(); }
       return;
     }
     const action = actions[el.dataset.action];
@@ -1573,14 +1774,46 @@
   });
 
   document.addEventListener('keydown', (ev) => {
+    // Ctrl+Z / Cmd+Z: the same single Undo as the message's button, until the next change.
+    // Not while typing in a field (the field's own undo), and not with a dialog open.
+    if ((ev.ctrlKey || ev.metaKey) && !ev.shiftKey && !ev.altKey && String(ev.key).toLowerCase() === 'z') {
+      const t = ev.target;
+      const typing = t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable);
+      if (typing || ui.dialog || finishStep || drag || !undo) return;
+      ev.preventDefault();
+      actions.undo({ how: 'keyboard' });
+      return;
+    }
+    // Tab stays inside an open dialog.
+    if (ev.key === 'Tab' && ui.dialog && !(ev.target.closest && ev.target.closest('.notes'))) {
+      const stops = [...root.querySelectorAll('.dialog input, .dialog button')];
+      if (stops.length) {
+        const i = stops.indexOf(document.activeElement);
+        ev.preventDefault();
+        stops[i < 0 ? (ev.shiftKey ? stops.length - 1 : 0) : (i + (ev.shiftKey ? -1 : 1) + stops.length) % stops.length].focus();
+      }
+      return;
+    }
     if (ev.key === 'Escape') {
-      if (drag) { endDrag(ev, true); return; }
+      // Escape closes the topmost thing only. The Finished dialog closes itself.
+      if (finishStep) return;
+      if (drag) { endDrag(ev, true, 'escape'); return; }
       if (ui.dialog) { closeDialog('Escape'); return; }
+      // In a link's Text field, Escape first throws away what was typed.
+      const field = ev.target.dataset && ev.target.dataset.change === 'nav-label' ? ev.target : null;
+      const fieldItem = field ? itemById(field.dataset.item) : null;
+      if (fieldItem && field.value !== fieldItem.label) {
+        log('menu', 'Typed ' + q(field.value.trim()) + ' as the Text of ' + q(fieldItem.label) + ' and pressed Escape: not saved');
+        field.value = fieldItem.label;
+        field.select();
+        return;
+      }
       if (ui.more) { const k = ui.more; ui.more = null; ui.focus = 'more:' + k; render(); return; }
       if (ui.pop) { const k = ui.pop; ui.pop = null; ui.focus = 'pop:' + k; render(); return; }
       if (ui.navAdd) { const parent = ui.navAdd.parent; ui.navAdd = null; ui.focus = parent ? 'more:' + navKey(parent) : 'nav-append'; render(); return; }
       if (ui.navSel) { const k = ui.navSel; ui.navSel = null; ui.focus = 'nav-row:' + k; render(); return; }
       if (ui.sidebar) closeSidebar('Escape');
+      return;
     }
     if (ev.key === 'Enter' && ev.target.dataset && ev.target.dataset.change === 'nav-label') {
       ev.preventDefault();
@@ -1625,18 +1858,31 @@
     h.focus();
     try { h.setPointerCapture(ev.pointerId); } catch (e) { /* not capturable; the document still hears the moves */ }
     ui.more = null; ui.pop = null;
-    drag = { id: li.dataset.dragId, group: li.dataset.dragGroup, kind: h.dataset.kind, list: li.parentElement, target: null, moved: false, x: ev.clientX, y: ev.clientY, side: !!h.closest('.navside') };
+    drag = { id: li.dataset.dragId, group: li.dataset.dragGroup, kind: h.dataset.kind, list: li.parentElement, target: null, moved: false, outside: false, x: ev.clientX, y: ev.clientY, side: !!h.closest('.navside') };
     rowsBlock(li).forEach((r) => r.classList.add('dragging'));
   });
 
-  // In the Navigation sidebar a drag can also change a row's level: dropped to the right, under
-  // the row above the gap, it becomes that row's child (or its parent's, beside it); dropped
-  // to the left it sits at the top level. A row with rows under it stays at the top level.
+  // A drag let go of outside its list (with a small margin) is cancelled, as Escape does.
+  const DRAG_MARGIN = 40;
+  function outsideList(ev) {
+    if (!drag || !drag.list.isConnected || ev.clientX == null) return false;
+    const b = drag.list.getBoundingClientRect();
+    return ev.clientX < b.left - DRAG_MARGIN || ev.clientX > b.right + DRAG_MARGIN || ev.clientY < b.top - DRAG_MARGIN || ev.clientY > b.bottom + DRAG_MARGIN;
+  }
+
+  // In the Navigation sidebar a drag can also change a row's level, but only on purpose: the
+  // pointer has to have moved NEST_PX to the right of where the drag started for the row to
+  // go under the row above the gap (or beside that row, under its parent), or NEST_PX to the
+  // left for it to come out to the top level. Otherwise it keeps the level it has (where it
+  // can't, it goes to the top level). A row with rows under it stays at the top level. The
+  // same rule in the control and Q.
+  const NEST_PX = 40;
   function sideDragMove(ev) {
     if (Math.abs(ev.clientY - drag.y) > 4 || Math.abs(ev.clientX - drag.x) > 12) drag.moved = true;
     clearDropMarks();
     drag.target = null;
-    if (!drag.moved) return;
+    drag.outside = outsideList(ev);
+    if (!drag.moved || drag.outside) return;
     const all = [...drag.list.querySelectorAll(':scope > li[data-drag-id]')];
     const self = all.find((li) => li.dataset.dragId === drag.id);
     if (!self) return;
@@ -1646,18 +1892,35 @@
     let k = rows.findIndex((li) => { const r = li.getBoundingClientRect(); return ev.clientY < r.top + r.height / 2; });
     if (k < 0) k = rows.length;
     const hasRowsUnder = block.length > 1;
-    if (hasRowsUnder) while (k < rows.length && depthOf(rows[k]) > 0) k++;
+    const box = drag.list.getBoundingClientRect();
+    const dx = ev.clientX - drag.x;
+    // The level asked for: a deliberate move to the right or left, or else the one it has.
+    const want = hasRowsUnder ? 0 : dx >= NEST_PX ? 1 : dx <= -NEST_PX ? 0 : depthOf(self);
+    const parentAt = (i) => {
+      const above = rows[i - 1] || null;
+      return !above ? null : depthOf(above) ? rows.find((li) => li.dataset.dragId === above.dataset.dragGroup) : above;
+    };
+    const canChildAt = (i) => { const pr = parentAt(i); return !hasRowsUnder && !!pr && canNest(drag.kind, drag.id, pr.dataset.dragId); };
+    // Under Home (the control's links allow it, as core does) only ever with that movement,
+    // even for a row that is already in a submenu.
+    const isHome = (li) => (drag.kind === 'item' ? (itemById(li.dataset.dragId) || {}).pageId : li.dataset.dragId) === 'home';
+    let depth = want === 1 && canChildAt(k) && (dx >= NEST_PX || !isHome(parentAt(k))) ? 1 : 0;
+    // A top-level row can't sit in the middle of a submenu. It never joins the submenu for
+    // that: it goes above or below the whole group, whichever is nearer. A row pulled out of
+    // its own submenu goes below it.
+    if (depth === 0 && rows[k] && depthOf(rows[k]) > 0) {
+      let start = Math.max(k - 1, 0);
+      while (start > 0 && depthOf(rows[start]) > 0) start--;
+      let end = k;
+      while (end < rows.length && depthOf(rows[end]) > 0) end++;
+      const top = rows[start].getBoundingClientRect().top;
+      const bottom = rows[end - 1].getBoundingClientRect().bottom;
+      const own = rows[start].dataset.dragId === self.dataset.dragGroup;
+      k = !own && ev.clientY < (top + bottom) / 2 ? start : end;
+    }
     const prev = rows[k - 1] || null;
     const next = rows[k] || null;
-    const box = drag.list.getBoundingClientRect();
-    const parentRow = !prev ? null : depthOf(prev) ? rows.find((li) => li.dataset.dragId === prev.dataset.dragGroup) : prev;
-    const canChild = !hasRowsUnder && !!parentRow && canNest(drag.kind, drag.id, parentRow.dataset.dragId);
-    const canTop = !next || depthOf(next) === 0;
-    let depth;
-    if (ev.clientX - box.left > 34 && canChild) depth = 1;
-    else if (canTop) depth = 0;
-    else if (canChild) depth = 1;
-    else return;
+    const parentRow = parentAt(k);
     // Dropping it where it already is changes nothing.
     if (k === all.indexOf(self) && depth === depthOf(self)) return;
     drag.target = {
@@ -1673,6 +1936,28 @@
     drag.list.appendChild(line);
   }
 
+  // The control's Page List and the pages under it can't be dragged. A try is logged once.
+  let lockedDrag = null;
+  let lockedDragged = false;
+  document.addEventListener('pointerdown', (ev) => {
+    const li = ev.target.closest && ev.target.closest('.navside li[data-locked]');
+    lockedDrag = li && !(ev.button > 0) ? { what: li.dataset.locked, x: ev.clientX, y: ev.clientY, logged: false } : null;
+    lockedDragged = false;
+  });
+  document.addEventListener('pointermove', (ev) => {
+    if (!lockedDrag || lockedDrag.logged || Math.hypot(ev.clientX - lockedDrag.x, ev.clientY - lockedDrag.y) < 8) return;
+    lockedDrag.logged = true;
+    log('tried', 'Tried to drag ' + lockedDrag.what + ', which can’t be moved until the Page List is detached');
+  });
+  function lockedDragEnd() {
+    // The click that may follow a pointerup comes before this timer, and knows it was a drag.
+    lockedDragged = !!(lockedDrag && lockedDrag.logged);
+    lockedDrag = null;
+    setTimeout(() => { lockedDragged = false; }, 0);
+  }
+  document.addEventListener('pointerup', lockedDragEnd);
+  document.addEventListener('pointercancel', lockedDragEnd);
+
   document.addEventListener('pointermove', (ev) => {
     if (!drag) return;
     if (drag.side) { sideDragMove(ev); return; }
@@ -1680,6 +1965,8 @@
     const sibs = [...drag.list.querySelectorAll('li[data-drag-id]')].filter((li) => li.dataset.dragGroup === drag.group);
     clearDropMarks();
     drag.target = null;
+    drag.outside = outsideList(ev);
+    if (drag.outside) return;
     for (const li of sibs) {
       const block = rowsBlock(li);
       const top = block[0].getBoundingClientRect().top;
@@ -1701,25 +1988,38 @@
     }
   });
 
-  function endDrag(ev, cancel) {
+  // why: 'escape' | 'interrupted' when cancelled. A drag that moves nothing is logged, and
+  // isn't counted as a reorder.
+  function endDrag(ev, cancel, why) {
     if (!drag) return;
+    const outside = drag.outside || (!cancel && !!ev && outsideList(ev));
     const d = drag;
     drag = null;
     clearDropMarks();
     root.querySelectorAll('.dragging').forEach((el) => el.classList.remove('dragging'));
-    if (cancel || !d.target || !d.moved) return;
-    if (d.side) navDrop(d.kind, d.id, d.target); else reorder(d.kind, d.id, d.target.id, d.target.after, 'drag');
+    if (!cancel && !outside && d.target && d.moved) {
+      if (d.side) navDrop(d.kind, d.id, d.target); else reorder(d.kind, d.id, d.target.id, d.target.after, 'drag');
+      return;
+    }
+    const title = d.kind === 'item' ? (itemById(d.id) || {}).label : (page(d.id) || {}).title;
+    if (title == null) return;
+    log('tried', 'Started dragging ' + q(title) + ' and ' + (why === 'escape' ? 'cancelled with Escape' : why === 'interrupted' ? 'the drag was interrupted' : outside ? 'dropped outside the list' : 'let go without moving it'));
   }
   document.addEventListener('pointerup', (ev) => endDrag(ev, false));
-  document.addEventListener('pointercancel', (ev) => endDrag(ev, true));
+  document.addEventListener('pointercancel', (ev) => endDrag(ev, true, 'interrupted'));
 
   document.addEventListener('keydown', (ev) => {
     const h = ev.target.closest && ev.target.closest('.handle');
     if (!h || (ev.key !== 'ArrowUp' && ev.key !== 'ArrowDown')) return;
     ev.preventDefault();
     const dir = ev.key === 'ArrowUp' ? -1 : 1;
-    const moved = h.closest('.navside') ? navStep(h.dataset.kind, h.dataset.drag, dir, 'keys') : step(h.dataset.kind, h.dataset.drag, dir, 'keys');
-    if (!moved) showToast(`Already ${dir < 0 ? 'first' : 'last'}`, false);
+    const side = !!h.closest('.navside');
+    const title = h.dataset.kind === 'item' ? (itemById(h.dataset.drag) || {}).label : (page(h.dataset.drag) || {}).title;
+    const moved = side ? navStep(h.dataset.kind, h.dataset.drag, dir, 'keys') : step(h.dataset.kind, h.dataset.drag, dir, 'keys');
+    if (!moved) {
+      showToast(`Already ${dir < 0 ? 'first' : 'last'}`, false);
+      log('tried', 'Tried to move ' + q(title) + (dir < 0 ? ' up' : ' down') + ' with the arrow keys on its handle' + (side ? ' in the sidebar' : '') + ', but it is already ' + (dir < 0 ? 'first' : 'last'));
+    }
   });
 
   // ---------- The Navigation sidebar's fields ----------
@@ -1772,7 +2072,8 @@
     const shown = (id) => flat.some((n) => n.pageId === id);
     const thanks = page('thank-you');
     const home = tree.findIndex((n) => n.pageId === 'home');
-    const gift = state.pages.filter((p) => p.status === 'publish' && /gift card/i.test(p.title));
+    // Any published page with "gift" in its title: Gift cards, Giftcards, Gift vouchers.
+    const gift = state.pages.filter((p) => p.status === 'publish' && /gift/i.test(p.title));
     const holiday = page('holiday-orders');
     return {
       2: thanks && thanks.status === 'publish' && !shown('thank-you') ? 1 : 0,
@@ -1796,7 +2097,7 @@
     { text: 'Look only: which pages can a visitor reach from the top of the site?', hint: 'Never ticked automatically.' },
     { n: 2, text: 'Take “Thank you for your order” out of the menu without deleting it.', hint: 'Ticks when the page isn’t in the header menu and is still published.', state: (v) => (v ? 'out of the menu, still published' : page('thank-you') ? 'still in the menu' : 'the page is in the trash') },
     { n: 3, text: 'Move Catering to straight after Home.', hint: 'Ticks when Catering is the top-level item right after Home in the header.', state: (v) => (v ? 'right after Home' : 'not right after Home') },
-    { n: 4, text: 'Make and publish a Gift cards page and get it into the menu.', hint: 'Ticks when a published page with “gift card” in its title is in the header menu.', full: 2, state: (v) => THREE[v] },
+    { n: 4, text: 'Make and publish a Gift cards page and get it into the menu.', hint: 'Ticks when a published page with “gift” in its title is in the header menu.', full: 2, state: (v) => THREE[v] },
     { n: 5, text: 'Make “Visit us” say “Find us” in the menu.', hint: 'Ticks when the menu item for the Visit us page reads Find us.', state: (v) => (v ? 'the menu says Find us' : 'the menu doesn’t say Find us') + '; ' + { p: 'the page is called Find us', l: 'only the link’s label was changed', 0: 'the page is called ' + q((page('visit-us') || {}).title || 'nothing: it’s in the trash') }[renameHow()] },
     { n: 6, text: 'Publish Holiday orders.', hint: 'Ticks when it’s published. Ask first whether it will be in the menu.', full: 1, state: (v) => THREE[v] }
   ];
@@ -1810,14 +2111,16 @@
       // Tasks 4 and 6: note the first time the page is published, and what the menu did.
       if (t.full && v > 0 && !mark.published) {
         mark.published = elapsed();
-        events.push({ at: elapsed(), kind: 'task', text: 'Task ' + t.n + ': ' + THREE[v] });
+        pendingTaskLines.push({ at: elapsed(), kind: 'task', text: 'Task ' + t.n + ': ' + THREE[v] });
       }
       if (v >= (t.full || 1) && !mark.at) {
         mark.at = elapsed();
         ticked[i] = true;
-        events.push({ at: elapsed(), kind: 'task', text: 'Task ' + t.n + ' reached' });
+        pendingTaskLines.push({ at: elapsed(), kind: 'task', text: 'Task ' + t.n + ' reached' });
       }
     });
+    // Normally the action's own log line takes these with it. This is the safety net.
+    if (pendingTaskLines.length) setTimeout(flushTaskLines, 0);
   }
 
   // ---------- The completion code ----------
@@ -1870,8 +2173,11 @@
       finishEl.setAttribute('aria-labelledby', 'finish-title');
       document.body.append(finishEl);
       finishEl.addEventListener('close', () => {
-        if (finishStep === 'ask') { stats.finishBack++; log('task', 'Turned back at “Have you done every task?”'); }
+        const turnedBack = finishStep === 'ask';
         finishStep = null;
+        if (turnedBack) { stats.finishBack++; log('task', 'Turned back at “Have you done every task?”'); }
+        save();
+        syncToast();
         const b = root.querySelector('[data-action="finish"]');
         if (b) b.focus();
       });
@@ -1880,15 +2186,12 @@
         if (e.target.closest('[data-sure]')) { showCode(); return; }
         if (!e.target.closest('[data-copy-code]')) return;
         const input = finishEl.querySelector('textarea');
-        input.select();
-        (navigator.clipboard ? navigator.clipboard.writeText(input.value) : Promise.reject()).then(
-          () => showToast('Code copied', false),
-          () => { try { document.execCommand('copy'); showToast('Code copied', false); } catch (err) { showToast('Select the code and copy it', false); } }
-        );
+        copyText(input.value, input, 'Code copied', 'Select the code and copy it.');
       });
     }
     ui.pop = null; ui.more = null;
     finishStep = 'ask';
+    syncToast();
     log('task', 'Clicked Finished and was asked whether every task is done');
     finishEl.innerHTML = '<h2 id="finish-title">Have you done every task?</h2><p>Finished is the last step. Only carry on if you’ve done everything you were asked to.</p>' +
       '<div class="finish-actions"><button type="button" class="btn btn-primary" data-sure>Yes, I’ve finished</button><button type="button" class="link" data-back>Not yet, keep editing</button></div>';
@@ -1896,9 +2199,34 @@
     finishEl.querySelector('[data-back]').focus();
   }
 
+  // Copying: the clipboard, or else the old way from a selected field. If that says no
+  // (execCommand returns false) or throws, say how to do it by hand.
+  function copyText(text, field, done, failed) {
+    const oldWay = () => {
+      let ok = false;
+      let made = null;
+      try {
+        if (!field) {
+          made = document.createElement('textarea');
+          made.value = text;
+          made.setAttribute('readonly', '');
+          made.className = 'visually-hidden';
+          (finishEl && finishEl.open ? finishEl : document.body).append(made);
+        }
+        (field || made).select();
+        ok = document.execCommand('copy') === true;
+      } catch (err) { ok = false; }
+      if (made) made.remove();
+      showToast(ok ? done : failed, false);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(() => showToast(done, false), oldWay);
+    else oldWay();
+  }
+
   function showCode() {
     finishStep = 'code';
     checkTasks();
+    flushTaskLines();
     const code = completionCode();
     log('task', 'Finished. Code ' + code);
     finishEl.innerHTML = '<h2 id="finish-title">Thank you</h2><p>Please copy this code into the next question:</p>' +
@@ -1929,7 +2257,7 @@
       notesEl.addEventListener('click', (e) => {
         if (e.target.closest('[data-copy]')) {
           const text = events.map((l) => l.at + '  ' + l.text).join('\n');
-          (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject()).then(() => showToast('Log copied', false), () => showToast('Couldn’t copy. Select the log and copy it.', false));
+          copyText(text, null, 'Log copied', 'Couldn’t copy. Select the log and copy it.');
         }
         if (e.target.closest('[data-reset]')) { reset(); showToast('Back to how it started', false); }
       });
@@ -1972,5 +2300,6 @@
 
   if (!restore()) save();
   checkTasks();
+  flushTaskLines();
   render();
 })();

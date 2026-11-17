@@ -124,7 +124,7 @@ p.blk { color: var(--site-ink-2); }
 .tb-movers .tb-btn { min-width: 32px; height: 22px; padding: 0; }
 .tb-movers svg { width: 20px; height: 20px; }
 
-.seltb { position: absolute; z-index: 25; display: flex; height: 42px; background: var(--white); border: 1px solid var(--ink); border-radius: 2px; }
+.seltb { position: absolute; z-index: 15; display: flex; height: 42px; background: var(--white); border: 1px solid var(--ink); border-radius: 2px; }
 .seltb[hidden] { display: none; }
 .seltb .tb-btn { height: 40px; }
 

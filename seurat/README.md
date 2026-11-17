@@ -53,7 +53,7 @@ The **Finished** button shows a code to copy into the next question of an unmode
 | `t35.80.142` | Seconds from opening the page to the first time each task's result was reached; 0 if it never was. |
 | `f35` | Seconds to the first typography change of any kind; 0 if there was none. |
 | `c4` | Typography changes. |
-| `m7` | Menus, flyouts, sidebar tabs and hidden controls opened. |
+| `m7` | Menus, flyouts, sidebar tabs and hidden controls opened. The least it can be differs by prototype (task 1 needs none in the control, one in A and two in B), so compare it with that in mind. |
 | `x0` | Blocks changed to another kind (a paragraph made a heading, or a heading's level changed). |
 | `e0` | Times the person clicked Finished and then turned back. |
 | `s160` | Seconds from opening the page to clicking Finished. |
@@ -77,7 +77,7 @@ Start with: "This is the home page of a bakery's website, in the editor that cha
 ### Tasks
 
 1. "The first paragraph, the one that starts 'Marlow Lane Bakery has baked', is hard to read. Make its text bigger."
-   *Watch for:* where they look first. In the control, whether they notice the sidebar at all, and whether S, M, L, XL reads as text size. In A, whether "18" reads as a size. In B, whether they open the options menu, and whether they read down to Typography or use the search. Some people will make the paragraph a heading instead; the task is ticked, and the code's `x` part shows it.
+   *Watch for:* where they look first. In the control, whether they notice the sidebar at all, and whether S, M, L, XL reads as text size. In A, whether "18" reads as a size. In B, whether they open the options menu, and whether they read down to Typography or use the search. Some people will make the paragraph a heading instead; the task is ticked, and the code's `x` part shows it. (Task 2 is stricter: making the main heading a paragraph changes its lettering but isn't ticked.)
 2. "The owner doesn't like the lettering of the main heading at the top. Change it to a different font, any one you like."
    *Watch for:* in the control, Font isn't showing: do they find the panel's options menu, and how long before they give up? In A, whether the font's name on the toolbar is recognised as the thing to click. In B, whether what they learned in task 1 carries over.
 3. "The last paragraph, under 'Order ahead', looks cramped. Put more space between its lines."
@@ -93,6 +93,7 @@ More people completing tasks 1 and 2 in A than in the control, in less time, hav
 
 - This is a simulation, not the WordPress editor. The control copies the editor's words and the order of its controls, not its exact look.
 - Menus and flyouts open on click, not on hover.
+- Typing is undone with the browser's own Ctrl+Z, not the Undo button, and the Undo button puts back the text as it was before the last change of style.
 - Enter doesn't start a new paragraph, blocks can't be added or deleted, and links and colours don't work.
 - The toolbar sits above the selected block, as in the editor, so it can cover the end of the block above.
 - Tested in headless Chrome with a mouse and keyboard only.

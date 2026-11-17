@@ -79,7 +79,7 @@
 
   const TASKS = [
     { text: 'Make the first paragraph’s text bigger', hint: 'Ticked when the paragraph under the main heading is larger than the theme’s 18px, by any route.', done: () => eff(block('p1')).px > 18 },
-    { text: 'Change the main heading’s font', hint: 'Ticked when “Fresh bread, baked every morning” is in any font but the theme’s Georgia.', done: () => eff(block('h1')).font !== 'georgia' },
+    { text: 'Change the main heading’s font', hint: 'Ticked when “Fresh bread, baked every morning” has been given a font other than Georgia. Changing it to a paragraph doesn’t count.', done: () => { const f = block('h1').typo.font; return !!f && f !== 'georgia'; } },
     { text: 'Put more space between the lines of the last paragraph', hint: 'Ticked when the paragraph under “Order ahead” has a line height above the theme’s 1.6.', done: () => eff(block('p3')).lh > 1.6 }
   ];
 
@@ -224,7 +224,9 @@
 
   // One typography change, from any of the three places.
   function setTypo(b, key, val, focus) {
+    flushNumber();
     const before = describe(b, key);
+    if ((b.typo[key] == null ? '' : b.typo[key]) === val && !(key === 'size' && b.typo.custom != null)) { renderChrome(focus); return; }
     pushUndo();
     applyTypo(b, key, val);
     logTypo(b, key, before);
@@ -284,8 +286,9 @@
     if (!b) return;
     const el = blkEl(b.id);
     const sel = getSelection();
-    // Nothing selected: the whole block.
-    if (!sel.rangeCount || sel.isCollapsed || !el.contains(sel.anchorNode)) {
+    // Nothing selected: the whole block, and the caret goes back afterwards so typing doesn't replace it.
+    const whole = !sel.rangeCount || sel.isCollapsed || !el.contains(sel.anchorNode);
+    if (whole) {
       const r = document.createRange();
       r.selectNodeContents(el);
       sel.removeAllRanges();
@@ -293,6 +296,7 @@
     }
     pushUndo();
     document.execCommand(cmd);
+    if (whole) sel.collapseToEnd();
     b.html = el.innerHTML;
     note('other', blockLabel(b) + ': ' + cmd);
   }
@@ -325,6 +329,7 @@
 
   function select(id) {
     if (S.sel === id) return;
+    flushNumber();
     S.sel = id;
     S.menu = null;
     S.fly = null;
@@ -422,10 +427,10 @@
         APPEARANCES.map((a) => '<option value="' + a[0] + '"' + (t.appearance === a[0] ? ' selected' : '') + '>' + a[1] + '</option>').join('') + '</select></div>';
     }
     if (key === 'lineHeight') {
-      return '<div class="ctl"><label for="' + id + '">Line height</label><input id="' + id + '" type="number" data-k="lineHeight" min="1" max="3" step="0.1" placeholder="' + d.lh + '" value="' + (t.lineHeight != null ? t.lineHeight : '') + '"></div>';
+      return '<div class="ctl"><label for="' + id + '">Line height</label><input id="' + id + '" type="number" data-k="lineHeight" min="1" max="3" step="0.1" value="' + eff(b).lh + '"></div>';
     }
     if (key === 'letterSpacing') {
-      return '<div class="ctl"><label for="' + id + '">Letter spacing</label><div class="ctl-unit"><input id="' + id + '" type="number" data-k="letterSpacing" min="-2" max="20" step="0.5" placeholder="0" value="' + (t.letterSpacing != null ? t.letterSpacing : '') + '"><span>px</span></div></div>';
+      return '<div class="ctl"><label for="' + id + '">Letter spacing</label><div class="ctl-unit"><input id="' + id + '" type="number" data-k="letterSpacing" min="-2" max="20" step="0.5" value="' + eff(b).ls + '"><span>px</span></div></div>';
     }
     if (key === 'decoration') return '<div class="ctl"><span class="ctl-label">Decoration</span>' + seg('decoration', DECORATIONS, t.decoration) + '</div>';
     return '<div class="ctl"><span class="ctl-label">Letter case</span>' + seg('case', CASES, t.case) + '</div>';
@@ -620,15 +625,10 @@
     const b = selected();
     const layer = app.querySelector('[data-tb]');
     layer.innerHTML = b ? '<div class="tb" role="toolbar" aria-label="Block tools">' + toolbarHTML(b) + '</div>' : '';
-    const bar = layer.firstElementChild;
-    if (bar) {
-      const el = blkEl(b.id);
-      bar.style.top = (el.offsetTop - bar.offsetHeight - 12) + 'px';
-      bar.style.left = el.offsetLeft + 'px';
-    }
     const side = app.querySelector('[data-sidebar]');
     side.hidden = !S.sidebar;
     side.innerHTML = S.sidebar ? sidebarHTML() : '';
+    positionToolbar();
     app.querySelector('[data-act="sidebar"]').setAttribute('aria-pressed', S.sidebar);
     app.querySelector('[data-act="undo"]').disabled = !S.undo.length;
     app.querySelector('[data-act="redo"]').disabled = !S.redo.length;
@@ -670,14 +670,17 @@
   // Buttons on the toolbar don't take the caret or the selection out of the text.
   app.addEventListener('mousedown', (e) => {
     if (e.target.closest('.tb-layer button, .seltb button')) e.preventDefault();
-    if (e.target.closest('[data-canvas]') && !e.target.closest('.blk, .tb-layer, .seltb')) {
+    const canvas = e.target.closest('[data-canvas]');
+    // A press on the canvas's own scrollbar isn't a click on the page.
+    if (canvas && e.target === canvas && (e.offsetX >= canvas.clientWidth || e.offsetY >= canvas.clientHeight)) return;
+    if (canvas && !e.target.closest('.blk, .tb-layer, .seltb')) {
       if (S.sel) note('select', 'Clicked away from the blocks');
       select(null);
     }
   });
 
   document.addEventListener('mousedown', (e) => {
-    if (S.menu && !e.target.closest('[data-pop], [data-menu]')) { S.menu = null; S.fly = null; S.q = ''; renderChrome(); }
+    if (S.menu && !e.target.closest('[data-pop], [data-menu]')) closeMenus();
   });
 
   document.addEventListener('keydown', (e) => {
@@ -692,7 +695,12 @@
     const el = e.target.closest('.blk');
     if (el) select(el.dataset.id);
     const num = e.target.closest('input[type="number"][data-k]');
-    if (num && selected()) { num._before = describe(selected(), num.dataset.k === 'custom' ? 'size' : num.dataset.k); num._snap = false; }
+    if (num && selected()) { num._b = selected(); num._before = describe(selected(), num.dataset.k === 'custom' ? 'size' : num.dataset.k); num._snap = false; }
+  });
+
+  app.addEventListener('focusout', (e) => {
+    const num = e.target.closest('input[type="number"][data-k]');
+    if (num) commitNumber(num);
   });
 
   app.addEventListener('keydown', (e) => {
@@ -729,6 +737,9 @@
       if (key === 'custom' && v == null) return;
       if (!num._snap) { pushUndo(); num._snap = true; app.querySelector('[data-act="undo"]').disabled = false; }
       applyTypo(b, key, v);
+      if (!stats.firstTypo) stats.firstTypo = Math.max(1, seconds());
+      const label = app.querySelector('[data-menu="size"] span');
+      if (label) label.textContent = eff(b).px;
       checkTasks();
       positionToolbar();
     }
@@ -739,27 +750,48 @@
     if (!b) return;
     const sel = e.target.closest('select[data-k]');
     if (sel) { setTypo(b, sel.dataset.k, sel.value, '#' + sel.id); return; }
-    const num = e.target.closest('input[type="number"][data-k]');
-    if (num) {
-      logTypo(b, num.dataset.k, num._before);
-      num._before = describe(b, num.dataset.k === 'custom' ? 'size' : num.dataset.k);
-      num._snap = false;
-      // The toolbar's own Size label follows; the box keeps the focus.
-      const label = app.querySelector('[data-menu="size"] span');
-      if (label) label.textContent = eff(b).px;
-    }
   });
 
   function positionToolbar() {
     const bar = app.querySelector('.tb');
     const b = selected();
     if (!bar || !b) return;
-    bar.style.top = (blkEl(b.id).offsetTop - bar.offsetHeight - 12) + 'px';
+    const el = blkEl(b.id);
+    bar.style.top = (el.offsetTop - bar.offsetHeight - 12) + 'px';
+    bar.style.left = el.offsetLeft + 'px';
+  }
+  window.addEventListener('resize', positionToolbar);
+
+  // A number box's change is logged once, when the person leaves the box.
+  function commitNumber(num) {
+    const b = num._b;
+    if (!b || !block(b.id)) return;
+    const key = num.dataset.k;
+    const k = key === 'custom' ? 'size' : key;
+    logTypo(b, key, num._before);
+    num._before = describe(b, k);
+    num._snap = false;
+    // The box shows what was applied, so a number outside the range doesn't linger.
+    const e = eff(b);
+    num.value = key === 'custom' ? e.px : key === 'lineHeight' ? e.lh : e.ls;
+  }
+
+  function flushNumber() {
+    const a = document.activeElement;
+    if (a && a.matches && a.matches('input[type="number"][data-k]')) commitNumber(a);
+  }
+
+  // Closing a menu without redrawing, so the click that closed it still lands on what was clicked.
+  function closeMenus() {
+    S.menu = null; S.fly = null; S.q = '';
+    app.querySelectorAll('[data-pop]').forEach((el) => el.remove());
+    app.querySelectorAll('[data-menu]').forEach((el) => { el.classList.remove('is-open'); el.setAttribute('aria-expanded', 'false'); });
   }
 
   app.addEventListener('click', (e) => {
     const t = e.target.closest('button');
     if (!t) return;
+    flushNumber();
     const b = selected();
     const d = t.dataset;
 
@@ -781,7 +813,7 @@
     }
     if (!b) return;
 
-    if (d.menu) { toggleMenu(d.menu); renderChrome(d.menu === 'options' && VARIANT === 'menu' && S.menu ? '[data-q]' : null); return; }
+    if (d.menu) { toggleMenu(d.menu); renderChrome(); return; }
     if (d.fly) {
       S.q = '';
       if (S.fly === d.fly) S.fly = null; else { S.fly = d.fly; opened('the options menu’s ' + FLYOUTS[d.fly] + ' flyout'); }
@@ -871,7 +903,9 @@
   // again later gives a new code.
   let finishEl = null;
   let finishSure = false;
+  let finishSkipClose = false;
   function finish() {
+    flushNumber();
     syncText();
     if (!finishEl) {
       finishEl = document.createElement('dialog');
@@ -879,18 +913,18 @@
       finishEl.setAttribute('aria-labelledby', 'finish-title');
       document.body.append(finishEl);
       finishEl.addEventListener('close', () => {
-        if (finishSure) return; // on the way to the code
+        if (finishSkipClose) { finishSkipClose = false; return; } // on the way to the code
+        if (finishEl.querySelector('[data-sure]')) stats.finishBack++;
         note('task', 'Went back to editing');
         const btn = app.querySelector('[data-finish]');
         if (btn) btn.focus();
       });
       finishEl.addEventListener('click', (e) => {
         if (e.target.closest('[data-back]')) {
-          if (finishEl.querySelector('[data-sure]')) stats.finishBack++;
           finishEl.close();
           return;
         }
-        if (e.target.closest('[data-sure]')) { finishSure = true; finishEl.close(); finish(); return; }
+        if (e.target.closest('[data-sure]')) { finishSure = true; finishSkipClose = true; finishEl.close(); finish(); return; }
         if (!e.target.closest('[data-copy-code]')) return;
         const input = finishEl.querySelector('textarea');
         input.select();

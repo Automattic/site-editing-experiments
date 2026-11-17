@@ -23,6 +23,19 @@
  *   summary Looks like the control. Save lists what changed and where ("On
  *           every page", "Only on the About page") before saving.
  *
+ * Round 2 (the pages in round-2/) has four more, each one change from its
+ * control. All four have the WordPress editor's own Save button and save
+ * panel, and a Finished button that asks first:
+ *
+ *   r2control  A2. The purple outline, and at Save the editor's own panel:
+ *              "Are you ready to save?", with Template Parts and Pages listed.
+ *   r2button   B2. The header and footer are locked until "Edit site header"
+ *              (or footer), a button shown on hover, is clicked.
+ *   r2label    L2. The purple outline carries a "Site header" or "Site footer"
+ *              label.
+ *   r2panel    S2. The save panel groups what changed under "On every page"
+ *              and "Only on one page".
+ *
  * An earlier version had a fourth treatment, "ask" (the first change asks
  * "Every page" or "Just this page"). It was dropped after review; it is in
  * this folder's history.
@@ -41,12 +54,19 @@
     marked: { code: 'RM', letter: 'A', name: 'Shown on hover: pointing at the header or footer shows “Shown on every page” and an Edit button, and one click unlocks it' },
     site: { code: 'RS', letter: 'C', name: 'Always labelled: Site header, Site footer and the page’s name are always shown, with no lock and no question' },
     told: { code: 'RT', letter: 'D', name: 'Told after the change: the control, and each change to the header or footer is followed by “Updated on all 3 pages” with Undo' },
-    summary: { code: 'RU', letter: 'E', name: 'Summary at save: the control, and Save lists what changed on every page and what changed on one page' }
+    summary: { code: 'RU', letter: 'E', name: 'Summary at save: the control, and Save lists what changed on every page and what changed on one page' },
+    r2control: { round: 2, file: 'control.html', code: 'A2', letter: 'A2', name: 'Round 2 control: the purple outline, and the WordPress editor’s own save panel' },
+    r2button: { round: 2, file: 'site-button.html', code: 'B2', letter: 'B2', name: 'Edit site header: the header and footer are locked until a button shown on hover, “Edit site header” or “Edit site footer”, is clicked' },
+    r2label: { round: 2, file: 'purple-label.html', code: 'L2', letter: 'L2', name: 'Purple label: the purple outline carries a “Site header” or “Site footer” label' },
+    r2panel: { round: 2, file: 'save-panel.html', code: 'S2', letter: 'S2', name: 'Clearer save panel: the save panel groups changes under “On every page” and “Only on one page”' }
   };
   const VARIANT = VARIANTS[document.body.dataset.variant] ? document.body.dataset.variant : 'marked';
   // These three treat the header and footer the way the control does: edited
   // in place, with the purple outline the WordPress editor gives shared parts.
-  const UNMARKED = ['plain', 'told', 'summary'].includes(VARIANT);
+  const UNMARKED = ['plain', 'told', 'summary', 'r2control', 'r2label', 'r2panel'].includes(VARIANT);
+  // Locked until a button shown on hover is clicked.
+  const GATED = VARIANT === 'marked' || VARIANT === 'r2button';
+  const ROUND2 = VARIANTS[VARIANT].round === 2;
   const NOTES = new URLSearchParams(location.search).has('notes') || location.hash === '#notes';
 
   const PAGES = [
@@ -160,7 +180,7 @@
       gateShown: 0, gateThrough: 0,
       told: 0, toldUndo: 0,
       sumShown: 0, sumSaved: 0, sumBack: 0,
-      whole: 0, previews: 0, previewPages: {}, saves: 0
+      whole: 0, previews: 0, previewPages: {}, saves: 0, finishBack: 0
     };
     startedAt = Date.now();
     firstDone = [];
@@ -246,7 +266,7 @@
   // Can this part's text be edited right now?
   function editable(part) {
     if (view.preview) return false;
-    if (VARIANT !== 'marked' || part === 'body') return true;
+    if (!GATED || part === 'body') return true;
     return siteEdit === part;
   }
 
@@ -304,7 +324,22 @@
     if (view.preview) return '<' + tag + ' class="part part-' + part + '">' + inner + '</' + tag + '>';
 
     if (UNMARKED) {
-      return '<' + tag + ' class="part part-' + part + ' is-core-part" data-region="' + part + '">' + inner + '</' + tag + '>';
+      const globe = '<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false"><g fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="8" cy="8" r="6.2"/><ellipse cx="8" cy="8" rx="2.7" ry="6.2"/><path d="M1.8 8h12.4"/></g></svg>';
+      const tab = VARIANT === 'r2label' ? '<p class="core-tab">' + globe + '<span>On every page</span></p>' : '';
+      return '<' + tag + ' class="part part-' + part + ' is-core-part" data-region="' + part + '">' + tab + inner + '</' + tag + '>';
+    }
+
+    if (VARIANT === 'r2button') {
+      if (siteEdit === part) {
+        return '<' + tag + ' class="part part-' + part + ' is-site-editing" tabindex="-1" data-region="' + part + '">' +
+          '<div class="site-banner"><p><strong>Editing the site ' + name + '.</strong> Changes show on every page.</p><button class="btn btn-primary" data-done>Done</button></div>' +
+          '<div class="part-inner">' + inner + '</div></' + tag + '>';
+      }
+      return '<' + tag + ' class="part part-' + part + ' is-gated" data-region="' + part + '">' +
+        '<div class="part-inner" inert>' + inner + '</div>' +
+        '<button class="gate' + (gateShown === part ? ' is-shown' : '') + '" data-gate="' + part + '" aria-label="Edit site ' + name + '">' +
+        '<span class="gate-label is-button-only"><em>Edit site ' + name + '</em></span></button>' +
+        '</' + tag + '>';
     }
 
     if (VARIANT === 'marked') {
@@ -351,7 +386,48 @@
       : '';
     return '<header class="topbar"><span class="logo" aria-hidden="true">P</span>' + whole +
       '<div class="tabs" role="group" aria-label="Pages"><span class="tabs-label">Pages</span>' + pages + '</div>' +
-      '<span class="spacer"></span><button class="btn" data-preview>Preview site</button><button class="btn btn-primary" data-save>Save</button></header>';
+      '<span class="spacer"></span><button class="btn" data-preview>Preview site</button>' + saveButton() + '</header>';
+  }
+
+  // ---------- Round 2: the editor's own Save button ----------
+
+  // What has unsaved changes, as the editor counts them: the header, the
+  // footer, and each page. Text still being typed counts too.
+  function dirtyEntities() {
+    const ids = [];
+    const add = (part, page) => { const id = part === 'body' ? 'page:' + page : part; if (!ids.includes(id)) ids.push(id); };
+    unsaved.forEach((c) => add(c.part, c.page));
+    if (editing && editing.el.isConnected) {
+      const now = clean(editing.el.textContent);
+      if (now && now !== editing.before) add(editing.el.dataset.part, view.page);
+    }
+    // The editor lists template parts before pages.
+    const order = (id) => (id === 'header' ? 0 : id === 'footer' ? 1 : 2 + PAGES.findIndex((p) => 'page:' + p.id === id));
+    return ids.sort((a, b) => order(a) - order(b));
+  }
+
+  // "Saved" when there is nothing to save, "Save" when only this page has
+  // changed, and "Review 2 changes…" when anything else has.
+  function saveLabel() {
+    const d = dirtyEntities();
+    if (!d.length) return { text: 'Saved', disabled: true };
+    if (d.length === 1 && d[0] === 'page:' + view.page) return { text: 'Save' };
+    return { text: 'Review ' + d.length + (d.length === 1 ? ' change…' : ' changes…') };
+  }
+
+  function saveButton() {
+    if (!ROUND2) return '<button class="btn btn-primary" data-save>Save</button>';
+    const l = saveLabel();
+    return '<button class="btn btn-primary" data-save' + (l.disabled ? ' disabled' : '') + '>' + l.text + '</button>';
+  }
+
+  function updateSave() {
+    if (!ROUND2) return;
+    const b = app.querySelector('[data-save]');
+    if (!b) return;
+    const l = saveLabel();
+    b.textContent = l.text;
+    b.disabled = !!l.disabled;
   }
 
   /*
@@ -464,7 +540,7 @@
   // The label counts as seen once the pointer has rested on the part for a moment.
   function gateSeen(part, how) {
     stats.gateShown++;
-    note('gate', '“Shown on every page” appeared on the ' + part + ' (' + how + ') on ' + pageName(view.page));
+    note('gate', '“' + (VARIANT === 'r2button' ? 'Edit site ' + part : 'Shown on every page') + '” appeared on the ' + part + ' (' + how + ') on ' + pageName(view.page));
   }
 
   function gateClick(part) {
@@ -591,7 +667,11 @@
     } else {
       unsaved.push({ id, part, page, key, before, now });
     }
+    updateSave();
   }
+
+  // The Save button wakes up as soon as something is typed, as the editor's does.
+  app.addEventListener('input', (e) => { if (e.target.closest('.field')) updateSave(); });
 
   app.addEventListener('focusin', (e) => {
     const el = e.target.closest('.field');
@@ -665,8 +745,96 @@
       else toast('Nothing new to save.');
       return;
     }
+    if (ROUND2) {
+      const d = dirtyEntities();
+      if (!d.length) return;
+      if (d.length === 1 && d[0] === 'page:' + view.page) {
+        // Only this page has changed: the editor saves it without asking.
+        unsaved = [];
+        updateSave();
+        note('save', 'Saved the ' + pageName(view.page) + ' page without a panel');
+        toast('Saved.');
+        return;
+      }
+      openPanel(d);
+      return;
+    }
     unsaved = [];
     toast('Saved.');
+  }
+
+  // ---------- Round 2: the save panel ----------
+
+  /*
+   * The WordPress editor's panel: "Are you ready to save?", how many site
+   * changes are waiting, then a ticked box for each thing that changed, under
+   * "Template Parts" and "Pages". The editor says nothing more about template
+   * parts. r2panel keeps the panel and changes its headings and adds a line
+   * under each, to say where the changes will show.
+   */
+  let panelEl = null;
+  let panelAnswered = false;
+  const entityName = (id) => (id === 'header' ? 'Header' : id === 'footer' ? 'Footer' : pageName(id.slice(5)));
+
+  function openPanel(dirty) {
+    if (!panelEl) {
+      panelEl = document.createElement('dialog');
+      panelEl.className = 'savepanel';
+      panelEl.setAttribute('aria-labelledby', 'savepanel-title');
+      document.body.append(panelEl);
+      panelEl.addEventListener('click', (e) => {
+        if (e.target.closest('[data-panel-save]')) {
+          const keep = Array.from(panelEl.querySelectorAll('input[data-entity]')).filter((i) => !i.checked).map((i) => i.dataset.entity);
+          const saved = Array.from(panelEl.querySelectorAll('input[data-entity]')).filter((i) => i.checked).map((i) => i.dataset.entity);
+          unsaved = unsaved.filter((c) => keep.includes(c.part === 'body' ? 'page:' + c.page : c.part));
+          panelAnswered = true;
+          stats.sumSaved++;
+          note('save', 'Saved from the panel: ' + (saved.map(entityName).join(', ') || 'nothing ticked') + (keep.length ? '. Left unticked: ' + keep.map(entityName).join(', ') : ''));
+          panelEl.close();
+          toast('Saved.');
+        } else if (e.target.closest('[data-panel-cancel]')) {
+          panelEl.close();
+        }
+      });
+      panelEl.addEventListener('change', (e) => {
+        const box = e.target.closest('input[data-entity]');
+        if (box) note('save', (box.checked ? 'Ticked ' : 'Unticked ') + entityName(box.dataset.entity) + ' in the save panel');
+      });
+      // Escape and Cancel both end here.
+      panelEl.addEventListener('close', () => {
+        if (!panelAnswered) {
+          stats.sumBack++;
+          note('save', 'Cancelled the save panel without saving');
+        }
+        updateSave();
+        const btn = app.querySelector('[data-save]');
+        if (btn && !btn.disabled) btn.focus();
+      });
+    }
+    panelAnswered = false;
+    const clearer = VARIANT === 'r2panel';
+    const item = (id) => '<label class="savepanel-item"><input type="checkbox" checked data-entity="' + id + '"> ' + esc(entityName(id)) + '</label>';
+    const parts = dirty.filter((id) => id === 'header' || id === 'footer');
+    const pages = dirty.filter((id) => id.startsWith('page:'));
+    let groups = '';
+    if (parts.length) {
+      groups += '<section><h3>' + (clearer ? 'On every page' : (parts.length === 1 ? 'Template Part' : 'Template Parts')) + '</h3>' +
+        (clearer ? '<p>' + (parts.length === 1 ? 'This change' : 'These changes') + ' will show on every page of your site.</p>' : '') +
+        parts.map(item).join('') + '</section>';
+    }
+    if (pages.length) {
+      groups += '<section><h3>' + (clearer ? 'Only on one page' : 'Pages') + '</h3>' +
+        '<p>' + (clearer ? (pages.length === 1 ? 'This change' : 'Each of these changes') + ' will only show on that page.' : 'The following has been modified.') + '</p>' +
+        pages.map(item).join('') + '</section>';
+    }
+    const n = dirty.length;
+    panelEl.innerHTML = '<div class="savepanel-head"><button class="btn" data-panel-cancel>Cancel</button><button class="btn btn-primary" data-panel-save>Save</button></div>' +
+      '<div class="savepanel-prompt"><strong id="savepanel-title">Are you ready to save?</strong>' +
+      '<p>' + (n === 1 ? 'There is <strong>1 site change</strong> waiting to be saved.' : 'There are <strong>' + n + ' site changes</strong> waiting to be saved.') + '</p></div>' + groups;
+    stats.sumShown++;
+    note('save', 'Save panel shown: ' + dirty.map(entityName).join(', '));
+    panelEl.showModal();
+    panelEl.querySelector('[data-panel-save]').focus();
   }
 
   // ---------- summary: what changed and where, before saving ----------
@@ -770,13 +938,21 @@
    *     summary u: summaries shown, saved from one, went back without saving
    *   p: times the preview was opened, then pages seen in it ·
    *   v: clicks on Save · s: seconds until Finished.
+   * Round 2 codes start A2, B2, L2 or S2 and all carry u: save panels shown,
+   * saved from one, cancelled. B2 has g before it: times the button was shown,
+   * times unlocked. They end with e: times Finished was clicked and then
+   * turned down at "Have you done every task?".
    */
   function completionCode() {
     const own = {
       marked: 'g' + [stats.gateShown, stats.gateThrough].join('.'),
       site: 'w' + stats.whole,
       told: 't' + [stats.told, stats.toldUndo].join('.'),
-      summary: 'u' + [stats.sumShown, stats.sumSaved, stats.sumBack].join('.')
+      summary: 'u' + [stats.sumShown, stats.sumSaved, stats.sumBack].join('.'),
+      r2control: 'u' + [stats.sumShown, stats.sumSaved, stats.sumBack].join('.'),
+      r2label: 'u' + [stats.sumShown, stats.sumSaved, stats.sumBack].join('.'),
+      r2panel: 'u' + [stats.sumShown, stats.sumSaved, stats.sumBack].join('.'),
+      r2button: 'g' + [stats.gateShown, stats.gateThrough].join('.') + '-u' + [stats.sumShown, stats.sumSaved, stats.sumBack].join('.')
     }[VARIANT];
     return [
       VARIANTS[VARIANT].code,
@@ -787,11 +963,12 @@
       'p' + stats.previews + '.' + previewPages().length,
       'v' + stats.saves,
       's' + seconds()
-    ]).join('-');
+    ], ROUND2 ? ['e' + stats.finishBack] : []).join('-');
   }
 
   // Finished shows the code in a dialog. Clicking Finished again later gives a new code.
   let finishEl = null;
+  let finishSure = false;
   function finish() {
     commitEditing();
     if (!finishEl) {
@@ -800,12 +977,18 @@
       finishEl.setAttribute('aria-labelledby', 'finish-title');
       document.body.append(finishEl);
       finishEl.addEventListener('close', () => {
+        if (finishSure) return; // on the way to the code
         note('task', 'Went back to editing');
         const btn = app.querySelector('[data-finish]');
         if (btn) btn.focus();
       });
       finishEl.addEventListener('click', (e) => {
-        if (e.target.closest('[data-back]')) { finishEl.close(); return; }
+        if (e.target.closest('[data-back]')) {
+          if (finishEl.querySelector('[data-sure]')) stats.finishBack++;
+          finishEl.close();
+          return;
+        }
+        if (e.target.closest('[data-sure]')) { finishSure = true; finishEl.close(); finish(); return; }
         if (!e.target.closest('[data-copy-code]')) return;
         const input = finishEl.querySelector('textarea');
         input.select();
@@ -815,6 +998,16 @@
         );
       });
     }
+    // Round 2 asks first, so that nobody ends after the first task by mistake.
+    if (ROUND2 && !finishSure) {
+      note('task', 'Clicked Finished and was asked whether every task is done');
+      finishEl.innerHTML = '<h2 id="finish-title">Have you done every task?</h2><p>Finished is the last step. Only carry on if you’ve done everything you were asked to.</p>' +
+        '<div class="finish-actions"><button class="btn btn-primary" data-sure>Yes, I’ve finished</button><button class="link" data-back>Not yet, keep editing</button></div>';
+      finishEl.showModal();
+      finishEl.querySelector('[data-back]').focus();
+      return;
+    }
+    finishSure = false;
     const unchecked = sharedEdits.filter((e) => !e.checked).length;
     if (sharedEdits.length) {
       note('check', unchecked
@@ -855,7 +1048,8 @@
       });
     }
     const suffix = location.hash === '#notes' ? '#notes' : '?notes';
-    const links = Object.keys(VARIANTS).map((v) => '<a href="' + v + '.html' + suffix + '"' + (v === VARIANT ? ' aria-current="page"' : '') + '>' + VARIANTS[v].letter + '</a>').join('');
+    const round = VARIANTS[VARIANT].round || 1;
+    const links = Object.keys(VARIANTS).filter((v) => (VARIANTS[v].round || 1) === round).map((v) => '<a href="' + (VARIANTS[v].file || v + '.html') + suffix + '"' + (v === VARIANT ? ' aria-current="page"' : '') + '>' + VARIANTS[v].letter + '</a>').join('');
     const tasks = TASKS.map((t, i) =>
       '<li class="' + (ticked[i] ? 'is-done' : '') + '"><label><input type="checkbox" data-task="' + i + '"' + (ticked[i] ? ' checked' : '') + '> ' + t.text + '</label>' +
       (firstDone[i] ? ' <time>' + firstDone[i].at + '</time>' : '') +
@@ -865,7 +1059,11 @@
       site: '<dt>Uses of Site header or Site footer in the top bar</dt><dd>' + stats.whole + '</dd>',
       told: '<dt>Times “Updated on all 3 pages” was shown</dt><dd>' + stats.told + '</dd><dt>Times Undo was used in it</dt><dd>' + stats.toldUndo + '</dd>',
       summary: '<dt>Save summaries shown</dt><dd>' + stats.sumShown + '</dd><dt>Saved from the summary</dt><dd>' + stats.sumSaved + '</dd><dt>Went back without saving</dt><dd>' + stats.sumBack + '</dd>'
-    }[VARIANT];
+    }[VARIANT] || (ROUND2
+      ? (VARIANT === 'r2button' ? '<dt>Times “Edit site header” or “Edit site footer” appeared</dt><dd>' + stats.gateShown + '</dd><dt>Times unlocked</dt><dd>' + stats.gateThrough + '</dd>' : '') +
+        '<dt>Save panels shown</dt><dd>' + stats.sumShown + '</dd><dt>Saved from the panel</dt><dd>' + stats.sumSaved + '</dd><dt>Panel cancelled</dt><dd>' + stats.sumBack + '</dd>' +
+        '<dt>Turned back at “Have you done every task?”</dt><dd>' + stats.finishBack + '</dd>'
+      : '');
     notesEl.innerHTML =
       '<div class="notes-head"><h2>' + VARIANTS[VARIANT].letter + ' · Facilitator notes</h2><nav class="switcher" aria-label="Variant">' + links + '</nav></div>' +
       '<p>' + VARIANTS[VARIANT].name + '. Only you can see this panel; open the page without <code>?notes</code> for participants.</p>' +

@@ -234,3 +234,32 @@ svg { display: block; }
 .summary li strong { display: block; }
 .summary li span { display: block; margin-top: 2px; color: var(--ink-2); }
 .summary .finish-actions { margin-top: 20px; }
+
+/* ---------- Round 2 ---------- */
+
+/* The editor's Save button says "Saved" and is switched off until something changes. */
+.btn[disabled] { opacity: .5; cursor: default; }
+.btn-primary[disabled]:hover { background: var(--blue); }
+
+/* B2: the button is all the label says. */
+.gate-label.is-button-only { padding: 5px 6px; }
+
+/* L2: words on the purple outline. Shown whenever the outline is. */
+.core-tab { position: absolute; z-index: 3; top: 0; left: 0; padding: 3px 10px 4px; background: var(--synced); border-radius: 0 0 6px 0; display: flex; align-items: center; gap: 5px; margin: 0; font: 600 12px/1.3 system-ui, sans-serif !important; opacity: 0; pointer-events: none; }
+.core-tab svg { flex: none; }
+.part .core-tab { color: var(--white); }
+.is-core-part:hover .core-tab, .is-core-part:focus-within .core-tab { opacity: 1; }
+
+/* The save panel: a column down the right-hand side, as in the editor. */
+.savepanel { position: fixed; inset: 0 0 0 auto; width: min(320px, 100vw); height: 100vh; max-height: none; margin: 0; padding: 0; border: none; border-left: 1px solid var(--line); box-shadow: -8px 0 24px rgba(0,0,0,.12); color: var(--ink); font-size: 13px; overflow: auto; }
+.savepanel::backdrop { background: rgba(0,0,0,.15); }
+.savepanel-head { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+.savepanel-head .btn { flex: 1; }
+.savepanel-prompt { padding: 16px; }
+.savepanel-prompt > strong { display: block; margin-bottom: 8px; font-size: 13px; }
+.savepanel p { margin: 0; color: var(--ink-2); }
+.savepanel section { padding: 16px; border-top: 1px solid var(--line); }
+.savepanel h3 { margin: 0 0 8px; font-size: 13px; font-weight: 600; }
+.savepanel section p { margin-bottom: 8px; }
+.savepanel-item { display: flex; align-items: center; gap: 8px; padding: 6px 0; font-size: 13px; }
+.savepanel-item input { width: 18px; height: 18px; margin: 0; accent-color: var(--blue); }

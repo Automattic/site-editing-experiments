@@ -1,13 +1,15 @@
 /*
  * O'Keeffe round 2 · Pages and the site's menu.
  *
- * One engine for four prototypes. Each HTML page sets window.PROTOTYPE = { arm }:
+ * One engine for five prototypes. Each HTML page sets window.PROTOTYPE = { arm }:
  *   control        OC  the menu converts to links; changed in the menu's own sidebar
+ *   auto-add       OA  the menu is links from the start, and still gets new pages while its
+ *                      "Auto add pages" switch is on; changed in the menu's own sidebar
  *   explained      OB  the menu converts to links, explained; changed on the Pages screen
  *   switches       OF  the menu stays connected; changed on the Pages screen
  *   menu-switches  OQ  the menu stays connected; changed in the menu's own sidebar
  *
- * Everything else is the same in all four: the site, the shell, the preview, the Pages
+ * Everything else is the same in all five: the site, the shell, the preview, the Pages
  * panel's basics, the tasks, the log and the completion code.
  *
  * ---------------------------------------------------------------------------------------
@@ -21,7 +23,8 @@
  *                 mode: 'automatic' | 'links' | 'advanced',
  *                 excluded: [pageId],   automatic only: pages switched off (F, Q)
  *                 items: [{ id, pageId, label, depth: 0 | 1, hidden }],   links / advanced
- *                 autoAdd: bool,        advanced only: "Add new pages automatically"
+ *                 autoAdd: bool,        advanced only: "Add new pages automatically" (Q),
+ *                                       "Auto add pages" (auto-add, which starts advanced)
  *                 convertedAt, autoAddOffAt   seconds, for the completion code
  *               }
  *
@@ -89,6 +92,7 @@
 
   const ARMS = {
     control: { code: 'OC', letter: 'Control', file: 'control.html', where: 'sidebar', name: 'WordPress today: the menu is changed in its own sidebar, opened by clicking the menu on the site, and changing it converts it to links' },
+    'auto-add': { code: 'OA', letter: 'A', file: 'auto-add.html', where: 'sidebar', name: 'Auto add: the menu is links from the start, changed in its own sidebar as in WordPress today, and an “Auto add pages” switch, on at the start, keeps adding newly published pages' },
     explained: { code: 'OB', letter: 'B', file: 'explained.html', where: 'pages', name: 'Explained: the menu is changed on the Pages screen, and taking a page out or renaming it in the menu converts the menu to links, after one confirm that says so' },
     switches: { code: 'OF', letter: 'F', file: 'switches.html', where: 'pages', name: 'Connected switches: every page has an “In menu” switch on the Pages screen, the list is the menu’s order, and the menu never converts' },
     'menu-switches': { code: 'OQ', letter: 'Q', file: 'menu-switches.html', where: 'sidebar', name: 'Menu switches: the menu’s own sidebar lists the pages with a show/hide toggle each, and the menu stays connected' }
@@ -98,6 +102,11 @@
   // Q follows Quinn: switching a parent off hides its child pages too. F keeps O'Keeffe's
   // behaviour: child pages that are on move up to the top level.
   const PARENT_OFF_HIDES_CHILDREN = ARM === 'menu-switches';
+  // Hiding a link is Quinn's, so only Q's advanced menu has Hide and Show.
+  const CAN_HIDE = ARM === 'menu-switches';
+  // The auto-add arm has no Page List: its menu is links from the start, with a switch that
+  // keeps new pages arriving.
+  const STARTS_AS_LINKS = ARM === 'auto-add';
   const SITE = 'rosasbakery.example';
   const NOTES = new URLSearchParams(location.search).has('notes') || location.hash === '#notes';
   const STORE_KEY = 'okeeffe-round-2:' + ARM;
@@ -105,7 +114,7 @@
   // ---------- Starting state ----------
 
   function startingState() {
-    return {
+    const start = {
       pages: [
         { id: 'home', title: 'Home', status: 'publish', parent: null },
         { id: 'about', title: 'About', status: 'publish', parent: null },
@@ -122,6 +131,14 @@
       trashed: [],
       seq: 1
     };
+    if (STARTS_AS_LINKS) {
+      // The same links, with the same ids, as the control's menu straight after detaching.
+      const live = (id) => start.pages.find((p) => p.id === id).status === 'publish';
+      start.menu.items = start.pages.filter((p) => live(p.id)).map((p) => ({ id: 'link-' + start.seq++, pageId: p.id, label: p.title, depth: p.parent && live(p.parent) ? 1 : 0, hidden: false }));
+      start.menu.mode = 'advanced';
+      start.menu.autoAdd = true;
+    }
+    return start;
   }
 
   function startingUi() {
@@ -584,7 +601,7 @@
     </div>`;
   }
 
-  // ---------- The plain Pages panel (control, menu-switches) ----------
+  // ---------- The plain Pages panel (control, auto-add, menu-switches) ----------
 
   // No menu controls of any kind: the tree of pages, Draft badges, Add page and the ⋮ basics.
   function renderPlain() {
@@ -803,10 +820,10 @@
   }
 
   // =======================================================================================
-  // THE NAVIGATION SIDEBAR (control and menu-switches): one component, two modes
+  // THE NAVIGATION SIDEBAR (control, auto-add and menu-switches): one component
   // =======================================================================================
   //
-  // In these two arms a click on the header menu in the preview selects it and opens the
+  // In these three arms a click on the header menu in the preview selects it and opens the
   // Navigation sidebar, a third column of the workspace (see .navside in style.css). What
   // it lists depends on the menu:
   //   control, automatic        WordPress today: one Page List row with its pages listed
@@ -816,11 +833,12 @@
   //   menu-switches, automatic  Quinn's pages menu: the published pages themselves, each
   //                             with a show/hide toggle, drag and Move up / Move down (which
   //                             change page order), and Switch to advanced menu below.
-  //   links / advanced          The same list of links in both arms: drag, a ⋮ with Move up,
+  //   links / advanced          The same list of links in all three: drag, a ⋮ with Move up,
   //                             Move down, Add submenu link and Remove, a row's Text and
   //                             Link when it's selected, and + to add a page. An advanced
   //                             menu (menu-switches) also has Hide and "Add new pages
-  //                             automatically".
+  //                             automatically"; the auto-add arm starts here, with
+  //                             "Auto add pages" and no Hide.
   // View state: ui.sidebar (open), ui.navSel (PAGE_LIST or a link's id: the selected row),
   // ui.navAdd ({ parent }: the page picker, for the end of the menu or a link's submenu).
 
@@ -907,7 +925,7 @@
       item('nav-move', 'Move down', { kind: row.kind, id: row.id, dir: 1 }, k >= sibs.length - 1 ? 'use Move down on ' + name + ', which is already last' : '');
     if (row.kind === 'item') {
       html += item('nav-ask-add', 'Add submenu link', { parent: row.id }, row.depth ? 'use Add submenu link on ' + name + ', which is already in a submenu' : '');
-      if (state.menu.mode === 'advanced') html += item('nav-hide', row.hidden ? 'Show' : 'Hide', { item: row.id });
+      if (CAN_HIDE && state.menu.mode === 'advanced') html += item('nav-hide', row.hidden ? 'Show' : 'Hide', { item: row.id });
       const short = row.title.length > 25 ? row.title.slice(0, 22) + '...' : row.title;
       html += '<hr>' + item('nav-remove', 'Remove ' + esc(short), { item: row.id });
     }
@@ -983,6 +1001,8 @@
       ${selected ? `<div class="nav-panel"><h3>Page List</h3><p class="nav-panel-sub">Settings</p><button type="button" class="btn nav-wide" data-action="nav-ask-detach" data-focus="nav-ask-detach">Detach Page List</button></div>` : ''}`;
   }
 
+  const AUTO_ADD_LABEL = STARTS_AS_LINKS ? 'Auto add pages' : 'Add new pages automatically';
+
   function sidebarBodyHtml() {
     const m = state.menu;
     if (isAutomatic() && ARM === 'control') return navPageListHtml();
@@ -997,7 +1017,7 @@
     return `${list}
       <button type="button" class="nav-append" data-action="nav-ask-add" data-parent="" data-focus="nav-append" aria-label="Add link" aria-expanded="${adding ? 'true' : 'false'}">${ICON.plus}</button>
       ${adding ? navPickerHtml() : ''}
-      ${m.mode === 'advanced' ? `<button type="button" class="switch nav-auto" aria-pressed="${m.autoAdd}" data-action="nav-autoadd" data-focus="nav-autoadd"><span class="switch-track"></span><span>Add new pages automatically</span></button>` : ''}`;
+      ${m.mode === 'advanced' ? `<button type="button" class="switch nav-auto" aria-pressed="${m.autoAdd}" data-action="nav-autoadd" data-focus="nav-autoadd"><span class="switch-track"></span><span>${AUTO_ADD_LABEL}</span></button>` : ''}`;
   }
 
   function sidebarHtml() {
@@ -1154,8 +1174,10 @@
     },
     'nav-autoadd'() {
       const on = !state.menu.autoAdd;
-      commit(() => { setAutoAdd(on); ui.focus = 'nav-autoadd'; }, on ? 'New pages will be added to the menu' : 'New pages won’t be added to the menu');
-      log('menu', '“Add new pages automatically” turned ' + (on ? 'on' : 'off'));
+      // The auto-add arm's message only names the switch: nothing there explains it.
+      commit(() => { setAutoAdd(on); ui.focus = 'nav-autoadd'; },
+        STARTS_AS_LINKS ? `"Auto add pages" is ${on ? 'on' : 'off'}` : on ? 'New pages will be added to the menu' : 'New pages won’t be added to the menu');
+      log('menu', STARTS_AS_LINKS ? 'Auto add pages switched ' + (on ? 'on' : 'off') : '“Add new pages automatically” turned ' + (on ? 'on' : 'off'));
     }
   };
 
@@ -2130,9 +2152,11 @@
   /*
    * For pasting into an unmoderated testing tool. For example:
    *   OB-11212-ml140-d1.1-f35-r1.2-np-x0-u2-k3-e0-s412
-   * OC, OB, OF, OQ: the arm · tasks 2 to 6 when Finished was clicked ·
+   * OC, OA, OB, OF, OQ: the arm · tasks 2 to 6 when Finished was clicked ·
    * m: the menu at the end (ma automatic, ml links, mv advanced and still adding pages,
-   *    mx advanced with adding turned off; each with the seconds when it was converted) ·
+   *    mx advanced with adding turned off; each with the seconds when it was converted.
+   *    In OA nothing is converted: mv, with no seconds, while Auto add pages is on, and mx
+   *    with the seconds when it was last turned off) ·
    * d: convert dialogs shown, confirmed · f: seconds until the first change to what the
    * menu shows (0 never) · r: reorders by drag, by Move up/down · n: how task 5 was done
    * (np page renamed, nl only a link's label, n0 neither) · x: pages in the trash ·
@@ -2143,6 +2167,7 @@
     const m = state.menu;
     if (m.mode === 'automatic') return 'ma';
     if (m.mode === 'links') return 'ml' + m.convertedAt;
+    if (STARTS_AS_LINKS) return m.autoAdd ? 'mv' : 'mx' + m.autoAddOffAt;
     return (m.autoAdd ? 'mv' : 'mx') + m.convertedAt;
   }
 
@@ -2277,8 +2302,9 @@
     const m = state.menu;
     const menuNow = m.mode === 'automatic' ? 'automatic' + (m.excluded.length ? ', ' + m.excluded.length + ' switched off' : '')
       : m.mode === 'links' ? 'links, since ' + m.convertedAt + 's'
+      : STARTS_AS_LINKS ? 'links from the start; Auto add pages ' + (m.autoAdd ? 'on' : 'off, turned off at ' + m.autoAddOffAt + 's')
       : 'advanced, since ' + m.convertedAt + 's, ' + (m.autoAdd ? 'still adding new pages' : 'adding new pages turned off at ' + m.autoAddOffAt + 's');
-    const own = { control: 'Times the Navigation sidebar was opened', 'menu-switches': 'Times the Navigation sidebar was opened', explained: 'Marker popovers opened', switches: 'Switches flipped' }[ARM];
+    const own = { control: 'Times the Navigation sidebar was opened', 'auto-add': 'Times the Navigation sidebar was opened', 'menu-switches': 'Times the Navigation sidebar was opened', explained: 'Marker popovers opened', switches: 'Switches flipped' }[ARM];
     notesEl.innerHTML =
       `<div class="notes-head"><h2>${ARMS[ARM].letter} · Facilitator notes</h2><nav class="switcher" aria-label="Prototype">${links}</nav></div>` +
       `<p>${ARMS[ARM].name}. Only you can see this panel; open the page without <code>?notes</code> for participants.</p>` +

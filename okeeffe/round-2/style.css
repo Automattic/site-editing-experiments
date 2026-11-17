@@ -299,6 +299,8 @@ button.row-title:hover { text-decoration: underline; }
 .navside-head { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 4px 4px 4px 16px; border-bottom: 1px solid var(--line); }
 .navside-head h2 { margin: 0; font-size: 14px; font-weight: 600; }
 .navside-body { flex: 1; min-height: 0; overflow-y: auto; padding: 12px 10px 32px; display: flex; flex-direction: column; gap: 12px; }
+/* When the list is taller than the sidebar it scrolls; nothing in it is squashed to fit. */
+.navside-body > * { flex-shrink: 0; }
 
 /* Its list: the menu's items, as rows. */
 .nav-list { position: relative; }
@@ -392,7 +394,7 @@ button.nav-label:hover { color: var(--blue-dark); }
 .finish { right: var(--notes-w, 0px); }
 
 /* The preview can get narrow beside the Navigation sidebar and the notes panel. */
-.arm-control .panel, .arm-menu-switches .panel { flex-basis: clamp(240px, 28%, 380px); }
+.arm-control .panel, .arm-auto-add .panel, .arm-menu-switches .panel { flex-basis: clamp(240px, 28%, 380px); }
 .stage { padding: 16px clamp(10px, 2vw, 20px) 32px; }
 .site-header { padding: 20px clamp(14px, 2.2vw, 28px); }
 .site-hero { grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); padding: 40px clamp(14px, 2.2vw, 28px); }

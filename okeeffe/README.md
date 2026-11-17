@@ -8,16 +8,17 @@ These prototypes put the Pages screen next to a live preview of the site, so eve
 
 ## Round 2
 
-[`round-2/`](round-2/) has four more prototypes, for one test that asks whether people understand pages and the menu as one thing or two, and whether they can change the menu. It crosses two things: whether the menu converts to links when it's changed (as WordPress does today) or stays connected to the pages, and whether it's changed on the Pages screen or in the menu's own sidebar.
+[`round-2/`](round-2/) has five more prototypes, for one test that asks whether people understand pages and the menu as one thing or two, and whether they can change the menu. It crosses two things: whether the menu converts to links when it's changed (as WordPress does today) or stays connected to the pages, and whether it's changed on the Pages screen or in the menu's own sidebar. The fifth, A, changes one thing about WordPress today: the menu is links from the start, and a switch keeps adding new pages to it.
 
 | | Prototype | The menu after a change | Where it's changed |
 | --- | --- | --- | --- |
 | Control | [WordPress today](round-2/control.html) | Converts to links | The menu's own sidebar |
+| A | [Auto add](round-2/auto-add.html) | No Page List: links from the start, with new pages still added | The menu's own sidebar |
 | B | [Explained](round-2/explained.html) | Converts to links, and says so | The Pages screen |
 | F | [Connected switches](round-2/switches.html) | Stays connected | The Pages screen |
 | Q | [Menu switches](round-2/menu-switches.html) | Stays connected | The menu's own sidebar |
 
-B and F are the first round's B and F, changed so that all four share one site, one shell and one set of tasks. Round 2 has its own copy of the engine, a facilitator panel (`?notes`), an event log, and a Finished button that gives a completion code for an unmoderated testing tool. Its [README](round-2/README.md) has the tasks and what to watch for.
+B and F are the first round's B and F, changed so that all five share one site, one shell and one set of tasks. Round 2 has its own copy of the engine, a facilitator panel (`?notes`), an event log, and a Finished button that gives a completion code for an unmoderated testing tool. Its [README](round-2/README.md) has the tasks and what to watch for.
 
 The rest of this page is about the first round.
 

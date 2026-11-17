@@ -799,7 +799,7 @@
         <span id="reorder-hint" class="visually-hidden">Your header menu follows the order of this list.</span>
         <ul class="list drag-list" aria-label="Pages">${pageTreeRows().map(switchRowHtml).join('')}</ul>
       </div>
-      <p class="footnote">Switched-on pages show in your header menu, in the order of this list. Pages that are off are still live at their address.</p>`;
+      <p class="footnote">Switched-on pages show in your header menu, in the order of this list.</p>`;
   }
 
   // =======================================================================================
@@ -1867,7 +1867,9 @@
   function outsideList(ev) {
     if (!drag || !drag.list.isConnected || ev.clientX == null) return false;
     const b = drag.list.getBoundingClientRect();
-    return ev.clientX < b.left - DRAG_MARGIN || ev.clientX > b.right + DRAG_MARGIN || ev.clientY < b.top - DRAG_MARGIN || ev.clientY > b.bottom + DRAG_MARGIN;
+    // In the sidebar, pulling a nested row out to the left mustn't count as leaving the list.
+    const left = drag.side ? DRAG_MARGIN * 4 : DRAG_MARGIN;
+    return ev.clientX < b.left - left || ev.clientX > b.right + DRAG_MARGIN || ev.clientY < b.top - DRAG_MARGIN || ev.clientY > b.bottom + DRAG_MARGIN;
   }
 
   // In the Navigation sidebar a drag can also change a row's level, but only on purpose: the

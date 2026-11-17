@@ -324,7 +324,8 @@
     if (view.preview) return '<' + tag + ' class="part part-' + part + '">' + inner + '</' + tag + '>';
 
     if (UNMARKED) {
-      const tab = VARIANT === 'r2label' ? '<p class="core-tab">Site ' + name + '</p>' : '';
+      const globe = '<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false"><g fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="8" cy="8" r="6.2"/><ellipse cx="8" cy="8" rx="2.7" ry="6.2"/><path d="M1.8 8h12.4"/></g></svg>';
+      const tab = VARIANT === 'r2label' ? '<p class="core-tab">' + globe + '<span>On every page</span></p>' : '';
       return '<' + tag + ' class="part part-' + part + ' is-core-part" data-region="' + part + '">' + tab + inner + '</' + tag + '>';
     }
 

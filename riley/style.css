@@ -245,7 +245,8 @@ svg { display: block; }
 .gate-label.is-button-only { padding: 5px 6px; }
 
 /* L2: words on the purple outline. Shown whenever the outline is. */
-.core-tab { position: absolute; z-index: 3; top: 0; left: 0; padding: 3px 10px 4px; background: var(--synced); border-radius: 0 0 6px 0; font: 600 12px/1.3 system-ui, sans-serif !important; opacity: 0; pointer-events: none; }
+.core-tab { position: absolute; z-index: 3; top: 0; left: 0; padding: 3px 10px 4px; background: var(--synced); border-radius: 0 0 6px 0; display: flex; align-items: center; gap: 5px; margin: 0; font: 600 12px/1.3 system-ui, sans-serif !important; opacity: 0; pointer-events: none; }
+.core-tab svg { flex: none; }
 .part .core-tab { color: var(--white); }
 .is-core-part:hover .core-tab, .is-core-part:focus-within .core-tab { opacity: 1; }
 

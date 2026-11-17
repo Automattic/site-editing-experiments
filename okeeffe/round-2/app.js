@@ -11,7 +11,7 @@
  * panel's basics, the tasks, the log and the completion code.
  *
  * ---------------------------------------------------------------------------------------
- * THE MODEL, AND HOW THE NAVIGATION SIDEBAR (control, menu-switches) SHOULD USE IT
+ * THE MODEL, AND HOW THE PAGES PANEL AND THE NAVIGATION SIDEBAR USE IT
  * ---------------------------------------------------------------------------------------
  *
  * state.pages   [{ id, title, status: 'publish' | 'draft', parent }]. Array order is page
@@ -73,10 +73,8 @@
  * The completion code (completionCode()) and the tasks (taskValues()) read only the model
  * above, so nothing in them is specific to an arm.
  *
- * The seam: search for "SEAM: NAVIGATION SIDEBAR". openSidebar() / closeSidebar() already
- * select the menu, count, log and render a third column; sidebarBodyHtml() is where the
- * list goes. Add its actions to the `actions` object (every element with data-action is
- * dispatched there with its data- attributes) and any dialogs to dialogHtml().
+ * The Navigation sidebar: search for "THE NAVIGATION SIDEBAR". It is one component with two
+ * modes, drawn from the model above; its actions are in navActions.
  */
 (function () {
   'use strict';
@@ -119,7 +117,7 @@
   }
 
   function startingUi() {
-    return { pop: null, more: null, dialog: null, current: 'home', flash: null, focus: null, sidebar: false };
+    return { pop: null, more: null, dialog: null, current: 'home', flash: null, focus: null, sidebar: false, navSel: null, navAdd: null };
   }
 
   function startingStats() {
@@ -142,7 +140,7 @@
   // fresh. If it isn't available, everything simply lives in memory.
   function save() {
     try {
-      sessionStorage.setItem(STORE_KEY, JSON.stringify({ state, stats, events, startedAt, firstDone, ticked, current: ui.current }));
+      sessionStorage.setItem(STORE_KEY, JSON.stringify({ state, stats, events, startedAt, firstDone, ticked, current: ui.current, sidebar: ui.sidebar }));
     } catch (e) { /* in memory only */ }
   }
 
@@ -157,6 +155,8 @@
       firstDone = saved.firstDone || [];
       ticked = saved.ticked || [];
       ui.current = saved.current && page(saved.current) ? saved.current : 'home';
+      // A reload leaves the Navigation sidebar as it was, without counting another opening.
+      ui.sidebar = IN_SIDEBAR && !!saved.sidebar;
       return true;
     } catch (e) { return false; }
   }
@@ -495,6 +495,8 @@
     more: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg>',
     close: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>',
     chevron: '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>',
+    plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>',
+    unseen: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12s3.5-6 9-6 9 6 9 6-3.5 6-9 6-9-6-9-6z"/><circle cx="12" cy="12" r="2.5"/><path d="M4 4l16 16"/></svg>',
     grip: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg>'
   };
 
@@ -765,22 +767,26 @@
   }
 
   // =======================================================================================
-  // SEAM: NAVIGATION SIDEBAR (control and menu-switches). The list of items is still to be built here.
+  // THE NAVIGATION SIDEBAR (control and menu-switches): one component, two modes
   // =======================================================================================
   //
   // In these two arms a click on the header menu in the preview selects it and opens the
-  // Navigation sidebar, a third column of the workspace (see .navside in style.css). What's
-  // already done: the hover outline and selected state on the menu, opening and closing
-  // (clicking elsewhere in the preview, the close button, Escape), the count of opens
-  // (stats.own, the code's k part) and the log lines. What's left: sidebarBodyHtml(), which
-  // should render the menu from the model described at the top of this file, in two modes:
-  //   control        automatic -> one locked Page List row, its notice and Edit (askConvert);
-  //                  links -> the links list with labels, Move up / Move down / Remove, Add.
-  //   menu-switches  automatic -> the pages with a show/hide toggle each (setExcluded), drag
-  //                  and Move up / Move down (moveEntry / stepEntry with kind 'page'), and
-  //                  "Switch to advanced menu" (askConvert); advanced -> the links list plus
-  //                  Hide and "Add new pages automatically" (setAutoAdd).
-  // ui.sidebar is true while it's open; add any view state it needs to startingUi().
+  // Navigation sidebar, a third column of the workspace (see .navside in style.css). What
+  // it lists depends on the menu:
+  //   control, automatic        WordPress today: one Page List row with its pages listed
+  //                             under it. Selecting the row shows its Detach Page List
+  //                             button; selecting a page under it asks to detach, as core
+  //                             does. Nothing can be moved or taken out until then.
+  //   menu-switches, automatic  Quinn's pages menu: the published pages themselves, each
+  //                             with a show/hide toggle, drag and Move up / Move down (which
+  //                             change page order), and Switch to advanced menu below.
+  //   links / advanced          The same list of links in both arms: drag, a ⋮ with Move up,
+  //                             Move down, Add submenu link and Remove, a row's Text and
+  //                             Link when it's selected, and + to add a page. An advanced
+  //                             menu (menu-switches) also has Hide and "Add new pages
+  //                             automatically".
+  // View state: ui.sidebar (open), ui.navSel ('page-list' or a link's id: the selected row),
+  // ui.navAdd ({ parent }: the page picker, for the end of the menu or a link's submenu).
 
   function openSidebar(how) {
     if (!IN_SIDEBAR) return;
@@ -796,22 +802,314 @@
   function closeSidebar(how) {
     if (!ui.sidebar) return;
     ui.sidebar = false;
+    ui.navSel = null; ui.navAdd = null;
+    if (ui.more && ui.more.indexOf('nav:') === 0) ui.more = null;
     log('sidebar', 'Navigation sidebar closed (' + how + ')');
     render();
   }
 
+  const navKey = (id) => 'nav:' + id;
+  const published = (p) => !!p && p.status === 'publish';
+
+  // The rows of the sidebar's list. A pages menu lists the published pages (as a Page List
+  // does), child pages under their parent; a menu of links lists its links.
+  function navRows() {
+    if (isAutomatic()) {
+      return pageTreeRows().filter((r) => published(r.p)).map((r) => {
+        const nested = r.depth && published(page(r.p.parent));
+        return { kind: 'page', id: r.p.id, title: r.p.title, depth: nested ? 1 : 0, group: nested ? r.p.parent : '' };
+      });
+    }
+    let parent = '';
+    return state.menu.items.map((it) => {
+      if (it.depth === 0) parent = it.id;
+      return { kind: 'item', id: it.id, title: it.label, depth: it.depth, group: it.depth ? parent : '', hidden: !!it.hidden };
+    });
+  }
+
+  // The rows a row can be moved among with Move up / Move down: the ones at its level, under
+  // the same parent, that the sidebar shows.
+  function navSibs(kind, id) {
+    const rows = navRows();
+    const row = rows.find((r) => r.id === id);
+    return row ? rows.filter((r) => r.depth === row.depth && r.group === row.group).map((r) => r.id) : [];
+  }
+
+  const navTitle = (kind, id) => (kind === 'item' ? (itemById(id) || {}).label : (page(id) || {}).title);
+
+  // Where a row is, in words, for the log.
+  function navPlace(kind, id) {
+    const row = navRows().find((r) => r.id === id);
+    if (!row) return 'nowhere';
+    return 'place ' + (navSibs(kind, id).indexOf(id) + 1) + (row.group ? ' under ' + q(navTitle(kind, row.group)) : ' at the top level');
+  }
+
+  // Home is the site's front page: it isn't put under another page, and (as in F) pages
+  // aren't put under it. Links have no such rule.
+  function canNest(kind, id, parentId) {
+    if (kind === 'item') return true;
+    return id !== 'home' && parentId !== 'home';
+  }
+
+  function navHandle(row) {
+    return `<button type="button" class="handle" data-drag="${esc(row.id)}" data-kind="${row.kind}" data-focus="drag:${esc(row.id)}" aria-label="Reorder ${esc(row.title)}. Use the up and down arrow keys, or drag.">${ICON.grip}</button>`;
+  }
+
+  // The ⋮ of a row. As in core's list view, Move up and Move down are always listed, and
+  // are unavailable at the ends.
+  function navMoreHtml(row) {
+    const sibs = navSibs(row.kind, row.id);
+    const k = sibs.indexOf(row.id);
+    const item = (action, text, data, off) => {
+      const attrs = Object.entries(data).map(([key, v]) => ` data-${key}="${esc(v)}"`).join('');
+      return off
+        ? `<button type="button" role="menuitem" aria-disabled="true" data-action="nav-dead" data-what="${esc(off)}">${text}</button>`
+        : `<button type="button" role="menuitem" data-action="${action}"${attrs}>${text}</button>`;
+    };
+    const name = q(row.title);
+    let html = item('nav-move', 'Move up', { kind: row.kind, id: row.id, dir: -1 }, k <= 0 ? 'use Move up on ' + name + ', which is already first' : '') +
+      item('nav-move', 'Move down', { kind: row.kind, id: row.id, dir: 1 }, k >= sibs.length - 1 ? 'use Move down on ' + name + ', which is already last' : '');
+    if (row.kind === 'item') {
+      html += item('nav-ask-add', 'Add submenu link', { parent: row.id }, row.depth ? 'use Add submenu link on ' + name + ', which is already in a submenu' : '');
+      if (state.menu.mode === 'advanced') html += item('nav-hide', row.hidden ? 'Show' : 'Hide', { item: row.id });
+      const short = row.title.length > 25 ? row.title.slice(0, 22) + '...' : row.title;
+      html += '<hr>' + item('nav-remove', 'Remove ' + esc(short), { item: row.id });
+    }
+    return `<div class="moremenu" role="menu">${html}</div>`;
+  }
+
+  function navOptionsButton(row) {
+    const key = navKey(row.id);
+    return `<button type="button" class="icon-btn" data-action="more" data-key="${esc(key)}" data-focus="more:${esc(key)}" aria-label="Options for ${esc(row.title)}" aria-expanded="${ui.more === key ? 'true' : 'false'}">${ICON.more}</button>`;
+  }
+
+  // A selected link's settings: its Text (the label) and the page it goes to.
+  function navSettingsHtml(row) {
+    const it = itemById(row.id);
+    const p = page(it.pageId);
+    return `<div class="nav-settings">
+      <div class="field"><label for="nav-text">Text</label><input type="text" id="nav-text" value="${esc(it.label)}" autocomplete="off" data-change="nav-label" data-item="${esc(it.id)}" data-focus="nav-text:${esc(it.id)}"></div>
+      <div class="field"><span class="label">Link</span><span class="hint">${esc(p.title)}<br>${esc(pageUrl(p))}</span></div>
+    </div>`;
+  }
+
+  // The page picker: the site's published pages, narrowed as you type.
+  function navPickerHtml() {
+    const parent = ui.navAdd.parent || '';
+    const pages = pageTreeRows().filter((r) => published(r.p)).map((r) =>
+      `<li><button type="button" data-action="nav-add" data-page="${esc(r.p.id)}" data-parent="${esc(parent)}" data-find="${esc(r.p.title.toLowerCase())}"><span>${esc(r.p.title)}</span><small>/${esc(slug(r.p))}</small></button></li>`).join('');
+    return `<div class="nav-picker" role="group" aria-label="${parent ? 'Add submenu link' : 'Add link'}">
+      <label class="visually-hidden" for="nav-search">Search pages</label>
+      <input type="search" id="nav-search" placeholder="Search" autocomplete="off" data-focus="nav-search">
+      <ul class="nav-results" aria-label="Pages">${pages}</ul>
+      <p class="nav-none" hidden>No results.</p>
+    </div>`;
+  }
+
+  function navRowHtml(row) {
+    const key = navKey(row.id);
+    const selected = ui.navSel === row.id;
+    const off = row.kind === 'page' && isExcluded(row.id);
+    const label = row.kind === 'item'
+      ? `<button type="button" class="nav-label" data-action="nav-select" data-id="${esc(row.id)}" data-focus="nav-row:${esc(row.id)}" aria-expanded="${selected}">${esc(row.title)}</button>`
+      : `<span class="nav-label" data-action="nav-dead" data-what="select ${esc(q(row.title))} in the Navigation sidebar (a page in a pages menu has nothing to show)">${esc(row.title)}</span>`;
+    const toggle = row.kind === 'page'
+      ? `<button type="button" class="switch nav-switch" aria-pressed="${!off}" data-action="nav-toggle" data-page="${esc(row.id)}" data-focus="nav-sw:${esc(row.id)}" aria-label="Show ${esc(row.title)} in the menu"><span class="switch-track"></span></button>`
+      : '';
+    const picker = ui.navAdd && ui.navAdd.parent === row.id ? navPickerHtml() : '';
+    return `<li class="row nav-row${off || row.hidden ? ' dim' : ''}${selected ? ' selected' : ''}${ui.flash === key ? ' flash' : ''}" data-row="${esc(key)}" data-drag-id="${esc(row.id)}" data-drag-group="${esc(row.group)}" data-depth="${row.depth}">
+      <div class="row-main">
+        <span class="indent" style="width:${row.depth * 16}px"></span>
+        ${navHandle(row)}
+        ${label}
+        ${row.hidden ? `<span class="nav-hidden" role="img" aria-label="Hidden">${ICON.unseen}</span>` : ''}
+        ${toggle}
+        ${navOptionsButton(row)}
+      </div>${ui.more === key ? navMoreHtml(row) : ''}${selected && row.kind === 'item' ? navSettingsHtml(row) : ''}${picker}</li>`;
+  }
+
+  // Control, before the menu is detached: what core's list view shows for a Navigation
+  // block holding a Page List. Selecting the Page List row shows its Settings, where the
+  // Detach Page List button is; selecting a page under it asks to detach.
+  function navPageListHtml() {
+    const selected = ui.navSel === 'page-list';
+    const pages = automaticItems().map((e) => {
+      const p = page(e.pageId);
+      return `<li class="row nav-row nav-inner" data-row="${esc(navKey(p.id))}">
+        <div class="row-main"><span class="indent" style="width:${(e.depth + 1) * 16}px"></span><button type="button" class="nav-label" data-action="nav-locked" data-page="${esc(p.id)}" data-focus="nav-row:${esc(p.id)}">${esc(p.title)}</button></div>
+      </li>`;
+    }).join('');
+    return `<ul class="list nav-list" aria-label="Navigation items">
+        <li class="row nav-row${selected ? ' selected' : ''}" data-row="nav:page-list">
+          <div class="row-main"><span class="nav-chevron">${ICON.chevron}</span><button type="button" class="nav-label" data-action="nav-select" data-id="page-list" data-focus="nav-row:page-list" aria-expanded="${selected}">Page List</button></div>
+        </li>${pages}
+      </ul>
+      ${selected ? `<div class="nav-panel"><h3>Page List</h3><p class="nav-panel-sub">Settings</p><button type="button" class="btn nav-wide" data-action="nav-ask-detach" data-focus="nav-ask-detach">Detach Page List</button></div>` : ''}`;
+  }
+
   function sidebarBodyHtml() {
-    // Still to build: the menu's items, in the two modes described above.
-    return '';
+    const m = state.menu;
+    if (isAutomatic() && ARM === 'control') return navPageListHtml();
+    const rows = navRows();
+    const list = rows.length
+      ? `<ul class="list nav-list" aria-label="Navigation items">${rows.map(navRowHtml).join('')}</ul>`
+      : '<p class="nav-empty">This Navigation Menu is empty.</p>';
+    if (isAutomatic()) {
+      return `${list}<button type="button" class="btn nav-wide" data-action="nav-ask-advanced" data-focus="nav-ask-advanced">Switch to advanced menu</button>`;
+    }
+    const adding = ui.navAdd && !ui.navAdd.parent;
+    return `${list}
+      <button type="button" class="nav-append" data-action="nav-ask-add" data-parent="" data-focus="nav-append" aria-label="Add link" aria-expanded="${adding ? 'true' : 'false'}">${ICON.plus}</button>
+      ${adding ? navPickerHtml() : ''}
+      ${m.mode === 'advanced' ? `<button type="button" class="switch nav-auto" aria-pressed="${m.autoAdd}" data-action="nav-autoadd" data-focus="nav-autoadd"><span class="switch-track"></span><span>Add new pages automatically</span></button>` : ''}`;
   }
 
   function sidebarHtml() {
     if (!IN_SIDEBAR || !ui.sidebar) return '';
+    // Undo, trash or a conversion can take the selected row away.
+    if (ui.navSel && !(ui.navSel === 'page-list' ? isAutomatic() && ARM === 'control' : itemById(ui.navSel))) ui.navSel = null;
+    if (ui.navAdd && (isAutomatic() || (ui.navAdd.parent && !itemById(ui.navAdd.parent)))) ui.navAdd = null;
     return `<aside class="navside" aria-label="Navigation">
       <div class="navside-head"><h2>Navigation</h2><button type="button" class="icon-btn" data-action="close-sidebar" data-focus="close-sidebar" aria-label="Close Navigation">${ICON.close}</button></div>
       <div class="navside-body">${sidebarBodyHtml()}</div>
     </aside>`;
   }
+
+  // One move among a row's own level, by Move up / Move down or the arrow keys on its handle.
+  function navStep(kind, id, dir, how) {
+    const sibs = navSibs(kind, id);
+    const k = sibs.indexOf(id) + dir;
+    if (k < 0 || k >= sibs.length) return false;
+    const title = navTitle(kind, id);
+    const from = navPlace(kind, id);
+    commit(() => {
+      moveEntry(kind, id, sibs[k], dir > 0);
+      ui.flash = navKey(id);
+      ui.focus = how === 'move' ? 'more:' + navKey(id) : 'drag:' + id;
+    }, `"${title}" moved`);
+    countReorder('move');
+    log('order', 'Reordered by ' + (how === 'keys' ? 'the arrow keys on the handle (counted with Move up/down)' : 'Move up/down') + ' in the sidebar: ' + q(title) + ' from ' + from + ' to ' + navPlace(kind, id) + (kind === 'item' ? ' among the menu’s links' : ' in page order'));
+    return true;
+  }
+
+  // A drop in the sidebar. t: { depth, parent: the row it goes under or '', before: the row
+  // it goes in front of or null, prev: the row above the gap or null }. A page's place is
+  // its place in page order and its parent page; a link's is its place among the links.
+  function navDrop(kind, id, t) {
+    const title = navTitle(kind, id);
+    const from = navPlace(kind, id);
+    const rows = navRows();
+    const row = rows.find((r) => r.id === id);
+    const levelChanged = row.group !== t.parent;
+    commit(() => {
+      if (kind === 'page') {
+        const p = page(id);
+        p.parent = t.parent || null;
+        if (t.before) moveEntry('page', id, t.before, false);
+        else if (t.prev && t.prev !== t.parent) {
+          // Last at its level: after the row above the gap, or after that row's parent.
+          const prev = rows.find((r) => r.id === t.prev);
+          moveEntry('page', id, t.depth === 0 && prev.group ? prev.group : t.prev, true);
+        }
+      } else {
+        const items = state.menu.items;
+        const at = items.findIndex((it) => it.id === id);
+        const block = items.splice(at, itemBlockEnd(at) - at);
+        if (block.length === 1) block[0].depth = t.depth;
+        let to = items.length;
+        if (t.before) to = items.findIndex((it) => it.id === t.before);
+        else if (t.depth === 1) to = items.findIndex((it) => it.id === t.prev) + 1;
+        items.splice(to, 0, ...block);
+      }
+      ui.flash = navKey(id);
+      ui.focus = 'drag:' + id;
+    }, !levelChanged ? `"${title}" moved` : t.parent ? `"${title}" moved under ${navTitle(kind, t.parent)}` : `"${title}" moved to the top level`);
+    countReorder('drag');
+    log('order', 'Reordered by drag in the sidebar: ' + q(title) + ' from ' + from + ' to ' + navPlace(kind, id) + (kind === 'item' ? ' among the menu’s links' : ' in page order' + (levelChanged ? '; its parent page changed, and so its address' : '')));
+  }
+
+  function saveNavLabel(itemId, text, keepFocus) {
+    const it = itemById(itemId);
+    if (!it) return;
+    if (!text || text === it.label) { if (!text) render(); return; }
+    const old = it.label;
+    commit(() => { setLinkLabel(itemId, text); ui.flash = navKey(itemId); if (keepFocus) ui.focus = 'nav-text:' + itemId; }, `"${old}" is now "${text}" in the menu`);
+    log('menu', 'Renamed a link’s label: ' + q(old) + ' to ' + q(text) + ' (Text, in the sidebar; the page is still called ' + q(page(it.pageId).title) + ')');
+  }
+
+  const navActions = {
+    'nav-select'(d) {
+      const opening = ui.navSel !== d.id;
+      ui.navSel = opening ? d.id : null;
+      ui.navAdd = null; ui.more = null;
+      ui.focus = 'nav-row:' + d.id;
+      if (opening) log('sidebar', d.id === 'page-list' ? 'Selected the Page List row: its settings are shown, with Detach Page List' : 'Selected the link ' + q(itemById(d.id).label) + ': its Text and Link are shown');
+      render();
+      const panel = root.querySelector('.nav-panel, .nav-settings');
+      if (panel) panel.scrollIntoView({ block: 'nearest' });
+    },
+    // Control, before detaching: selecting a page under the Page List asks to detach it, as
+    // core does.
+    'nav-locked'(d) {
+      const p = page(d.page);
+      log('tried', 'Tried to select ' + q(p.title) + ' under the Page List, which can’t be edited: the Detach Page List dialog opens instead');
+      askConvert({ trigger: 'selected ' + q(p.title) + ' under the Page List' });
+    },
+    'nav-dead'(d) { log('tried', 'Tried to ' + d.what); },
+    'nav-ask-detach'() { askConvert({ trigger: 'the Detach Page List button' }); },
+    'nav-ask-advanced'() { askConvert({ trigger: 'the Switch to advanced menu button' }); },
+    'nav-toggle'(d) {
+      const p = page(d.page);
+      const on = !isExcluded(d.page);
+      const was = isShown(d.page);
+      commit(() => { setExcluded(d.page, on); ui.flash = navKey(d.page); ui.focus = 'nav-sw:' + d.page; },
+        hasParent(p) && isExcluded(p.parent) ? `"${p.title}" is switched ${on ? 'off' : 'on'}` : on ? `"${p.title}" is no longer in the menu` : `"${p.title}" is in the menu`);
+      log('menu', (on ? 'Took ' + q(p.title) + ' out of the menu' : 'Put ' + q(p.title) + ' in the menu') + ' (toggle, in the sidebar)' +
+        (isShown(d.page) === was ? '; the header didn’t change, because its parent page is off' : ''));
+    },
+    'nav-move'(d) { navStep(d.kind, d.id, Number(d.dir), 'move'); },
+    'nav-ask-add'(d) {
+      const parent = d.parent || null;
+      const open = ui.navAdd && (ui.navAdd.parent || null) === parent;
+      ui.navAdd = open ? null : { parent };
+      ui.more = null; ui.navSel = null;
+      ui.focus = open ? (parent ? 'more:' + navKey(parent) : 'nav-append') : 'nav-search';
+      if (!open) log('sidebar', parent ? 'Add submenu link chosen for ' + q(itemById(parent).label) + ': the list of pages is shown' : 'Add link (+) clicked: the list of pages is shown');
+      render();
+      const picker = root.querySelector('.nav-picker');
+      if (picker) picker.scrollIntoView({ block: 'nearest' });
+    },
+    'nav-add'(d) {
+      const p = page(d.page);
+      const parent = d.parent ? itemById(d.parent) : null;
+      let item;
+      commit(() => {
+        item = addLink(d.page, parent ? parent.id : null);
+        ui.navAdd = null;
+        ui.flash = navKey(item.id);
+        ui.focus = 'nav-row:' + item.id;
+      }, parent ? `"${p.title}" added under ${parent.label}` : `"${p.title}" added to the menu`);
+      log('menu', 'Link added: ' + q(p.title) + (parent ? ', in the submenu of ' + q(parent.label) : ', at the end of the menu') + ' (picked from the list of pages in the sidebar)');
+    },
+    'nav-remove'(d) {
+      const it = itemById(d.item);
+      const label = it.label;
+      commit(() => { removeLink(d.item); }, `"${label}" removed from the menu`);
+      log('menu', 'Link removed: ' + q(label) + ' (Remove, in the sidebar); its page is still published');
+    },
+    'nav-hide'(d) {
+      const it = itemById(d.item);
+      const hide = !it.hidden;
+      commit(() => { setLinkHidden(d.item, hide); ui.flash = navKey(d.item); ui.focus = 'more:' + navKey(d.item); },
+        hide ? `"${it.label}" is hidden from the menu` : `"${it.label}" shows in the menu`);
+      log('menu', (hide ? 'Link hidden: ' : 'Link shown again: ') + q(it.label) + ' (' + (hide ? 'Hide' : 'Show') + ', in the sidebar)');
+    },
+    'nav-autoadd'() {
+      const on = !state.menu.autoAdd;
+      commit(() => { setAutoAdd(on); ui.focus = 'nav-autoadd'; }, on ? 'New pages will be added to the menu' : 'New pages won’t be added to the menu');
+      log('menu', '“Add new pages automatically” turned ' + (on ? 'on' : 'off'));
+    }
+  };
 
   // The words of the confirm that converts the menu, by arm and by what set it off.
   function convertCopy(d) {
@@ -840,20 +1138,26 @@
         confirm: 'Switch'
       };
     }
+    // WordPress's own words: the Page List block's Detach dialog in @wordpress/block-library
+    // 12.1.0 (src/page-list/edit.jsx). The README has the wording WordPress 7.0 ships with.
     return {
-      title: 'Edit Page List',
-      body: '<p>This Navigation Menu displays your website\'s pages. Editing it will enable you to add, delete, or reorder pages. However, new pages will no longer be added automatically.</p>',
-      confirm: 'Edit'
+      title: 'Detach Page List',
+      body: '<p>This Navigation Menu displays your website\'s pages. Detaching will enable you to add, delete, or reorder pages. However, new pages will no longer be added automatically.</p>',
+      confirm: 'Detach'
     };
   }
+
+  const dialogName = () => (ARM === 'menu-switches' ? 'Switch to advanced menu' : ARM === 'control' ? 'Detach Page List (convert to links)' : 'Convert to links');
 
   // Show the confirm. d: { trigger: what the person did, pageId?: the page it was about,
   // then?: 'remove' | 'rename', what to do with that page once the menu is links }.
   function askConvert(d) {
-    ui.dialog = Object.assign({ type: 'convert' }, d);
+    // Where the keyboard was, so a cancelled dialog hands focus back.
+    const active = document.activeElement;
+    ui.dialog = Object.assign({ type: 'convert', from: active && active.dataset ? active.dataset.focus : null }, d);
     ui.pop = null; ui.more = null;
     stats.dialogsShown++;
-    log('dialog', (ARM === 'menu-switches' ? 'Switch to advanced menu' : 'Convert to links') + ' dialog shown (' + d.trigger + (d.pageId ? ', ' + q(page(d.pageId).title) : '') + ')');
+    log('dialog', dialogName() + ' dialog shown (' + d.trigger + (d.pageId ? ', ' + q(page(d.pageId).title) : '') + ')');
     render();
   }
 
@@ -900,7 +1204,8 @@
   function closeDialog(how) {
     const d = ui.dialog;
     if (!d) return;
-    if (d.type === 'convert') log('dialog', (ARM === 'menu-switches' ? 'Switch to advanced menu' : 'Convert to links') + ' dialog cancelled (' + how + ')');
+    if (d.type === 'convert') log('dialog', dialogName() + ' dialog cancelled (' + how + ')');
+    if (d.from) ui.focus = d.from;
     ui.dialog = null;
     render();
   }
@@ -925,7 +1230,7 @@
     return `<div class="site">
       <header class="site-header">
         <button type="button" class="site-name" data-action="visit" data-page="home" data-how="the site's name" data-focus="visit:home-logo">Rosa's Bakery</button>
-        <nav class="site-nav${IN_SIDEBAR ? ' selectable' : ''}${ui.sidebar ? ' selected' : ''}" aria-label="Site header menu"${select}><ul>${nav}</ul></nav>
+        <nav class="site-nav${IN_SIDEBAR ? ' selectable' : ''}${ui.sidebar ? ' selected' : ''}${nav ? '' : ' empty'}" aria-label="Site header menu"${select}><ul>${nav}</ul></nav>
       </header>
       <section class="site-hero"><div>${hero}${draft}</div><div class="site-photo" role="img" aria-label="Photo placeholder">Photo</div></section>
       <footer class="site-footer"><span>Rosa's Bakery</span></footer>
@@ -943,6 +1248,7 @@
     ui.focus = null;
     const panelScroll = (root.querySelector('.panel') || {}).scrollTop || 0;
     const stageScroll = (root.querySelector('.stage') || {}).scrollTop || 0;
+    const sideScroll = (root.querySelector('.navside-body') || {}).scrollTop || 0;
 
     const panel = ARM === 'explained' ? renderExplained() : ARM === 'switches' ? renderSwitches() : renderPlain();
     const cur = page(ui.current) || page('home') || state.pages[0];
@@ -967,6 +1273,8 @@
     const panelEl = root.querySelector('.panel');
     panelEl.scrollTop = panelScroll;
     root.querySelector('.stage').scrollTop = stageScroll;
+    const sideEl = root.querySelector('.navside-body');
+    if (sideEl) sideEl.scrollTop = sideScroll;
 
     if (ui.dialog) {
       const first = root.querySelector('.dialog input, .dialog .btn-primary, .dialog .btn-danger');
@@ -1093,14 +1401,18 @@
       const mode = ARM === 'menu-switches' ? 'advanced' : 'links';
       ui.dialog = null;
       stats.dialogsConfirmed++;
-      log('dialog', (mode === 'advanced' ? 'Switch to advanced menu' : 'Convert to links') + ' dialog confirmed');
+      log('dialog', dialogName() + ' dialog confirmed');
       if (d.then === 'remove') {
         commit(() => { convertToLinks(mode); removeLink(linkFor(p.id).id); ui.flash = keyRow(p.id); ui.focus = 'pop:' + keyRow(p.id); },
           `"${p.title}" taken out. You now choose your menu's pages.`);
         log('menu', 'Menu converted to links, and ' + q(p.title) + ' taken out of it (popover, Remove from menu)');
         return;
       }
-      commit(() => { convertToLinks(mode); if (p) ui.focus = 'pop:' + keyRow(p.id); },
+      commit(() => {
+        convertToLinks(mode);
+        if (p) ui.focus = 'pop:' + keyRow(p.id);
+        else if (IN_SIDEBAR && state.menu.items.length) ui.focus = 'nav-row:' + state.menu.items[0].id;
+      },
         mode === 'advanced' ? 'Switched to an advanced menu' : ARM === 'explained' ? 'You now choose your menu\'s pages' : 'The menu\'s pages are now links');
       log('menu', mode === 'advanced' ? 'Menu switched to an advanced menu (links, new pages still added)' : 'Menu converted to links');
       if (d.then === 'rename') { ui.dialog = { type: 'label', itemId: linkFor(p.id).id }; render(); }
@@ -1207,9 +1519,12 @@
     // Control and Q: the menu on the site, and its sidebar.
     'select-menu'(d, el, ev) {
       const link = ev.target.closest('[data-nav-link]');
+      // With the sidebar already open, another click on a link is someone trying to follow it.
+      if (ui.sidebar && link) log('tried', 'Tried to follow ' + q(link.dataset.navLink) + ' in the header menu, which is selected: the page isn’t shown');
       openSidebar(link ? 'clicked ' + q(link.dataset.navLink) + ' in the header menu' : 'clicked the header menu');
     },
     'close-sidebar'() { closeSidebar('close button'); },
+    ...navActions,
 
     undo() {
       if (!undo) return;
@@ -1263,7 +1578,13 @@
       if (ui.dialog) { closeDialog('Escape'); return; }
       if (ui.more) { const k = ui.more; ui.more = null; ui.focus = 'more:' + k; render(); return; }
       if (ui.pop) { const k = ui.pop; ui.pop = null; ui.focus = 'pop:' + k; render(); return; }
+      if (ui.navAdd) { const parent = ui.navAdd.parent; ui.navAdd = null; ui.focus = parent ? 'more:' + navKey(parent) : 'nav-append'; render(); return; }
+      if (ui.navSel) { const k = ui.navSel; ui.navSel = null; ui.focus = 'nav-row:' + k; render(); return; }
       if (ui.sidebar) closeSidebar('Escape');
+    }
+    if (ev.key === 'Enter' && ev.target.dataset && ev.target.dataset.change === 'nav-label') {
+      ev.preventDefault();
+      saveNavLabel(ev.target.dataset.item, ev.target.value.trim(), true);
     }
     if (ev.key === 'Enter' && ui.dialog && ev.target.tagName === 'INPUT') {
       ev.preventDefault();
@@ -1293,6 +1614,7 @@
 
   function clearDropMarks() {
     root.querySelectorAll('.drop-before, .drop-after').forEach((el) => el.classList.remove('drop-before', 'drop-after'));
+    root.querySelectorAll('.drop-line').forEach((el) => el.remove());
   }
 
   document.addEventListener('pointerdown', (ev) => {
@@ -1303,12 +1625,57 @@
     h.focus();
     try { h.setPointerCapture(ev.pointerId); } catch (e) { /* not capturable; the document still hears the moves */ }
     ui.more = null; ui.pop = null;
-    drag = { id: li.dataset.dragId, group: li.dataset.dragGroup, kind: h.dataset.kind, list: li.parentElement, target: null, moved: false, y: ev.clientY };
+    drag = { id: li.dataset.dragId, group: li.dataset.dragGroup, kind: h.dataset.kind, list: li.parentElement, target: null, moved: false, x: ev.clientX, y: ev.clientY, side: !!h.closest('.navside') };
     rowsBlock(li).forEach((r) => r.classList.add('dragging'));
   });
 
+  // In the Navigation sidebar a drag can also change a row's level: dropped to the right, under
+  // the row above the gap, it becomes that row's child (or its parent's, beside it); dropped
+  // to the left it sits at the top level. A row with rows under it stays at the top level.
+  function sideDragMove(ev) {
+    if (Math.abs(ev.clientY - drag.y) > 4 || Math.abs(ev.clientX - drag.x) > 12) drag.moved = true;
+    clearDropMarks();
+    drag.target = null;
+    if (!drag.moved) return;
+    const all = [...drag.list.querySelectorAll(':scope > li[data-drag-id]')];
+    const self = all.find((li) => li.dataset.dragId === drag.id);
+    if (!self) return;
+    const block = rowsBlock(self);
+    const rows = all.filter((li) => !block.includes(li));
+    const depthOf = (li) => Number(li.dataset.depth);
+    let k = rows.findIndex((li) => { const r = li.getBoundingClientRect(); return ev.clientY < r.top + r.height / 2; });
+    if (k < 0) k = rows.length;
+    const hasRowsUnder = block.length > 1;
+    if (hasRowsUnder) while (k < rows.length && depthOf(rows[k]) > 0) k++;
+    const prev = rows[k - 1] || null;
+    const next = rows[k] || null;
+    const box = drag.list.getBoundingClientRect();
+    const parentRow = !prev ? null : depthOf(prev) ? rows.find((li) => li.dataset.dragId === prev.dataset.dragGroup) : prev;
+    const canChild = !hasRowsUnder && !!parentRow && canNest(drag.kind, drag.id, parentRow.dataset.dragId);
+    const canTop = !next || depthOf(next) === 0;
+    let depth;
+    if (ev.clientX - box.left > 34 && canChild) depth = 1;
+    else if (canTop) depth = 0;
+    else if (canChild) depth = 1;
+    else return;
+    // Dropping it where it already is changes nothing.
+    if (k === all.indexOf(self) && depth === depthOf(self)) return;
+    drag.target = {
+      depth,
+      parent: depth ? parentRow.dataset.dragId : '',
+      before: next && depthOf(next) === depth ? next.dataset.dragId : null,
+      prev: prev ? prev.dataset.dragId : null
+    };
+    const line = document.createElement('div');
+    line.className = 'drop-line';
+    line.style.top = ((next ? next.getBoundingClientRect().top : prev.getBoundingClientRect().bottom) - box.top - 2) + 'px';
+    line.style.left = (8 + depth * 16) + 'px';
+    drag.list.appendChild(line);
+  }
+
   document.addEventListener('pointermove', (ev) => {
     if (!drag) return;
+    if (drag.side) { sideDragMove(ev); return; }
     if (Math.abs(ev.clientY - drag.y) > 4) drag.moved = true;
     const sibs = [...drag.list.querySelectorAll('li[data-drag-id]')].filter((li) => li.dataset.dragGroup === drag.group);
     clearDropMarks();
@@ -1341,7 +1708,7 @@
     clearDropMarks();
     root.querySelectorAll('.dragging').forEach((el) => el.classList.remove('dragging'));
     if (cancel || !d.target || !d.moved) return;
-    reorder(d.kind, d.id, d.target.id, d.target.after, 'drag');
+    if (d.side) navDrop(d.kind, d.id, d.target); else reorder(d.kind, d.id, d.target.id, d.target.after, 'drag');
   }
   document.addEventListener('pointerup', (ev) => endDrag(ev, false));
   document.addEventListener('pointercancel', (ev) => endDrag(ev, true));
@@ -1351,7 +1718,46 @@
     if (!h || (ev.key !== 'ArrowUp' && ev.key !== 'ArrowDown')) return;
     ev.preventDefault();
     const dir = ev.key === 'ArrowUp' ? -1 : 1;
-    if (!step(h.dataset.kind, h.dataset.drag, dir, 'keys')) showToast(`Already ${dir < 0 ? 'first' : 'last'}`, false);
+    const moved = h.closest('.navside') ? navStep(h.dataset.kind, h.dataset.drag, dir, 'keys') : step(h.dataset.kind, h.dataset.drag, dir, 'keys');
+    if (!moved) showToast(`Already ${dir < 0 ? 'first' : 'last'}`, false);
+  });
+
+  // ---------- The Navigation sidebar's fields ----------
+
+  // A link's Text is saved when the field is left (or on Enter). Saving redraws the editor,
+  // so it waits until the click or key press that took the person out of the field has been
+  // handled: a click on Finished, say, isn't lost.
+  let pointerIsDown = false;
+  let afterPointer = null;
+  document.addEventListener('pointerdown', () => { pointerIsDown = true; }, true);
+  function pointerReleased() {
+    pointerIsDown = false;
+    if (afterPointer) { const fn = afterPointer; afterPointer = null; setTimeout(fn, 0); }
+  }
+  document.addEventListener('pointerup', pointerReleased, true);
+  document.addEventListener('pointercancel', pointerReleased, true);
+
+  document.addEventListener('change', (ev) => {
+    const el = ev.target.closest && ev.target.closest('[data-change="nav-label"]');
+    if (!el) return;
+    const itemId = el.dataset.item;
+    const text = el.value.trim();
+    const run = () => saveNavLabel(itemId, text, false);
+    if (pointerIsDown) afterPointer = run; else setTimeout(run, 0);
+  });
+
+  // The page picker narrows as you type, without redrawing.
+  document.addEventListener('input', (ev) => {
+    if (ev.target.id !== 'nav-search') return;
+    const want = ev.target.value.trim().toLowerCase();
+    const picker = ev.target.closest('.nav-picker');
+    let any = false;
+    picker.querySelectorAll('.nav-results li').forEach((li) => {
+      const hit = li.firstElementChild.dataset.find.includes(want);
+      li.hidden = !hit;
+      any = any || hit;
+    });
+    picker.querySelector('.nav-none').hidden = any;
   });
 
   // ---------- Tasks ----------

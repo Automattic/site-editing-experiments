@@ -8,7 +8,7 @@ These prototypes put the Pages screen next to a live preview of the site, so eve
 
 ## Round 2
 
-[`round-2/`](round-2/) has five more prototypes, for one test that asks whether people understand pages and the menu as one thing or two, and whether they can change the menu. It crosses two things: whether the menu converts to links when it's changed (as WordPress does today) or stays connected to the pages, and whether it's changed on the Pages screen or in the menu's own sidebar. The fifth, A, changes one thing about WordPress today: the menu is links from the start, and a switch keeps adding new pages to it.
+[`round-2/`](round-2/) has five more prototypes, for one test that asks whether people understand pages and the menu as one thing or two, and whether they can change the menu. It crosses two things: whether the menu converts to links when it's changed (as WordPress does today) or stays connected to the pages, and whether it's changed on the Pages screen or in the menu's own sidebar. The fifth, A, changes two things about WordPress today: the menu is links from the start, with no Page List to detach, and a switch keeps adding new pages to it.
 
 | | Prototype | The menu after a change | Where it's changed |
 | --- | --- | --- | --- |

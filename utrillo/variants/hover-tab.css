@@ -1,0 +1,37 @@
+/* Utrillo · A · Hover tab. Styles for this arm only, on top of ../style.css. */
+
+/* The thin outline round each container under the pointer. */
+.ut-overlay > .uta-outline {
+  position: absolute;
+  border: 1px solid rgba(56, 88, 233, .45);
+  pointer-events: none;
+}
+/* Its tab is hovered: the container stands out (app.js also highlights it). */
+.ut-overlay > .uta-outline.is-active { border-color: var(--admin); }
+
+/* The name tab, just above the container's top-left corner. Height: TAB_H in hover-tab.js. */
+.ut-overlay > .uta-tab {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 22px;
+  margin: 0;
+  padding: 0 7px 0 3px;
+  border: 0;
+  border-radius: 2px 2px 0 0;
+  background: var(--admin);
+  color: var(--white);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  pointer-events: auto;
+  user-select: none;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .12);
+}
+.ut-overlay > .uta-tab:hover { background: var(--admin-dark); }
+.uta-tab__icon { display: flex; }
+.uta-tab__icon svg { width: 18px; height: 18px; fill: currentColor; }

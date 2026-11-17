@@ -13,6 +13,7 @@
   ul { list-style: none; margin: 0 0 32px; padding: 0; display: grid; gap: 12px; }
   a.card { display: block; padding: 20px; background: #fff; border-radius: 10px; color: inherit; text-decoration: none; border: 1px solid #E2DED6; }
   a.card:hover, a.card:focus-visible { border-color: #3858E9; }
+  h2 { margin: 8px 0 8px; font-size: 22px; }
   strong { display: block; font-size: 18px; margin-bottom: 4px; }
   em { display: block; margin: -2px 0 6px; font-style: normal; font-weight: 600; font-size: 14px; color: #3A3A3A; }
   span { color: #4A4A4A; font-size: 15px; line-height: 1.5; }
@@ -30,6 +31,14 @@
     <li><a class="card" href="sections.html"><strong>D · Menu and other pages</strong><em>Comparison: two sections</em><span>The earlier take: "In your menu" and "Other pages" as two groups, with add and remove buttons.</span></a></li>
     <li><a class="card" href="page-settings.html"><strong>E · Menu in page settings</strong><em>Control: decide on the page</em><span>Close to WordPress today: a table of pages with a Menu column, an "Add to menu" switch when creating a page, and menu settings inside each page.</span></a></li>
     <li><a class="card" href="toggles.html"><strong>F · All pages with menu switches</strong><em>A switch on every page</em><span>Every page in one list, with an "In menu" switch on each. The menu follows the list's order: drag a page to reorder both.</span></a></li>
+  </ul>
+  <h2>Round 2</h2>
+  <p>Four prototypes for one test: do people understand pages and the menu as one thing or two, and can they change the menu? They share one site and one set of tasks, and differ in whether the menu converts to links when it's changed, and in where it's changed. The tasks are in the <a href="https://github.com/Automattic/site-editing-experiments/tree/trunk/okeeffe/round-2">round 2 README</a>.</p>
+  <ul>
+    <li><a class="card" href="round-2/control.html"><strong>Control · WordPress today</strong><em>Converts to links, in the menu's own sidebar</em><span>Click the menu on the site to open its sidebar. Editing it converts it to links, after one confirm.</span></a></li>
+    <li><a class="card" href="round-2/explained.html"><strong>B · Explained</strong><em>Converts to links, on the Pages screen</em><span>A marker on each page says whether it's in the menu. Taking a page out, or renaming it in the menu, explains the conversion first.</span></a></li>
+    <li><a class="card" href="round-2/switches.html"><strong>F · Connected switches</strong><em>Stays connected, on the Pages screen</em><span>An "In menu" switch on every page. Switching one off changes nothing else, and new pages still join the menu.</span></a></li>
+    <li><a class="card" href="round-2/menu-switches.html"><strong>Q · Menu switches</strong><em>Stays connected, in the menu's own sidebar</em><span>The menu's sidebar lists the pages, each with a show/hide toggle, and the menu still follows the pages.</span></a></li>
   </ul>
   <p>Test scripts, tasks and what to watch for are in the <a href="https://github.com/Automattic/site-editing-experiments/tree/trunk/okeeffe">README</a>. The bakery and its pages are placeholders.</p>
 </main>

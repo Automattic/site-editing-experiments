@@ -765,7 +765,7 @@
   }
 
   // =======================================================================================
-  // SEAM: NAVIGATION SIDEBAR (control and menu-switches). Builder 2 builds the list here.
+  // SEAM: NAVIGATION SIDEBAR (control and menu-switches). The list of items is still to be built here.
   // =======================================================================================
   //
   // In these two arms a click on the header menu in the preview selects it and opens the
@@ -801,7 +801,7 @@
   }
 
   function sidebarBodyHtml() {
-    // Builder 2: the menu's items go here.
+    // Still to build: the menu's items, in the two modes described above.
     return '';
   }
 

@@ -383,7 +383,6 @@
     alignright: line('M5 7h14M10 12h9M7 17h12'),
     link: line('M10 14a3.5 3.5 0 005 0l3-3a3.5 3.5 0 00-5-5l-1 1M14 10a3.5 3.5 0 00-5 0l-3 3a3.5 3.5 0 005 5l1-1'),
     dots: svg('<g fill="currentColor"><circle cx="12" cy="6" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="12" cy="18" r="1.6"/></g>'),
-    hdots: svg('<g fill="currentColor"><circle cx="6" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="18" cy="12" r="1.6"/></g>'),
     trash: line('M5 7h14M10 7V5h4v2M7 7l1 12h8l1-12M10.5 10.5v5M13.5 10.5v5'),
     para: svg('<path d="M10 5h8v1.5h-2V19h-1.5V6.5h-2V19H11v-6a4 4 0 01-1-8z" fill="currentColor"/>'),
     plus: line('M12 6v12M6 12h12'),
@@ -391,6 +390,8 @@
     redo: line('M15 7l4 4-4 4M19 11h-9a4 4 0 000 8h3'),
     panel: line('M4.5 5.5h15v13h-15zM14.5 5.5v13'),
     close: line('M7 7l10 10M17 7L7 17'),
+    // Two sliders with round knobs, for "More text options".
+    textopts: svg('<path d="M4 9h16M4 15h16" stroke="currentColor" stroke-width="1.5"/><circle cx="15.5" cy="9" r="2.25" fill="currentColor"/><circle cx="8.5" cy="15" r="2.25" fill="currentColor"/>'),
     sliders: line('M5 8h9M17 8h2M5 16h2M10 16h9M15.5 6v4M8.5 14v4'),
     search: line('M11 17a6 6 0 100-12 6 6 0 000 12zM15.5 15.5L19 19')
   };
@@ -554,7 +555,7 @@
         tb({ menu: 'font', title: 'Font', inner: '<span style="font-family:' + fontOf(e.font).stack + '">' + fontOf(e.font).name + '</span>', wide: true }, b) +
         tb({ menu: 'size', title: 'Size', inner: '<span>' + e.px + '</span>', wide: true }, b) + sep +
         bold + italic + link + sep + align +
-        tb({ menu: 'moretext', title: 'More text options', inner: ICON.hdots }, b) + sep + options;
+        tb({ menu: 'moretext', title: 'More text options', inner: ICON.textopts }, b) + sep + options;
     }
     return tb({ menu: 'blockname', title: 'Change block', inner: blockIcon(b) + '<span>' + (b.type === 'heading' ? 'Heading' : 'Paragraph') + '</span>', wide: true }, b) + sep +
       up + down + sep + options +

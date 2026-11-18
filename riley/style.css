@@ -141,11 +141,16 @@ svg { display: block; }
 @media (prefers-reduced-motion: reduce) {
   .gate-label { transition: none; }
 }
+/* A: a grey overlay over the whole part, with the label and button in the middle. */
+.variant-marked .gate { align-items: center; border: none; }
+.variant-marked .gate:hover, .variant-marked .gate:focus-visible, .variant-marked .gate.is-shown { background-color: rgba(30,30,30,.35); }
+.variant-marked .gate:focus-visible { outline: 2px solid var(--blue); outline-offset: -2px; }
+.variant-marked .gate-label { transform: none; }
 
 .is-site-editing { display: block; outline: 3px solid var(--blue); outline-offset: -3px; z-index: 5; }
 .is-site-editing:focus { outline: 3px solid var(--blue); }
-.part-header.is-site-editing { padding-top: 0; }
-.part-footer.is-site-editing { padding-top: 0; }
+.part-header.is-site-editing:has(> .site-banner) { padding-top: 0; }
+.part-footer.is-site-editing:has(> .site-banner) { padding-top: 0; }
 .site-banner { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; margin: 0 -40px 24px; padding: 10px 16px 10px 40px; background: var(--blue); color: var(--white); font: 14px/1.4 system-ui, sans-serif; }
 .site-banner .btn-primary { background: var(--white); border-color: var(--white); color: var(--blue-dark); font-weight: 600; }
 .site-banner .btn-primary:hover { background: var(--blue-tint); }

@@ -18,12 +18,8 @@
 (function () {
   'use strict';
 
-  // A stack of layers, drawn in the style of the editor's 24px icons.
-  const STACK_ICON = '<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false">' +
-    '<path d="M12 3.2 2.8 8 12 12.8 21.2 8 12 3.2Zm0 1.7L17.9 8 12 11.1 6.1 8 12 4.9Z"/>' +
-    '<path d="m4.6 11.1-1.8.9 9.2 4.8 9.2-4.8-1.8-.9-7.4 3.9-7.4-3.9Z"/>' +
-    '<path d="m4.6 15.1-1.8.9 9.2 4.8 9.2-4.8-1.8-.9-7.4 3.9-7.4-3.9Z"/>' +
-    '</svg>';
+  // The editor's own "stack" icon (@wordpress/icons 20).
+  const STACK_ICON = '<svg viewBox="0 0 24 24" style="fill:none" stroke="currentColor" stroke-width="1.5" width="24" height="24" aria-hidden="true" focusable="false"><path d="M7.25 20L7.25 15C7.25 14.3096 7.80965 13.75 8.5 13.75L15.5 13.75C16.1904 13.75 16.75 14.3096 16.75 15L16.75 20M16.75 4L16.75 9C16.75 9.69035 16.1904 10.25 15.5 10.25L8.5 10.25C7.80964 10.25 7.25 9.69036 7.25 9L7.25 4"></path></svg>';
 
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const short = (s, n) => (s.length > n ? s.slice(0, n - 1) + '…' : s);

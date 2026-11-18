@@ -59,34 +59,38 @@
     layers: 'the Layers popover'
   };
 
-  // ---------- Icons, drawn after the editor's own (@wordpress/icons) ----------
+  // ---------- Icons: the editor's own, copied from @wordpress/icons 20 ----------
 
-  const svg = (d, extra) => '<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false"' + (extra || '') + '><path d="' + d + '"/></svg>';
   const ICONS = {
-    cover: svg('M18.7 3H5.3C4 3 3 4 3 5.3v13.4C3 20 4 21 5.3 21h13.4c1.3 0 2.3-1 2.3-2.3V5.3C21 4 20 3 18.7 3zm.8 15.7c0 .4-.4.8-.8.8H5.3c-.4 0-.8-.4-.8-.8V5.3c0-.4.4-.8.8-.8h6.2v8.9l2.5-3.1 2.5 3.1V4.5h2.2c.4 0 .8.4.8.8v13.4z'),
-    group: svg('M18 4h-7c-1.1 0-2 .9-2 2v3H6c-1.1 0-2 .9-2 2v7c0 1.1.9 2 2 2h7c1.1 0 2-.9 2-2v-3h3c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-4.5 14c0 .3-.2.5-.5.5H6c-.3 0-.5-.2-.5-.5v-7c0-.3.2-.5.5-.5h3V13c0 1.1.9 2 2 2h2.5v3zm0-4.5H11c-.3 0-.5-.2-.5-.5v-2.5H13c.3 0 .5.2.5.5v2.5zm5-.5c0 .3-.2.5-.5.5h-3V11c0-1.1-.9-2-2-2h-2.5V6c0-.3.2-.5.5-.5h7c.3 0 .5.2.5.5v7z'),
-    columns: svg('M15 7.5h-5v10h5v-10Zm1.5 0v10H19a.5.5 0 0 0 .5-.5V8a.5.5 0 0 0-.5-.5h-2.5ZM6 7.5h2.5v10H6a.5.5 0 0 1-.5-.5V8a.5.5 0 0 1 .5-.5ZM6 6h13a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2Z', ' fill-rule="evenodd"'),
-    column: svg('M19 6H6c-1.1 0-2 .9-2 2v9c0 1.1.9 2 2 2h13c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zM6 17.5c-.3 0-.5-.2-.5-.5V8c0-.3.2-.5.5-.5h3v10H6zm13.5-.5c0 .3-.2.5-.5.5h-8.5v-10H19c.3 0 .5.2.5.5v9z'),
-    heading: svg('M6 5V18.5911L12 13.8473L18 18.5911V5H6Z'),
-    paragraph: svg('m9.99609 14v-.2251l.00391.0001v6.225h1.5v-14.5h2.5v14.5h1.5v-14.5h3v-1.5h-8.50391c-2.76142 0-5 2.23858-5 5 0 2.7614 2.23858 5 5 5z'),
-    image: svg('M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM5 4.5h14c.3 0 .5.2.5.5v8.4l-3-2.9c-.3-.3-.8-.3-1 0L11.9 14 9 12c-.3-.2-.6-.2-.8 0l-3.6 2.6V5c-.1-.3.1-.5.4-.5zm14 15H5c-.3 0-.5-.2-.5-.5v-2.4l4.1-3 3 1.9c.3.2.7.2.9-.1L16 12l3.5 3.4V19c0 .3-.2.5-.5.5z'),
-    buttons: svg('M14.5 17.5H9.5V16H14.5V17.5Z M14.5 8H9.5V6.5H14.5V8Z M7 3.5H17C18.1046 3.5 19 4.39543 19 5.5V9C19 10.1046 18.1046 11 17 11H7C5.89543 11 5 10.1046 5 9V5.5C5 4.39543 5.89543 3.5 7 3.5ZM17 5H7C6.72386 5 6.5 5.22386 6.5 5.5V9C6.5 9.27614 6.72386 9.5 7 9.5H17C17.2761 9.5 17.5 9.27614 17.5 9V5.5C17.5 5.22386 17.2761 5 17 5Z M7 13H17C18.1046 13 19 13.8954 19 15V18.5C19 19.6046 18.1046 20.5 17 20.5H7C5.89543 20.5 5 19.6046 5 18.5V15C5 13.8954 5.89543 13 7 13ZM17 14.5H7C6.72386 14.5 6.5 14.7239 6.5 15V18.5C6.5 18.7761 6.72386 19 7 19H17C17.2761 19 17.5 18.7761 17.5 18.5V15C17.5 14.7239 17.2761 14.5 17 14.5Z'),
-    button: svg('M8 12.5h8V11H8v1.5Z M19 6.5H5a2 2 0 0 0-2 2V15a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8.5a2 2 0 0 0-2-2ZM5 8h14a.5.5 0 0 1 .5.5V15a.5.5 0 0 1-.5.5H5a.5.5 0 0 1-.5-.5V8.5A.5.5 0 0 1 5 8Z'),
-    listView: svg('M3 6h11v1.5H3V6Zm3.5 5.5h11V13h-11v-1.5ZM21 17H10v1.5h11V17Z'),
-    undo: svg('M18.3 11.7c-.6-.6-1.4-.9-2.3-.9H6.7l2.9-3.3-1.1-1-4.5 5L8.5 16l1-1-2.7-2.7H16c.5 0 .9.2 1.3.5 1 1 1 3.4 1 4.5v.3h1.5v-.2c0-1.5 0-4.3-1.5-5.7z'),
-    redo: svg('M15.6 6.5l-1.1 1 2.9 3.3H8c-.9 0-1.7.3-2.3.9-1.4 1.5-1.4 4.2-1.4 5.6v.2h1.5v-.3c0-1.1 0-3.5 1-4.5.3-.3.7-.5 1.3-.5h9.2L14.5 15l1.1 1.1 4.6-4.6-4.6-5z'),
-    chevronUp: svg('M6.5 12.4L12 8l5.5 4.4-.9 1.2L12 10l-4.5 3.6-1-1.2z'),
-    chevronDown: svg('M17.5 11.6L12 16l-5.5-4.4.9-1.2L12 14l4.5-3.6 1 1.2z'),
-    chevronLeft: svg('M14.6 7l-1.2-1L8 12l5.4 6 1.2-1-4.6-5z'),
-    chevronRight: svg('M10.6 6L9.4 7l4.6 5-4.6 5 1.2 1 5.4-6z'),
-    chevronRightSmall: svg('M10.8622 8.04053L14.2805 12.0286L10.8622 16.0167L9.72327 15.0405L12.3049 12.0286L9.72327 9.01672L10.8622 8.04053Z'),
-    chevronDownSmall: svg('m15.99 10.889-3.988 3.418-3.988-3.418.976-1.14 3.012 2.582 3.012-2.581.976 1.139Z'),
-    moreVertical: svg('M13 19h-2v-2h2v2zm0-6h-2v-2h2v2zm0-6h-2V5h2v2z'),
-    close: svg('m13.06 12 6.47-6.47-1.06-1.06L12 10.94 5.53 4.47 4.47 5.53 10.94 12l-6.47 6.47 1.06 1.06L12 13.06l6.47 6.47 1.06-1.06L13.06 12Z'),
-    plus: svg('M11 12.5V17.5H12.5V12.5H17.5V11H12.5V6H11V11H6V12.5H11Z'),
-    minus: svg('M7 11.25h10v1.5H7z'),
-    check: svg('M16.7 7.1l-6.3 8.5-3.3-2.5-.9 1.2 4.5 3.4L17.9 8z')
+    cover: '<svg viewBox="0 0 24 24" style="fill:none" stroke="currentColor" stroke-width="1.5" width="24" height="24" aria-hidden="true" focusable="false"><path d="M20.25 18.75V5.25C20.25 4.42157 19.5784 3.75 18.75 3.75H5.25C4.42157 3.75 3.75 4.42157 3.75 5.25V18.75C3.75 19.5784 4.42157 20.25 5.25 20.25H18.75C19.5784 20.25 20.25 19.5784 20.25 18.75Z"></path><path d="M11.5 13.4V3.75H16.5V13.4L14 10.3L11.5 13.4Z" fill="currentColor" stroke="none"></path></svg>',
+    group: '<svg viewBox="0 0 24 24" style="fill:none" stroke="currentColor" stroke-width="1.5" width="24" height="24" aria-hidden="true" focusable="false"><path d="M4.75 11C4.75 10.3096 5.30964 9.75 6 9.75H13C13.6904 9.75 14.25 10.3096 14.25 11V18C14.25 18.6904 13.6904 19.25 13 19.25H6C5.30964 19.25 4.75 18.6904 4.75 18V11Z"></path><path d="M9.75 6C9.75 5.30964 10.3096 4.75 11 4.75H18C18.6904 4.75 19.25 5.30964 19.25 6V13C19.25 13.6904 18.6904 14.25 18 14.25H11C10.3096 14.25 9.75 13.6904 9.75 13V6Z"></path></svg>',
+    columns: '<svg viewBox="0 0 24 24" style="fill:none" stroke="currentColor" stroke-width="1.5" width="24" height="24" aria-hidden="true" focusable="false"><path d="M14.75 5.75H19C19.6904 5.75 20.25 6.30964 20.25 7V17C20.25 17.6904 19.6904 18.25 19 18.25H14.75M14.75 5.75V18.25M14.75 5.75H9.25M14.75 18.25H9.25M9.25 18.25H5C4.30964 18.25 3.75 17.6904 3.75 17V7C3.75 6.30964 4.30964 5.75 5 5.75H9.25M9.25 18.25V5.75"></path></svg>',
+    column: '<svg viewBox="0 0 24 24" style="fill:none" stroke="currentColor" stroke-width="1.5" width="24" height="24" aria-hidden="true" focusable="false"><path d="M14.75 5.75H19C19.6904 5.75 20.25 6.30964 20.25 7V17C20.25 17.6904 19.6904 18.25 19 18.25H14.75M14.75 5.75V18.25M14.75 5.75H9.25M14.75 18.25H9.25M9.25 18.25H5C4.30964 18.25 3.75 17.6904 3.75 17V7C3.75 6.30964 4.30964 5.75 5 5.75H9.25M9.25 18.25V5.75"></path><path d="M14.75 18.25V5.75H9.25V18.25H14.75Z" fill="currentColor"></path></svg>',
+    heading: '<svg viewBox="0 0 24 24" style="fill:none" stroke="currentColor" stroke-width="1.5" width="24" height="24" aria-hidden="true" focusable="false"><path d="M6.75 5.25H17.25V16.375L12 12L6.75 16.375V5.25Z" fill="currentColor"></path></svg>',
+    paragraph: '<svg viewBox="0 0 24 24" style="fill:none" stroke="currentColor" stroke-width="1.5" width="24" height="24" aria-hidden="true" focusable="false"><path d="M10.75 20V4.75L14.75 4.75M14.75 20V4.75M14.75 4.75H18.5"></path><path d="M5.75 9C5.75 11.3472 7.65279 13.25 10 13.25H10.75V4.75H10C7.65279 4.75 5.75 6.65279 5.75 9Z" fill="currentColor"></path></svg>',
+    image: '<svg viewBox="0 0 24 24" style="fill:none" stroke="currentColor" stroke-width="1.5" width="24" height="24" aria-hidden="true" focusable="false"><path d="M19.25 14.2513L16.0707 11.0707C16.0317 11.0317 15.9683 11.0317 15.9293 11.0707L12.0584 14.9416C12.0245 14.9755 11.9713 14.9806 11.9316 14.9537L8.65791 12.7392C8.62313 12.7156 8.57736 12.7163 8.54332 12.7409L4.75 15.4808M19.25 14.2513V6C19.25 5.30964 18.6904 4.75 18 4.75H6C5.30964 4.75 4.75 5.30964 4.75 6V15.4808M19.25 14.2513V18C19.25 18.6904 18.6904 19.25 18 19.25H6C5.30964 19.25 4.75 18.6904 4.75 18V15.4808"></path></svg>',
+    buttons: '<svg viewBox="0 0 24 24" style="fill:none" stroke="currentColor" stroke-width="1.5" width="24" height="24" aria-hidden="true" focusable="false"><path d="M9.5 7.25H14.5M9.5 16.75H14.5M7 19.75H17C17.6904 19.75 18.25 19.1904 18.25 18.5V15C18.25 14.3096 17.6904 13.75 17 13.75H7C6.30964 13.75 5.75 14.3096 5.75 15V18.5C5.75 19.1904 6.30964 19.75 7 19.75ZM7 10.25H17C17.6904 10.25 18.25 9.69036 18.25 9V5.5C18.25 4.80964 17.6904 4.25 17 4.25H7C6.30964 4.25 5.75 4.80964 5.75 5.5V9C5.75 9.69036 6.30964 10.25 7 10.25Z"></path></svg>',
+    button: '<svg viewBox="0 0 24 24" style="fill:none" stroke="currentColor" stroke-width="1.5" width="24" height="24" aria-hidden="true" focusable="false"><path d="M8 11.75H16M5 16.25H19C19.6904 16.25 20.25 15.6904 20.25 15V8.5C20.25 7.80964 19.6904 7.25 19 7.25H5C4.30964 7.25 3.75 7.80964 3.75 8.5V15C3.75 15.6904 4.30964 16.25 5 16.25Z"></path></svg>',
+    listView: '<svg viewBox="0 0 24 24" style="fill:none" stroke="currentColor" stroke-width="1.5" width="24" height="24" aria-hidden="true" focusable="false"><path d="M10 17.5H21M6.5 12H17.5M3 6.5H14" stroke-linejoin="round"></path></svg>',
+    undo: '<svg viewBox="0 0 24 24" style="fill:none" stroke="currentColor" stroke-width="1.5" width="24" height="24" aria-hidden="true" focusable="false"><path d="M8.25 15L4.75 11L8.25 7M4.75 11H15.25C18.25 11 18.5 13.8 18.5 17"></path></svg>',
+    redo: '<svg viewBox="0 0 24 24" style="fill:none" stroke="currentColor" stroke-width="1.5" width="24" height="24" aria-hidden="true" focusable="false"><path d="M15 15L18.5 11L15 7M18.5 11H8C5 11 4.75 13.8 4.75 17"></path></svg>',
+    chevronUp: '<svg viewBox="0 0 24 24" style="fill:none" stroke="currentColor" stroke-width="1.5" width="24" height="24" aria-hidden="true" focusable="false"><path d="M7 13L12 9L17 13"></path></svg>',
+    chevronDown: '<svg viewBox="0 0 24 24" style="fill:none" stroke="currentColor" stroke-width="1.5" width="24" height="24" aria-hidden="true" focusable="false"><path d="M7 11L12 15L17 11"></path></svg>',
+    chevronLeft: '<svg viewBox="0 0 24 24" style="fill:none" stroke="currentColor" stroke-width="1.5" width="24" height="24" aria-hidden="true" focusable="false"><path d="M14 6.5L9 12L14 17.5"></path></svg>',
+    chevronRight: '<svg viewBox="0 0 24 24" style="fill:none" stroke="currentColor" stroke-width="1.5" width="24" height="24" aria-hidden="true" focusable="false"><path d="M10 6.5L15 12L10 17.5"></path></svg>',
+    chevronRightSmall: '<svg viewBox="0 0 24 24" style="fill:none" stroke="currentColor" stroke-width="1.5" width="24" height="24" aria-hidden="true" focusable="false"><path d="M10.5 8.5L13.5 12L10.5 15.5"></path></svg>',
+    chevronDownSmall: '<svg viewBox="0 0 24 24" style="fill:none" stroke="currentColor" stroke-width="1.5" width="24" height="24" aria-hidden="true" focusable="false"><path d="M8.5 10.5L12 13.5L15.5 10.5"></path></svg>',
+    moreVertical: '<svg viewBox="0 0 24 24" style="fill:none" stroke="currentColor" stroke-width="1.5" width="24" height="24" aria-hidden="true" focusable="false"><path d="M11.75 18.25L12.25 18.25L12.25 17.75L11.75 17.75L11.75 18.25Z" fill="currentColor" stroke="none"></path><path d="M11.75 12.25L12.25 12.25L12.25 11.75L11.75 11.75L11.75 12.25Z" fill="currentColor" stroke="none"></path><path d="M11.75 6.25L12.25 6.25L12.25 5.75L11.75 5.75L11.75 6.25Z" fill="currentColor" stroke="none"></path><path d="M11.75 18.25L12.25 18.25L12.25 17.75L11.75 17.75L11.75 18.25Z"></path><path d="M11.75 12.25L12.25 12.25L12.25 11.75L11.75 11.75L11.75 12.25Z"></path><path d="M11.75 6.25L12.25 6.25L12.25 5.75L11.75 5.75L11.75 6.25Z"></path></svg>',
+    close: '<svg viewBox="0 0 24 24" style="fill:none" stroke="currentColor" stroke-width="1.5" width="24" height="24" aria-hidden="true" focusable="false"><path d="M5 19L19 5M19 19L5 5"></path></svg>',
+    plus: '<svg viewBox="0 0 24 24" style="fill:none" stroke="currentColor" stroke-width="1.5" width="24" height="24" aria-hidden="true" focusable="false"><path d="M12 18V6M18 12H6"></path></svg>',
+    minus: '<svg viewBox="0 0 24 24" style="fill:none" stroke="currentColor" stroke-width="1.5" width="24" height="24" aria-hidden="true" focusable="false"><path d="M5 12H19"></path></svg>',
+    check: '<svg viewBox="0 0 24 24" style="fill:none" stroke="currentColor" stroke-width="1.5" width="24" height="24" aria-hidden="true" focusable="false"><path d="M7 12L10 15L17 8"></path></svg>'
   };
+
+  // Headings show their level, as the editor's heading variations do:
+  // "Heading 2" with the H2 icon, in the toolbar, inspector, breadcrumb and
+  // Document Overview.
+  const HEADING_ICONS = { 1: '<svg viewBox="0 0 24 24" style="fill:none" stroke="currentColor" stroke-width="1.5" width="24" height="24" aria-hidden="true" focusable="false"><path d="M18.75 18.75C18.75 17.9056 18.75 11.963 18.75 9.5L15.75 10.3056"></path><path d="M3.75 12H11.75M3.75 12V6M3.75 12L3.75 18M11.75 12V6M11.75 12V18" stroke-linecap="square"></path></svg>', 2: '<svg viewBox="0 0 24 24" style="fill:none" stroke="currentColor" stroke-width="1.5" width="24" height="24" aria-hidden="true" focusable="false"><path d="M3.75 12H11.75M3.75 12V6M3.75 12L3.75 18M11.75 12V6M11.75 12V18" stroke-linecap="square"></path><path d="M20.3915 17.9989H16C16 13.4611 20.5 14.6523 20.5 11.2489C20.5 9.54722 18.1957 8.04722 16 9.7489" stroke-linecap="square"></path></svg>', 3: '<svg viewBox="0 0 24 24" style="fill:none" stroke="currentColor" stroke-width="1.5" width="24" height="24" aria-hidden="true" focusable="false"><path d="M3.75 12H11.75M3.75 12V6M3.75 12L3.75 18M11.75 12V6M11.75 12V18" stroke-linecap="square"></path><path d="M15.5 17.2434C18 18.9138 20.5 17.5775 20.5 15.573C20.5 14.9823 20.2366 14.4158 19.7678 13.9981C19.2989 13.5805 18.663 13.3458 18 13.3458M18 13.3458C18.663 13.3458 19.2989 13.1112 19.7678 12.6935C20.2366 12.2758 20.5 11.7093 20.5 11.1186C20.5 9.44825 18.125 8.33466 16 9.44825M18 13.3458H17.75" stroke-linecap="square"></path></svg>' };
 
   // ---------- Block types: core's titles, icons and descriptions ----------
 
@@ -256,7 +260,14 @@
     return null;
   }
   const nodeOf = (id) => { const f = id ? find(id) : null; return f ? f.node : null; };
-  const typeOf = (id) => { const n = nodeOf(id); return n ? TYPES[n.name] : null; };
+  const typeFor = (node) => {
+    const t = TYPES[node.name];
+    if (node.name === 'core/heading' && HEADING_ICONS[node.attrs.level]) {
+      return Object.assign({}, t, { title: 'Heading ' + node.attrs.level, icon: HEADING_ICONS[node.attrs.level] });
+    }
+    return t;
+  };
+  const typeOf = (id) => { const n = nodeOf(id); return n ? typeFor(n) : null; };
   const isContainer = (id) => { const t = typeOf(id); return !!(t && t.container); };
   const isText = (id) => { const t = typeOf(id); return !!(t && t.text); };
   function ancestorsOf(id) {
@@ -278,7 +289,7 @@
   function describe(id) {
     const f = find(id);
     if (!f) return id;
-    const t = TYPES[f.node.name];
+    const t = typeFor(f.node);
     if (t.text) return t.title + ' “' + short(f.node.attrs.content) + '”';
     const hint = firstText(f.node, 'core/heading') || firstText(f.node, 'core/paragraph') || firstText(f.node, 'core/button');
     if (hint) return t.title + ' (“' + short(hint, 28) + '”)';
@@ -324,7 +335,7 @@
   // type into is a separate element inside it, .ut-rich, so the block can
   // have focus without the caret being in its text.
   function blockHTML(node) {
-    const t = TYPES[node.name];
+    const t = typeFor(node);
     const a = node.attrs;
     const kids = () => node.children.map(blockHTML).join('');
     const bg = a.background ? colorBySlug(a.background) : null;
@@ -655,7 +666,7 @@
     if (!node) return;
     const now = node.attrs.content;
     if (now === s.before) return;
-    note('edit', 'Edited the text of ' + TYPES[node.name].title + ': “' + s.before + '” → “' + now + '”');
+    note('edit', 'Edited the text of ' + typeFor(node).title + ': “' + s.before + '” → “' + now + '”');
   }
 
   page.addEventListener('focusin', (e) => {
@@ -732,10 +743,10 @@
     const to = f.index + dir;
     if (to < 0 || to >= f.list.length) return;
     const where = f.parent ? describe(f.parent.id) : 'the page';
-    const words = TYPES[f.node.name].horizontal ? (dir < 0 ? 'left' : 'right') : (dir < 0 ? 'up' : 'down');
+    const words = typeFor(f.node).horizontal ? (dir < 0 ? 'left' : 'right') : (dir < 0 ? 'up' : 'down');
     const what = describe(id);
     if (f.parent && !doneNow[1]) {
-      wrong('moved ' + TYPES[f.node.name].title + ' inside ' + TYPES[f.parent.name].title + ' (' + what + ' in ' + where + ', while task 2 isn’t done)');
+      wrong('moved ' + typeFor(f.node).title + ' inside ' + typeFor(f.parent).title + ' (' + what + ' in ' + where + ', while task 2 isn’t done)');
     }
     change(() => {
       const [node] = f.list.splice(f.index, 1);
@@ -783,7 +794,7 @@
       : parentName === 'core/buttons' ? b(newId('button'), 'core/button', { content: '' })
       : b(newId('paragraph'), 'core/paragraph', { content: '' });
     change(() => { f.list.splice(f.index + (after ? 1 : 0), 0, node); }, { reason: 'insert', id: node.id });
-    note('change', 'Added ' + TYPES[node.name].title + ' ' + (after ? 'after ' : 'before ') + describe(id));
+    note('change', 'Added ' + typeFor(node).title + ' ' + (after ? 'after ' : 'before ') + describe(id));
     selectBlock(node.id, { route: 'insert' });
     if (isText(node.id)) placeCaret(richFor(node.id)); else focusBlock(node.id);
   }
@@ -908,15 +919,18 @@
   function renderToolbar() {
     if (!selectedId) { toolbarEl.hidden = true; toolbarEl.innerHTML = ''; return; }
     const f = find(selectedId);
-    const t = TYPES[f.node.name];
-    const parent = f.parent ? TYPES[f.parent.name] : null;
+    const t = typeFor(f.node);
+    const parent = f.parent ? typeFor(f.parent) : null;
     const first = f.index === 0;
     const last = f.index === f.list.length - 1;
     const h = t.horizontal;
     const btn = (action, label, icon, cls, disabled) => '<button class="ut-tb-btn' + (cls ? ' ' + cls : '') + '" data-action="' + action + '" aria-label="' + esc(label) + '" data-tooltip="' + esc(label) + '"' + (disabled ? ' aria-disabled="true"' : '') + '>' + icon + '</button>';
     toolbarEl.dataset.forBlock = selectedId;
     toolbarEl.innerHTML =
-      (parent ? '<div class="ut-tb-group ut-tb-parent">' + btn('select-parent', 'Select parent block: ' + parent.title, parent.icon, 'ut-tb-parent-btn') + '</div>' : '') +
+      // As in the editor, the parent selector is its own box, 8px to the left of
+      // the toolbar, and the toolbar starts 56px in from the block's left edge.
+      (parent ? '<div class="ut-tb-parent">' + btn('select-parent', 'Select parent block: ' + parent.title, parent.icon, 'ut-tb-parent-btn') + '</div>' : '') +
+      '<div class="ut-tb-main">' +
       '<div class="ut-tb-group">' +
         '<span class="ut-tb-btn ut-tb-icon" role="img" aria-label="' + t.title + '" data-tooltip="' + t.title + '">' + t.icon + '</span>' +
         '<div class="ut-tb-movers' + (h ? ' is-horizontal' : '') + '">' +
@@ -924,7 +938,8 @@
           btn('move-down', h ? 'Move right' : 'Move down', h ? ICONS.chevronRight : ICONS.chevronDown, 'ut-tb-mover', last) +
         '</div>' +
       '</div>' +
-      '<div class="ut-tb-group">' + btn('options', 'Options', ICONS.moreVertical, 'ut-tb-options') + '</div>';
+      '<div class="ut-tb-group">' + btn('options', 'Options', ICONS.moreVertical, 'ut-tb-options') + '</div>' +
+      '</div>';
     toolbarEl.querySelector('[data-action="options"]').setAttribute('aria-haspopup', 'true');
     toolbarEl.querySelector('[data-action="options"]').setAttribute('aria-expanded', String(menuOpen));
     placeToolbar();
@@ -958,7 +973,7 @@
   function openMenu() {
     if (!selectedId) return;
     const f = find(selectedId);
-    const parent = f.parent ? TYPES[f.parent.name] : null;
+    const parent = f.parent ? typeFor(f.parent) : null;
     const item = (action, label) => '<button role="menuitem" class="ut-menu-item" data-action="' + action + '">' + esc(label) + '</button>';
     menuEl.innerHTML =
       '<div class="ut-menu-group">' + item('duplicate', 'Duplicate') + item('add-before', 'Add before') + item('add-after', 'Add after') +
@@ -1008,7 +1023,7 @@
       return;
     }
     const node = nodeOf(selectedId);
-    const t = TYPES[node.name];
+    const t = typeFor(node);
     const swatches = (key) => {
       const current = node.attrs[key] || null;
       return '<div class="ut-swatches" role="group" aria-label="' + (key === 'overlay' ? 'Overlay' : 'Background') + '">' +
@@ -1047,7 +1062,7 @@
     const ids = selectedId ? ancestorsOf(selectedId).concat(selectedId) : [];
     const sep = '<span class="ut-crumb-sep" aria-hidden="true">' + ICONS.chevronRightSmall + '</span>';
     breadcrumbEl.innerHTML = '<ul><li><button class="ut-crumb" data-action="crumb" data-id=""' + (ids.length ? '' : ' aria-current="true"') + '>Page</button></li>' +
-      ids.map((id, i) => '<li>' + sep + '<button class="ut-crumb" data-action="crumb" data-id="' + esc(id) + '"' + (i === ids.length - 1 ? ' aria-current="true"' : '') + '>' + TYPES[nodeOf(id).name].title + '</button></li>').join('') + '</ul>';
+      ids.map((id, i) => '<li>' + sep + '<button class="ut-crumb" data-action="crumb" data-id="' + esc(id) + '"' + (i === ids.length - 1 ? ' aria-current="true"' : '') + '>' + typeFor(nodeOf(id)).title + '</button></li>').join('') + '</ul>';
   }
 
   // ---------- Document Overview (List View) ----------
@@ -1060,7 +1075,7 @@
     if (!overviewOpen) { overviewEl.innerHTML = ''; return; }
     const rows = [];
     const row = (node, depth) => {
-      const t = TYPES[node.name];
+      const t = typeFor(node);
       const has = node.children.length > 0;
       const open = has && expanded.has(node.id);
       rows.push('<li class="ut-lv-row' + (node.id === selectedId ? ' is-selected' : '') + '" data-row-id="' + esc(node.id) + '" style="--depth:' + depth + '" role="treeitem" aria-level="' + (depth + 1) + '"' + (has ? ' aria-expanded="' + open + '"' : '') + (node.id === selectedId ? ' aria-selected="true"' : '') + '>' +
@@ -1466,7 +1481,7 @@
 
   // Read-only copies of blocks for the variants.
   function publicBlock(node) {
-    const t = TYPES[node.name];
+    const t = typeFor(node);
     return Object.freeze({
       id: node.id,
       name: node.name,

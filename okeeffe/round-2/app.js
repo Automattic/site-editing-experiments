@@ -862,6 +862,9 @@
     const before = { state: clone(state), current: ui.current, message: message || '' };
     const sig = menuSignature();
     fn();
+    // A Pages panel change can bring the menu back to what's saved (trashing a page whose link
+    // was the only unsaved change): then nothing is waiting to be saved.
+    if (IN_SIDEBAR && sameAsSaved()) state.hist.dirty = 0;
     if (o.keepUndo && undo) undo.message = before.message; else undo = before;
     ui.more = null;
     if (!stats.firstMenuChange && menuSignature() !== sig) stats.firstMenuChange = Math.max(1, seconds());
@@ -1198,7 +1201,7 @@
   function closeSidebar(how) {
     if (!ui.sidebar) return;
     endTyping();
-    dropAdd('the sidebar was closed: ' + how);
+    dropAdd('closed the sidebar');
     ui.sidebar = false;
     ui.navSel = null;
     if (ui.more && ui.more.indexOf('nav:') === 0) ui.more = null;
@@ -1730,7 +1733,7 @@
         save();
         render();
         log('page', 'Added ' + q(title) + ' with Create page in the sidebar’s Add link, published');
-        log('menu', 'The saved menu’s “' + AUTO_ADD_LABEL + '” added a link to it at the end of the menu, as for any page that’s published (not ' + where + '); there is nothing to save');
+        log('menu', 'The saved menu’s “' + AUTO_ADD_LABEL + '” added a link to it at the end of the menu, as for any page that’s published' + (a.place === 'end' ? '' : ' (not ' + where + ')') + '; there is nothing to save');
         return;
       }
       // The page: applied everywhere at once. Its own link is the one being added, so the
@@ -2422,6 +2425,7 @@
       state = undo.state;
       ui.current = page(undo.current) ? undo.current : 'home';
       undo = null;
+      if (IN_SIDEBAR && sameAsSaved()) state.hist.dirty = 0;
       stats.undos++;
       hideToast();
       checkTasks();
@@ -2460,6 +2464,7 @@
   // The sidebar arms: when a ⋮ item was last chosen, when a click on the header menu last
   // opened the sidebar, and what was clicked.
   let moreItemAt = 0;
+  let guardFocus = null;
   let sidebarOpenedAt = 0;
   let openedBy = null;
   let downOnScrim = false;
@@ -2472,7 +2477,11 @@
     if (ev.detail > 1 && Date.now() - dialogChangedAt < GUARD_MS) return;
     if (IN_SIDEBAR && !ev.target.closest('.notes')) {
       // The second click of a double-click on a ⋮ item lands on whatever is under it now.
-      if (ev.detail > 1 && Date.now() - moreItemAt < GUARD_MS) return;
+      if (ev.detail > 1 && Date.now() - moreItemAt < GUARD_MS) {
+        // Its pointerdown may have moved the keyboard to what's there now: put it back.
+        if (guardFocus && guardFocus.isConnected && document.activeElement !== guardFocus) guardFocus.focus({ preventScroll: true });
+        return;
+      }
       // The sidebar's arrival moves the preview, so for half a second after a click on the
       // header menu opened it, a click in the preview is ignored; and the second click of a
       // double-click, wherever it lands, counts as a second click on what was clicked first.
@@ -2483,15 +2492,29 @@
           if (ui.sidebar && !ui.savePanel) clickSelectedMenu(o.item, o.label, ' (the second click of the double-click that opened the sidebar)');
           return;
         }
-        if (ev.target.closest('.stage')) return;
+        if (ev.target.closest('.stage')) {
+          const other = ev.target.closest('[data-nav-link]');
+          if (other) log('tried', 'Tried to click ' + q(other.dataset.navLink) + ' in the header menu straight after opening the sidebar; ignored');
+          return;
+        }
         // A fresh click somewhere else: the person has moved on, so the guard ends.
         openedBy = null;
         sidebarOpenedAt = 0;
       }
       // A click outside the Add link popover closes it, as in the editor.
+      // The top bar's Undo, with Add link open, only takes the "Page link" row away, as in the
+      // editor: nothing else is undone, and it isn't counted as an Undo.
+      if (ui.navAdd && ev.target.closest('[data-action="ed-undo"]')) {
+        const a = ui.navAdd;
+        dropAdd('Undo');
+        ui.focus = a.place === 'end' || !a.ref ? 'nav-append' : 'more:' + navKey(a.ref);
+        render();
+        return;
+      }
       if (ui.navAdd && !ev.target.closest('.nav-picker, [data-action="nav-ask-add"]')) {
+        const named = ev.target.closest('[data-action="ed-save"]') ? 'Save' : ev.target.closest('[data-action="close-sidebar"]') ? 'closed the sidebar' : null;
         const where = ev.target.closest('.panel') ? 'clicked the Pages panel' : ev.target.closest('.stage') ? 'clicked the preview' : ev.target.closest('.navside') ? 'clicked elsewhere in the sidebar' : ev.target.closest('.topbar') ? 'clicked the top bar' : 'clicked elsewhere';
-        if (dropAdd(where)) render();
+        if (dropAdd(named || where)) render();
       }
     }
     // A click elsewhere in the preview closes the Navigation sidebar.
@@ -2506,8 +2529,10 @@
     if (!action) return;
     // A ⋮ item, and a row whose click puts its settings in the list's place: the second click of
     // a double-click would land on whatever has just appeared there.
-    if (IN_SIDEBAR && (el.closest('.moremenu') || el.dataset.action === 'nav-select')) moreItemAt = Date.now();
+    const guarded = IN_SIDEBAR && (el.closest('.moremenu') || el.dataset.action === 'nav-select');
+    if (guarded) moreItemAt = Date.now();
     action(Object.assign({}, el.dataset), el, ev);
+    if (guarded) guardFocus = document.activeElement;
   });
 
   document.addEventListener('keydown', (ev) => {
@@ -2523,6 +2548,8 @@
       // The last thing done was in the Pages panel, and its message's Undo is still on offer:
       // Ctrl+Z takes that back. Otherwise, in the sidebar arms, it's the editor's Undo and
       // Redo; in B and F there is only the one Undo.
+      // With Add link open, Undo only takes the "Page link" row away (see the top bar's Undo).
+      if (IN_SIDEBAR && !redo && ui.navAdd) { ev.preventDefault(); const a = ui.navAdd; dropAdd('Undo'); ui.focus = a.place === 'end' || !a.ref ? 'nav-append' : 'more:' + navKey(a.ref); render(); return; }
       if (!redo && undo) { ev.preventDefault(); actions.undo({ how: 'keyboard' }); return; }
       if (!IN_SIDEBAR) return;
       ev.preventDefault();

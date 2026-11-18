@@ -100,7 +100,7 @@ a { color: var(--blue); }
 .group.menu.auto .list { border-left: 4px solid var(--blue); }
 .row { border-top: 1px solid var(--line-2); position: relative; }
 /* Dragging a row mustn't select its text (Safari needs the prefix). */
-.panel .row { -webkit-user-select: none; user-select: none; }
+.arm-control .panel .row, .arm-auto-add .panel .row, .arm-menu-switches .panel .row { -webkit-user-select: none; user-select: none; }
 .row:first-child { border-top: none; }
 .row.gap-before { border-top: 8px solid var(--ground); }
 .row.flash { animation: flash 1.6s ease-out; }

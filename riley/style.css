@@ -263,3 +263,27 @@ svg { display: block; }
 .savepanel section p { margin-bottom: 8px; }
 .savepanel-item { display: flex; align-items: center; gap: 8px; padding: 6px 0; font-size: 13px; }
 .savepanel-item input { width: 18px; height: 18px; margin: 0; accent-color: var(--blue); }
+
+/* Round 2 control: the header and footer are locked on a page. A click
+   selects one and shows a toolbar with "Edit original", which opens it on
+   its own, as in the WordPress editor. */
+.is-locked .part-inner { pointer-events: none; }
+.part-select { position: absolute; inset: 0; z-index: 1; width: 100%; padding: 0; border: none; background: transparent; cursor: default; }
+.part-select:focus-visible { outline: none; }
+.is-core-part.is-selected, .is-core-part:has(.part-select:focus-visible) { outline: 2px solid var(--synced); outline-offset: -2px; }
+.is-core-part.is-selected .core-tab { opacity: 1; }
+.block-toolbar { position: absolute; z-index: 4; bottom: calc(100% + 8px); left: 0; display: flex; align-items: stretch; height: 48px; background: var(--white); border: 1px solid var(--ink); border-radius: 2px; color: var(--ink); font: 13px/1 system-ui, sans-serif; }
+.part-footer .block-toolbar { bottom: calc(100% + 8px); }
+.block-toolbar-icon { display: flex; align-items: center; padding: 0 12px; border-right: 1px solid var(--line); }
+.block-toolbar button { padding: 0 14px; border: none; background: none; font: inherit; color: inherit; cursor: pointer; }
+.block-toolbar button:hover, .block-toolbar button:focus-visible { color: var(--synced); }
+.docbar { flex: 0 1 420px; display: flex; align-items: center; gap: 8px; margin: 0 auto; min-height: 36px; padding: 0 8px; background: var(--paper, #f0f0f0); border-radius: 4px; }
+.docbar-back { padding: 4px 6px; border: none; background: none; font-size: 13px; color: var(--ink-2); cursor: pointer; }
+.docbar-back:hover { color: var(--ink); }
+.docbar-title { flex: 1; margin: 0 28px 0 0; text-align: center; font-size: 13px; color: var(--ink-2); }
+.docbar-title strong { color: var(--ink); font-weight: 600; }
+.is-isolated .canvas { padding-top: 48px; }
+.part.is-isolated .field:hover { outline-color: var(--synced); }
+.part.is-isolated .field:focus { outline: 2px solid var(--synced); background: var(--synced-tint); }
+/* Room above the header for its toolbar. */
+.variant-r2control .canvas, .variant-r2label .canvas, .variant-r2panel .canvas { padding-top: 72px; }

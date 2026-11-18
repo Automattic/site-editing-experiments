@@ -188,3 +188,30 @@ p.blk { color: var(--site-ink-2); }
 .sb-row + .sb-row { margin-top: -1px; }
 .sb-swatch { width: 20px; height: 20px; border-radius: 50%; border: 1px solid #c3c4c7; background: linear-gradient(135deg, #fff 45%, #d63638 45%, #d63638 55%, #fff 55%); }
 .sb-toggle { display: flex; align-items: center; justify-content: space-between; width: 100%; padding: 0; border: none; background: none; font-weight: 500; }
+
+/* ---------- C: settings beside the block (after Nevelson) ---------- */
+
+.tb-btn[aria-pressed="true"] { background: var(--ink); color: var(--white); }
+.tb-btn[aria-pressed="true"]:hover { color: var(--white); }
+.tb-out { position: absolute; display: flex; flex-direction: column; width: 30px; padding: 2px 0; background: var(--white); border: 1px solid var(--ink); border-radius: 2px; pointer-events: auto; }
+.tb-out .tb-btn { min-width: 28px; height: 28px; padding: 0; }
+.tb-out svg { width: 20px; height: 20px; }
+
+.bpanel { position: fixed; z-index: 40; width: 280px; overflow: auto; background: var(--white); border: 1px solid #ccc; border-radius: 4px; box-shadow: 0 4px 16px rgba(0,0,0,.16); color: var(--ink); font-size: 13px; }
+.bpanel[hidden] { display: none; }
+.bp-head { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; gap: 8px; height: 48px; padding: 0 8px 0 16px; background: var(--white); border-bottom: 1px solid var(--line); }
+.bp-head strong { flex: 1; font-weight: 500; }
+.bpanel .sb-panel.is-first { border-top: none; }
+.bp-align { margin-top: 12px; }
+.bp-align svg { width: 20px; height: 20px; }
+
+.overview { flex: none; width: 280px; overflow: auto; background: var(--white); border-right: 1px solid var(--line); font-size: 13px; }
+.overview[hidden] { display: none; }
+.ov-list { padding: 8px 0; }
+.ov-list button { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 36px; padding: 4px 12px; border: none; background: none; text-align: left; }
+.ov-list button:hover { color: var(--blue); }
+.ov-list button[aria-current="true"] { background: var(--blue-tint); color: var(--blue-dark); }
+.ov-list svg { flex: none; }
+.ov-list span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bpanel .pop.is-floating { position: fixed; right: auto; z-index: 50; overflow: auto; }
+.bp-align button { display: flex; align-items: center; justify-content: center; }

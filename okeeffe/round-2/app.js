@@ -2504,7 +2504,9 @@
     }
     const action = actions[el.dataset.action];
     if (!action) return;
-    if (IN_SIDEBAR && el.closest('.moremenu')) moreItemAt = Date.now();
+    // A ⋮ item, and a row whose click puts its settings in the list's place: the second click of
+    // a double-click would land on whatever has just appeared there.
+    if (IN_SIDEBAR && (el.closest('.moremenu') || el.dataset.action === 'nav-select')) moreItemAt = Date.now();
     action(Object.assign({}, el.dataset), el, ev);
   });
 

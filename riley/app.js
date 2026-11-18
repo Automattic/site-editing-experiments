@@ -163,6 +163,7 @@
   let view;          // { page, preview }
   let siteEdit;      // marked: which part is unlocked for editing
   let selectedPart;  // round 2 control: the header or footer selected on a page
+  let pickerOpen = false; // round 2: the page list under the document bar
   let gateShown;     // marked: which part's label a tap has shown (touch has no hover)
   let unsaved;       // summary: what has changed since the last save, one entry per bit of text
   let sharedEdits;   // every change to a shared part, and whether another page was looked at since
@@ -187,7 +188,7 @@
       told: 0, toldUndo: 0,
       sumShown: 0, sumSaved: 0, sumBack: 0,
       whole: 0, previews: 0, previewPages: {}, saves: 0, finishBack: 0,
-      selected: 0, opened: 0
+      selected: 0, opened: 0, navBar: 0, navMenu: 0
     };
     startedAt = Date.now();
     firstDone = [];
@@ -292,6 +293,10 @@
     if (view.preview) {
       // Visitors get working links.
       menu = PAGES.map((p, i) => '<a href="#' + p.id + '" data-go="' + p.id + '"' + (p.id === view.page ? ' aria-current="page"' : '') + '>' + esc(value('header', 'menu' + i, view.page)) + '</a>').join('');
+    } else if (ROUND2 && !editable('header')) {
+      // Round 2: while the header is locked, its menu links go to that page
+      // in the editor, which is what people tried in round 1.
+      menu = PAGES.map((p, i) => '<a href="#' + p.id + '" class="menu-item' + (p.id === view.page ? ' is-current' : '') + '" data-menu-go="' + p.id + '">' + esc(value('header', 'menu' + i, view.page)) + '</a>').join('');
     } else {
       menu = PAGES.map((p, i) => h('span', 'menu' + i, 'menu-item' + (p.id === view.page ? ' is-current' : ''))).join('');
     }
@@ -345,7 +350,7 @@
         ? '<div class="block-toolbar" role="toolbar" aria-label="' + title + ' tools"><span class="block-toolbar-icon" title="' + title + '">' + icon + '</span><button data-edit-original="' + part + '">Edit original</button></div>'
         : '';
       return '<' + tag + ' class="part part-' + part + ' is-core-part is-locked' + (selected ? ' is-selected' : '') + '" data-region="' + part + '">' + tab + toolbar +
-        '<div class="part-inner" inert>' + inner + '</div>' +
+        '<div class="part-inner">' + inner + '</div>' +
         '<button class="part-select" data-select="' + part + '" aria-label="' + title + '"' + (selected ? ' aria-pressed="true"' : '') + '></button></' + tag + '>';
     }
 
@@ -361,8 +366,8 @@
           '<div class="site-banner"><p><strong>Editing the site ' + name + '.</strong> Changes show on every page.</p><button class="btn btn-primary" data-done>Done</button></div>' +
           '<div class="part-inner">' + inner + '</div></' + tag + '>';
       }
-      return '<' + tag + ' class="part part-' + part + ' is-gated" data-region="' + part + '">' +
-        '<div class="part-inner" inert>' + inner + '</div>' +
+      return '<' + tag + ' class="part part-' + part + ' is-gated is-locked" data-region="' + part + '">' +
+        '<div class="part-inner">' + inner + '</div>' +
         '<button class="gate' + (gateShown === part ? ' is-shown' : '') + '" data-gate="' + part + '" aria-label="Edit site ' + name + '">' +
         '<span class="gate-label is-button-only"><em>Edit site ' + name + '</em></span></button>' +
         '</' + tag + '>';
@@ -407,10 +412,20 @@
     }
     // With the header or footer open on its own, the page list gives way to
     // its name and a Back button, as the editor's document bar does.
-    if (CORE && view.part) {
-      return '<header class="topbar"><span class="logo" aria-hidden="true">P</span>' +
-        '<div class="docbar"><button class="docbar-back" data-docbar-back><span aria-hidden="true">‹</span> Back</button>' +
-        '<p class="docbar-title"><strong>' + (view.part === 'header' ? 'Header' : 'Footer') + '</strong> · Template Part</p></div>' +
+    // Round 2 has no page list. As in the editor, the middle of the top bar
+    // names what is open; clicking it lists the pages to switch to.
+    if (ROUND2) {
+      const alone = CORE && view.part;
+      const title = alone
+        ? '<strong>' + (view.part === 'header' ? 'Header' : 'Footer') + '</strong> · Template Part'
+        : '<strong>' + pageName(view.page) + '</strong> · ' + (view.page === 'home' ? 'Homepage' : 'Page');
+      const picker = pickerOpen
+        ? '<div class="docbar-picker" role="menu" aria-label="Pages"><p>Pages</p>' + PAGES.map((p) => '<button role="menuitem" data-pick="' + p.id + '"' + (p.id === view.page && !alone ? ' aria-current="page"' : '') + '>' + p.name + '</button>').join('') + '</div>'
+        : '';
+      return '<header class="topbar"><span class="logo" aria-hidden="true">P</span><span class="spacer"></span>' +
+        '<div class="docbar' + (alone ? ' has-back' : '') + '">' +
+        (alone ? '<button class="docbar-back" data-docbar-back><span aria-hidden="true">‹</span> Back</button>' : '') +
+        '<button class="docbar-title" data-docbar aria-haspopup="menu" aria-expanded="' + pickerOpen + '">' + title + '</button>' + picker + '</div>' +
         '<span class="spacer"></span><button class="btn" data-preview>Preview site</button>' + saveButton() + '</header>';
     }
     const pages = PAGES.map((p) => '<button data-page="' + p.id + '"' + (p.id === view.page ? ' aria-current="page"' : '') + '>' + p.name + '</button>').join('');
@@ -506,16 +521,21 @@
     if (parts.length) note('check', 'Looked at ' + pageName(page) + ' (' + where + ') after changing the ' + parts.join(' and the '));
   }
 
-  function goPage(page) {
-    if (page === view.page) return;
+  function goPage(page, how) {
+    pickerOpen = false;
+    const wasAlone = CORE && view.part;
+    if (page === view.page && !wasAlone) { render(); return; }
     commitEditing();
     leaveGate('switched page');
     selectedPart = null;
+    if (wasAlone) { note('open', 'Left the ' + view.part + ' for a page'); view.part = null; }
     const from = view.page;
     view.page = page;
-    note('nav', 'Switched page: ' + pageName(from) + ' → ' + pageName(page));
+    if (how === 'bar') stats.navBar++;
+    if (how === 'menu') stats.navMenu++;
+    note('nav', 'Switched page' + (how === 'bar' ? ' with the page list in the top bar' : how === 'menu' ? ' with the site’s own menu' : '') + ': ' + pageName(from) + ' → ' + pageName(page));
     looked(page, 'editor');
-    render('[data-page="' + page + '"]');
+    render(ROUND2 ? '[data-docbar]' : '[data-page="' + page + '"]');
     app.querySelector('.canvas-scroll').scrollTop = 0;
   }
 
@@ -782,6 +802,10 @@
     }
   });
 
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && pickerOpen) { pickerOpen = false; render('[data-docbar]'); }
+  });
+
   // Pasted text goes in as plain text.
   app.addEventListener('paste', (e) => {
     if (!e.target.closest('.field')) return;
@@ -799,6 +823,10 @@
     let el;
     if ((el = on('data-go'))) { e.preventDefault(); previewGo(el.dataset.go); return; }
     if ((el = on('data-page'))) { goPage(el.dataset.page); return; }
+    if ((el = on('data-pick'))) { goPage(el.dataset.pick, 'bar'); return; }
+    if ((el = on('data-menu-go'))) { e.preventDefault(); goPage(el.dataset.menuGo, 'menu'); return; }
+    if (on('data-docbar')) { pickerOpen = !pickerOpen; if (pickerOpen) note('nav', 'Opened the page list in the top bar'); render(pickerOpen ? '[data-pick]' : '[data-docbar]'); return; }
+    if (pickerOpen) { pickerOpen = false; app.querySelector('.docbar-picker')?.remove(); app.querySelector('[data-docbar]')?.setAttribute('aria-expanded', 'false'); }
     if ((el = on('data-whole'))) { wholeSite(el.dataset.whole); return; }
     if (on('data-preview')) { togglePreview(); return; }
     if (on('data-save')) { save(); return; }
@@ -831,7 +859,7 @@
         unsaved = [];
         updateSave();
         note('save', 'Saved the ' + (CORE && view.part ? view.part + ' (open on its own)' : pageName(view.page) + ' page') + ' without a panel');
-        toast('Saved.');
+        toast('Site updated.');
         return;
       }
       openPanel(d);
@@ -861,6 +889,18 @@
       panelEl.setAttribute('aria-labelledby', 'savepanel-title');
       document.body.append(panelEl);
       panelEl.addEventListener('click', (e) => {
+        // As in the editor, a click outside the panel closes it.
+        if (e.target === panelEl) {
+          const r = panelEl.getBoundingClientRect();
+          if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) { panelEl.close(); return; }
+        }
+        const toggle = e.target.closest('[data-panel-toggle]');
+        if (toggle) {
+          const body = toggle.closest('.savepanel-body');
+          body.classList.toggle('is-opened');
+          toggle.setAttribute('aria-expanded', body.classList.contains('is-opened'));
+          return;
+        }
         if (e.target.closest('[data-panel-save]')) {
           const keep = Array.from(panelEl.querySelectorAll('input[data-entity]')).filter((i) => !i.checked).map((i) => i.dataset.entity);
           const saved = Array.from(panelEl.querySelectorAll('input[data-entity]')).filter((i) => i.checked).map((i) => i.dataset.entity);
@@ -869,7 +909,7 @@
           stats.sumSaved++;
           note('save', 'Saved from the panel: ' + (saved.map(entityName).join(', ') || 'nothing ticked') + (keep.length ? '. Left unticked: ' + keep.map(entityName).join(', ') : ''));
           panelEl.close();
-          toast('Saved.');
+          toast('Site updated.');
         } else if (e.target.closest('[data-panel-cancel]')) {
           panelEl.close();
         }
@@ -891,22 +931,23 @@
     }
     panelAnswered = false;
     const clearer = VARIANT === 'r2panel';
-    const item = (id) => '<label class="savepanel-item"><input type="checkbox" checked data-entity="' + id + '"> ' + esc(entityName(id)) + '</label>';
+    const item = (id) => '<div class="savepanel-row"><label class="savepanel-item"><input type="checkbox" checked data-entity="' + id + '"><span>' + esc(entityName(id)) + '</span></label></div>';
+    const chevron = '<svg class="savepanel-arrow" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M6.5 12.4L12 8l5.5 4.4-.9 1.2L12 10l-4.5 3.6-1-1.2z"/></svg>';
+    const section = (title, desc, ids) => '<div class="savepanel-body is-opened"><h2 class="savepanel-body-title"><button type="button" data-panel-toggle aria-expanded="true">' + title + chevron + '</button></h2>' +
+      (desc ? '<p>' + desc + '</p>' : '') + ids.map(item).join('') + '</div>';
     const parts = dirty.filter((id) => id === 'header' || id === 'footer');
     const pages = dirty.filter((id) => id.startsWith('page:'));
     let groups = '';
     if (parts.length) {
-      groups += '<section><h3>' + (clearer ? 'On every page' : (parts.length === 1 ? 'Template Part' : 'Template Parts')) + '</h3>' +
-        (clearer ? '<p>' + (parts.length === 1 ? 'This change' : 'These changes') + ' will show on every page of your site.</p>' : '') +
-        parts.map(item).join('') + '</section>';
+      groups += section(clearer ? 'On every page' : (parts.length === 1 ? 'Template Part' : 'Template Parts'),
+        clearer ? (parts.length === 1 ? 'This change' : 'These changes') + ' will show on every page of your site.' : '', parts);
     }
     if (pages.length) {
-      groups += '<section><h3>' + (clearer ? 'Only on one page' : 'Pages') + '</h3>' +
-        '<p>' + (clearer ? (pages.length === 1 ? 'This change' : 'Each of these changes') + ' will only show on that page.' : 'The following has been modified.') + '</p>' +
-        pages.map(item).join('') + '</section>';
+      groups += section(clearer ? 'Only on one page' : 'Pages',
+        clearer ? (pages.length === 1 ? 'This change' : 'Each of these changes') + ' will only show on that page.' : 'The following has been modified.', pages);
     }
     const n = dirty.length;
-    panelEl.innerHTML = '<div class="savepanel-head"><button class="btn" data-panel-cancel>Cancel</button><button class="btn btn-primary" data-panel-save>Save</button></div>' +
+    panelEl.innerHTML = '<div class="savepanel-head"><button class="wp-btn is-secondary" data-panel-cancel>Cancel</button><button class="wp-btn is-primary" data-panel-save>Save</button></div>' +
       '<div class="savepanel-prompt"><strong id="savepanel-title">Are you ready to save?</strong>' +
       '<p>' + (n === 1 ? 'There is <strong>1 site change</strong> waiting to be saved.' : 'There are <strong>' + n + ' site changes</strong> waiting to be saved.') + '</p></div>' + groups;
     stats.sumShown++;
@@ -1018,7 +1059,8 @@
    *   v: clicks on Save · s: seconds until Finished.
    * Round 2 codes start A2, B2, L2 or S2 and all carry u: save panels shown,
    * saved from one, cancelled. B2 has g before it: times the button was shown,
-   * times unlocked. A2, L2 and S2 have o before it: times the header or footer
+   * times unlocked. Before e, n: page switches with the page list in the top
+   * bar, then with the site's own menu. A2, L2 and S2 have o before it: times the header or footer
    * was selected on a page, times it was opened on its own with Edit original. They end with e: times Finished was clicked and then
    * turned down at "Have you done every task?".
    */
@@ -1042,7 +1084,7 @@
       'p' + stats.previews + '.' + previewPages().length,
       'v' + stats.saves,
       's' + seconds()
-    ], ROUND2 ? ['e' + stats.finishBack] : []).join('-');
+    ], ROUND2 ? ['n' + stats.navBar + '.' + stats.navMenu, 'e' + stats.finishBack] : []).join('-');
   }
 
   // Finished shows the code in a dialog. Clicking Finished again later gives a new code.
@@ -1142,6 +1184,7 @@
       ? (VARIANT === 'r2button' ? '<dt>Times “Edit site header” or “Edit site footer” appeared</dt><dd>' + stats.gateShown + '</dd><dt>Times unlocked</dt><dd>' + stats.gateThrough + '</dd>' : '') +
         (CORE ? '<dt>Times the header or footer was selected on a page</dt><dd>' + stats.selected + '</dd><dt>Times opened on its own (Edit original)</dt><dd>' + stats.opened + '</dd>' : '') +
         '<dt>Save panels shown</dt><dd>' + stats.sumShown + '</dd><dt>Saved from the panel</dt><dd>' + stats.sumSaved + '</dd><dt>Panel cancelled</dt><dd>' + stats.sumBack + '</dd>' +
+        '<dt>Page switches with the top bar</dt><dd>' + stats.navBar + '</dd><dt>Page switches with the site’s menu</dt><dd>' + stats.navMenu + '</dd>' +
         '<dt>Turned back at “Have you done every task?”</dt><dd>' + stats.finishBack + '</dd>'
       : '');
     notesEl.innerHTML =

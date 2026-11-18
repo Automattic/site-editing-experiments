@@ -99,6 +99,8 @@ a { color: var(--blue); }
 .group.menu .list { border-color: var(--blue-line); background: #f7f8fe; }
 .group.menu.auto .list { border-left: 4px solid var(--blue); }
 .row { border-top: 1px solid var(--line-2); position: relative; }
+/* Dragging a row mustn't select its text (Safari needs the prefix). */
+.panel .row { -webkit-user-select: none; user-select: none; }
 .row:first-child { border-top: none; }
 .row.gap-before { border-top: 8px solid var(--ground); }
 .row.flash { animation: flash 1.6s ease-out; }
@@ -403,7 +405,7 @@ button.nav-label:hover { color: var(--blue-dark); }
 .ed-save[aria-disabled="true"]:hover { background: var(--blue); border-color: var(--blue); }
 
 /* Rows are dragged by their name: no handles. */
-.nav-row { user-select: none; }
+.nav-row { -webkit-user-select: none; user-select: none; }
 .nav-row .row-main { padding-left: 10px; }
 .nav-grip { cursor: grab; }
 .nav-row.dragging .nav-grip { cursor: grabbing; }
@@ -437,6 +439,10 @@ button.nav-label:hover { color: var(--blue-dark); }
 .dialog.has-x { position: relative; }
 .dialog.has-x h2 { padding-right: 40px; }
 .dialog-x { position: absolute; top: 12px; right: 12px; width: 40px; height: 40px; }
+/* WordPress's ConfirmDialog: in the middle of the screen, with a text-style Cancel. */
+.scrim.centred { align-items: center; padding-top: 16px; }
+.btn-text { border-color: transparent; background: none; color: var(--blue); }
+.btn-text:hover { border-color: transparent; color: var(--blue-dark); text-decoration: underline; }
 .dialog:focus { outline: none; }
 
 /* The save panel, in the sidebar's place. */

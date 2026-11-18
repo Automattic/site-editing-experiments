@@ -126,6 +126,7 @@
   // The auto-add arm has no Page List: its menu is links from the start, with a switch that
   // keeps new pages arriving.
   const STARTS_AS_LINKS = ARM === 'auto-add';
+  const IS_MAC = /Mac|iPhone|iPad/.test((navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || '');
   const SITE = 'rosasbakery.example';
   const NOTES = new URLSearchParams(location.search).has('notes') || location.hash === '#notes';
   const STORE_KEY = 'okeeffe-round-2:' + ARM;
@@ -191,6 +192,7 @@
   let undo = null;
   // Task lines wait here until the action that reached them has been logged.
   let pendingTaskLines = [];
+  let typingAtReload = null;
   // The control's Page List row. No page id can be this: ids are made of a-z, 0-9 and "-".
   const PAGE_LIST = '#page-list';
 
@@ -203,7 +205,9 @@
       sessionStorage.setItem(STORE_KEY, JSON.stringify({
         state, stats, events, startedAt, firstDone, ticked, current: ui.current, sidebar: ui.sidebar,
         // What was open, so that a reload can say what it closed.
-        dialog: ui.dialog ? dialogLabel(ui.dialog) : null, finish: finishStep, panel: !!ui.savePanel
+        dialog: ui.dialog ? dialogLabel(ui.dialog) : null, finish: finishStep, panel: !!ui.savePanel,
+        // An Add link that was open, and a Text being typed, so a reload can finish them.
+        adding: ui.navAdd ? placeWords(ui.navAdd) : null, typing: ui.typing
       }));
     } catch (e) { /* in memory only */ }
   }
@@ -228,6 +232,9 @@
       const unsaved = unsavedCount();
       events.push({ at: elapsed(), kind: 'reload', text: 'Page reloaded' + (unsaved ? ', with ' + unsaved + ' unsaved menu ' + (unsaved === 1 ? 'change' : 'changes') + ', which ' + (unsaved === 1 ? 'is' : 'are') + ' kept' : '') });
       if (saved.panel) events.push({ at: elapsed(), kind: 'save', text: 'The save panel was open and was closed by the reload (not counted as cancelled)' });
+      if (saved.adding) events.push({ at: elapsed(), kind: 'sidebar', text: 'Add link closed without adding anything (the page was reloaded): the “Page link” row ' + saved.adding + ' goes' });
+      // Typing in a link's Text when the page was reloaded: what it came to is logged next.
+      typingAtReload = IN_SIDEBAR && saved.typing ? saved.typing : null;
       if (saved.dialog) events.push({ at: elapsed(), kind: 'dialog', text: saved.dialog + ' dialog closed by reload' });
       if (saved.finish === 'ask') events.push({ at: elapsed(), kind: 'task', text: '“Have you done every task?” was open and was closed by the reload (not counted as turning back)' });
       if (saved.finish === 'code') events.push({ at: elapsed(), kind: 'task', text: 'The completion code was showing and was closed by the reload' });
@@ -360,6 +367,18 @@
     if (off) m.excluded.push(pageId);
   }
 
+  // A new menu item's id: unused in the menu on screen, the saved menu and every step of the
+  // history, so that a copy, an undone item and a new one can never share one.
+  function newItemId(prefix) {
+    const menus = [state.menu];
+    if (state.saved) menus.push(state.saved.menu);
+    if (state.hist) state.hist.stack.forEach((st) => menus.push(st.menu));
+    const taken = (id) => menus.some((m) => m.items.some((it) => it.id === id));
+    let id;
+    do { id = prefix + state.seq++; } while (taken(id));
+    return id;
+  }
+
   // The switch out of automatic: the menu becomes today's published pages as links, in the
   // same order and at the same levels, each with its own label copied from the page's title.
   function convertToLinks(mode) {
@@ -367,7 +386,7 @@
     if (!isAutomatic()) return;
     const published = (p) => p && p.status === 'publish';
     m.items = pageTreeRows().filter((r) => published(r.p)).map((r) => ({
-      id: 'link-' + state.seq++,
+      id: newItemId('link-'),
       pageId: r.p.id,
       label: r.p.title,
       depth: r.depth && published(page(r.p.parent)) ? 1 : 0,
@@ -384,7 +403,7 @@
     const m = state.menu;
     const p = page(pageId);
     if (isAutomatic() || !p) return null;
-    const item = { id: 'link-' + state.seq++, pageId, label: p.title, depth: 0, hidden: false };
+    const item = { id: newItemId('link-'), pageId, label: p.title, depth: 0, hidden: false };
     let i = parentItemId ? m.items.findIndex((it) => it.id === parentItemId && it.depth === 0) : -1;
     if (i >= 0) {
       i += 1;
@@ -630,7 +649,7 @@
     const sm = state.saved.menu;
     if (!(sm.mode === 'advanced' && sm.autoAdd)) return;
     const p = page(pageId);
-    const id = 'link-' + state.seq++;
+    const id = newItemId('link-');
     everyMenu(() => {
       const m = state.menu;
       if (m.mode !== 'advanced' || m.items.some((it) => it.pageId === pageId)) return;
@@ -653,6 +672,25 @@
     return JSON.stringify(a.menu) === JSON.stringify(b.menu) && order(a) === order(b) && parents(a) === parents(b);
   };
   const menuUnsaved = () => IN_SIDEBAR && JSON.stringify(state.menu) !== JSON.stringify(state.saved.menu);
+
+  // Whether a page that has just been published is in the menu, for the log: in the sidebar
+  // arms the saved menu (what visitors see) and the menu on screen can differ.
+  function menuWords(pageId) {
+    const screen = isShown(pageId);
+    const saved = onSaved(() => isShown(pageId));
+    const m = state.menu;
+    const sm = state.saved.menu;
+    let w;
+    if (screen && saved) w = 'it is now in the menu';
+    else if (!screen && !saved) w = 'it is not in the menu';
+    else if (saved) {
+      w = ARM === 'menu-switches' && sm.mode === 'automatic' ? 'it is in the saved pages menu, so visitors see it, but not in the advanced menu on screen, which isn’t saved yet'
+        : ARM === 'control' && sm.items.some(isPageList) ? 'it is in the saved menu’s Page List, so visitors see it, but not in the menu on screen, whose changes aren’t saved yet'
+        : 'it is in the saved menu, so visitors see it, but not in the menu on screen, whose changes aren’t saved yet';
+    } else w = 'it is in the menu on screen, but not in the saved menu, so visitors don’t see it yet';
+    if (m.mode === 'advanced' && sm.mode === 'advanced' && m.autoAdd !== sm.autoAdd) w += ' (the saved menu’s setting decides this: the switch was changed but not saved)';
+    return w;
+  }
 
   // The pages whose place or parent on screen isn't what's saved (Q's pages menu moves
   // pages), narrowed to the ones the person moved since the last save.
@@ -677,11 +715,25 @@
     return Math.max(1, Math.abs(state.hist.dirty));
   }
 
+  // The control's menu is a Page List, a Page List with something beside it (links, or a
+  // second Page List), links only (after detaching), or links only after the Page List was
+  // removed without detaching. The moment it first becomes mixed, or loses its last Page List
+  // without being detached, is stamped on the menu for the code's m part.
+  const isPlainPageList = (m) => m.items.length === 1 && isPageList(m.items[0]);
+  function stampMenu() {
+    if (ARM !== 'control') return;
+    const m = state.menu;
+    const lists = m.items.filter(isPageList).length;
+    if (lists && !isPlainPageList(m) && m.mixedAt == null) m.mixedAt = Math.max(1, seconds());
+    if (!lists && m.convertedAt == null && m.removedAt == null) m.removedAt = Math.max(1, seconds());
+  }
+
   // A change to the menu in these arms. No message: the editor shows none.
   function edit(fn, what, pageId) {
     endTyping();
     const sig = menuSignature();
     fn();
+    stampMenu();
     const h = state.hist;
     h.stack.length = h.at + 1;
     h.stack.push(snapshot(what, pageId));
@@ -698,9 +750,10 @@
   }
 
   // Closes whatever is open that a step back or forward might be about.
-  function closeForHistory() {
+  function closeForHistory(what) {
     const open = ui.dialog;
-    ui.dialog = null; ui.pop = null; ui.more = null; ui.navAdd = null; ui.typing = null;
+    dropAdd(what);
+    ui.dialog = null; ui.pop = null; ui.more = null; ui.typing = null;
     if (drag) endDrag(null, true, 'interrupted');
     if (open) log('dialog', dialogLabel(open) + ' dialog closed by Undo or Redo');
   }
@@ -708,7 +761,7 @@
   function editorUndo(how) {
     const h = state.hist;
     if (h.at === 0) { log('tried', 'Tried Undo (' + how + ') with nothing to undo'); return; }
-    closeForHistory();
+    closeForHistory('Undo');
     const what = h.stack[h.at].what;
     h.at--;
     applySnapshot(h.stack[h.at]);
@@ -724,7 +777,7 @@
   function editorRedo(how) {
     const h = state.hist;
     if (h.at >= h.stack.length - 1) { log('tried', 'Tried Redo (' + how + ') with nothing to redo'); return; }
-    closeForHistory();
+    closeForHistory('Redo');
     h.at++;
     applySnapshot(h.stack[h.at]);
     h.dirty = sameAsSaved() ? 0 : h.dirty + 1;
@@ -751,8 +804,9 @@
   function openSavePanel(how) {
     const list = saveEntities();
     if (!list.length) { log('tried', 'Tried Save (' + how + ') with nothing to save'); return; }
+    dropAdd('Save was clicked');
     ui.savePanel = { off: [] };
-    ui.more = null; ui.pop = null; ui.navAdd = null;
+    ui.more = null; ui.pop = null;
     ui.focus = 'save-cancel';
     undo = null;
     hideToast();
@@ -779,7 +833,15 @@
     if (list.some((e) => e.key === 'menu')) state.saved.menu = now.menu;
     // Page order is one thing: saving any moved page saves where the pages are.
     if (list.some((e) => e.group === 'Pages')) { state.saved.order = now.order; state.saved.parents = now.parents; }
-    if (sameAsSaved()) state.hist.dirty = 0;
+    const h = state.hist;
+    if (sameAsSaved()) h.dirty = 0;
+    else {
+      // Saved in part (Q: the menu or the pages, not both). What's still unsaved is the
+      // changes since the last save of the kind that wasn't saved: page moves, or the rest.
+      const menuSaved = list.some((e) => e.key === 'menu');
+      const recent = h.dirty > 0 ? h.stack.slice(h.at - h.dirty + 1, h.at + 1) : [];
+      h.dirty = Math.max(1, recent.filter((st) => (menuSaved ? !!st.page : !st.page)).length);
+    }
     ui.savePanel = null;
     ui.focus = 'ed-save';
     stats.saves++;
@@ -1136,8 +1198,9 @@
   function closeSidebar(how) {
     if (!ui.sidebar) return;
     endTyping();
+    dropAdd('the sidebar was closed: ' + how);
     ui.sidebar = false;
-    ui.navSel = null; ui.navAdd = null;
+    ui.navSel = null;
     if (ui.more && ui.more.indexOf('nav:') === 0) ui.more = null;
     log('sidebar', 'Navigation sidebar closed (' + how + ')');
     render();
@@ -1335,7 +1398,7 @@
     }
     const adding = !!ui.navAdd && ui.navAdd.place === 'end';
     return `${intro}${list}
-      <button type="button" class="nav-append" data-action="nav-ask-add" data-place="end" data-focus="nav-append" aria-label="Add link" aria-expanded="${adding ? 'true' : 'false'}">${ICON.plus}</button>
+      <button type="button" class="nav-append" data-action="nav-ask-add" data-place="end" data-focus="nav-append" aria-label="Add page" aria-expanded="${adding ? 'true' : 'false'}">${ICON.plus}</button>
       ${m.mode === 'advanced' ? `<button type="button" class="switch nav-auto" aria-pressed="${m.autoAdd}" data-action="nav-autoadd" data-focus="nav-autoadd"><span class="switch-track"></span><span>${AUTO_ADD_LABEL}</span></button>` : ''}`;
   }
 
@@ -1364,7 +1427,7 @@
     if (!ui.sidebar) return '';
     // Undo, trash or detaching can take the selected row, or the row a link was going beside, away.
     if (ui.navSel && !itemById(ui.navSel)) ui.navSel = null;
-    if (ui.navAdd && (isAutomatic() || (ui.navAdd.ref && !itemById(ui.navAdd.ref)))) ui.navAdd = null;
+    if (ui.navAdd && (isAutomatic() || (ui.navAdd.ref && !itemById(ui.navAdd.ref)))) dropAdd('what it was beside has gone');
     const sel = ui.navSel ? itemById(ui.navSel) : null;
     const head = sel
       ? `<button type="button" class="icon-btn nav-back-btn" data-action="nav-back" data-focus="nav-back" aria-label="Go to &quot;Navigation&quot; block">${ICON.back}</button><h2>${isPageList(sel) ? 'Page List' : 'Page link'}</h2>`
@@ -1455,7 +1518,7 @@
   }
 
   // The field has been left (or Enter pressed): say what the typing came to.
-  function endTyping() {
+  function endTyping(how) {
     const t = ui.typing;
     ui.typing = null;
     if (!t) return;
@@ -1479,7 +1542,7 @@
     h.stack[h.at] = snapshot('the Text of ' + q(t.from) + ' changed to ' + q(text));
     checkTasks();
     save();
-    log('menu', 'Renamed a link’s label: ' + q(t.from) + ' to ' + q(text) + ' (Text, in the sidebar' + (it.pageId && page(it.pageId) ? '; the page is still called ' + q(page(it.pageId).title) : '') + ')');
+    log('menu', 'Renamed a link’s label: ' + q(t.from) + ' to ' + q(text) + ' (Text, in the sidebar' + (it.pageId && page(it.pageId) ? '; the page is still called ' + q(page(it.pageId).title) : '') + ')' + (how ? '; ' + how : ''));
   }
 
   // Where a new link goes: at the end, before or after an item, or in a link's submenu.
@@ -1490,7 +1553,6 @@
     else if (place === 'before') { item.depth = m.items[i].depth; m.items.splice(i, 0, item); }
     else if (place === 'after') { item.depth = m.items[i].depth; m.items.splice(m.items[i].depth === 0 ? itemBlockEnd(i) : i + 1, 0, item); }
     else { item.depth = 1; m.items.splice(itemBlockEnd(i), 0, item); }
-    if (m.mixedAt == null && m.items.some(isPageList)) m.mixedAt = Math.max(1, seconds());
     state.fresh = state.fresh.filter((x) => x !== item.pageId);
     return item;
   }
@@ -1510,12 +1572,19 @@
     return null;
   }
 
+  // An Add link that ends without a link: always logged, however it ended.
+  function dropAdd(how) {
+    if (!ui.navAdd) return false;
+    ui.navAdd = null;
+    log('sidebar', 'Add link closed without adding anything (' + how + '): the “Page link” row goes');
+    return true;
+  }
+
   function closeAdd(how) {
     const a = ui.navAdd;
     if (!a) return;
-    ui.navAdd = null;
+    dropAdd(how);
     ui.focus = a.place === 'end' || !a.ref ? 'nav-append' : 'more:' + navKey(a.ref);
-    log('sidebar', 'Add link closed without adding anything (' + how + '): the “Page link” row goes');
     render();
   }
 
@@ -1525,7 +1594,7 @@
     const i = m.items.findIndex((it) => it.id === itemId);
     if (i < 0) return;
     const links = pageTreeRows().filter((r) => published(r.p)).map((r) => ({
-      id: 'link-' + state.seq++, pageId: r.p.id, label: r.p.title, depth: r.depth && published(page(r.p.parent)) ? 1 : 0, hidden: false
+      id: newItemId('link-'), pageId: r.p.id, label: r.p.title, depth: r.depth && published(page(r.p.parent)) ? 1 : 0, hidden: false
     }));
     m.items.splice(i, 1, ...links);
     if (m.convertedAt == null) m.convertedAt = Math.max(1, seconds());
@@ -1537,8 +1606,9 @@
       if (!it) return;
       // The click that ends a drag isn't a selection.
       if (justDragged) return;
+      dropAdd('another row was selected');
       ui.navSel = d.id;
-      ui.navAdd = null; ui.more = null;
+      ui.more = null;
       ui.focus = isPageList(it) ? 'nav-ask-detach' : 'nav-back';
       log('sidebar', isPageList(it) ? 'Selected the Page List row: its settings take the list’s place, with Detach Page List' : 'Selected the link ' + q(it.label) + ': its settings take the list’s place, with Text and Link to');
       render();
@@ -1555,12 +1625,8 @@
     'nav-locked'(d) {
       const p = page(d.page);
       if (!p) return;
-      // Let go of after a drag that went nowhere: the try to drag is already in the log.
-      if (lockedDragged) {
-        log('tried', 'Let go on ' + q(p.title) + ' under the Page List: the Detach Page List dialog opens');
-        askConvert({ trigger: 'tried to drag ' + q(p.title) + ' under the Page List', itemId: d.list });
-        return;
-      }
+      // The click that ends a drag: the drag has already been dealt with.
+      if (lockedDragged) return;
       log('tried', 'Tried to select ' + q(p.title) + ' under the Page List, which can’t be edited: the Detach Page List dialog opens instead');
       askConvert({ trigger: 'selected ' + q(p.title) + ' under the Page List', itemId: d.list });
     },
@@ -1582,6 +1648,7 @@
       const place = d.place || 'end';
       const ref = d.ref || null;
       if (ui.navAdd && ui.navAdd.place === place && (ui.navAdd.ref || null) === ref) { closeAdd('the same control again'); return; }
+      dropAdd('another Add was chosen');
       ui.navAdd = { place, ref, create: false, title: '', publish: true };
       ui.more = null; ui.navSel = null;
       ui.focus = 'nav-search';
@@ -1596,7 +1663,7 @@
       if (!a || !p) return;
       const where = placeWords(a);
       edit(() => {
-        insertItem({ id: 'link-' + state.seq++, pageId: p.id, label: p.title, hidden: false }, a.place, a.ref);
+        insertItem({ id: newItemId('link-'), pageId: p.id, label: p.title, hidden: false }, a.place, a.ref);
         ui.navAdd = null;
         ui.focus = 'nav-append';
       }, 'a link to ' + q(p.title) + ' added');
@@ -1608,7 +1675,7 @@
       if (!a || !url) return;
       const where = placeWords(a);
       edit(() => {
-        insertItem({ id: 'link-' + state.seq++, url, label: d.text, hidden: false }, a.place, a.ref);
+        insertItem({ id: newItemId('link-'), url, label: d.text, hidden: false }, a.place, a.ref);
         ui.navAdd = null;
         ui.focus = 'nav-append';
       }, 'a link to ' + q(url) + ' added');
@@ -1619,7 +1686,8 @@
       const typed = (document.getElementById('nav-search') || {}).value || '';
       ui.navAdd.create = true;
       if (!ui.navAdd.title && typed && !asAddress(typed.trim())) ui.navAdd.title = typed.trim();
-      ui.focus = 'nav-create-title';
+      // The keyboard goes to Back first, as in WordPress.
+      ui.focus = 'nav-create-back';
       log('sidebar', 'Create page chosen in Add link');
       render();
     },
@@ -1646,12 +1714,31 @@
       if (!title) { if (field) { field.focus(); field.setAttribute('aria-invalid', 'true'); } return; }
       const status = a.publish === false ? 'draft' : 'publish';
       const where = placeWords(a);
+      // A menu whose saved setting adds new pages (A's Auto add pages, Q's advanced menu) adds
+      // this one as it adds any page that's published, wherever it was made: one link, at the
+      // end, in the saved menu too. Nothing is left to save.
+      const sm = state.saved.menu;
+      if (status === 'publish' && sm.mode === 'advanced' && sm.autoAdd) {
+        const sig = menuSignature();
+        endTyping();
+        ui.navAdd = null;
+        const id = createPage(title, status);
+        ui.flash = keyRow(id);
+        ui.focus = 'nav-append';
+        if (!stats.firstMenuChange && menuSignature() !== sig) stats.firstMenuChange = Math.max(1, seconds());
+        checkTasks();
+        save();
+        render();
+        log('page', 'Added ' + q(title) + ' with Create page in the sidebar’s Add link, published');
+        log('menu', 'The saved menu’s “' + AUTO_ADD_LABEL + '” added a link to it at the end of the menu, as for any page that’s published (not ' + where + '); there is nothing to save');
+        return;
+      }
       // The page: applied everywhere at once. Its own link is the one being added, so the
       // menu's auto-add doesn't add another.
       const id = createPage(title, status, true);
       ui.flash = keyRow(id);
       edit(() => {
-        insertItem({ id: 'link-' + state.seq++, pageId: id, label: title, hidden: false }, a.place, a.ref);
+        insertItem({ id: newItemId('link-'), pageId: id, label: title, hidden: false }, a.place, a.ref);
         ui.navAdd = null;
         ui.focus = 'nav-append';
       }, 'a link to the new page ' + q(title) + ' added');
@@ -1666,7 +1753,7 @@
         const items = state.menu.items;
         const i = items.indexOf(it);
         const end = itemBlockEnd(i);
-        const copies = items.slice(i, end).map((x) => Object.assign({}, x, { id: (isPageList(x) ? 'page-list-' : 'link-') + state.seq++ }));
+        const copies = items.slice(i, end).map((x) => Object.assign({}, x, { id: newItemId(isPageList(x) ? 'page-list-' : 'link-') }));
         copyId = copies[0].id;
         items.splice(end, 0, ...copies);
         // The copy is selected, as in the editor.
@@ -1685,8 +1772,6 @@
       const near = rows[at + 1] || rows[at - 1];
       edit(() => {
         removeLink(d.item);
-        const m = state.menu;
-        if (isPageList(it) && !m.items.some(isPageList) && m.convertedAt == null && m.removedAt == null) m.removedAt = Math.max(1, seconds());
         ui.focus = near ? 'nav-row:' + near.id : 'nav-append';
       }, isPageList(it) ? 'the Page List removed' : q(label) + ' removed');
       log('menu', isPageList(it) ? 'Page List removed from the menu without detaching (Remove Page List, in the sidebar): its pages are no longer in the menu' + (state.menu.items.length ? '' : ', which is now empty')
@@ -1804,6 +1889,10 @@
     render();
   }
 
+  // The convert dialog of the sidebar arms (the control's Detach Page List, Q's Switch to
+  // advanced menu) behaves as WordPress's ConfirmDialog.
+  const isConfirm = (d) => !!d && d.type === 'convert' && IN_SIDEBAR;
+
   function dialogHtml() {
     const d = ui.dialog;
     if (!d) return '';
@@ -1830,10 +1919,11 @@
     }
     if (d.type === 'convert') {
       const copy = convertCopy(d);
-      // The control's dialog has core's close button as well as Cancel.
-      const x = ARM === 'control' ? `<button type="button" class="icon-btn dialog-x" data-action="close-dialog" data-how="the close button" data-focus="dialog-x" aria-label="Close">${ICON.close}</button>` : '';
+      // In the sidebar arms the confirm is WordPress's ConfirmDialog (Quinn uses it too): a
+      // close button labelled Cancel, a text-style Cancel, and the keyboard on the dialog.
+      const x = isConfirm(d) ? `<button type="button" class="icon-btn dialog-x" data-action="close-dialog" data-how="the close button" data-focus="dialog-x" aria-label="Cancel">${ICON.close}</button>` : '';
       body = `${x}<h2 id="dlg-title">${copy.title}</h2>${copy.body}
-        <div class="dialog-actions">${btn('close-dialog', 'Cancel')}${btn('convert', copy.confirm, {}, 'btn-primary')}</div>`;
+        <div class="dialog-actions">${btn('close-dialog', 'Cancel', {}, isConfirm(d) ? 'btn-text' : '')}${btn('convert', copy.confirm, {}, 'btn-primary')}</div>`;
     }
     if (d.type === 'trash') {
       const p = page(d.pageId);
@@ -1842,7 +1932,7 @@
         <p>Visitors won't be able to see this page any more.</p>
         <div class="dialog-actions">${btn('close-dialog', 'Cancel')}${btn('trash', 'Move to trash', { page: p.id }, 'btn-danger')}</div>`;
     }
-    return `<div class="scrim" data-action="scrim"><div class="dialog${d.type === 'convert' && ARM === 'control' ? ' has-x' : ''}" role="dialog" aria-modal="true" aria-labelledby="dlg-title"${d.type === 'convert' && ARM === 'control' ? ' tabindex="-1"' : ''}>${body}</div></div>`;
+    return `<div class="scrim${isConfirm(d) ? ' centred' : ''}" data-action="scrim"><div class="dialog${isConfirm(d) ? ' has-x' : ''}" role="dialog" aria-modal="true" aria-labelledby="dlg-title"${isConfirm(d) ? ' tabindex="-1"' : ''}>${body}</div></div>`;
   }
 
   function closeDialog(how) {
@@ -1956,9 +2046,8 @@
     if (sideEl) sideEl.scrollTop = sideScroll;
 
     if (ui.dialog) {
-      // The control's Detach dialog takes the keyboard itself, as core's does: Enter doesn't
-      // confirm it until Detach has been tabbed to.
-      const first = ui.dialog.type === 'convert' && ARM === 'control' ? root.querySelector('.dialog') : root.querySelector('.dialog input, .dialog .btn-primary, .dialog .btn-danger');
+      // The ConfirmDialog takes the keyboard itself, as core's does; Enter there confirms.
+      const first = isConfirm(ui.dialog) ? root.querySelector('.dialog') : root.querySelector('.dialog input, .dialog .btn-primary, .dialog .btn-danger');
       if (first && !root.querySelector('.dialog').contains(document.activeElement)) { first.focus(); if (first.select) first.select(); }
     } else if (focusKey) {
       const el = root.querySelector(`[data-focus="${CSS.escape(focusKey)}"]`);
@@ -2076,6 +2165,22 @@
     if (k < 0 || k >= sibs.length) return false;
     reorder(kind, id, sibs[k], dir > 0, how);
     return true;
+  }
+
+  // A click on an item of the header menu once the menu is selected selects that item, as on
+  // the editor's canvas: a link, or the Page List that a page belongs to. (A click there never
+  // opens the Detach dialog.) The page isn't shown. how: '' or ' (the second click of the
+  // double-click that opened the sidebar)'.
+  function clickSelectedMenu(itemId, label, how) {
+    const it = itemById(itemId);
+    if (!it) { log('tried', 'Clicked ' + q(label) + ' in the header menu, which is selected' + how + ': nothing more is shown for a page in a pages menu'); return; }
+    if (ui.navSel === it.id) { log('tried', 'Clicked ' + q(label) + ' in the header menu again' + how + ': ' + (isPageList(it) ? 'the Page List' : 'the link') + ' is already selected'); return; }
+    endTyping();
+    dropAdd('the header menu was clicked');
+    ui.navSel = it.id; ui.more = null;
+    ui.focus = isPageList(it) ? 'nav-ask-detach' : 'nav-back';
+    log('sidebar', 'Clicked ' + q(label) + ' in the header menu, which is selected' + how + ': ' + (isPageList(it) ? 'the Page List is selected, and its settings take the list’s place, with Detach Page List' : 'that link is selected, and its settings take the list’s place'));
+    render();
   }
 
   const actions = {
@@ -2226,7 +2331,7 @@
       // The keyboard stays on the row: its marker (B's popover) or its ⋮ button.
       const focus = (d.how === 'its marker' ? 'pop:' : 'more:') + keyRow(d.page);
       commit(() => { publishPage(d.page); ui.pop = null; ui.flash = keyRow(d.page); ui.focus = focus; }, `"${p.title}" is published`);
-      log('page', 'Published ' + q(p.title) + ' (from ' + (d.how || 'the Pages panel') + '); ' + (isShown(d.page) && !was ? 'it is now in the menu' : 'it is not in the menu') + (IN_SIDEBAR && state.menu.mode === 'advanced' && state.menu.autoAdd !== state.saved.menu.autoAdd ? ' (the saved menu’s setting decides this: the switch was changed but not saved)' : ''));
+      log('page', 'Published ' + q(p.title) + ' (from ' + (d.how || 'the Pages panel') + '); ' + (IN_SIDEBAR ? menuWords(d.page) : isShown(d.page) && !was ? 'it is now in the menu' : 'it is not in the menu'));
     },
     'ask-add'() { openDialog({ type: 'add' }); },
     create(d) {
@@ -2244,7 +2349,7 @@
         else if (ARM === 'switches') ui.focus = 'sw:' + id;
         else ui.focus = 'more:' + keyRow(id);
       }, `"${title}" ${d.status === 'draft' ? 'saved as a draft' : 'published'}`);
-      log('page', 'Added ' + q(title) + ', ' + (d.status === 'draft' ? 'saved as a draft' : 'published; ' + (isShown(id) ? 'it is now in the menu' : 'it is not in the menu') + (IN_SIDEBAR && state.menu.mode === 'advanced' && state.menu.autoAdd !== state.saved.menu.autoAdd ? ' (the saved menu’s setting decides this: the switch was changed but not saved)' : '')));
+      log('page', 'Added ' + q(title) + ', ' + (d.status === 'draft' ? 'saved as a draft' : 'published; ' + (IN_SIDEBAR ? menuWords(id) : isShown(id) ? 'it is now in the menu' : 'it is not in the menu')));
       log('visit', 'The preview shows the new page, ' + q(title));
       if (ARM === 'explained') log('menu', 'Marker popover opened on its own after Add page: ' + q(title) + ' (not counted)');
     },
@@ -2296,17 +2401,10 @@
       // With the menu already selected, a click on one of its items selects that item, as on
       // the editor's canvas: a link, or the Page List that a page belongs to. (A click there
       // never opens the Detach dialog.) The page isn't shown.
-      if (ui.sidebar && !ui.savePanel && link) {
-        const it = itemById(link.dataset.item);
-        if (!it) { log('tried', 'Clicked ' + q(link.dataset.navLink) + ' in the header menu, which is selected: nothing more is shown for a page in a pages menu'); return; }
-        if (ui.navSel === it.id) { log('tried', 'Clicked ' + q(link.dataset.navLink) + ' in the header menu again: ' + (isPageList(it) ? 'the Page List' : 'the link') + ' is already selected'); return; }
-        endTyping();
-        ui.navSel = it.id; ui.navAdd = null; ui.more = null;
-        log('sidebar', 'Clicked ' + q(link.dataset.navLink) + ' in the header menu, which is selected: ' + (isPageList(it) ? 'the Page List is selected, and its settings take the list’s place, with Detach Page List' : 'that link is selected, and its settings take the list’s place'));
-        render();
-        return;
-      }
+      if (ui.sidebar && !ui.savePanel && link) { clickSelectedMenu(link.dataset.item, link.dataset.navLink, ''); return; }
+      openedBy = link ? { item: link.dataset.item || '', label: link.dataset.navLink } : null;
       openSidebar(link ? 'clicked ' + q(link.dataset.navLink) + ' in the header menu' : 'clicked the header menu');
+      sidebarOpenedAt = Date.now();
     },
     'close-sidebar'() { closeSidebar('close button'); },
     ...navActions,
@@ -2318,7 +2416,8 @@
       const what = undo.message;
       // Whatever is open may be about something Undo takes away, so it closes first.
       const open = ui.dialog;
-      ui.dialog = null; ui.pop = null; ui.more = null; ui.navAdd = null;
+      dropAdd('Undo');
+      ui.dialog = null; ui.pop = null; ui.more = null;
       if (drag) endDrag(null, true, 'interrupted');
       state = undo.state;
       ui.current = page(undo.current) ? undo.current : 'home';
@@ -2358,6 +2457,11 @@
   let dialogChangedAt = 0;
   let dialogOpenedAt = 0;
   let popOpenedItselfAt = 0;
+  // The sidebar arms: when a ⋮ item was last chosen, when a click on the header menu last
+  // opened the sidebar, and what was clicked.
+  let moreItemAt = 0;
+  let sidebarOpenedAt = 0;
+  let openedBy = null;
   let downOnScrim = false;
   document.addEventListener('pointerdown', (ev) => {
     downOnScrim = !!(ev.target.classList && ev.target.classList.contains('scrim'));
@@ -2366,6 +2470,30 @@
   document.addEventListener('click', (ev) => {
     if (ev.target.closest('a[href="#"]')) ev.preventDefault();
     if (ev.detail > 1 && Date.now() - dialogChangedAt < GUARD_MS) return;
+    if (IN_SIDEBAR && !ev.target.closest('.notes')) {
+      // The second click of a double-click on a ⋮ item lands on whatever is under it now.
+      if (ev.detail > 1 && Date.now() - moreItemAt < GUARD_MS) return;
+      // The sidebar's arrival moves the preview, so for half a second after a click on the
+      // header menu opened it, a click in the preview is ignored; and the second click of a
+      // double-click, wherever it lands, counts as a second click on what was clicked first.
+      if (Date.now() - sidebarOpenedAt < GUARD_MS) {
+        if (ev.detail > 1 && openedBy) {
+          const o = openedBy;
+          openedBy = null;
+          if (ui.sidebar && !ui.savePanel) clickSelectedMenu(o.item, o.label, ' (the second click of the double-click that opened the sidebar)');
+          return;
+        }
+        if (ev.target.closest('.stage')) return;
+        // A fresh click somewhere else: the person has moved on, so the guard ends.
+        openedBy = null;
+        sidebarOpenedAt = 0;
+      }
+      // A click outside the Add link popover closes it, as in the editor.
+      if (ui.navAdd && !ev.target.closest('.nav-picker, [data-action="nav-ask-add"]')) {
+        const where = ev.target.closest('.panel') ? 'clicked the Pages panel' : ev.target.closest('.stage') ? 'clicked the preview' : ev.target.closest('.navside') ? 'clicked elsewhere in the sidebar' : ev.target.closest('.topbar') ? 'clicked the top bar' : 'clicked elsewhere';
+        if (dropAdd(where)) render();
+      }
+    }
     // A click elsewhere in the preview closes the Navigation sidebar.
     if (ui.sidebar && ev.target.closest('.stage') && !ev.target.closest('.site-nav')) closeSidebar('clicked elsewhere in the preview');
     const el = ev.target.closest('[data-action]');
@@ -2376,6 +2504,7 @@
     }
     const action = actions[el.dataset.action];
     if (!action) return;
+    if (IN_SIDEBAR && el.closest('.moremenu')) moreItemAt = Date.now();
     action(Object.assign({}, el.dataset), el, ev);
   });
 
@@ -2383,7 +2512,8 @@
     // Ctrl+Z / Cmd+Z: the same single Undo as the message's button, until the next change.
     // Not while typing in a field (the field's own undo), and not with a dialog open.
     const key = String(ev.key).toLowerCase();
-    if ((ev.ctrlKey || ev.metaKey) && !ev.altKey && (key === 'z' || (key === 'y' && !ev.shiftKey))) {
+    // Redo is Ctrl+Shift+Z or Ctrl+Y, and on a Mac Cmd+Shift+Z (Cmd+Y is the browser's there).
+    if ((ev.ctrlKey || ev.metaKey) && !ev.altKey && (key === 'z' || (key === 'y' && !ev.shiftKey && !(IS_MAC && ev.metaKey && !ev.ctrlKey)))) {
       const t = ev.target;
       const typing = t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable);
       if (typing || ui.dialog || finishStep || drag) return;
@@ -2438,6 +2568,12 @@
       return;
     }
     if (ev.key === 'Enter' && ev.target.id === 'nav-create-title') { ev.preventDefault(); navActions['nav-create'](); return; }
+    // ConfirmDialog: Enter anywhere in it but on its buttons confirms (a button does its own thing).
+    if (ev.key === 'Enter' && isConfirm(ui.dialog) && ev.target.closest && ev.target.closest('.dialog') && !ev.target.closest('button')) {
+      ev.preventDefault();
+      if (!ev.repeat) actions.convert();
+      return;
+    }
     if (ev.key === 'Enter' && ui.dialog && ev.target.tagName === 'INPUT') {
       ev.preventDefault();
       const primary = root.querySelector('.dialog .btn-primary');
@@ -2478,7 +2614,8 @@
     if (!h || ev.button > 0) return;
     const li = h.closest('li');
     const side = !!h.closest('.navside');
-    if (!side) ev.preventDefault();
+    // No text selection or native drag starts (Safari); the row still takes the keyboard.
+    ev.preventDefault();
     if (h.focus) h.focus();
     try { h.setPointerCapture(ev.pointerId); } catch (e) { /* not capturable; the document still hears the moves */ }
     if (!side) { ui.more = null; ui.pop = null; }
@@ -2570,13 +2707,17 @@
   let lockedDragged = false;
   document.addEventListener('pointerdown', (ev) => {
     const li = ev.target.closest && ev.target.closest('.navside li[data-locked]');
-    lockedDrag = li && !(ev.button > 0) ? { what: li.dataset.locked, x: ev.clientX, y: ev.clientY, logged: false } : null;
+    lockedDrag = li && !(ev.button > 0) ? { what: li.dataset.locked, list: li.dataset.dragGroup, x: ev.clientX, y: ev.clientY, logged: false } : null;
     lockedDragged = false;
   });
+  // Dragging one of the Page List's pages opens the Detach Page List dialog as soon as the drag
+  // starts, wherever it's then let go of, as in WordPress (seen in a running editor).
   document.addEventListener('pointermove', (ev) => {
     if (!lockedDrag || lockedDrag.logged || Math.hypot(ev.clientX - lockedDrag.x, ev.clientY - lockedDrag.y) < 8) return;
     lockedDrag.logged = true;
-    log('tried', 'Tried to drag ' + lockedDrag.what + ', which can’t be moved until the Page List is detached');
+    if (!itemById(lockedDrag.list) || ui.dialog) return;
+    log('tried', 'Tried to drag ' + lockedDrag.what + ', which can’t be moved until the Page List is detached: the Detach Page List dialog opens');
+    askConvert({ trigger: 'tried to drag ' + lockedDrag.what, itemId: lockedDrag.list });
   });
   function lockedDragEnd() {
     // The click that may follow a pointerup comes before this timer, and knows it was a drag.
@@ -2782,7 +2923,8 @@
    * without saving · s: seconds until Finished.
    * In the sidebar arms the tasks, m and n are read from the saved site; if the screen showed
    * different task digits they follow after a dot (10200.11212). The control's m: ma the Page
-   * List alone, mp it has links beside it, ml detached, mr removed without detaching.
+   * List alone, mp it has links (or a second Page List) beside it, ml detached, mr removed
+   * without detaching.
    */
   function menuPart() {
     const m = state.menu;
@@ -2790,7 +2932,7 @@
     if (ARM === 'control') {
       // The Page List alone; the Page List with links beside it; detached; or removed.
       const lists = m.items.filter(isPageList).length;
-      if (lists) return lists === m.items.length ? 'ma' : 'mp' + m.mixedAt;
+      if (lists) return isPlainPageList(m) ? 'ma' : 'mp' + m.mixedAt;
       return m.convertedAt != null ? 'ml' + m.convertedAt : 'mr' + m.removedAt;
     }
     if (m.mode === 'links') return 'ml' + m.convertedAt;
@@ -2942,7 +3084,7 @@
     }).join('');
     const m = IN_SIDEBAR ? state.saved.menu : state.menu;
     const lists = m.items.filter(isPageList).length;
-    const menuNow = ARM === 'control' ? (lists ? (lists === m.items.length ? 'the Page List' : 'the Page List with links beside it, since ' + m.mixedAt + 's') : m.convertedAt != null ? 'links, detached at ' + m.convertedAt + 's' : 'the Page List was removed at ' + m.removedAt + 's')
+    const menuNow = ARM === 'control' ? (lists ? (isPlainPageList(m) ? 'the Page List' : (lists > 1 ? lists + ' Page Lists' : 'the Page List') + (m.items.length > lists ? ' with links beside it' : '') + ', since ' + m.mixedAt + 's') : m.convertedAt != null ? 'links, detached at ' + m.convertedAt + 's' : 'the Page List was removed at ' + m.removedAt + 's')
       : m.mode === 'automatic' ? 'automatic' + (m.excluded.length ? ', ' + m.excluded.length + ' switched off' : '')
       : m.mode === 'links' ? 'links, since ' + m.convertedAt + 's'
       : STARTS_AS_LINKS ? 'links from the start; Auto add pages ' + (m.autoAdd ? 'on' : 'off, turned off at ' + m.autoAddOffAt + 's')
@@ -2971,6 +3113,7 @@
   // ---------- Start ----------
 
   if (!restore()) save();
+  if (typingAtReload) { ui.typing = typingAtReload; typingAtReload = null; endTyping('typed before the page was reloaded'); }
   checkTasks();
   flushTaskLines();
   render();

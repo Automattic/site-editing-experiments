@@ -216,7 +216,7 @@
         // What was open, so that a reload can say what it closed.
         dialog: ui.dialog ? dialogLabel(ui.dialog) : null, finish: finishStep, panel: !!ui.savePanel,
         // An Add link that was open, and a Text being typed, so a reload can finish them.
-        adding: ui.navAdd ? placeWords(ui.navAdd) : null, typing: ui.typing
+        adding: ui.navAdd ? placeWords(ui.navAdd) : null, addingText: ui.navAdd ? (ui.navAdd.q || '').trim() : '', typing: ui.typing
       }));
     } catch (e) { /* in memory only */ }
   }
@@ -241,7 +241,7 @@
       const unsaved = unsavedCount();
       events.push({ at: elapsed(), kind: 'reload', text: 'Page reloaded' + (unsaved ? ', with ' + unsaved + ' unsaved menu ' + (unsaved === 1 ? 'change' : 'changes') + ', which ' + (unsaved === 1 ? 'is' : 'are') + ' kept' : '') });
       if (saved.panel) events.push({ at: elapsed(), kind: 'save', text: 'The save panel was open and was closed by the reload (not counted as cancelled)' });
-      if (saved.adding) events.push({ at: elapsed(), kind: 'sidebar', text: 'Add link closed without adding anything (the page was reloaded): the “Page link” row ' + saved.adding + ' goes' });
+      if (saved.adding) events.push({ at: elapsed(), kind: 'sidebar', text: 'Add link closed without adding anything (the page was reloaded' + (saved.addingText ? ', with ' + q(saved.addingText) + ' typed in Search or type URL' : '') + '): the “Page link” row ' + saved.adding + ' goes' });
       // Typing in a link's Text when the page was reloaded: what it came to is logged next.
       typingAtReload = IN_SIDEBAR && saved.typing ? saved.typing : null;
       if (saved.dialog) events.push({ at: elapsed(), kind: 'dialog', text: saved.dialog + ' dialog closed by reload' });
@@ -411,11 +411,15 @@
     const m = state.menu;
     if (!isAutomatic()) return;
     const published = (p) => p && p.status === 'publish';
-    m.items = pageTreeRows().filter((r) => published(r.p)).map((r) => ({
+    // Q: a draft that was switched off becomes a hidden link, as a published page that was off
+    // does, so it stays out of the menu when it's published (auto-add skips a page that has a
+    // link). A draft that was on isn't a link yet; auto-add adds it when it's published.
+    const taken = (p) => published(p) || (CANVAS_DRAFTS && !!p && isExcluded(p.id));
+    m.items = pageTreeRows().filter((r) => taken(r.p)).map((r) => ({
       id: newItemId('link-'),
       pageId: r.p.id,
       label: r.p.title,
-      depth: r.depth && published(page(r.p.parent)) ? 1 : 0,
+      depth: r.depth && taken(page(r.p.parent)) ? 1 : 0,
       hidden: isExcluded(r.p.id)
     }));
     m.mode = mode === 'advanced' ? 'advanced' : 'links';
@@ -1537,7 +1541,7 @@
     if (ui.navAdd && (isAutomatic() || (ui.navAdd.ref && !itemById(ui.navAdd.ref)))) dropAdd('what it was beside has gone');
     const sel = ui.navSel ? itemById(ui.navSel) : null;
     const head = sel
-      ? `<button type="button" class="icon-btn nav-back-btn" data-action="nav-back" data-focus="nav-back" aria-label="Go to &quot;Navigation&quot; block">${ICON.back}</button><h2>${isPageList(sel) ? 'Page List' : 'Page link'}</h2>`
+      ? `<button type="button" class="icon-btn nav-back-btn" data-action="nav-back" data-focus="nav-back" aria-label="Go to &quot;Navigation&quot; block">${ICON.back}</button><h2>${isPageList(sel) ? 'Page List' : isBlock(sel) ? BLOCKS[sel.block].title : 'Page link'}</h2>`
       : '<h2>Navigation</h2>';
     return `<aside class="navside" aria-label="Navigation">
       <div class="navside-head${sel ? ' has-back' : ''}">${head}<button type="button" class="icon-btn" data-action="close-sidebar" data-focus="close-sidebar" aria-label="Close Navigation">${ICON.close}</button></div>
@@ -2489,13 +2493,16 @@
       log('dialog', dialogName(d) + ' dialog confirmed');
       if (IN_SIDEBAR) {
         // In the editor: an unsaved change, with no message.
+        // Q: drafts switched off become hidden links (see convertToLinks); say which.
+        const offDrafts = !detaching && CANVAS_DRAFTS && isAutomatic() ? state.pages.filter((p) => p.status !== 'publish' && isExcluded(p.id)).map((p) => q(p.title)) : [];
         edit(() => {
           if (detaching) detachPageList(d.itemId); else convertToLinks(mode);
           ui.navSel = null;
           const firstLink = state.menu.items.find((it) => !isPageList(it));
           if (firstLink) ui.focus = 'nav-row:' + firstLink.id;
         }, detaching ? 'the Page List detached' : 'switched to an advanced menu');
-        log('menu', detaching ? 'Page List detached: its pages are now links' : mode === 'advanced' ? 'Menu switched to an advanced menu (links, new pages still added)' : 'Page List detached: its pages are now links');
+        log('menu', (detaching ? 'Page List detached: its pages are now links' : mode === 'advanced' ? 'Menu switched to an advanced menu (links, new pages still added)' : 'Page List detached: its pages are now links') +
+          (offDrafts.length ? '; ' + (offDrafts.length === 1 ? 'the draft ' + offDrafts[0] + ', which was switched off, becomes a hidden link' : 'the drafts ' + offDrafts.join(', ') + ', which were switched off, become hidden links') + ', so it stays out of the menu when published' : ''));
         return;
       }
       if (d.then === 'remove') {
@@ -3123,7 +3130,7 @@
     // Search or type URL narrows the suggestions as you type, without redrawing.
     if (t.id === 'nav-linkto-input' && ui.linkEdit) { ui.linkEdit.text = t.value; t.parentElement.querySelector('.nav-apply').setAttribute('aria-disabled', t.value.trim() ? 'false' : 'true'); return; }
     if (t.id !== 'nav-search') return;
-    if (ui.navAdd) ui.navAdd.q = t.value;
+    if (ui.navAdd) { ui.navAdd.q = t.value; save(); }
     t.parentElement.querySelector('.nav-apply').setAttribute('aria-disabled', t.value.trim() ? 'false' : 'true');
     const want = t.value.trim().toLowerCase();
     t.closest('.nav-picker').querySelectorAll('.nav-results li').forEach((li) => { li.hidden = !li.firstElementChild.dataset.find.includes(want); });
@@ -3244,8 +3251,11 @@
       return m.convertedAt != null ? 'ml' + m.convertedAt : 'mr' + m.removedAt;
     }
     if (m.mode === 'links') return 'ml' + m.convertedAt;
-    if (STARTS_AS_LINKS) return m.autoAdd ? 'mv' : 'mx' + m.autoAddOffAt;
-    return (m.autoAdd ? 'mv' : 'mx') + m.convertedAt;
+    // A Page List added with Add block (and not detached) in A or Q's advanced menu: a p
+    // after mv / mx (mvp, mxp140), before the seconds.
+    const p = m.items.some(isPageList) ? 'p' : '';
+    if (STARTS_AS_LINKS) return m.autoAdd ? 'mv' + p : 'mx' + p + m.autoAddOffAt;
+    return (m.autoAdd ? 'mv' : 'mx') + p + m.convertedAt;
   }
 
   function completionCode() {

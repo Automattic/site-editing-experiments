@@ -209,8 +209,9 @@ a { color: var(--blue); }
 .site-name { font-size: 22px; font-weight: 600; border: none; background: none; padding: 0; color: inherit; font-family: inherit; }
 .site-nav { font-family: system-ui, sans-serif; }
 .site-nav > ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 22px; font-size: 15px; }
-.site-nav li { position: relative; }
-.site-nav a { color: var(--site-ink); text-decoration: none; display: inline-flex; align-items: center; gap: 4px; padding: 6px 0; }
+.site-nav li { position: relative; min-width: 0; max-width: 100%; }
+/* A typed address can be one long word: it wraps instead of pushing the menu out of the header. */
+.site-nav a { color: var(--site-ink); text-decoration: none; display: inline-flex; align-items: center; gap: 4px; padding: 6px 0; max-width: 100%; overflow-wrap: anywhere; }
 .site-nav a:hover { text-decoration: underline; }
 .site-nav a[aria-current="page"] { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 6px; }
 .site-nav .draft-link { opacity: 0.55; outline: 1.5px dashed #8c8f94; outline-offset: 4px; border-radius: 2px; }

@@ -2,12 +2,14 @@
 
 Five prototypes for one user test about a website's pages and the menu at the top of the site.
 
+**This round's test uses three of them: the control, A and Q.** All three change the menu in its own sidebar, as WordPress does. B and F, which change it on the Pages screen, are kept for reference and still work, but aren't in the test. The test has a seventh task, adding a link to another website. It doesn't apply to B and F, which can't hold one.
+
 A new block-theme site's header menu is automatic: it shows every published page, and new pages join it on their own. In WordPress today, the first time someone edits that menu it's converted to a list of links, and from then on it's a separate thing from the pages: new pages don't appear in it, and renaming a page doesn't rename its link.
 
 The test asks two questions:
 
 1. **Do people understand pages and the menu as one thing or two?** After changing the menu, can they say where a page went, what it's called, and whether the next new page will be in the menu?
-2. **Can they change the menu?** Take a page out, reorder it, get a new page in, and change what an item says.
+2. **Can they change the menu?** Take a page out, reorder it, get a new page in, change what an item says, and add a link to another website.
 
 It compares two things, crossed: what the menu *is* after you change it (converted to links, or still connected to the pages), and *where* you change it (on the Pages screen, or in the menu's own sidebar, opened by clicking the menu on the site). A fifth prototype, A, asks a narrower question: is it enough to keep new pages arriving in a menu of links, with nothing else about WordPress changed?
 
@@ -63,7 +65,7 @@ The prototypes are for desktop browsers, from 1024 to 1500 pixels wide.
 Add `?notes` or `#notes` to the address (`switches.html?notes`) for a panel on the right that participants shouldn't see. It has:
 
 - the prototype's letter and a line describing it;
-- the six tasks. Tasks 2 to 6 are ticked, with the time, when the site reaches the result, and each shows where it stands now. In the control, A and Q that is the saved site: a task that is done on screen but not saved isn't ticked, and says "On screen, not saved" in amber. Task 1 is a question, so it's never ticked for you. You can tick and untick any of them yourself;
+- the seven tasks. Tasks 2 to 7 are ticked, with the time, when the site reaches the result, and each shows where it stands now. In the control, A and Q that is the saved site: a task that is done on screen but not saved isn't ticked, and says "On screen, not saved" in amber. Task 1 is a question, so it's never ticked for you. You can tick and untick any of them yourself;
 - the counts that go into the completion code, and what the menu is now (in the control, A and Q: the saved menu, how many changes are unsaved, saves, and save panels closed without saving; in A, whether Auto add pages is on, and when it was turned off);
 - a log of everything, with times since the page opened (or since Reset), and **Copy log** to paste it into your notes;
 - Control | A | B | F | Q links to switch prototype, keeping the panel open, and **Reset**, which puts the site back and clears the log, the counts and what was kept for the tab.
@@ -74,12 +76,12 @@ The log records every page viewed in the preview and where from; every page adde
 
 ## The completion code
 
-**Finished**, in the bar at the bottom, first asks "Have you done every task?", with a way back. Then it shows a code to copy into the next question of an unmoderated testing tool, for example `OC-11212-ml140-d1.1-f35-r1.2-np-x0-u2.1-k3-e0-w0-v2.1-s412`. "Keep editing" goes back, and clicking Finished again gives a new code.
+**Finished**, in the bar at the bottom, first asks "Have you done every task?", with a way back. Then it shows a code to copy into the next question of an unmoderated testing tool, for example `OC-112121-ml140-d1.1-f35-r1.2-np-x0-u2.1-k3-e0-w0-v2.1-s412`. "Keep editing" goes back, and clicking Finished again gives a new code.
 
 | Part | Meaning |
 | --- | --- |
 | `OC`, `OA`, `OB`, `OF`, `OQ` | The prototype: the control, A, B, F, Q. |
-| `11212`, `10200.11212` | Tasks 2 to 6 when Finished was clicked. In the control, A and Q these are read from the **saved** site. If the screen showed something different, because changes weren't saved, the digits for what the screen showed follow after a dot: `10200.11212` is a saved site that scores 10200 under a screen that showed 11212. B and F never have the dot. Tasks 2, 3 and 5: 1 for reached, 0 for not. Tasks 4 and 6: 0 not published, 1 published but not shown in the menu, 2 published and shown in the menu. For task 4, any published page with "gift" in its title counts, in capitals or not: "Gift cards", "Giftcards", "Gift-cards", "Gift vouchers". |
+| `112121`, `102000.112121` | Tasks 2 to 7 when Finished was clicked, six digits. In the control, A and Q these are read from the **saved** site. If the screen showed something different, because changes weren't saved, the digits for what the screen showed follow after a dot: `102000.112121` is a saved site that scores 102000 under a screen that showed 112121. B and F never have the dot. Tasks 2, 3, 5 and 7: 1 for reached, 0 for not. Tasks 4 and 6: 0 not published, 1 published but not shown in the menu, 2 published and shown in the menu. For task 4, any published page with "gift" in its title counts, in capitals or not: "Gift cards", "Giftcards", "Gift-cards", "Gift vouchers". Task 7: 1 when the menu on the site holds a link whose address contains `instagram.com/rosasbakery`, in capitals or not, typed with or without `https://`, `www.` or a slash at the end, whatever its label. It doesn't apply to B and F, which have no way to add a link to another site: their seventh digit is always 0. Codes from before task 7 had five digits here. |
 | `ma`, `ml140`, `mp140`, `mr140`, `mv140`, `mx140` | The menu at the end; in the control, A and Q, the saved menu. `ma`: still automatic or connected (in the control: still only the Page List). `ml140`: converted to links (in the control: the Page List detached), 140 seconds after the page opened. `mp140` (control only): the Page List is still there with something beside it, links or a second Page List (Duplicate makes one, and the header then shows every page twice); the seconds are when the menu first became that. `mr140` (control only): the Page List was removed without detaching, at 140 seconds. `mv140` (Q only): switched to an advanced menu that still adds new pages, at 140 seconds. `mx140` (Q only): an advanced menu with "Add new pages automatically" later turned off; the seconds are still when it was switched. In A (`OA`) nothing is converted or switched, so the part is `mv`, with no number, while Auto add pages is on, and `mx140` once it has been turned off, with the seconds since the page opened when it was last turned off; turning it on again gives `mv` again. A's menu is never `ma` or `ml`. The seconds are when the change was made, not when it was saved. |
 | `d1.1` | Convert or switch-to-advanced dialogs shown, then confirmed. Always `d0.0` in A and F, which have no such dialog. |
 | `f35` | Seconds until the first change to what the menu shows or its order, however it was made, saved or not. That includes taking a page out, moving one and changing a link's label, and also renaming, adding, publishing or trashing a page while the menu is automatic or connected, since the menu follows the pages then. `f0`: never. |
@@ -133,6 +135,11 @@ Start with: "This is the Pages screen of a website for a bakery, Rosa's Bakery. 
 6. "Holiday orders is ready. Publish it."
    Ask before they look at the site: **"Will it be in the menu?"**
    *Watch for:* whether the answer follows from what they've seen so far. This is the same question as task 4, after more experience. In A the answer depends on the switch: the notes panel shows whether it's on.
+7. "Rosa's Bakery has an Instagram page at instagram.com/rosasbakery. Add it to the menu at the top so visitors can find it there."
+   Ask before they look at the site: **"If you made a new page now, would it be in the menu?"** (Yes, automatically · Only if I add it · Not sure)
+   *Watch for:* in every arm the link is added with **+** below the list in the sidebar (or an item's Add before or Add after), by typing the address into Search or type URL and pressing Enter; an address without `https://` is accepted, and the link's label is the address as typed (renaming it doesn't matter for the task). In the control, whether people add the link beside the Page List (the menu then holds both, and the code's `m` part reads `mp`) or detach first (`ml`), and, if they detach, whether they notice that new pages stop arriving afterwards. In A this should be the easy case. In Q the pages menu has no way to add a link: watch whether people find **Switch to advanced menu** (its dialog's trigger is logged; the code reads `mv`), and whether they think new pages still arrive afterwards, which they do. It counts once it's saved.
+
+Then click Finished.
 
 ### Questions to close with
 
@@ -147,6 +154,7 @@ Start with: "This is the Pages screen of a website for a bakery, Rosa's Bakery. 
 - **Time to the first change to the menu** (the `f` part), and in the control, A and Q, how long before the menu on the site is clicked at all.
 - **Dialogs confirmed without reading.** Ask what it said. The `d` part gives shown and confirmed.
 - **Saving, in the control, A and Q.** Whether people notice Save at all, whether the save panel stops them, and whether they leave with changes unsaved (the `w` and `v` parts, and the dotted task digits).
+- **Task 7 in Q, and the control's route to it.** Whether the pages menu stops people, or they find Switch to advanced menu; in the control, beside the Page List or detach first (the `m` part). Compare the answer to the question before task 7 with what each prototype does afterwards.
 - **Words.** Note what people call the menu ("the tabs", "the top bar", "the links") and whether "in your menu", "Navigation", "Page List" and "Detach" mean anything to them.
 
 ### What would favour each

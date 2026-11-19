@@ -339,11 +339,11 @@
       if (e.depth === 0) {
         parentShown = visible;
         parentHidden = !!e.hidden;
-        if (visible) tree.push({ pageId: e.pageId || null, itemId: e.id || null, list: e.list || null, label: entryLabel(e), sub: [] });
+        if (visible) tree.push({ pageId: e.pageId || null, itemId: e.id || null, list: e.list || null, url: e.url || null, label: entryLabel(e), sub: [] });
         return;
       }
       if (!visible || parentHidden) return;
-      const node = { pageId: e.pageId || null, itemId: e.id || null, list: e.list || null, label: entryLabel(e), sub: [] };
+      const node = { pageId: e.pageId || null, itemId: e.id || null, list: e.list || null, url: e.url || null, label: entryLabel(e), sub: [] };
       if (parentShown) tree[tree.length - 1].sub.push(node); else tree.push(node);
     });
     return tree;
@@ -2871,7 +2871,10 @@
 
   const hasText = (s, want) => String(s || '').trim().toLowerCase() === want;
 
-  // The state of tasks 2 to 6 right now. Tasks 2, 3 and 5 are 1 or 0; tasks 4 and 6 are
+  // Task 7: a link to Rosa's Instagram, in whatever form the address was typed.
+  const INSTAGRAM = /instagram\.com\/rosasbakery/i;
+
+  // The state of tasks 2 to 7 right now. Tasks 2, 3, 5 and 7 are 1 or 0; tasks 4 and 6 are
   // 0 (not published), 1 (published, not shown in the menu) or 2 (published and shown).
   function taskValues() {
     const tree = shownMenu();
@@ -2887,7 +2890,9 @@
       3: home >= 0 && tree[home + 1] && tree[home + 1].pageId === 'catering' ? 1 : 0,
       4: !gift.length ? 0 : gift.some((p) => shown(p.id)) ? 2 : 1,
       5: flat.some((n) => n.pageId === 'visit-us' && hasText(n.label, 'find us')) ? 1 : 0,
-      6: !holiday || holiday.status !== 'publish' ? 0 : shown('holiday-orders') ? 2 : 1
+      6: !holiday || holiday.status !== 'publish' ? 0 : shown('holiday-orders') ? 2 : 1,
+      // Any label counts. B and F can't hold a link to another site, so it's always 0 there.
+      7: flat.some((n) => n.url && INSTAGRAM.test(n.url)) ? 1 : 0
     };
   }
 
@@ -2906,7 +2911,8 @@
     { n: 3, text: 'Move Catering to straight after Home.', hint: 'Ticks when Catering is the top-level item right after Home in the header.', state: (v) => (v ? 'right after Home' : 'not right after Home') },
     { n: 4, text: 'Make and publish a Gift cards page and get it into the menu.', hint: 'Ticks when a published page with “gift” in its title is in the header menu.', full: 2, state: (v) => THREE[v] },
     { n: 5, text: 'Make “Visit us” say “Find us” in the menu.', hint: 'Ticks when the menu item for the Visit us page reads Find us.', state: (v) => (v ? 'the menu says Find us' : 'the menu doesn’t say Find us') + '; ' + { p: 'the page is called Find us', l: 'only the link’s label was changed', 0: 'the page is called ' + q((page('visit-us') || {}).title || 'nothing: it’s in the trash') }[renameHow()] },
-    { n: 6, text: 'Publish Holiday orders.', hint: 'Ticks when it’s published. Ask first whether it will be in the menu.', full: 1, state: (v) => THREE[v] }
+    { n: 6, text: 'Publish Holiday orders.', hint: 'Ticks when it’s published. Ask first whether it will be in the menu.', full: 1, state: (v) => THREE[v] },
+    { n: 7, text: 'Add Rosa’s Instagram page (instagram.com/rosasbakery) to the menu.', hint: IN_SIDEBAR ? 'Ticks when the header menu has a link whose address contains instagram.com/rosasbakery, whatever its label.' : 'Doesn’t apply here: this prototype has no way to add a link to another site, so it is always 0.', state: (v) => (v ? 'the menu has a link to it' : 'the menu has no link to it') }
   ];
 
   // In the three sidebar arms the tasks are read from the saved site: a change to the menu
@@ -2938,8 +2944,8 @@
 
   /*
    * For pasting into an unmoderated testing tool. For example:
-   *   OB-11212-ml140-d1.1-f35-r1.2-np-x0-u2.0-k3-e0-w0-v0.0-s412
-   * OC, OA, OB, OF, OQ: the arm · tasks 2 to 6 when Finished was clicked ·
+   *   OC-112121-mp140-d0.0-f35-r1.2-nl-x0-u2.1-k3-e0-w0-v2.1-s412
+   * OC, OA, OB, OF, OQ: the arm · tasks 2 to 7 when Finished was clicked ·
    * m: the menu at the end (ma automatic, ml links, mv advanced and still adding pages,
    *    mx advanced with adding turned off; each with the seconds when it was converted.
    *    In OA nothing is converted: mv, with no seconds, while Auto add pages is on, and mx
@@ -2951,7 +2957,7 @@
    * done every task?" · w: unsaved menu changes at Finished · v: saves, save panels closed
    * without saving · s: seconds until Finished.
    * In the sidebar arms the tasks, m and n are read from the saved site; if the screen showed
-   * different task digits they follow after a dot (10200.11212). The control's m: ma the Page
+   * different task digits they follow after a dot (102000.112121). The control's m: ma the Page
    * List alone, mp it has links (or a second Page List) beside it, ml detached, mr removed
    * without detaching.
    */
@@ -2970,7 +2976,7 @@
   }
 
   function completionCode() {
-    const digits = (v) => [2, 3, 4, 5, 6].map((n) => v[n]).join('');
+    const digits = (v) => [2, 3, 4, 5, 6, 7].map((n) => v[n]).join('');
     const saved = digits(savedTaskValues());
     const screen = digits(taskValues());
     return [

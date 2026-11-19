@@ -175,7 +175,7 @@
   }
 
   function startingUi() {
-    return { pop: null, more: null, dialog: null, current: 'home', flash: null, focus: null, sidebar: false, navSel: null, navAdd: null, linkEdit: null, savePanel: null, typing: null };
+    return { pop: null, more: null, dialog: null, current: 'home', flash: null, focus: null, sidebar: false, navSel: null, navAdd: null, linkEdit: null, collapsed: {}, savePanel: null, typing: null };
   }
 
   function startingStats() {
@@ -288,6 +288,13 @@
   const itemById = (id) => state.menu.items.find((i) => i.id === id);
   const linkFor = (pageId) => state.menu.items.find((i) => i.pageId === pageId);
   const isPageList = (it) => !!it && it.type === 'pagelist';
+  // A block other than a link or a Page List, added with Add block: Buttons, Search, Social Icons.
+  const isBlock = (it) => !!it && it.type === 'block';
+  const BLOCKS = {
+    buttons: { title: 'Buttons', icon: 'buttons', desc: 'Prompt visitors to take action with a group of button-style links.' },
+    search: { title: 'Search', icon: 'search', desc: 'Help visitors find your content.' },
+    social: { title: 'Social Icons', icon: 'social', desc: 'Display icons linking to your profiles or sites.' }
+  };
   const itemTitle = (it) => (isPageList(it) ? 'Page List' : it.label);
   const q = (s) => '“' + s + '”';
 
@@ -334,16 +341,16 @@
     let parentHidden = false;
     menuEntries().forEach((e) => {
       const p = page(e.pageId);
-      // A link to a typed address has no page: it shows unless it's hidden.
-      const visible = (e.url ? true : !!p && p.status === 'publish') && !e.hidden;
+      // A link to a typed address, or another block, has no page: it shows unless it's hidden.
+      const visible = (e.url || e.block ? true : !!p && p.status === 'publish') && !e.hidden;
       if (e.depth === 0) {
         parentShown = visible;
         parentHidden = !!e.hidden;
-        if (visible) tree.push({ pageId: e.pageId || null, itemId: e.id || null, list: e.list || null, url: e.url || null, label: entryLabel(e), sub: [] });
+        if (visible) tree.push({ pageId: e.pageId || null, itemId: e.id || null, list: e.list || null, url: e.url || null, block: e.block || null, label: entryLabel(e), sub: [] });
         return;
       }
       if (!visible || parentHidden) return;
-      const node = { pageId: e.pageId || null, itemId: e.id || null, list: e.list || null, url: e.url || null, label: entryLabel(e), sub: [] };
+      const node = { pageId: e.pageId || null, itemId: e.id || null, list: e.list || null, url: e.url || null, block: e.block || null, label: entryLabel(e), sub: [] };
       if (parentShown) tree[tree.length - 1].sub.push(node); else tree.push(node);
     });
     return tree;
@@ -887,6 +894,12 @@
     close: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>',
     chevron: '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>',
     enter: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6v5a3 3 0 0 1-3 3H6"/><path d="M9 10l-4 4 4 4"/></svg>',
+    expander: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M10.5 8.5L13.5 12L10.5 15.5"/></svg>',
+    customLink: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.5 14.5h-1V16h1a4 4 0 0 0 0-8h-1v1.5h1a2.5 2.5 0 0 1 0 5z"/><path d="M4 12h10M9 7.5 4.5 12 9 16.5"/></svg>',
+    buttons: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="4.75" y="4.75" width="14.5" height="5.5" rx="1.25"/><rect x="4.75" y="13.75" width="14.5" height="5.5" rx="1.25"/></svg>',
+    pageList: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M7.75 20.25H19c.69 0 1.25-.56 1.25-1.25V5.75"/><path d="M7.5 6.25h7M7.5 9.75h7M7.5 13.25h7M17.25 16V4c0-.69-.56-1.25-1.25-1.25H6c-.69 0-1.25.56-1.25 1.25v12c0 .69.56 1.25 1.25 1.25h10c.69 0 1.25-.56 1.25-1.25z"/></svg>',
+    search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><circle cx="13" cy="10" r="5.25"/><path d="M9.25 13.75 5 18"/></svg>',
+    social: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="17" cy="6" r="2.25"/><circle cx="7" cy="12" r="2.25"/><circle cx="17" cy="18" r="2.25"/><path d="m9 11 6-4M9 13l6 4"/></svg>',
     plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>',
     unseen: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12s3.5-6 9-6 9 6 9 6-3.5 6-9 6-9-6-9-6z"/><circle cx="12" cy="12" r="2.5"/><path d="M4 4l16 16"/></svg>',
     back: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>',
@@ -1192,6 +1205,7 @@
     if (!IN_SIDEBAR) return;
     if (!ui.sidebar) {
       ui.sidebar = true;
+      ui.collapsed = {};
       stats.own++;
       log('sidebar', 'Navigation sidebar opened (' + how + ')');
     }
@@ -1205,6 +1219,7 @@
     dropAdd('closed the sidebar');
     ui.sidebar = false;
     ui.navSel = null;
+    ui.collapsed = {};
     if (ui.more && ui.more.indexOf('nav:') === 0) ui.more = null;
     log('sidebar', 'Navigation sidebar closed (' + how + ')');
     render();
@@ -1231,7 +1246,8 @@
         automaticItems().forEach((e) => rows.push({ kind: 'plpage', id: it.id + ':' + e.pageId, pageId: e.pageId, list: it.id, title: page(e.pageId).title, depth: e.depth + 1, group: it.id }));
         return;
       }
-      rows.push({ kind: 'item', id: it.id, title: it.label, depth: it.depth, group: it.depth ? parent : '', hidden: !!it.hidden });
+      rows.push({ kind: 'item', id: it.id, title: it.label, depth: it.depth, group: it.depth ? parent : '', hidden: !!it.hidden, block: isBlock(it) ? it.block : null });
+      if (isBlock(it) && it.block === 'buttons') rows.push({ kind: 'blockchild', id: it.id + ':button', parent: it.id, title: 'Button', depth: it.depth + 1, group: it.id });
     });
     return rows;
   }
@@ -1257,7 +1273,7 @@
   // aren't put under it. A link goes under any link, but not under a Page List, and a Page
   // List isn't put under anything.
   function canNest(kind, id, parentId) {
-    if (kind === 'item') return !isPageList(itemById(id)) && !!itemById(parentId) && !isPageList(itemById(parentId));
+    if (kind === 'item') return !isPageList(itemById(id)) && !isBlock(itemById(id)) && !!itemById(parentId) && !isPageList(itemById(parentId)) && !isBlock(itemById(parentId));
     return id !== 'home' && parentId !== 'home';
   }
 
@@ -1278,11 +1294,11 @@
       item('nav-move', 'Move down', { kind, id: row.id, dir: 1 }, k >= sibs.length - 1 ? 'use Move down on ' + name + ', which is already last' : '');
     if (row.kind !== 'page') {
       html += item('nav-ask-add', 'Add submenu link', { place: 'sub', ref: row.id },
-        row.kind === 'pagelist' ? 'use Add submenu link on the Page List' : row.depth ? 'use Add submenu link on ' + name + ', which is already in a submenu' : '');
+        row.kind === 'pagelist' ? 'use Add submenu link on the Page List' : row.block ? 'use Add submenu link on ' + name + ', which can’t have a submenu' : row.depth ? 'use Add submenu link on ' + name + ', which is already in a submenu' : '');
       html += item('nav-duplicate', 'Duplicate', { item: row.id });
       html += item('nav-ask-add', 'Add before', { place: 'before', ref: row.id });
       html += item('nav-ask-add', 'Add after', { place: 'after', ref: row.id });
-      if (CAN_HIDE && state.menu.mode === 'advanced') html += item('nav-hide', row.hidden ? 'Show' : 'Hide', { item: row.id });
+      if (CAN_HIDE && state.menu.mode === 'advanced' && row.kind !== 'pagelist' && !row.block) html += item('nav-hide', row.hidden ? 'Show' : 'Hide', { item: row.id });
       const short = row.title.length > 25 ? row.title.slice(0, 22) + '...' : row.title;
       html += '<hr>' + item('nav-remove', 'Remove ' + esc(short), { item: row.id });
     }
@@ -1309,13 +1325,26 @@
         <div class="nav-picker-actions"><button type="button" class="btn btn-small" data-action="nav-create-back" data-how="Cancel" data-focus="nav-create-cancel">Cancel</button><button type="button" class="btn btn-small btn-primary" data-action="nav-create" data-focus="nav-create">Create page</button></div>
       </div>`;
     }
+    if (a.blocks) {
+      // Add block: the blocks a Navigation offers, as core lists them. In a submenu, links only.
+      const sub = navAddDepth() > 0;
+      const offer = [['page-link', 'Page link', 'page'], ['custom-link', 'Custom Link', 'customLink'], ['buttons', 'Buttons', 'buttons'], ['page-list', 'Page List', 'pageList'], ['search', 'Search', 'search'], ['social', 'Social Icons', 'social']]
+        .filter(([b]) => !sub || b === 'page-link' || b === 'custom-link');
+      return `<div class="nav-picker" role="dialog" aria-label="Add block">
+        <p class="sr-only">Choose a block to add to your Navigation.</p>
+        <button type="button" class="link nav-back nav-caps-btn" data-action="nav-blocks-back" data-focus="nav-blocks-back">${ICON.back}<span>Back</span></button>
+        <h4 class="nav-caps nav-blocks-head">Blocks</h4>
+        <div class="nav-block-grid">${offer.map(([b, title, icon]) => `<button type="button" class="nav-block-btn" data-action="nav-block" data-block="${b}" data-focus="nav-block:${b}">${ICON[icon]}<span>${title}</span></button>`).join('')}</div>
+      </div>`;
+    }
     // The site's published pages, newest first, as the editor suggests them.
     const pages = state.made.slice().reverse().map(page).filter(published).map((p) =>
       `<li${a.q && !p.title.toLowerCase().includes(a.q.trim().toLowerCase()) ? ' hidden' : ''}><button type="button" data-action="nav-add" data-page="${esc(p.id)}" data-find="${esc(p.title.toLowerCase())}"><span>${esc(p.title)}</span><small>${p.id === 'home' ? 'Front page' : esc(pagePath(p)) + ' · Page'}</small></button></li>`).join('');
     return `<div class="nav-picker" role="dialog" aria-label="Add link">
       <div class="nav-search-wrap"><input type="text" id="nav-search" placeholder="Search or type URL" aria-label="Search or type URL" autocomplete="off" data-focus="nav-search" value="${esc(a.q || '')}">${applyButton('nav-apply', a.q)}</div>
       <ul class="nav-results" aria-label="Suggestions">${pages}</ul>
-      <button type="button" class="nav-create-open" data-action="nav-create-open" data-focus="nav-create-open">${ICON.plus}<span>Create page</span></button>
+      ${a.custom ? '' : `<button type="button" class="nav-create-open" data-action="nav-create-open" data-focus="nav-create-open">${ICON.plus}<span>Create page</span></button>`}
+      <button type="button" class="nav-blocks-open" data-action="nav-blocks-open" data-focus="nav-blocks-open">${ICON.plus}<span>Add block</span></button>
     </div>`;
   }
 
@@ -1326,28 +1355,45 @@
 
   function navPlaceholderHtml(depth) {
     return `<li class="row nav-row nav-placeholder" data-row="nav:placeholder" data-depth="${depth}">
-      <div class="row-main"><span class="indent" style="width:${depth * 16}px"></span><span class="nav-label">Page link</span></div>${navPickerHtml()}</li>`;
+      <div class="row-main"><span class="indent" style="width:${depth * 16}px"></span><span class="nav-label">${ui.navAdd && ui.navAdd.custom ? 'Custom Link' : 'Page link'}</span></div>${navPickerHtml()}</li>`;
   }
 
-  function navRowHtml(row) {
+  // As in core's list view: a row with rows under it has a chevron before its name, and its
+  // name says whether they're shown (aria-expanded). The chevron itself is hidden from
+  // screen readers; ← and → on the row do the same.
+  function expanderHtml(row, x) {
+    if (!x.kids) return '<span class="nav-expander nav-expander-gap"></span>';
+    return `<span class="nav-expander${x.open ? ' is-open' : ''}" data-action="nav-expand" data-id="${esc(row.id)}" aria-hidden="true">${ICON.expander}</span>`;
+  }
+  const expandedAttr = (x) => (x.kids ? ` aria-expanded="${x.open}"` : '');
+
+  function navRowHtml(row, x) {
+    x = x || { kids: false, open: true, hidden: false };
     const key = navKey(row.id);
     const off = row.kind === 'page' && isExcluded(row.id);
+    const hid = x.hidden ? ' hidden' : '';
     if (row.kind === 'plpage') {
       // A page under a Page List: selecting it, or trying to drag it, asks to detach.
-      return `<li class="row nav-row nav-inner" data-row="${esc(key)}" data-drag-id="${esc(row.id)}" data-drag-group="${esc(row.group)}" data-depth="${row.depth}" data-locked="${esc(q(row.title) + ' under the Page List')}">
-        <div class="row-main"><span class="indent" style="width:${row.depth * 16}px"></span><button type="button" class="nav-label" data-action="nav-locked" data-page="${esc(row.pageId)}" data-list="${esc(row.list)}" data-focus="nav-row:${esc(row.id)}">${esc(row.title)}</button></div>
+      return `<li class="row nav-row nav-inner" data-row="${esc(key)}" data-drag-id="${esc(row.id)}" data-drag-group="${esc(row.group)}" data-depth="${row.depth}" data-locked="${esc(q(row.title) + ' under the Page List')}"${hid}>
+        <div class="row-main"><span class="indent" style="width:${row.depth * 16}px"></span>${expanderHtml(row, x)}<button type="button" class="nav-label" data-action="nav-locked" data-page="${esc(row.pageId)}" data-list="${esc(row.list)}" data-focus="nav-row:${esc(row.id)}"${expandedAttr(x)}>${esc(row.title)}</button></div>
+      </li>`;
+    }
+    if (row.kind === 'blockchild') {
+      // The Button inside Buttons: selecting it selects the Buttons.
+      return `<li class="row nav-row nav-inner" data-row="${esc(key)}" data-drag-id="${esc(row.id)}" data-drag-group="${esc(row.group)}" data-depth="${row.depth}"${hid}>
+        <div class="row-main"><span class="indent" style="width:${row.depth * 16}px"></span>${expanderHtml(row, x)}<button type="button" class="nav-label" data-action="nav-select" data-id="${esc(row.parent)}" data-focus="nav-row:${esc(row.id)}">${esc(row.title)}</button></div>
       </li>`;
     }
     const label = row.kind === 'page'
       ? `<span class="nav-label nav-grip" data-action="nav-dead" data-what="select ${esc(q(row.title))} in the Navigation sidebar (a page in a pages menu has nothing to show)">${esc(row.title)}</span>`
-      : `<button type="button" class="nav-label nav-grip" data-action="nav-select" data-id="${esc(row.id)}" data-focus="nav-row:${esc(row.id)}">${esc(row.title)}</button>`;
+      : `<button type="button" class="nav-label nav-grip" data-action="nav-select" data-id="${esc(row.id)}" data-focus="nav-row:${esc(row.id)}"${expandedAttr(x)}>${esc(row.title)}</button>`;
     const toggle = row.kind === 'page'
       ? `<button type="button" class="switch nav-switch" aria-pressed="${!off}" data-action="nav-toggle" data-page="${esc(row.id)}" data-focus="nav-sw:${esc(row.id)}" aria-label="Show ${esc(row.title)} in the menu"><span class="switch-track"></span></button>`
       : '';
-    return `<li class="row nav-row${off || row.hidden ? ' dim' : ''}" data-row="${esc(key)}" data-kind="${row.kind === 'page' ? 'page' : 'item'}" data-drag-id="${esc(row.id)}" data-drag-group="${esc(row.group)}" data-depth="${row.depth}"${row.kind === 'pagelist' ? ' data-pagelist="1"' : ''}>
+    return `<li class="row nav-row${off || row.hidden ? ' dim' : ''}" data-row="${esc(key)}" data-kind="${row.kind === 'page' ? 'page' : 'item'}" data-drag-id="${esc(row.id)}" data-drag-group="${esc(row.group)}" data-depth="${row.depth}"${row.kind === 'pagelist' ? ' data-pagelist="1"' : ''}${hid}>
       <div class="row-main">
         <span class="indent" style="width:${row.depth * 16}px"></span>
-        ${row.kind === 'pagelist' ? `<span class="nav-chevron">${ICON.chevron}</span>` : ''}
+        ${expanderHtml(row, x)}
         ${label}
         ${row.hidden ? `<span class="nav-hidden" role="img" aria-label="Hidden">${ICON.unseen}</span>` : ''}
         ${toggle}
@@ -1358,7 +1404,16 @@
   // The list, with the "Page link" row of a link that's being added where it will go.
   function navListHtml(rows) {
     const a = ui.navAdd;
-    const html = rows.map(navRowHtml);
+    // Rows under a collapsed row are left in the list, hidden, so a drag still takes them along.
+    let shut = -1;
+    const html = rows.map((row, i) => {
+      if (shut >= 0 && row.depth <= shut) shut = -1;
+      const kids = !!rows[i + 1] && rows[i + 1].depth > row.depth;
+      const open = !(kids && ui.collapsed[row.id]);
+      const x = { kids, open, hidden: shut >= 0 };
+      if (shut < 0 && !open) shut = row.depth;
+      return navRowHtml(row, x);
+    });
     if (a) {
       let at = rows.length;
       let depth = 0;
@@ -1386,6 +1441,10 @@
       return `<p class="nav-desc">Display a list of all pages.</p>
         <h3 class="nav-heading">Settings</h3>
         <button type="button" class="btn nav-wide nav-outline" data-action="nav-ask-detach" data-item="${esc(it.id)}" data-focus="nav-ask-detach">Detach Page List</button>`;
+    }
+    if (isBlock(it)) {
+      const b = BLOCKS[it.block];
+      return `<p class="nav-desc">${esc(b.desc)}</p><h3 class="nav-heading">Settings</h3><p class="nav-help">This prototype has no settings for ${esc(b.title)}.</p>`;
     }
     const p = page(it.pageId);
     const linkTo = it.url
@@ -1568,6 +1627,14 @@
     return item;
   }
 
+  // The level the "Page link" row stands at: 0 at the top level, 1 in a submenu.
+  function navAddDepth() {
+    const a = ui.navAdd;
+    const ref = a && a.ref ? itemById(a.ref) : null;
+    if (!ref || a.place === 'end') return 0;
+    return a.place === 'sub' ? 1 : ref.depth;
+  }
+
   const placeWords = (a) => {
     const ref = a.ref ? itemById(a.ref) : null;
     if (!ref || a.place === 'end') return 'at the end of the menu';
@@ -1581,6 +1648,19 @@
     if (/^(https?:\/\/|mailto:|tel:|\/|#)/i.test(text)) return text;
     if (/^www\.|^[^.\s]+\.[^.\s]/.test(text)) return 'https://' + text;
     return null;
+  }
+
+  // Collapsing and expanding a row of the sidebar's list. Not a change to the menu: not saved,
+  // not in Undo, and forgotten when the list is shown afresh, as core forgets it.
+  function toggleCollapsed(id, how, want) {
+    const row = navRows().find((r) => r.id === id);
+    if (!row) return;
+    const shut = want != null ? !want : !ui.collapsed[id];
+    if (!!ui.collapsed[id] === shut) return;
+    if (shut) ui.collapsed[id] = true; else delete ui.collapsed[id];
+    ui.focus = ui.focus && ui.focus.indexOf('nav-row:') === 0 ? 'nav-row:' + id : ui.focus;
+    log('sidebar', (shut ? 'Collapsed ' : 'Expanded ') + (row.kind === 'pagelist' ? 'the Page List' : q(row.title)) + ' in the Navigation’s list (' + how + '): the rows under it are ' + (shut ? 'hidden' : 'shown'));
+    render();
   }
 
   // Link to's field: Enter or Apply changes where the link goes; Escape leaves it as it was.
@@ -1662,6 +1742,7 @@
       if (justDragged) return;
       dropAdd('another row was selected');
       ui.linkEdit = null;
+      ui.collapsed = {};
       ui.navSel = d.id;
       ui.more = null;
       ui.focus = isPageList(it) ? 'nav-ask-detach' : 'nav-back';
@@ -1706,6 +1787,7 @@
       if (ui.navAdd && ui.navAdd.place === place && (ui.navAdd.ref || null) === ref) { closeAdd('the same control again'); return; }
       dropAdd('another Add was chosen');
       ui.navAdd = { place, ref, create: false, title: '', publish: true };
+      if (place === 'sub' && ref) delete ui.collapsed[ref];
       ui.more = null; ui.navSel = null;
       ui.focus = 'nav-search';
       log('sidebar', (place === 'end' ? 'Add link (+) clicked' : { before: 'Add before', after: 'Add after', sub: 'Add submenu link' }[place] + ' chosen') + ': a “Page link” row is shown ' + placeWords(ui.navAdd) + ', with Search or type URL');
@@ -1737,6 +1819,57 @@
       }, 'a link to ' + q(url) + ' added');
       log('menu', 'Link added to a typed address: ' + q(d.text) + ' (' + url + '), ' + where);
     },
+    // Add block, in Add link: the blocks a Navigation offers.
+    'nav-blocks-open'() {
+      if (!ui.navAdd) return;
+      const field = document.getElementById('nav-search');
+      if (field) ui.navAdd.q = field.value;
+      ui.navAdd.blocks = true;
+      ui.focus = 'nav-blocks-back';
+      log('sidebar', 'Add block chosen in Add link: the blocks the menu can hold are shown');
+      render();
+    },
+    'nav-blocks-back'() {
+      if (!ui.navAdd) return;
+      ui.navAdd.blocks = false;
+      ui.focus = 'nav-blocks-open';
+      log('sidebar', 'Add block: went back to Search or type URL (Back)');
+      render();
+    },
+    'nav-block'(d) {
+      const a = ui.navAdd;
+      if (!a) return;
+      const where = placeWords(a);
+      if (d.block === 'page-link' || d.block === 'custom-link') {
+        // Both go back to Search or type URL; Custom Link's has no Create page, as in core.
+        a.blocks = false;
+        a.custom = d.block === 'custom-link';
+        a.q = '';
+        ui.focus = 'nav-search';
+        log('sidebar', 'Add block: ' + (a.custom ? 'Custom Link' : 'Page link') + ' chosen; the row reads ' + q(a.custom ? 'Custom Link' : 'Page link') + ', with Search or type URL');
+        render();
+        return;
+      }
+      if (d.block === 'page-list') {
+        edit(() => {
+          insertItem({ id: newItemId('page-list-'), type: 'pagelist', depth: 0 }, a.place, a.ref);
+          ui.navAdd = null;
+          ui.focus = 'nav-append';
+        }, 'a Page List added');
+        log('menu', 'Block added with Add block: a Page List, ' + where + '; it shows every published page');
+        return;
+      }
+      const b = BLOCKS[d.block];
+      if (!b) return;
+      edit(() => {
+        insertItem({ id: newItemId('block-'), type: 'block', block: d.block, label: b.title, hidden: false }, a.place, a.ref);
+        ui.navAdd = null;
+        ui.focus = 'nav-append';
+      }, 'a ' + b.title + ' block added');
+      log('menu', 'Block added with Add block: ' + q(b.title) + ', ' + where);
+    },
+    // A row's chevron: shows or hides the rows under it. Nothing is selected.
+    'nav-expand'(d) { toggleCollapsed(d.id, 'chevron'); },
     'nav-apply'(d, el) {
       if (!ui.navAdd) return;
       const field = document.getElementById('nav-search');
@@ -1892,7 +2025,7 @@
         confirm: 'Remove and choose pages myself'
       };
     }
-    if (ARM === 'menu-switches') {
+    if (ARM === 'menu-switches' && !detachesList(d)) {
       return {
         title: 'Switch to advanced menu',
         body: '<p>The pages will become links you can edit. New pages will still be added automatically.</p>',
@@ -1908,7 +2041,9 @@
     };
   }
 
-  const dialogName = () => (ARM === 'menu-switches' ? 'Switch to advanced menu' : ARM === 'control' ? 'Detach Page List (convert to links)' : 'Convert to links');
+  // A Page List added with Add block in A or Q's advanced menu is detached as the control's is.
+  const detachesList = (d) => !!d && !!d.itemId && isPageList(itemById(d.itemId));
+  const dialogName = (d) => (ARM === 'control' || detachesList(d) ? 'Detach Page List (convert to links)' : ARM === 'menu-switches' ? 'Switch to advanced menu' : 'Convert to links');
 
   // Show the confirm. d: { trigger: what the person did, pageId?: the page it was about,
   // then?: 'remove' | 'rename', what to do with that page once the menu is links }.
@@ -1921,7 +2056,7 @@
 
   // What a dialog is called in the log.
   function dialogLabel(d) {
-    return d.type === 'convert' ? dialogName() : { add: 'Add page', rename: 'Rename', trash: 'Move to trash', label: 'Rename in menu' }[d.type];
+    return d.type === 'convert' ? dialogName(d) : { add: 'Add page', rename: 'Rename', trash: 'Move to trash', label: 'Rename in menu' }[d.type];
   }
 
   // The page or link a dialog is about. Undo, or anything else, may have taken it away.
@@ -2023,7 +2158,16 @@
 
   // ---------- The site preview ----------
 
+  // What a block other than a link looks like in the header, as the editor's canvas draws it.
+  function siteBlockHtml(n) {
+    const sel = IN_SIDEBAR ? ` data-item="${esc(n.itemId)}"` : '';
+    if (n.block === 'buttons') return `<a href="#" class="site-block site-button"${sel} data-nav-link="Buttons" data-focus="visit:${esc(n.itemId)}">Add text…</a>`;
+    if (n.block === 'search') return `<a href="#" class="site-block site-search"${sel} data-nav-link="Search" data-focus="visit:${esc(n.itemId)}" aria-label="Search"><span>Optional placeholder…</span><span class="site-search-btn">${ICON.search}</span></a>`;
+    return `<a href="#" class="site-block site-social"${sel} data-nav-link="Social Icons" data-focus="visit:${esc(n.itemId)}" aria-label="Social Icons">${ICON.plus}</a>`;
+  }
+
   function siteLink(n) {
+    if (n.block) return siteBlockHtml(n);
     const current = ui.current === n.pageId ? ' aria-current="page"' : '';
     // Where the menu is changed in its own sidebar, a click on it selects it, as in the editor.
     const act = IN_SIDEBAR ? '' : ` data-action="visit" data-page="${esc(n.pageId)}" data-how="the header menu"`;
@@ -2298,18 +2442,19 @@
       if (!dialogSubject(d)) { dropDialog(); return; }
       const p = d.pageId ? page(d.pageId) : null;
       const mode = ARM === 'menu-switches' ? 'advanced' : 'links';
+      const detaching = ARM === 'control' || detachesList(d);
       ui.dialog = null;
       stats.dialogsConfirmed++;
-      log('dialog', dialogName() + ' dialog confirmed');
+      log('dialog', dialogName(d) + ' dialog confirmed');
       if (IN_SIDEBAR) {
         // In the editor: an unsaved change, with no message.
         edit(() => {
-          if (ARM === 'control') detachPageList(d.itemId); else convertToLinks(mode);
+          if (detaching) detachPageList(d.itemId); else convertToLinks(mode);
           ui.navSel = null;
           const firstLink = state.menu.items.find((it) => !isPageList(it));
           if (firstLink) ui.focus = 'nav-row:' + firstLink.id;
-        }, ARM === 'control' ? 'the Page List detached' : 'switched to an advanced menu');
-        log('menu', mode === 'advanced' ? 'Menu switched to an advanced menu (links, new pages still added)' : 'Page List detached: its pages are now links');
+        }, detaching ? 'the Page List detached' : 'switched to an advanced menu');
+        log('menu', detaching ? 'Page List detached: its pages are now links' : mode === 'advanced' ? 'Menu switched to an advanced menu (links, new pages still added)' : 'Page List detached: its pages are now links');
         return;
       }
       if (d.then === 'remove') {
@@ -2651,6 +2796,14 @@
       if (ui.navSel) { navActions['nav-back'](); return; }
       if (ui.sidebar) closeSidebar('Escape');
       return;
+    }
+    if ((ev.key === 'ArrowLeft' || ev.key === 'ArrowRight') && !ev.altKey && !ev.ctrlKey && !ev.metaKey && ev.target.closest && ev.target.tagName !== 'INPUT' && !ev.target.closest('.moremenu')) {
+      const li = ev.target.closest('.navside .nav-list > li[data-drag-id]');
+      const ex = li && li.querySelector(':scope > .row-main > .nav-expander[data-id]');
+      if (ex) {
+        const open = ex.classList.contains('is-open');
+        if (ev.key === 'ArrowLeft' ? open : !open) { ev.preventDefault(); toggleCollapsed(ex.dataset.id, ev.key === 'ArrowLeft' ? '← key' : '→ key', ev.key === 'ArrowRight'); return; }
+      }
     }
     if (ev.key === 'Enter' && ev.target.id === 'nav-text') { ev.preventDefault(); endTyping(); return; }
     if (ev.key === 'Enter' && ev.target.id === 'nav-linkto-input') { ev.preventDefault(); if (ui.linkEdit) ui.linkEdit.text = ev.target.value; applyLinkTo('Pressed Enter'); return; }

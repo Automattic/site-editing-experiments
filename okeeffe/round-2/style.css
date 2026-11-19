@@ -315,7 +315,13 @@ button.nav-label:hover { color: var(--blue-dark); }
 .nav-row.dim .nav-label { font-weight: 400; color: var(--ink-3); }
 .nav-inner .row-main { min-height: 36px; }
 .nav-inner .nav-label { font-weight: 400; }
-.nav-chevron { flex: none; width: 20px; display: flex; align-items: center; justify-content: center; color: var(--ink-3); }
+/* Core's list view: a chevron before a row's name when there are rows under it, a gap the same
+   width when there aren't. It points down when they're shown. */
+.nav-expander { flex: none; width: 20px; height: 24px; display: flex; align-items: center; justify-content: center; color: var(--ink); }
+.nav-expander[data-action] { cursor: pointer; }
+.nav-expander svg { width: 20px; height: 20px; transition: transform 0.1s; }
+.nav-expander.is-open svg { transform: rotate(90deg); }
+.nav-list > li[hidden] { display: none; }
 .nav-hidden { flex: none; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; color: var(--ink-3); }
 .nav-hidden svg { width: 18px; height: 18px; }
 .nav-switch { flex: none; height: 36px; padding: 0 2px; }
@@ -429,9 +435,10 @@ button.nav-label:hover { color: var(--blue-dark); }
 .navside-head.has-back { padding-left: 4px; justify-content: flex-start; gap: 2px; }
 .navside-head.has-back h2 { flex: 1; }
 .nav-back-btn svg { width: 20px; height: 20px; }
-.nav-create-open { display: flex; align-items: center; gap: 8px; border: none; border-top: 1px solid var(--line-2); background: none; padding: 8px 4px 2px; min-height: 40px; font-size: 13px; font-weight: 500; text-align: left; }
-.nav-create-open:hover { color: var(--blue-dark); }
-.nav-create-open svg { width: 16px; height: 16px; flex: none; }
+.nav-create-open, .nav-blocks-open { display: flex; align-items: center; gap: 8px; border: none; border-top: 1px solid var(--line-2); background: none; padding: 8px 4px 2px; min-height: 40px; font-size: 13px; font-weight: 500; text-align: left; }
+.nav-create-open:hover, .nav-blocks-open:hover { color: var(--blue-dark); }
+.nav-create-open + .nav-blocks-open { border-top: none; padding-top: 2px; }
+.nav-create-open svg, .nav-blocks-open svg { width: 16px; height: 16px; flex: none; }
 .nav-picker .field { gap: 4px; }
 .nav-picker .nav-back { align-self: flex-start; min-height: 32px; }
 .nav-publish { height: auto; min-height: 36px; padding: 2px 0; }
@@ -471,3 +478,22 @@ button.nav-label:hover { color: var(--blue-dark); }
 .nav-apply svg { width: 20px; height: 20px; }
 .nav-apply:hover { color: var(--blue); }
 .nav-apply[aria-disabled="true"] { color: #a7aaad; cursor: default; }
+
+/* Add block, in Add link. */
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.nav-caps-btn { display: inline-flex; align-items: center; gap: 2px; text-transform: uppercase; font-size: 11px; font-weight: 600; letter-spacing: 0.04em; }
+.nav-caps-btn svg { width: 16px; height: 16px; }
+.nav-blocks-head { margin: 6px 4px 0; }
+.nav-block-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2px; }
+.nav-block-btn { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 12px 4px; min-width: 0; border: none; border-radius: 2px; background: none; color: var(--ink); font: inherit; font-size: 12px; font-weight: 500; text-align: center; overflow-wrap: anywhere; cursor: pointer; }
+.nav-block-btn svg { width: 24px; height: 24px; }
+.nav-block-btn:hover, .nav-block-btn:focus-visible { background: #f0f0f0; color: var(--blue); }
+
+/* Blocks other than links, in the header, as the editor's canvas draws them. */
+.site-nav .site-block { text-decoration: none; }
+.site-nav .site-button { padding: 8px 18px; border-radius: 999px; background: #111; color: #9a9a9a; font-size: 14px; }
+.site-nav .site-search { display: inline-flex; align-items: center; gap: 8px; padding: 3px 3px 3px 12px; border: 1px solid #949494; color: #8c8f94; font-size: 13px; }
+.site-nav .site-search-btn { display: grid; place-items: center; width: 40px; height: 28px; border-radius: 999px; background: #111; color: #fff; }
+.site-nav .site-search-btn svg { width: 16px; height: 16px; }
+.site-nav .site-social { display: grid; place-items: center; width: 30px; height: 30px; padding: 0; border: 1px solid var(--site-ink); color: var(--site-ink); }
+.site-nav .site-social svg { width: 16px; height: 16px; }

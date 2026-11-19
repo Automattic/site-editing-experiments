@@ -11,6 +11,9 @@
  * pointer moves), while dragging to select text, and wherever they would sit
  * under the block toolbar.
  *
+ * The block toolbar also shows the selected block's name beside its icon
+ * ("Group", "Column"), so it says the same as the tab that was clicked.
+ *
  * This file uses only the API in ../app.js (window.Utrillo.registerVariant).
  */
 (function () {
@@ -25,6 +28,7 @@
     id: 'hover-tab',
     code: 'UA',
     init: function (api) {
+      api.showBlockNameInToolbar(true);
       const canvas = api.canvas;
       const overlay = api.overlay;
 

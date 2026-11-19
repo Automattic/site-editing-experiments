@@ -1,4 +1,4 @@
-/* Utrillo · Selecting the section around what you clicked. Shared styles for all four arms. */
+/* Utrillo · Selecting the section around what you clicked. Shared styles for all three arms. */
 
 :root {
   --ink: #1e1e1e;
@@ -160,6 +160,8 @@ svg { display: block; fill: currentColor; }
 .ut-tb-btn:hover { color: var(--admin); }
 .ut-tb-icon { cursor: default; }
 .ut-tb-icon:hover { color: var(--ink); }
+.ut-tb-icon.has-name { width: auto; gap: 4px; padding: 6px 8px 6px 6px; }
+.ut-tb-name { font-size: 13px; line-height: 1; color: var(--ink); }
 .ut-tb-btn[aria-disabled="true"] { opacity: .3; cursor: default; color: var(--ink); }
 .ut-tb-movers { display: flex; flex-direction: column; margin-left: 2px; }
 .ut-tb-movers .ut-tb-mover { width: 24px; height: 18px; padding: 0; }

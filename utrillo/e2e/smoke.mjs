@@ -4,13 +4,13 @@
  *   node utrillo/e2e/smoke.mjs
  *
  * Serves the repository with a tiny static server on a free port, opens each
- * of the four arms in headless Chrome and checks that it loads without
+ * of the three arms in headless Chrome and checks that it loads without
  * console errors. Then, in the control, it does all four tasks through the
  * editor's own routes, twice (with Reset between), checking the task ticks,
  * the counts in the facilitator panel and the completion code.
  *
  * Finally it runs utrillo/e2e/<arm>.mjs for each arm that has one
- * (hover-tab, section-first, layers). Each exports a default async function
+ * (hover-tab, layers). Each exports a default async function
  * that receives { page, baseUrl, assert, helpers }: `page` is a fresh page
  * that hasn't loaded anything yet (console errors on it fail the test),
  * `baseUrl` is the server's address for the utrillo folder, and `helpers` are
@@ -139,7 +139,7 @@ async function test(name, fn) {
 
 // ---------- Every arm loads cleanly ----------
 
-const ARMS = { control: 'UC', 'hover-tab': 'UA', 'section-first': 'UB', layers: 'UD' };
+const ARMS = { control: 'UC', 'hover-tab': 'UA', layers: 'UD' };
 for (const [arm, code] of Object.entries(ARMS)) {
   await test('Loads ' + arm + '.html', async () => {
     const page = await newPage();
@@ -174,6 +174,7 @@ await test('Control, run 1: typo by clicking and typing, move by the toolbar, ba
   await h.block(page, 'wednesday-text').locator('.ut-rich').click();
   assert.equal(await h.selectedId(page), 'wednesday-text');
   assert.equal(await page.locator('.ut-toolbar [data-action="select-parent"]').getAttribute('aria-label'), 'Select parent block: Column');
+  assert.equal(await page.locator('.ut-toolbar .ut-tb-name').count(), 0, 'the control toolbar shows icons only, as the editor does');
   await h.selectParent(page);
   assert.equal(await h.selectedId(page), 'wednesday');
   await h.selectParent(page);
@@ -357,7 +358,7 @@ await test('Control, run 3 at 1024×768: undo while typing keeps the caret, the 
 
 // ---------- The arms' own tests ----------
 
-for (const arm of ['hover-tab', 'section-first', 'layers']) {
+for (const arm of ['hover-tab', 'layers']) {
   const file = path.join(here, arm + '.mjs');
   if (!fs.existsSync(file)) { console.log(arm + '.mjs: none yet, skipped'); continue; }
   await test('Arm ' + arm + ' (' + arm + '.mjs)', async () => {

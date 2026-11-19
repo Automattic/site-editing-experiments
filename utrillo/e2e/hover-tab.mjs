@@ -30,6 +30,7 @@ export default async function ({ page, baseUrl, assert, helpers: h }) {
   step('task 1: the ordinary text edit still works (click before the second “e”, type n)');
   await h.clickTextBefore(page, 'monday-text', 'beginers', 5);
   assert.equal(await h.selectedId(page), 'monday-text');
+  assert.equal((await page.locator('.ut-toolbar .ut-tb-name').textContent()).trim(), 'Paragraph', 'text blocks are named too');
   await page.keyboard.type('n');
   assert.match(await h.text(page, 'monday-text'), /beginners/);
   assert.equal(await h.taskDone(page, 1), true, 'task 1 ticked');
@@ -74,6 +75,7 @@ export default async function ({ page, baseUrl, assert, helpers: h }) {
   await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
   assert.equal(await h.selectedId(page), 'classes');
   assert.equal(await h.count(page, 'route-tab'), '1');
+  assert.equal((await page.locator('.ut-toolbar .ut-tb-name').textContent()).trim(), 'Group', 'the toolbar names the block, as the tab did');
   assert.equal(await h.count(page, 'route-padding'), '0', 'the canvas didn’t also select what was under the tab');
   assert.ok(Number(await h.count(page, 'arm-tabShown')) >= 3, 'tabShown counted');
   assert.match(await page.locator('.ut-log').innerText(), /Clicked the Group tab/);
@@ -84,6 +86,7 @@ export default async function ({ page, baseUrl, assert, helpers: h }) {
   await clickTab('classes-columns');
   assert.equal(await h.selectedId(page), 'classes-columns');
   assert.equal(await h.count(page, 'route-tab'), '2');
+  assert.equal((await page.locator('.ut-toolbar .ut-tb-name').textContent()).trim(), 'Columns', 'the toolbar names the Columns');
 
   step('task 2: the Group tab, then Move up');
   await hoverText('wednesday-text');

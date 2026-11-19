@@ -1,8 +1,0 @@
-/* Utrillo · B · Section first. Styles for this arm only, on top of ../style.css. */
-
-/* The pointer says what the next click does: an arrow where it selects a
-   container (a section or a Column), a text cursor where it reaches text. */
-.ut-canvas.sf-next-arrow .ut-page,
-.ut-canvas.sf-next-arrow .ut-page * { cursor: default; }
-.ut-canvas.sf-next-text .ut-page,
-.ut-canvas.sf-next-text .ut-page * { cursor: text; }

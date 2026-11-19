@@ -497,3 +497,8 @@ button.nav-label:hover { color: var(--blue-dark); }
 .site-nav .site-search-btn svg { width: 16px; height: 16px; }
 .site-nav .site-social { display: grid; place-items: center; width: 30px; height: 30px; padding: 0; border: 1px solid var(--site-ink); color: var(--site-ink); }
 .site-nav .site-social svg { width: 16px; height: 16px; }
+
+/* Drafts in Q's pages menu: the Pages panel's Draft badge in the sidebar, and in the preview a
+   draft drawn as the editor's canvas draws a link to a draft page (title, "(Draft)", a wavy underline). */
+.nav-row .nav-draft { flex: none; margin-right: 4px; }
+.site-nav .site-draft-label { text-decoration: underline wavy; text-decoration-skip-ink: none; text-underline-offset: 0.25rem; }

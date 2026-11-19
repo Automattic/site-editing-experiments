@@ -207,4 +207,28 @@ export default async function ({ page, baseUrl, assert, helpers: h }) {
   } finally {
     await context.close();
   }
+
+  h.step('touch that becomes a scroll: the next tap isn’t swallowed');
+  {
+    const ctx = await page.context().browser().newContext({ viewport: { width: 1440, height: 900 } });
+    const tp = await ctx.newPage();
+    const errors = [];
+    tp.on('pageerror', (err) => errors.push(String(err)));
+    try {
+      await tp.goto(baseUrl + '/hover-notice.html');
+      await h.k(tp, 'picks-intro').evaluate((el) => {
+        el.dispatchEvent(new PointerEvent('pointerdown', { pointerType: 'touch', bubbles: true, cancelable: true, isPrimary: true }));
+        el.dispatchEvent(new PointerEvent('pointercancel', { pointerType: 'touch', bubbles: true, isPrimary: true }));
+      });
+      await tp.locator('.vm-layer .vb-notice').waitFor();
+      await h.k(tp, 'nav-events').click();
+      assert.equal(await h.currentPage(tp), 'events', 'the tap after the scroll follows the link');
+      h.step('B: going in by the Edit button while the notice shows logs the route’s name');
+      await h.edit(tp);
+      assert.match((await h.logTexts(tp)).join('\n'), /Notice ignored: went into editing by the Edit button/);
+      assert.deepEqual(errors, []);
+    } finally {
+      await ctx.close();
+    }
+  }
 }

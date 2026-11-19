@@ -28,7 +28,9 @@
  *
  * Everything is kept in localStorage under `vermeer:<variant>` and written on
  * every change, so a reload puts the person back exactly where they were.
- * Reset in the notes panel clears it.
+ * Reset in the notes panel clears it. If the same arm is open in two tabs,
+ * the one that wrote last is live: the other stops writing and asks to be
+ * reloaded. Site links can't be opened in a new tab.
  *
  * ======================================================================
  * The arm API: window.Vermeer
@@ -50,6 +52,11 @@
  *                                      mode change (listen for 'render').
  *   viewport                           the scrolling area around the site ("the site area" for
  *                                      hover: pointerenter / pointerleave / scroll here)
+ *   stage                              the element holding the viewport and the layer: "the site
+ *                                      area" including anything an arm lays over it
+ *   blocked()                          true while a dialog (Exit, Finished) or the page list is
+ *                                      open; hover arms shouldn't show anything then
+ *   routeLabel(name)                   the human label of a route ('the Edit button')
  *   layer                              an empty element laid exactly over the viewport, above the
  *                                      site, for an arm's popovers, notices and overlays. It lets
  *                                      the pointer through (pointer-events: none): give your own
@@ -68,6 +75,8 @@
  *                                      edit would land on (the link or button text itself, a
  *                                      field's label, the paragraph clicked), or null for a picture
  *                                      or background. section: the nearest section element.
+ *                                      Links also have to (page id), toName ('Events') and
+ *                                      samePage (true for a link further down the same page).
  *   clickInfo(event)                   → classify() of a browse click as app.js saw it in its
  *                                      capture listener, plus { selecting, counted }: selecting is
  *                                      true when the click ended a text selection (then nothing
@@ -91,7 +100,9 @@
  *   suppressNextClick(reason)          the next click on the site (within 1 s) is swallowed by
  *                                      app.js before anything else sees it and isn't counted:
  *                                      for "the first touch stands in for hover". Call it from a
- *                                      pointerdown listener.
+ *                                      pointerdown listener. app.js clears it itself on
+ *                                      pointercancel (a touch that became a scroll).
+ *   cancelSuppress()                   clear a pending suppressNextClick
  *   announce(text)                     say text in a polite live region (screen readers)
  *
  * Prompts (A2 popover, B notice, C popup, D overlay)
@@ -116,7 +127,7 @@
  *   spell.id()                         the browse spell's number (1 at first open, +1 per Exit)
  *   on(event, fn)                      → unsubscribe function. Events:
  *                                        'render'     { mode, page } the site was redrawn
- *                                        'modechange' { mode, route } entered or left edit mode
+ *                                        'modechange' { mode, route, label } entered or left edit mode
  *                                        'pagechange' { page, from, route }
  *                                        'spellstart' { id } a new browse spell, after Exit
  *                                        'scroll'     the viewport scrolled
@@ -125,7 +136,7 @@
  *   - app.js listens for clicks on the viewport in the CAPTURE phase, registered before any arm
  *     script runs, so it sees every site click before an arm does. There it applies
  *     suppressNextClick, classifies the click and counts it if it's non-functional (browse only,
- *     not ending a selection). Arms must not count non-functional clicks themselves.
+ *     not ending a selection, and only the first press of a double or triple click). Arms must not count non-functional clicks themselves.
  *   - Arms listen on api.site (either phase) or the viewport in the capture phase.
  *   - app.js's default action for a browse click (follow a link, press a button) runs on the
  *     viewport in the BUBBLE phase and is skipped if the arm called event.preventDefault().
@@ -308,7 +319,8 @@
       spell: { id: 1, data: {} },
       store: {},
       prompts: { next: 1, open: {} },
-      booked: {}, sent: {},
+      booked: {}, sent: {}, clubOpen: false, fields: {},
+      pending: null,
       scroll: { browse: 0, edit: 0 }
     };
   }
@@ -320,10 +332,24 @@
   } catch (err) { S = null; }
   if (!S || S.v !== 1) S = freshState();
   for (const k of Object.keys(ORIGINAL)) { if (!(k in S.saved)) S.saved[k] = ORIGINAL[k]; if (!(k in S.draft)) S.draft[k] = S.saved[k]; }
+  if (!S.fields) S.fields = {};
+
+  // Two tabs of the same arm would overwrite each other's state. The tab that
+  // wrote last is the live one: when another tab writes (or Reset clears) the
+  // same key, this tab stops writing and says so, and a reload of it carries
+  // on from what's stored. A tab knows it's been reloaded (rather than opened
+  // a second time) from a marker in sessionStorage, which is kept per tab.
+  let stale = false;
+  let openedAgain = false;
+  try {
+    const mark = 'vermeer-tab:' + STORE_KEY;
+    if (reloaded && !sessionStorage.getItem(mark)) openedAgain = true;
+    sessionStorage.setItem(mark, '1');
+  } catch (err) { /* no sessionStorage: treat as a reload */ }
 
   let resetting = false;
   function persist() {
-    if (resetting) return;
+    if (resetting || stale) return;
     try { localStorage.setItem(STORE_KEY, JSON.stringify(S)); } catch (err) { /* private mode: carry on in memory */ }
   }
 
@@ -462,7 +488,7 @@
       main =
         '<section class="cl-hero" data-section="home-hero" data-label="Top of the Home page"><div class="cl-wrap cl-hero-in">' +
           '<div class="cl-hero-text">' + tx('home-kicker', 'p', 'cl-kicker') + tx('home-heading', 'h1', 'cl-h1') +
-            '<p class="cl-lede">' + tx('home-intro-a') + link('home-intro-link', 'events', 'text link', 'cl-inline-link') + tx('home-intro-b') + '</p>' +
+            '<p class="cl-lede" data-k-near="home-intro-a">' + tx('home-intro-a') + link('home-intro-link', 'events', 'text link', 'cl-inline-link') + tx('home-intro-b') + '</p>' +
             '<p class="cl-actions">' + link('home-cta', 'events', 'button link', 'cl-btn cl-btn-accent') + '</p>' +
           '</div>' +
           '<figure class="cl-hero-art" data-img="Picture of the shop">' + PICTURES.hero + '</figure>' +
@@ -508,7 +534,7 @@
             '<div class="cl-field">' + label('lbl-email', 'cf-email') + input('cf-email', 'email', ' autocomplete="email"') + '</div>' +
             '<div class="cl-field">' + label('lbl-message', 'cf-message') + input('cf-message', 'textarea') + '</div>' +
             '<div class="cl-form-foot">' + button('send-btn', null, 'cl-btn cl-btn-dark', null, true) +
-              (!E && S.sent.contact ? '<p class="cl-thanks" role="status">Thanks, we’ll reply within two days.</p>' : '') + '</div>' +
+              (!E && S.sent.contact ? '<p class="cl-thanks" tabindex="-1" data-thanks="contact">Thanks, we’ll reply within two days.</p>' : '') + '</div>' +
           '</form>' +
         '</div></section>' +
         '<section class="cl-findus" id="find-us" data-section="contact-findus" data-label="Finding us"><div class="cl-wrap cl-findus-in">' +
@@ -524,7 +550,7 @@
         '<form class="cl-footer-col cl-news" data-form="news">' + tx('news-heading', 'h2', 'cl-h4') + tx('news-text', 'p') +
           label('lbl-news', 'nl-email') +
           '<div class="cl-news-row">' + input('nl-email', 'email', ' autocomplete="email"') + button('news-btn', null, 'cl-btn cl-btn-light', null, true) + '</div>' +
-          (!E && S.sent.news ? '<p class="cl-thanks" role="status">Thanks, you’re on the list.</p>' : '') +
+          (!E && S.sent.news ? '<p class="cl-thanks" tabindex="-1" data-thanks="news">Thanks, you’re on the list.</p>' : '') +
         '</form>' +
       '</div><div class="cl-wrap">' + tx('footer-copy', 'p', 'cl-copy') + '</div></footer>';
 
@@ -532,11 +558,11 @@
   }
 
   // The book club panel, opened by the header's button in browse.
-  let clubOpen = false;
+  let clubOpen = !!S.clubOpen;
   function clubPanel() {
     return '<div class="cl-club" role="region" aria-label="Book club"><div class="cl-wrap cl-club-in">' +
       '<div><p class="cl-club-title">The book club</p><p>We meet on the third Thursday of each month, after closing, with tea and a book. Leave your email and we’ll send you the next one.</p></div>' +
-      (S.sent.club ? '<p class="cl-thanks" role="status">Lovely. We’ll send you next month’s book.</p>'
+      (S.sent.club ? '<p class="cl-thanks" tabindex="-1" data-thanks="club">Lovely. We’ll send you next month’s book.</p>'
         : '<form class="cl-club-form" data-form="club"><label class="cl-label" for="bc-email">Email</label><div class="cl-news-row"><input class="cl-input" id="bc-email" type="email" required autocomplete="email"><button type="submit" class="cl-btn cl-btn-dark">Count me in</button></div></form>') +
       '<button type="button" class="cl-club-close" data-act="club-close" aria-label="Close the book club panel">' + ICONS.close + '</button>' +
     '</div></div>';
@@ -550,6 +576,10 @@
     site.classList.toggle('is-browse', S.mode !== 'edit');
     site.setAttribute('aria-label', S.mode === 'edit' ? 'Your page, editing: ' + PAGES[page()] : 'Your website: ' + PAGES[page()]);
     site.innerHTML = siteHTML(page(), S.mode);
+    if (S.mode === 'browse') {
+      for (const f of site.querySelectorAll('.cl-input')) if (S.fields[f.id] != null) f.value = S.fields[f.id];
+      for (const a of site.querySelectorAll('a[href]')) a.draggable = false;
+    }
     if (S.mode === 'browse' && page() === 'contact') watchHours();
     emit('render', { mode: S.mode, page: page() });
   }
@@ -562,6 +592,16 @@
 
   // ---------- Classifying what was clicked ----------
 
+  // The text a point belongs to: the element itself, or for a paragraph
+  // made of several bits (the Home introduction, with its link), its main bit
+  // when the point is in the gaps between them.
+  function textTarget(el) {
+    const k = el.closest('[data-k]');
+    if (k) return k;
+    const near = el.closest('[data-k-near]');
+    return near ? near.querySelector('[data-k="' + near.dataset.kNear + '"]') : null;
+  }
+
   function classify(target) {
     const el = target && target.nodeType === 1 ? target : target && target.parentElement;
     const out = { kind: 'none', el: null, label: '', textEl: null, textLabel: '', section: null, sectionLabel: '' };
@@ -573,7 +613,10 @@
     const btn = el.closest('button, summary');
     const field = el.closest('input, textarea, select, label');
     if (a) {
-      Object.assign(out, { kind: 'link', el: a, label: textOf(a) });
+      // to: the page the link goes to; samePage: a link to a place further
+      // down the page it's on ("Get directions").
+      const [toPage, anchor] = String(a.dataset.to || 'home').split('#');
+      Object.assign(out, { kind: 'link', el: a, label: textOf(a), to: toPage, toName: PAGES[toPage], samePage: !!anchor && toPage === page() });
     } else if (btn) {
       Object.assign(out, { kind: 'button', el: btn, label: btn.getAttribute('aria-label') || textOf(btn) });
     } else if (field) {
@@ -583,7 +626,7 @@
       if (lab && lab.dataset.k) { out.textEl = lab; out.textLabel = labelOf(lab.dataset.k); }
       return out;
     }
-    const k = el.closest('[data-k]');
+    const k = textTarget(el);
     if (k) { out.textEl = k; out.textLabel = labelOf(k.dataset.k); }
     if (out.kind === 'none') {
       const img = el.closest('[data-img]');
@@ -598,7 +641,28 @@
   const bornInBrowse = new WeakSet();
   let suppress = null;
   let lastPointerType = '';
-  window.addEventListener('pointerdown', (e) => { lastPointerType = e.pointerType || ''; }, true);
+  window.addEventListener('pointerdown', (e) => { lastPointerType = e.pointerType || ''; keyboardLast = false; }, true);
+  // A touch that turns into a scroll sends pointercancel and no click: don't
+  // leave the suppression waiting for the next real tap.
+  window.addEventListener('pointercancel', () => { suppress = null; }, true);
+  // Whether the last thing the person did was a key press (for where focus
+  // goes after a page change).
+  let keyboardLast = false;
+  window.addEventListener('keydown', () => { keyboardLast = true; }, true);
+
+  // M4: links stay in this tab. A middle click or auxclick on a site link
+  // does nothing (it would open a second copy of this prototype); Ctrl, Cmd
+  // or Shift with a click is an ordinary click; and links have no context
+  // menu or dragging, so "Open in new tab" isn't offered.
+  viewport.addEventListener('auxclick', (e) => {
+    const a = e.target.closest && e.target.closest('.vm-site a[href]');
+    if (!a) return;
+    e.preventDefault();
+    if (S.mode === 'browse') note('click', 'Middle-clicked the link ' + quote(a.textContent.trim()) + ' (does nothing here)');
+  }, true);
+  viewport.addEventListener('mousedown', (e) => { if (e.button === 1 && e.target.closest && e.target.closest('.vm-site a[href]')) e.preventDefault(); }, true);
+  viewport.addEventListener('contextmenu', (e) => { if (e.target.closest && e.target.closest('.vm-site a[href]')) e.preventDefault(); }, true);
+  viewport.addEventListener('dragstart', (e) => { if (e.target.closest && e.target.closest('.vm-site a[href]')) e.preventDefault(); }, true);
 
   // Mark pointer events that start in browse, so edit-mode handling ignores
   // the gesture that entered edit mode.
@@ -622,7 +686,11 @@
     const sel = window.getSelection();
     info.selecting = !!(sel && !sel.isCollapsed && sel.toString().trim() && site.contains(sel.anchorNode));
     info.counted = false;
-    if (info.kind === 'none' && !info.selecting) {
+    // A double or triple click counts once: its later presses (detail 2, 3)
+    // aren't counted or logged, in every arm.
+    if (e.detail > 1) {
+      // nothing: the first press was counted
+    } else if (info.kind === 'none' && !info.selecting) {
       info.counted = true;
       S.stats.nfTotal++;
       if (!S.stats.first) S.stats.nfBefore++;
@@ -653,17 +721,29 @@
     if (f && !fieldNoted.has(f)) { fieldNoted.add(f); note('use', 'Clicked or tabbed into the box ' + quote(classify(f).label)); }
   });
 
+  // What's typed in the site's boxes is kept, so a reload doesn't lose it.
+  site.addEventListener('input', (e) => {
+    if (S.mode !== 'browse' || !e.target.matches || !e.target.matches('.cl-input')) return;
+    S.fields[e.target.id] = e.target.value;
+    persist();
+  });
+
   site.addEventListener('submit', (e) => {
     e.preventDefault();
     if (S.mode !== 'browse') return;
     const form = e.target.dataset.form;
-    if (form === 'news') { S.sent.news = true; note('use', 'Signed up to the newsletter in the footer: “Thanks, you’re on the list.”'); }
-    else if (form === 'contact') { S.sent.contact = true; note('use', 'Sent the contact form: “Thanks, we’ll reply within two days.”'); }
+    const THANKS = { news: 'Thanks, you’re on the list.', contact: 'Thanks, we’ll reply within two days.', club: 'Lovely. We’ll send you next month’s book.' };
+    if (form === 'news') { S.sent.news = true; note('use', 'Signed up to the newsletter in the footer: “' + THANKS.news + '”'); }
+    else if (form === 'contact') { S.sent.contact = true; note('use', 'Sent the contact form: “' + THANKS.contact + '”'); }
     else if (form === 'club') { S.sent.club = true; note('use', 'Joined the book club in its panel'); }
+    for (const f of e.target.querySelectorAll('.cl-input')) delete S.fields[f.id];
     persist();
     const top = viewport.scrollTop;
     renderSite();
     viewport.scrollTop = top;
+    const thanks = site.querySelector('[data-thanks="' + form + '"]');
+    if (thanks) thanks.focus({ preventScroll: true });
+    if (THANKS[form]) announce(THANKS[form]);
   });
 
   const linkLabel = (a) => quote((a.textContent || '').trim());
@@ -698,8 +778,8 @@
     countUse(btn, via);
     const act = btn.dataset.act || '';
     const top = viewport.scrollTop;
-    if (act === 'bookclub') { clubOpen = !clubOpen; renderSite(); viewport.scrollTop = top; if (clubOpen) { const f = site.querySelector('#bc-email'); if (f) f.focus({ preventScroll: true }); } }
-    else if (act === 'club-close') { clubOpen = false; renderSite(); viewport.scrollTop = top; const b = site.querySelector('[data-act="bookclub"]'); if (b) b.focus({ preventScroll: true }); }
+    if (act === 'bookclub') { clubOpen = !clubOpen; S.clubOpen = clubOpen; persist(); renderSite(); viewport.scrollTop = top; if (clubOpen) { const f = site.querySelector('#bc-email'); if (f) f.focus({ preventScroll: true }); } }
+    else if (act === 'club-close') { clubOpen = false; S.clubOpen = false; persist(); renderSite(); viewport.scrollTop = top; const b = site.querySelector('[data-act="bookclub"]'); if (b) b.focus({ preventScroll: true }); }
     else if (act.startsWith('book:')) {
       const n = act.split(':')[1];
       S.booked['ev' + n] = !S.booked['ev' + n];
@@ -758,8 +838,27 @@
     viewport.scrollTop = 0;
     S.scroll[S.mode] = 0;
     persist();
+    settleFocus();
     emit('pagechange', { page: page(), from, route });
   }
+  // After a page change, focus mustn't fall to the page's body. If it's in
+  // the toolbar (the arrows, the page list) it stays there. Otherwise, after
+  // a key press while browsing, it goes to the new page's main heading;
+  // after a click, to the site area, without scrolling.
+  function settleFocus() {
+    const a = document.activeElement;
+    if (a && a !== document.body && a.isConnected && (toolbar.contains(a) || layer.contains(a))) return;
+    const h1 = site.querySelector('h1');
+    if (keyboardLast && S.mode === 'browse' && h1) {
+      // Focusable only while it has focus, so clicks on it don't focus it.
+      h1.tabIndex = -1;
+      h1.addEventListener('blur', () => { if (S.mode === 'browse') h1.removeAttribute('tabindex'); }, { once: true });
+      h1.focus({ preventScroll: true });
+    }
+    else if (keyboardLast && S.mode === 'edit') { const b = toolbar.querySelector('[data-action="pages"]'); if (b) b.focus({ preventScroll: true }); }
+    else viewport.focus({ preventScroll: true });
+  }
+
   function historyStep(d) {
     const i = S.hist.i + d;
     if (i < 0 || i >= S.hist.stack.length) return;
@@ -791,7 +890,7 @@
       if (!b) return;
       const to = b.dataset.page;
       closePicker(true);
-      if (to !== page()) go(to, S.mode === 'edit' ? 'address bar, while editing' : 'address bar');
+      if (to !== page()) go(to, 'address bar');
     });
     picker.addEventListener('keydown', (e) => {
       const items = [...picker.querySelectorAll('[data-page]')];
@@ -841,12 +940,16 @@
     el.spellcheck = false;
     el.classList.add('is-selected', 'is-editing');
     editing = { el, key: el.dataset.k, before: S.draft[el.dataset.k], sid: ++S.sid };
+    // Kept so a reload in the middle of typing can still log the edit.
+    S.pending = { key: editing.key, before: editing.before };
+    persist();
   }
 
   function commitEditing(opts) {
     if (!editing) return;
     const { el, key, before } = editing;
     editing = null;
+    S.pending = null;
     let text = el.textContent.replace(/\s+/g, ' ');
     if (!text.trim()) {
       text = before;
@@ -918,8 +1021,12 @@
   viewport.addEventListener('pointerdown', (e) => {
     if (S.mode !== 'edit' || bornInBrowse.has(e) || !site.contains(e.target)) return;
     if (e.button !== 0) return;
-    const k = e.target.closest('[data-k]');
-    if (k) { beginEditing(k); return; }
+    const k = textTarget(e.target);
+    if (k) {
+      beginEditing(k);
+      if (!k.contains(e.target)) { e.preventDefault(); placeCaretAtOffset(k, null); }
+      return;
+    }
     e.preventDefault();
     const img = e.target.closest('[data-img]');
     const section = e.target.closest('[data-section]');
@@ -1092,20 +1199,22 @@
     }
     S.scroll.edit = viewport.scrollTop;
     note('mode', 'Entered edit mode on ' + PAGES[page()] + ' by ' + ROUTES[route].label + '. Ready: ' + (landing.landed === 'nothing' ? 'nothing selected' : landing.landed === 'section' ? 'the section ' + quote(landing.label) + ' outlined' : landing.label + (offset != null ? ', caret where clicked' : ', caret at the end')) + (firstTime ? ' (first time, ' + S.stats.first.t.toFixed(1) + ' s after first open)' : ''));
-    announce('Editing ' + PAGES[page()] + '. Click any text to change it.');
-    emit('modechange', { mode: 'edit', route });
+    announce('Editing ' + PAGES[page()] + '. Choose any words on the page to change them.');
+    emit('modechange', { mode: 'edit', route, label: ROUTES[route].label });
     return landing;
   }
 
-  function leaveEdit(choice) {
+  // saved: what to log for "saved", worked out by the caller before any
+  // discarding ('yes', 'no', 'some'), or left to work out here.
+  function leaveEdit(choice, saved) {
     const visit = S.visit || { changed: false };
     S.scroll.edit = viewport.scrollTop;
     const anchor = scrollAnchor(null);
     S.mode = 'browse';
     S.stats.exits++;
     if (!visit.changed) S.stats.accidental++;
-    const savedNow = visit.changed && !hasUnsaved();
-    note('mode', 'Left edit mode by Exit, on ' + PAGES[page()] + '. Changes in this visit: ' + (visit.changed ? 'yes' : 'no') + '; saved: ' + (visit.changed ? (savedNow ? 'yes' : 'no') : '–') + '; dialog: ' + (choice || 'not shown') + (visit.changed ? '' : '. Counted as an accidental entry'));
+    const savedText = saved || (hasUnsaved() ? (visit.saved ? 'some' : 'no') : 'yes');
+    note('mode', 'Left edit mode by Exit, on ' + PAGES[page()] + '. Changes in this visit: ' + (visit.changed ? 'yes' : 'no') + '; saved: ' + (visit.changed ? savedText : '–') + '; dialog: ' + (choice || 'not shown') + (visit.changed ? '' : '. Counted as an accidental entry'));
     S.visit = null;
     S.undo = []; S.redo = [];
     S.spell = { id: S.spell.id + 1, data: {} };
@@ -1115,7 +1224,7 @@
     persist();
     const btn = toolbar.querySelector('[data-action="edit"]');
     if (btn) btn.focus({ preventScroll: true });
-    emit('modechange', { mode: 'browse', route: 'exit' });
+    emit('modechange', { mode: 'browse', route: 'exit', label: 'Exit' });
     emit('spellstart', { id: S.spell.id });
     checkTasks();
   }
@@ -1128,6 +1237,7 @@
     const n = unsavedCount();
     S.saved = deepCopy(S.draft);
     S.stats.saves++;
+    if (S.visit) S.visit.saved = true;
     note('save', 'Saved (' + n + ' change' + (n === 1 ? '' : 's') + ')');
     savedFlash = true;
     clearTimeout(savedTimer);
@@ -1171,11 +1281,12 @@
       if (b) b.focus();
       return;
     }
-    if (choice === 'save') { save(); leaveEdit('Save'); return; }
+    if (choice === 'save') { save(); leaveEdit('Save', 'yes'); return; }
     const n = unsavedCount();
+    const saved = S.visit && S.visit.saved ? 'some, the rest discarded' : 'no';
     S.draft = deepCopy(S.saved);
     note('mode', 'Exit dialog: Discard (' + n + ' unsaved change' + (n === 1 ? '' : 's') + ' thrown away)');
-    leaveEdit('Discard');
+    leaveEdit('Discard', saved);
   }
 
   // ---------- Toolbar actions ----------
@@ -1360,7 +1471,7 @@
     const st = S.stats;
     const keep = notesEl.querySelector('.vm-log');
     const atBottom = !keep || keep.scrollTop + keep.clientHeight >= keep.scrollHeight - 4;
-    const row = (key, label, value) => '<dt>' + label + '</dt><dd data-count="' + key + '">' + value + '</dd>';
+    const row = (key, label, value, wide) => '<dt' + (wide ? ' class="is-wide"' : '') + '>' + label + '</dt><dd' + (wide ? ' class="is-wide"' : '') + ' data-count="' + key + '">' + value + '</dd>';
     const switcher = Object.entries(VARIANTS).map(([id, v]) => id === VARIANT
       ? '<strong>' + v.letter + '</strong>' : '<a href="' + v.file + '?notes">' + v.letter + '</a>').join(' | ');
     const routes = Object.keys(Object.assign({}, ROUTES, st.byRoute)).map((r) =>
@@ -1381,7 +1492,7 @@
       }).join('') + '</ol>' +
       '<p class="vm-small">Ticks with a time are automatic and go into the code. The boxes are yours, for your notes only.</p>' +
       '<h3>Counts</h3><dl>' +
-        row('first-entry', 'First into edit mode', st.first ? st.first.t.toFixed(1) + ' s, by ' + esc(ROUTES[st.first.route] ? ROUTES[st.first.route].label : st.first.route) : 'not yet') +
+        row('first-entry', 'First into edit mode', st.first ? st.first.t.toFixed(1) + ' s, by ' + esc(ROUTES[st.first.route] ? ROUTES[st.first.route].label : st.first.route) : 'not yet', true) +
         row('nf-before', 'Non-functional clicks before then', st.nfBefore) +
         row('nf-total', 'Non-functional clicks in all (browse)', st.nfTotal) +
         row('entries', 'Entries into edit mode', st.entries) + routes +
@@ -1420,7 +1531,10 @@
     pageName: (id) => PAGES[id || page()],
     site,
     viewport,
+    stage: viewport.parentElement,
     layer,
+    blocked: () => !!(picker || document.querySelector('dialog[open]')),
+    routeLabel: (name) => (ROUTES[name] ? ROUTES[name].label : String(name)),
     toLayer(x, y) { const r = layer.getBoundingClientRect(); return { x: x - r.left, y: y - r.top, width: r.width, height: r.height }; },
     lastPointerType: () => lastPointerType,
     classify,
@@ -1428,6 +1542,7 @@
     enterEdit,
     perform,
     suppressNextClick(reason) { suppress = { until: Date.now() + 1000, reason: reason ? String(reason) : '' }; },
+    cancelSuppress() { suppress = null; },
     announce,
     promptShown,
     promptOutcome,
@@ -1469,11 +1584,47 @@
   viewport.scrollTop = S.scroll[S.mode] || 0;
   if (reloaded) {
     const open = Object.keys(S.prompts.open);
-    note('reload', 'Page reloaded' + (S.mode === 'edit' ? ' (in edit mode on ' + PAGES[page()] + (hasUnsaved() ? ', with ' + unsavedCount() + ' unsaved change' + (unsavedCount() === 1 ? '' : 's') : '') + ')' : ' (browsing ' + PAGES[page()] + ')'));
+    note('reload', (openedAgain ? 'Opened again in another tab or window (the earlier one stops saving)' : 'Page reloaded') + (S.mode === 'edit' ? ' (in edit mode on ' + PAGES[page()] + (hasUnsaved() ? ', with ' + unsavedCount() + ' unsaved change' + (unsavedCount() === 1 ? '' : 's') : '') + ')' : ' (browsing ' + PAGES[page()] + ')'));
     for (const id of open) promptOutcome(Number(id), 'ignored', 'page reloaded');
+    // Text being typed in when the page was reloaded: its change is in the
+    // draft already; log it and count it as an edit, as finishing would have.
+    if (S.pending) {
+      const { key, before } = S.pending;
+      S.pending = null;
+      if (!String(S.draft[key] || '').trim()) {
+        S.draft[key] = before;
+        note('edit', 'Emptied ' + labelOf(key) + ' and it was put back (when the page was reloaded)');
+        if (S.mode === 'edit') renderSite();
+      } else if (S.draft[key] !== before) {
+        S.stats.edits++;
+        if (S.visit) S.visit.changed = true;
+        note('edit', 'Changed ' + labelOf(key) + ' (' + pageOfKey(key) + '): ' + quote(before) + ' → ' + quote(S.draft[key]) + ' (finished by the reload)');
+      }
+      persist();
+      renderToolbar();
+    }
+    // Unsaved changes in the draft after a reload are this visit's changes.
+    if (S.mode === 'edit' && S.visit && hasUnsaved() && !S.visit.changed) { S.visit.changed = true; persist(); }
   } else {
     note('mode', 'Opened ' + ARM.name.split(':')[0] + ', browsing Home');
   }
   checkTasks();
   renderNotes();
+
+  // Another tab wrote this arm's state (or Reset it): this one stops writing,
+  // so neither overwrites the other, and says so over everything.
+  window.addEventListener('storage', (e) => {
+    if (e.key !== STORE_KEY || stale || resetting) return;
+    stale = true;
+    const d = document.createElement('dialog');
+    d.className = 'vm-dialog vm-stale';
+    d.setAttribute('aria-labelledby', 'vm-stale-title');
+    d.innerHTML = '<h2 id="vm-stale-title">This website is open in another tab</h2><p>Carry on in the other tab, or reload this one to carry on here.</p>' +
+      '<div class="vm-dialog-actions"><button type="button" class="vm-btn vm-btn-primary" data-stale-reload>Carry on here</button></div>';
+    document.body.append(d);
+    d.addEventListener('cancel', (ev) => ev.preventDefault());
+    d.querySelector('[data-stale-reload]').addEventListener('click', () => location.reload());
+    for (const other of document.querySelectorAll('dialog[open]')) if (other !== d) other.close();
+    d.showModal();
+  });
 })();

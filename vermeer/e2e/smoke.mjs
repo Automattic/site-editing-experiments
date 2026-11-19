@@ -411,6 +411,90 @@ await test('Control: a reload puts everything back; the Exit dialog’s three ch
   await closePage(page);
 });
 
+// ---------- Clicks, focus, reloads mid-typing, tabs ----------
+
+await test('Control: double clicks, focus after page changes and forms, a reload while typing, Discard, two tabs, links stay in this tab', async () => {
+  const page = await newPage();
+  await page.goto(baseUrl + '/control.html?notes');
+
+  step('a double click on a plain spot counts once and logs once');
+  await h.k(page, 'picks-intro').dblclick();
+  assert.equal(await h.count(page, 'nf-before'), '1');
+  const logs = await h.logTexts(page);
+  assert.equal(logs.filter((t) => /picks/.test(t) && /Clicked/.test(t)).length, 1);
+  assert.equal(logs.some((t) => /^Selected some text/.test(t)), false, 'the second press isn’t logged as a selection');
+
+  step('a link followed by keyboard puts focus on the new page’s heading; by pointer, on the site area');
+  await h.k(page, 'nav-events').focus();
+  await page.keyboard.press('Enter');
+  assert.equal(await h.currentPage(page), 'events');
+  assert.equal(await page.evaluate(() => document.activeElement.dataset.k), 'events-heading');
+  await h.followMenu(page, 'home');
+  assert.equal(await page.evaluate(() => document.activeElement.className), 'vm-viewport');
+
+  step('the book club panel and what’s typed in a box survive a reload; a sent form focuses its thanks');
+  await page.locator('.vm-site [data-act="bookclub"]').click();
+  await page.locator('#bc-email').fill('reader@example.com');
+  await page.reload();
+  assert.equal(await page.locator('.vm-site .cl-club').count(), 1, 'the panel is still open');
+  assert.equal(await page.locator('#bc-email').inputValue(), 'reader@example.com');
+  await page.locator('.vm-site .cl-club-form button[type="submit"]').click();
+  assert.equal(await page.evaluate(() => document.activeElement.dataset.thanks), 'club');
+
+  step('a reload in the middle of typing: the edit is logged once and the visit isn’t accidental');
+  await h.edit(page);
+  await h.clickTextBefore(page, 'home-heading', 'coffee', 0);
+  await page.keyboard.type('fresh ');
+  await page.reload();
+  assert.equal(await h.mode(page), 'edit');
+  let all = await h.logTexts(page);
+  assert.equal(all.filter((t) => /^Changed Home heading/.test(t)).length, 1, 'one “Changed” line');
+  assert.match(all.find((t) => /^Changed Home heading/.test(t)), /“Books, fresh coffee and a quiet corner” \(finished by the reload\)/);
+  assert.equal(await h.count(page, 'edits'), '1');
+  await h.save(page);
+  await h.exit(page);
+  assert.equal(await h.count(page, 'accidental'), '0');
+  all = await h.logTexts(page);
+  assert.match(all.filter((t) => /^Left edit mode/.test(t)).pop(), /Changes in this visit: yes; saved: yes; dialog: not shown/);
+
+  step('Exit → Discard logs “saved: no”; the address bar while editing is logged once as such');
+  await h.edit(page);
+  await h.pickPage(page, 'Contact');
+  assert.match((await h.logTexts(page)).filter((t) => /^Went to Contact/.test(t)).pop(), /\(address bar, while editing\)$/);
+  await h.retype(page, 'contact-heading', 'Say hello');
+  await h.exit(page, 'Discard');
+  assert.match((await h.logTexts(page)).filter((t) => /^Left edit mode/.test(t)).pop(), /saved: no; dialog: Discard/);
+
+  step('middle click does nothing; Ctrl+click follows in this tab; links have no context menu');
+  await h.k(page, 'nav-events').click({ button: 'middle' });
+  await page.waitForTimeout(200);
+  assert.equal(page.context().pages().length, 1, 'no new tab');
+  assert.equal(await h.currentPage(page), 'contact');
+  await h.k(page, 'nav-events').click({ modifiers: [mod] });
+  await page.waitForTimeout(200);
+  assert.equal(page.context().pages().length, 1, 'no new tab');
+  assert.equal(await h.currentPage(page), 'events');
+  assert.equal(await h.k(page, 'nav-home').evaluate((a) => !a.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }))), true, 'context menu prevented');
+
+  step('a second tab of the same arm: the first stops saving and says so; “Carry on here” takes over');
+  const second = await page.context().newPage();
+  second.errors = [];
+  second.on('pageerror', (err) => second.errors.push(String(err)));
+  await second.goto(baseUrl + '/control.html?notes');
+  assert.match(await h.lastLog(second), /^Opened again in another tab/);
+  await page.locator('dialog.vm-stale').waitFor();
+  assert.equal(await page.locator('dialog.vm-stale').innerText().then((t) => /open in another tab/.test(t)), true);
+  const before = (await h.state(second)).log.length;
+  await page.evaluate(() => window.Vermeer.log('from the first tab'));
+  assert.equal((await h.state(second)).log.length, before, 'the first tab no longer writes');
+  await Promise.all([page.waitForEvent('load'), page.locator('dialog.vm-stale [data-stale-reload]').click()]);
+  assert.match(await h.lastLog(page), /^Page reloaded/);
+  await second.locator('dialog.vm-stale').waitFor();
+  assert.deepEqual(second.errors, []);
+  noErrors(page);
+  await closePage(page);
+});
+
 // ---------- The arm API, as the arms will use it ----------
 
 await test('The window.Vermeer API: classify, enterEdit, perform, prompts, ordering, state', async () => {
@@ -476,6 +560,16 @@ await test('The window.Vermeer API: classify, enterEdit, perform, prompts, order
   assert.equal(await h.count(page, 'nf-total'), '1');
   assert.equal(await h.lastLog(page), 'Touch showed the test prompt');
 
+  step('a touch that becomes a scroll (pointercancel) clears suppressNextClick; cancelSuppress does too');
+  await page.evaluate(() => { window.Vermeer.suppressNextClick('should not appear'); window.dispatchEvent(new PointerEvent('pointercancel', { pointerType: 'touch' })); });
+  await h.k(page, 'events-intro').click();
+  assert.equal(await h.count(page, 'nf-total'), '2', 'the click after the cancelled touch counts');
+  await page.evaluate(() => { window.Vermeer.suppressNextClick('should not appear either'); window.Vermeer.cancelSuppress(); });
+  await h.k(page, 'events-note').click();
+  assert.equal(await h.count(page, 'nf-total'), '3');
+  assert.equal((await h.logTexts(page)).some((t) => /should not appear/.test(t)), false);
+  await page.evaluate(() => { window.seen.length = 2; });
+
   step('prompts: shown and outcomes; only the first outcome of an id counts');
   const ids = await page.evaluate(() => {
     const V = window.Vermeer;
@@ -526,7 +620,7 @@ await test('The window.Vermeer API: classify, enterEdit, perform, prompts, order
 
   step('an arm route as the first entry gives the a letter');
   const code = await h.finishCode(page);
-  h.checkCode(code, { arm: 'V0', f: 'a', n: 1, p: '4.0.2.2', l: '1.2', x: 1, b: 2 });
+  h.checkCode(code, { arm: 'V0', f: 'a', n: 3, p: '4.0.2.2', l: '1.2', x: 1, b: 2 });
   noErrors(page);
   await closePage(page);
 });

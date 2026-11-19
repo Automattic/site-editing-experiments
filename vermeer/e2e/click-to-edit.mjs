@@ -79,4 +79,19 @@ export default async function ({ page, baseUrl, assert, helpers: h }) {
   // links and 1 button; 2 accidental entries (picture, background) plus the
   // keyboard Edit = 3; 5 Exits.
   h.checkCode(code, { arm: 'VA1', tasks: '10100', f: 'a', n: 1, p: '0.0.0.0', l: '2.1', x: 3, b: 5 });
+
+  h.step('A1: a click in the Home introduction beside its last line (not on a word) still lands in its text');
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  const gap = await page.evaluate(() => {
+    const p = window.Vermeer.site.querySelector('.cl-lede[data-k-near]');
+    const rects = p.querySelector('[data-k="home-intro-b"]').getClientRects();
+    const last = rects[rects.length - 1];
+    const pr = p.getBoundingClientRect();
+    return { x: Math.min(pr.right - 4, last.right + 40), y: last.top + last.height / 2, room: pr.right - last.right };
+  });
+  assert.ok(gap.room > 30, 'the last line leaves room beside it');
+  await page.mouse.click(gap.x, gap.y);
+  assert.equal(await h.mode(page), 'edit');
+  assert.equal(await h.editingKey(page), 'home-intro-a');
 }

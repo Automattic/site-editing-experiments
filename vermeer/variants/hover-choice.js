@@ -40,7 +40,7 @@
       api.registerRoute('d-overlay', 'the layer’s Edit');
       api.registerRoute('d-overlay-keyboard', 'the layer’s Edit, by keyboard');
 
-      const stage = api.viewport.parentElement;
+      const stage = api.stage;
       const pencil = '<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false"><path d="m19 7-3-3-8.5 8.5-1 4 4-1L19 7Zm-7 11.5H5V20h7v-1.5Z"/></svg>';
 
       let overlay = null;
@@ -53,7 +53,7 @@
       let programmatic = false;
       let touchPending = false;
 
-      const blocked = () => api.mode() !== 'browse' || !!document.querySelector('dialog[open], .vm-picker');
+      const blocked = () => api.mode() !== 'browse' || api.blocked();
       const eligible = () => !overlay && !blocked() && !api.spell.get('dismissed');
       const focusQuietly = (el) => { if (!el || !el.isConnected) return; programmatic = true; try { el.focus({ preventScroll: true }); } finally { programmatic = false; } };
 
@@ -63,7 +63,8 @@
         promptId = api.promptShown('overlay', how);
         overlay = document.createElement('div');
         overlay.className = 'vd-overlay';
-        overlay.setAttribute('role', 'region');
+        overlay.setAttribute('role', 'dialog');
+        overlay.setAttribute('aria-modal', 'true');
         overlay.setAttribute('aria-labelledby', 'vd-question');
         overlay.innerHTML =
           '<div class="vd-panel">' +
@@ -74,6 +75,7 @@
             '</div>' +
           '</div>';
         api.layer.append(overlay);
+        api.site.inert = true; // nothing behind the layer can be reached while it shows
         requestAnimationFrame(() => { if (overlay) overlay.classList.add('is-in'); });
         if (focusEdit) focusQuietly(overlay.querySelector('[data-vd="edit"]'));
         api.announce('What would you like to do? Edit, or Browse.');
@@ -86,6 +88,7 @@
         promptId = null;
         overlay.remove();
         overlay = null;
+        api.site.inert = false;
         const anchor = kbAnchor;
         kbAnchor = null;
         if (hadFocus && api.mode() === 'browse') focusQuietly(anchor && anchor.isConnected ? anchor : api.viewport);
@@ -140,7 +143,9 @@
       // and app.js would then swallow the next real tap instead.
       const showForTouch = () => { if (!touchPending) return; touchPending = false; setTimeout(() => show('touch', false), 0); };
       document.addEventListener('click', showForTouch, true);
-      document.addEventListener('pointercancel', showForTouch, true); // a touch that scrolls
+      // A touch that becomes a scroll sends no click: stop waiting to swallow one
+      // (app.js does too), and show it now.
+      document.addEventListener('pointercancel', () => { if (touchPending) api.cancelSuppress(); showForTouch(); }, true);
       document.addEventListener('pointerup', (e) => { if (e.pointerType === 'touch' && touchPending) setTimeout(showForTouch, 400); }, true);
 
       // Keyboard: focus moving into the site from outside it.
@@ -189,9 +194,9 @@
         api.viewport.scrollBy({ top: e.deltaY, left: 0 });
       }, { passive: false });
 
-      api.on('modechange', ({ mode, route }) => {
+      api.on('modechange', ({ mode, route, label }) => {
         clearTimeout(restTimer);
-        if (mode === 'edit') hide('ignored', 'went into editing by ' + (route || 'another way'));
+        if (mode === 'edit') hide('ignored', 'went into editing by ' + (label || api.routeLabel(route) || 'another way'));
       });
       api.on('pagechange', ({ page }) => { if (overlay) hide('ignored', 'went to ' + api.pageName(page)); });
     }

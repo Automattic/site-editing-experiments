@@ -5,7 +5,8 @@
  * with two choices, side by side and the same size: first what the click
  * would have done, then editing (styled primary).
  *
- *   on a link            "Go to <the link's words>"   → follows it
+ *   on a link            "Go to <page name>" (Go to Events), or "Follow this link"
+ *                        for a link further down the same page → follows it
  *   on a button          "Use this button"            → presses it
  *   on a box or its label "Fill in this box"          → puts the caret in the box
  *   anywhere else        "Keep looking"               → closes the popup
@@ -71,7 +72,7 @@
         return 'on ' + info.label + how;
       }
       function firstChoice(info) {
-        if (info.kind === 'link') return 'Go to ' + info.label;
+        if (info.kind === 'link') return info.samePage ? 'Follow this link' : 'Go to ' + info.toName;
         if (info.kind === 'button') return 'Use this button';
         if (info.kind === 'field') return 'Fill in this box';
         return 'Keep looking';
@@ -86,6 +87,7 @@
         const el = document.createElement('div');
         el.className = 'vm-choose';
         el.setAttribute('role', 'dialog');
+        el.setAttribute('aria-modal', 'true');
         el.setAttribute('aria-label', 'What would you like to do?');
         el.innerHTML = '<div class="vm-choose-actions">' +
           '<button type="button" class="vm-btn vm-btn-secondary" data-choice="do"></button>' +

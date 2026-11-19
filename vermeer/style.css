@@ -112,6 +112,8 @@ body { background: var(--vm-bg); color: var(--vm-ink); font-family: var(--vm-fon
 .vm-notes dl { display: grid; grid-template-columns: 1fr auto; gap: 3px 12px; margin: 0; }
 .vm-notes dt { color: var(--vm-ink-2); }
 .vm-notes dd { margin: 0; font-weight: 600; text-align: right; }
+.vm-notes dt.is-wide, .vm-notes dd.is-wide { grid-column: 1 / -1; }
+.vm-notes dd.is-wide { margin: -2px 0 4px; text-align: left; }
 .vm-log { flex: 1 0 160px; max-height: 40vh; margin: 0; padding: 0; list-style: none; overflow: auto; font: 12px/1.4 ui-monospace, Menlo, Consolas, monospace; border-top: 1px solid var(--vm-line); }
 .vm-log li { padding: 4px 0; border-bottom: 1px solid var(--vm-line-2); }
 .vm-log time { color: var(--vm-ink-3); margin-right: 6px; }

@@ -135,7 +135,7 @@ export default async function ({ page, baseUrl, assert, helpers: h }) {
   h.step('C: the hard task by pointer: Edit this on “See what’s on” puts the caret in its words, at the click');
   await h.clickTextBefore(page, 'home-cta', 'on', 0);
   assert.equal(await h.currentPage(page), 'home');
-  assert.deepEqual(await choices(), ['Go to See what’s on', 'Edit this']);
+  assert.deepEqual(await choices(), ['Go to Events', 'Edit this']);
   await choose('Edit this');
   assert.equal(await h.mode(page), 'edit');
   assert.equal(await h.editingKey(page), 'home-cta');
@@ -153,7 +153,7 @@ export default async function ({ page, baseUrl, assert, helpers: h }) {
   await page.locator('.vm-site [data-k="home-cta"]').focus();
   await page.keyboard.press('Enter');
   assert.equal(await h.currentPage(page), 'home');
-  assert.deepEqual(await choices(), ['Go to See what’s on', 'Edit this']);
+  assert.deepEqual(await choices(), ['Go to Events', 'Edit this']);
   const cta = await h.k(page, 'home-cta').boundingBox();
   const kb = await inside('keyboard');
   assert.ok(kb.y >= cta.y + cta.height && kb.y < cta.y + cta.height + 24, 'just under the link');
@@ -172,7 +172,7 @@ export default async function ({ page, baseUrl, assert, helpers: h }) {
 
   h.step('C: the inline text link and the picture');
   await h.k(page, 'home-intro-link').click();
-  assert.deepEqual(await choices(), ['Go to evening readings and talks', 'Edit this']);
+  assert.deepEqual(await choices(), ['Go to Events', 'Edit this']);
   await page.keyboard.press('Escape');
   const art = await page.locator('.vm-site .cl-hero-art').boundingBox();
   await page.mouse.click(art.x + 40, art.y + 40);
@@ -202,9 +202,16 @@ export default async function ({ page, baseUrl, assert, helpers: h }) {
 
   h.step('C: the code');
   // Non-functional clicks before the first entry: events intro, events
-  // heading, events note, the double-click's two = 5. Links: Events, Home;
+  // heading, events note, the double-click (counted once) = 4. Links: Events, Home;
   // buttons: Book a place, Sign up, the Enter in the box (a submit), Join the
   // book club, the panel's × = 5.
   const code = await h.finishCode(page);
-  h.checkCode(code, { arm: 'VC', tasks: '00001', f: 'a', n: 5, p: '19.3.14.2', l: '2.5', x: 2, b: 3 });
+  h.checkCode(code, { arm: 'VC', tasks: '00001', f: 'a', n: 4, p: '19.3.14.2', l: '2.5', x: 2, b: 3 });
+
+  h.step('C: a link further down the same page offers “Follow this link”');
+  await h.pickPage(page, 'Contact');
+  await h.k(page, 'directions').click();
+  assert.deepEqual(await page.locator('.vm-layer .vm-choose button').allInnerTexts(), ['Follow this link', 'Edit this']);
+  assert.equal(await page.locator('.vm-layer .vm-choose').getAttribute('aria-modal'), 'true');
+  await page.keyboard.press('Escape');
 }

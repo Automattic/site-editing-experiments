@@ -139,8 +139,8 @@ export default async function ({ page, baseUrl, assert, helpers: h }) {
   h.step('A2: the code');
   const code = await h.finishCode(page);
   // Non-functional clicks before the first entry: heading ×3, picks intro,
-  // picks background, events intro, events note, the double-click's two
-  // clicks = 9. Book club button used twice, menu
+  // picks background, events intro, events note, the double-click (counted
+  // once) = 8. Book club button used twice, menu
   // links followed twice.
-  h.checkCode(code, { arm: 'VA2', tasks: '10000', f: 'a', n: 9, p: '12.2.5.5', l: '2.2', x: 2, b: 3 });
+  h.checkCode(code, { arm: 'VA2', tasks: '10000', f: 'a', n: 8, p: '12.2.5.5', l: '2.2', x: 2, b: 3 });
 }

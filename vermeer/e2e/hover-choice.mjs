@@ -176,4 +176,27 @@ export default async function ({ page, baseUrl, assert, helpers: h }) {
   } finally {
     await context.close();
   }
+
+  h.step('D: the layer is a modal dialog and the site is inert while it shows; the Edit button’s name in the log');
+  {
+    const ctx = await page.context().browser().newContext({ viewport: { width: 1440, height: 900 } });
+    const tp = await ctx.newPage();
+    try {
+      await tp.goto(baseUrl + '/hover-choice.html');
+      const b = await tp.locator('.vm-viewport').boundingBox();
+      await h.restAt(tp, b.x + b.width / 2, b.y + b.height / 2);
+      const o = tp.locator('.vm-layer .vd-overlay');
+      await o.waitFor();
+      assert.equal(await o.getAttribute('role'), 'dialog');
+      assert.equal(await o.getAttribute('aria-modal'), 'true');
+      assert.equal(await tp.getByRole('dialog', { name: 'What would you like to do?' }).count(), 1);
+      assert.equal(await tp.evaluate(() => window.Vermeer.site.inert), true);
+      // Pressed without moving the pointer off the site (which would be ignored first).
+      await tp.evaluate(() => document.querySelector('.vm-toolbar [data-action="edit"]').click());
+      assert.equal(await tp.evaluate(() => window.Vermeer.site.inert), false, 'not inert once it’s gone');
+      assert.match((await h.logTexts(tp)).join('\n'), /Overlay ignored: went into editing by the Edit button/);
+    } finally {
+      await ctx.close();
+    }
+  }
 }

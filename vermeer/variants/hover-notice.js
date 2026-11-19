@@ -43,7 +43,7 @@
       api.registerRoute('b-notice', 'the notice’s Start editing');
       api.registerRoute('b-notice-keyboard', 'the notice’s Start editing, by keyboard');
 
-      const stage = api.viewport.parentElement;
+      const stage = api.stage;
       const pencil = '<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false"><path d="m19 7-3-3-8.5 8.5-1 4 4-1L19 7Zm-7 11.5H5V20h7v-1.5Z"/></svg>';
       const cross = '<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false"><path d="M12 13.06l3.712 3.713 1.061-1.06L13.061 12l3.712-3.712-1.06-1.06L12 10.938 8.288 7.227l-1.061 1.06L10.939 12l-3.712 3.712 1.06 1.061L12 13.061z"/></svg>';
 
@@ -57,7 +57,7 @@
       let programmatic = false;
       let touchPending = false;
 
-      const blocked = () => api.mode() !== 'browse' || !!document.querySelector('dialog[open], .vm-picker');
+      const blocked = () => api.mode() !== 'browse' || api.blocked();
       const eligible = () => !notice && !blocked() && !api.spell.get('dismissed');
       // Keyboard focus keeps the notice only while the keyboard is in use (a
       // mouse click leaves focus on a button, which shouldn't hold it open).
@@ -157,7 +157,9 @@
       // can't land on the notice's own buttons under the finger.
       const showForTouch = () => { if (!touchPending) return; touchPending = false; setTimeout(() => show('first touch'), 0); };
       document.addEventListener('click', showForTouch, true);
-      document.addEventListener('pointercancel', showForTouch, true); // a touch that scrolls
+      // A touch that becomes a scroll sends no click: stop waiting to swallow one
+      // (app.js does too), and show it now.
+      document.addEventListener('pointercancel', () => { if (touchPending) api.cancelSuppress(); showForTouch(); }, true);
       document.addEventListener('pointerup', (e) => { if (e.pointerType === 'touch' && touchPending) setTimeout(showForTouch, 400); }, true);
 
       // Keyboard: focus moving into the site from outside it.
@@ -211,9 +213,9 @@
         }
       });
 
-      api.on('modechange', ({ mode, route }) => {
+      api.on('modechange', ({ mode, route, label }) => {
         clearTimeout(restTimer);
-        if (mode === 'edit') hide('ignored', 'went into editing by ' + (route || 'another way'));
+        if (mode === 'edit') hide('ignored', 'went into editing by ' + (label || api.routeLabel(route) || 'another way'));
       });
     }
   });

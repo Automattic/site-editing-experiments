@@ -45,6 +45,7 @@
         const titleId = 'vm-ask-title-' + (++uid);
         el.className = 'vm-ask';
         el.setAttribute('role', 'dialog');
+        el.setAttribute('aria-modal', 'true');
         el.setAttribute('aria-labelledby', titleId);
         el.innerHTML = '<p class="vm-ask-title" id="' + titleId + '">Do you want to edit?</p>' +
           '<div class="vm-ask-actions">' +

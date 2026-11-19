@@ -18,6 +18,12 @@
  *            block name, movers, one options menu and delete. "Style goes in
  *            the menu", so the controls are a Typography flyout in the options
  *            menu, and formatting appears when text is selected.
+ *   beside   After Nevelson in this repo: by the block, the toolbar keeps the
+ *            block's name, formatting, a pencil and the options menu, with
+ *            the movers outside the block's left edge. The pencil opens the
+ *            block's settings, core's own panels, in a card beside the block.
+ *            There's no sidebar; the page's settings are in the Document
+ *            overview on the left.
  *
  * Each HTML page picks its variant with <body data-variant="…">.
  *
@@ -31,7 +37,8 @@
   const VARIANTS = {
     sidebar: { code: 'SC', letter: '0', file: 'sidebar.html', name: 'Control: as the WordPress editor does today, the typography controls are in the settings sidebar’s Typography panel, with only Size showing until the others are turned on' },
     toolbar: { code: 'ST', letter: 'A', file: 'toolbar.html', name: 'On the toolbar: text style, Font and Size are on the toolbar above the selected text, with the rest under “More text options”' },
-    menu: { code: 'SM', letter: 'B', file: 'menu.html', name: 'In the options menu: the toolbar is block name, movers, options and delete, and the typography controls are a Typography flyout in the options menu' }
+    menu: { code: 'SM', letter: 'B', file: 'menu.html', name: 'In the options menu: the toolbar is block name, movers, options and delete, and the typography controls are a Typography flyout in the options menu' },
+    beside: { code: 'SP', letter: 'C', file: 'beside.html', name: 'Beside the block, after Nevelson: the pencil on the toolbar opens the block’s settings in a card beside it, with the same Typography panel as the control (only Size showing until the others are turned on); there’s no sidebar' }
   };
   const VARIANT = VARIANTS[document.body.dataset.variant] ? document.body.dataset.variant : 'sidebar';
   const NOTES = new URLSearchParams(location.search).has('notes') || location.hash === '#notes';
@@ -95,7 +102,10 @@
       menu: null,       // the open menu's name
       fly: null,        // menu variant: the open flyout
       q: '',            // menu variant: the options menu's search
-      sidebar: true,    // settings sidebar open
+      sidebar: VARIANT !== 'beside', // settings sidebar open (C has none)
+      panel: false,     // C: the settings card beside the block is open
+      overview: false,  // C: the Document overview on the left is open
+      otab: 'page',     // C: the overview's tab, 'page' or 'list'
       tab: 'page',      // 'page' or 'block'
       shown: {},        // control: typography controls turned on, per block
       customSize: {},   // blocks whose Size control is in "custom" mode
@@ -392,6 +402,8 @@
     close: line('M7 7l10 10M17 7L7 17'),
     // Two sliders with round knobs, for "More text options".
     textopts: svg('<path d="M4 9h16M4 15h16" stroke="currentColor" stroke-width="1.5"/><circle cx="15.5" cy="9" r="2.25" fill="currentColor"/><circle cx="8.5" cy="15" r="2.25" fill="currentColor"/>'),
+    pencil: line('M5 19l1-4.5 9.5-9.5a2.1 2.1 0 013 3L9 17.5 5 19zM13.5 7l3 3'),
+    overview: line('M5 7h2M10 7h9M5 12h2M10 12h9M5 17h2M10 17h9'),
     sliders: line('M5 8h9M17 8h2M5 16h2M10 16h9M15.5 6v4M8.5 14v4'),
     search: line('M11 17a6 6 0 100-12 6 6 0 000 12zM15.5 15.5L19 19')
   };
@@ -557,6 +569,11 @@
         bold + italic + link + sep + align +
         tb({ menu: 'moretext', title: 'More text options', inner: ICON.textopts }, b) + sep + options;
     }
+    if (VARIANT === 'beside') {
+      return tb({ menu: 'blockname', title: 'Change block', inner: blockIcon(b) + '<span>' + (b.type === 'heading' ? 'Heading' : 'Paragraph') + '</span>', wide: true }, b) + sep +
+        bold + italic + link + tb({ menu: 'moreformat', title: 'More', inner: ICON.down }, b) + sep +
+        tb({ attrs: 'data-act="panel" aria-pressed="' + S.panel + '"', title: 'Block settings', inner: ICON.pencil }, b) + sep + options;
+    }
     return tb({ menu: 'blockname', title: 'Change block', inner: blockIcon(b) + '<span>' + (b.type === 'heading' ? 'Heading' : 'Paragraph') + '</span>', wide: true }, b) + sep +
       up + down + sep + options +
       tb({ attrs: 'data-inert="Delete"', title: 'Delete', inner: ICON.trash }, b);
@@ -575,27 +592,63 @@
         '<dl class="sb-rows"><dt>Status</dt><dd>Published</dd><dt>Link</dt><dd>/</dd><dt>Author</dt><dd>[site owner]</dd><dt>Template</dt><dd>Pages</dd><dt>Discussion</dt><dd>Closed</dd></dl></div>';
     }
     if (!b) return head + '<div class="sb-body"><p class="sb-empty">No block selected.</p></div>';
-    let typo = '';
-    if (VARIANT === 'sidebar') {
-      const shown = S.shown[b.id] || {};
-      const on = (k) => k === 'size' || shown[k] || hasValue(b, k);
-      const open = S.menu === 'typoopts';
-      typo = '<section class="sb-panel"><div class="sb-panel-head"><h3>Typography</h3>' +
-        '<span class="tb-item"><button class="ctl-icon' + (open ? ' is-open' : '') + '" data-menu="typoopts" aria-haspopup="true" aria-expanded="' + open + '" title="Typography options" aria-label="Typography options">' + ICON.dots + '</button>' +
-        (open ? '<div class="pop is-right" data-pop role="menu" aria-label="Typography options">' +
-          KEYS.map((k) => '<button class="mi" role="menuitemcheckbox" aria-checked="' + !!on(k) + '" data-show="' + k + '"><span>' + LABELS[k] + '</span><em>' + (on(k) ? '✓' : '') + '</em></button>').join('') +
-          '<hr>' + item('data-act="reset-typo"', 'Reset all') + '</div>' : '') +
-        '</span></div>' + KEYS.filter(on).map((k) => control(k, b)).join('') + '</section>';
-    }
+    return head + '<div class="sb-body">' + blockCard(b) + styleSections(b, VARIANT === 'sidebar') + '</div>';
+  }
+
+  function blockDescription(b) {
+    return b.type === 'heading' ? 'Introduce new sections and organize content to help visitors (and search engines) understand the structure of your content.' : 'Start with the basic building block of all narrative.';
+  }
+
+  function blockCard(b) {
+    return '<div class="sb-card"><span class="sb-card-icon">' + blockIcon(b) + '</span><div><strong>' + (b.type === 'heading' ? 'Heading' : 'Paragraph') + '</strong><p>' + blockDescription(b) + '</p></div></div>';
+  }
+
+  // Core's Typography panel: Size showing, the rest turned on from its options menu.
+  function typoPanel(b) {
+    const shown = S.shown[b.id] || {};
+    const on = (k) => k === 'size' || shown[k] || hasValue(b, k);
+    const open = S.menu === 'typoopts';
+    return '<section class="sb-panel"><div class="sb-panel-head"><h3>Typography</h3>' +
+      '<span class="tb-item"><button class="ctl-icon' + (open ? ' is-open' : '') + '" data-menu="typoopts" aria-haspopup="true" aria-expanded="' + open + '" title="Typography options" aria-label="Typography options">' + ICON.dots + '</button>' +
+      (open ? '<div class="pop is-right" data-pop role="menu" aria-label="Typography options">' +
+        KEYS.map((k) => '<button class="mi" role="menuitemcheckbox" aria-checked="' + !!on(k) + '" data-show="' + k + '"><span>' + LABELS[k] + '</span><em>' + (on(k) ? '✓' : '') + '</em></button>').join('') +
+        '<hr>' + item('data-act="reset-typo"', 'Reset all') + '</div>' : '') +
+      '</span></div>' + KEYS.filter(on).map((k) => control(k, b)).join('') + '</section>';
+  }
+
+  // The block's style panels, in core's order; Typography only where this variant keeps it.
+  function styleSections(b, withTypo) {
     const row = (label) => '<button class="sb-row" data-inert="' + label + '"><span class="sb-swatch"></span>' + label + '</button>';
-    return head + '<div class="sb-body">' +
-      '<div class="sb-card"><span class="sb-card-icon">' + blockIcon(b) + '</span><div><strong>' + (b.type === 'heading' ? 'Heading' : 'Paragraph') + '</strong><p>' +
-      (b.type === 'heading' ? 'Introduce new sections and organize content to help visitors (and search engines) understand the structure of your content.' : 'Start with the basic building block of all narrative.') + '</p></div></div>' +
-      '<section class="sb-panel"><div class="sb-panel-head"><h3>Color</h3><button class="ctl-icon" data-inert="Color options" title="Color options" aria-label="Color options">' + ICON.dots + '</button></div>' + row('Text') + row('Background') + '</section>' +
-      typo +
+    return '<section class="sb-panel"><div class="sb-panel-head"><h3>Color</h3><button class="ctl-icon" data-inert="Color options" title="Color options" aria-label="Color options">' + ICON.dots + '</button></div>' + row('Text') + row('Background') + '</section>' +
+      (withTypo ? typoPanel(b) : '') +
       '<section class="sb-panel"><div class="sb-panel-head"><h3>Dimensions</h3><button class="ctl-icon" data-inert="Dimensions options" title="Dimensions options" aria-label="Dimensions options">' + ICON.plus + '</button></div></section>' +
-      '<section class="sb-panel"><button class="sb-toggle" data-inert="Advanced">Advanced ' + ICON.chev + '</button></section>' +
-      '</div>';
+      '<section class="sb-panel"><button class="sb-toggle" data-inert="Advanced">Advanced ' + ICON.chev + '</button></section>';
+  }
+
+  // C: the block's settings in a card beside it. Text alignment is a panel here, as in Nevelson.
+  function panelHTML(b) {
+    const name = b.type === 'heading' ? 'Heading' : 'Paragraph';
+    return '<div class="bp-head"><span class="sb-card-icon">' + blockIcon(b) + '</span><strong title="' + esc(blockDescription(b)) + '">' + name + '</strong>' +
+      '<button class="sb-close" data-act="panel" title="Close settings" aria-label="Close settings">' + ICON.close + '</button></div>' +
+      '<div class="bp-body"><section class="sb-panel is-first"><div class="sb-panel-head"><h3>Text alignment</h3></div>' +
+      '<div class="seg bp-align" role="group" aria-label="Text alignment">' +
+      [['', 'left', 'Align text left'], ['center', 'center', 'Align text center'], ['right', 'alignright', 'Align text right']].map((a) =>
+        '<button data-align="' + a[0] + '" aria-pressed="' + ((b.align || '') === a[0]) + '" title="' + a[2] + '" aria-label="' + a[2] + '">' + ICON[a[1]] + '</button>').join('') +
+      '</div></section>' + styleSections(b, true) + '</div>';
+  }
+
+  // C: the Document overview on the left, with the page's settings as its first tab.
+  function overviewHTML() {
+    const head = '<div class="sb-tabs" role="tablist">' +
+      '<button role="tab" data-otab="page" aria-selected="' + (S.otab === 'page') + '">Page</button>' +
+      '<button role="tab" data-otab="list" aria-selected="' + (S.otab === 'list') + '">List View</button>' +
+      '<button class="sb-close" data-act="overview" title="Close Document overview" aria-label="Close Document overview">' + ICON.close + '</button></div>';
+    if (S.otab === 'page') {
+      return head + '<div class="sb-body"><div class="sb-card"><strong>Home</strong><p>The page you’re editing.</p></div>' +
+        '<dl class="sb-rows"><dt>Status</dt><dd>Published</dd><dt>Link</dt><dd>/</dd><dt>Author</dt><dd>[site owner]</dd><dt>Template</dt><dd>Pages</dd><dt>Discussion</dt><dd>Closed</dd></dl></div>';
+    }
+    return head + '<div class="sb-body ov-list">' + S.blocks.map((b) =>
+      '<button data-pick="' + b.id + '" aria-current="' + (S.sel === b.id) + '">' + blockIcon(b) + '<span>' + esc(blockLabel(b)) + '</span></button>').join('') + '</div>';
   }
 
   function hasValue(b, k) {
@@ -625,12 +678,32 @@
   function renderChrome(focus) {
     const b = selected();
     const layer = app.querySelector('[data-tb]');
-    layer.innerHTML = b ? '<div class="tb" role="toolbar" aria-label="Block tools">' + toolbarHTML(b) + '</div>' : '';
+    layer.innerHTML = b ? '<div class="tb" role="toolbar" aria-label="Block tools">' + toolbarHTML(b) + '</div>' +
+      // C: the drag handle and movers, just outside the block's left edge.
+      (VARIANT === 'beside' ? '<div class="tb-out" role="toolbar" aria-label="Move block">' +
+        tb({ attrs: 'data-inert="Drag"', title: 'Drag', inner: ICON.drag }, b) +
+        tb({ attrs: 'data-move="-1"', title: 'Move up', inner: ICON.up, disabled: S.blocks.indexOf(b) === 0 }, b) +
+        tb({ attrs: 'data-move="1"', title: 'Move down', inner: ICON.down, disabled: S.blocks.indexOf(b) === S.blocks.length - 1 }, b) + '</div>' : '') : '';
     const side = app.querySelector('[data-sidebar]');
     side.hidden = !S.sidebar;
     side.innerHTML = S.sidebar ? sidebarHTML() : '';
+    const ov = app.querySelector('[data-overview]');
+    if (ov) { ov.hidden = !S.overview; ov.innerHTML = S.overview ? overviewHTML() : ''; }
+    const panel = app.querySelector('[data-panel]');
+    if (panel) {
+      const keep = panel.scrollTop;
+      const show = S.panel && !!b;
+      panel.hidden = !show;
+      panel.innerHTML = show ? panelHTML(b) : '';
+      panel.scrollTop = keep;
+      panel._keep = panel.scrollTop;
+    }
     positionToolbar();
-    app.querySelector('[data-act="sidebar"]').setAttribute('aria-pressed', S.sidebar);
+    positionPanel();
+    const sbBtn = app.querySelector('[data-act="sidebar"]');
+    if (sbBtn) sbBtn.setAttribute('aria-pressed', S.sidebar);
+    const ovBtn = app.querySelector('.topbar [data-act="overview"]');
+    if (ovBtn) ovBtn.setAttribute('aria-pressed', S.overview);
     app.querySelector('[data-act="undo"]').disabled = !S.undo.length;
     app.querySelector('[data-act="redo"]').disabled = !S.redo.length;
     // A menu that opens below the fold is scrolled into view, flyout included.
@@ -653,15 +726,17 @@
       '<button class="top-btn is-primary" data-inert="Add block" title="Add block" aria-label="Add block">' + ICON.plus + '</button>' +
       '<button class="top-btn" data-act="undo" title="Undo" aria-label="Undo">' + ICON.undo + '</button>' +
       '<button class="top-btn" data-act="redo" title="Redo" aria-label="Redo">' + ICON.redo + '</button>' +
+      (VARIANT === 'beside' ? '<button class="top-btn" data-act="overview" title="Document overview" aria-label="Document overview" aria-pressed="false">' + ICON.overview + '</button>' : '') +
       '<p class="topbar-title"><strong>Home</strong> · Page</p>' +
       '<button class="btn" data-inert="View">View</button>' +
       '<button class="btn btn-primary" data-act="save">Save</button>' +
-      '<button class="top-btn" data-act="sidebar" title="Settings" aria-label="Settings" aria-pressed="true">' + ICON.panel + '</button>' +
+      (VARIANT === 'beside' ? '' : '<button class="top-btn" data-act="sidebar" title="Settings" aria-label="Settings" aria-pressed="true">' + ICON.panel + '</button>') +
       '<button class="top-btn" data-inert="Options" title="Options" aria-label="Options">' + ICON.dots + '</button></header>' +
-      '<div class="main"><div class="canvas-scroll" data-canvas><div class="canvas"><div class="sheet">' +
+      '<div class="main">' + (VARIANT === 'beside' ? '<aside class="overview" data-overview hidden aria-label="Document overview"></aside>' : '') + '<div class="canvas-scroll" data-canvas><div class="canvas"><div class="sheet">' +
       '<div class="site-head"><span class="site-name">Marlow Lane Bakery</span><span class="site-menu"><span>Home</span><span>Our bread</span><span>Find us</span></span></div>' +
       '<div class="blocks" data-blocks></div><div class="tb-layer" data-tb></div><div class="seltb" data-seltb hidden></div>' +
-      '</div></div></div><aside class="sidebar" data-sidebar aria-label="Settings"></aside></div>' +
+      '</div></div></div><aside class="sidebar" data-sidebar aria-label="Settings"></aside>' +
+      (VARIANT === 'beside' ? '<section class="bpanel" data-panel hidden aria-label="Block settings"></section>' : '') + '</div>' +
       '<div class="bottombar"><button class="btn btn-primary" data-finish>Finished</button><p>Click Finished when you’ve done everything you were asked to.</p></div>';
     renderCanvas();
   }
@@ -720,6 +795,7 @@
       const b = block(el.dataset.id);
       if (!el._edited) { el._edited = true; stats.textEdits++; note('other', 'Typed in ' + blockLabel(b)); }
       b.html = el.innerHTML;
+      reposition();
       return;
     }
     if (e.target.matches('[data-q]')) {
@@ -742,7 +818,7 @@
       const label = app.querySelector('[data-menu="size"] span');
       if (label) label.textContent = eff(b).px;
       checkTasks();
-      positionToolbar();
+      reposition();
     }
   });
 
@@ -760,8 +836,68 @@
     const el = blkEl(b.id);
     bar.style.top = (el.offsetTop - bar.offsetHeight - 12) + 'px';
     bar.style.left = el.offsetLeft + 'px';
+    const out = app.querySelector('.tb-out');
+    if (out) {
+      out.style.top = el.offsetTop + 'px';
+      out.style.left = (el.offsetLeft - out.offsetWidth - 10) + 'px';
+    }
   }
-  window.addEventListener('resize', positionToolbar);
+
+  // C: the card goes to the right of the block and its toolbar if there's room, and
+  // over the right edge of the page if not. Its top is level with the toolbar's,
+  // kept on screen, and it scrolls inside when it's taller than the space.
+  function positionPanel() {
+    const p = app.querySelector('[data-panel]');
+    const b = selected();
+    if (!p || p.hidden || !b) return;
+    // A menu opened in the card floats over it, so it doesn't count towards the card's height.
+    const pop = p.querySelector('[data-pop]');
+    if (pop) pop.classList.add('is-floating');
+    const r = blkEl(b.id).getBoundingClientRect();
+    const bar = app.querySelector('.tb');
+    const tr = bar ? bar.getBoundingClientRect() : r;
+    const canvas = app.querySelector('[data-canvas]');
+    const cr = canvas.getBoundingClientRect();
+    // The canvas's own scrollbar isn't room for the card.
+    const area = { left: cr.left, top: cr.top, right: cr.left + canvas.clientWidth, bottom: cr.top + canvas.clientHeight, height: canvas.clientHeight };
+    const w = p.offsetWidth;
+    const right = Math.max(r.right + 8, tr.right) + 16;
+    const left = right + w <= area.right - 8 ? right : area.right - w - 8;
+    const maxH = area.height - 32;
+    p.style.maxHeight = maxH + 'px';
+    const h = Math.min(p.scrollHeight, maxH);
+    const top = Math.max(area.top + 16, Math.min(Math.min(tr.top, r.top), area.bottom - h - 16));
+    p.style.left = left + 'px';
+    p.style.top = top + 'px';
+    // The menu opens below its button, over the card, never above the card's top;
+    // when there isn't room below, it's shorter and scrolls.
+    if (pop) {
+      const btn = pop.parentElement.querySelector('[data-menu]').getBoundingClientRect();
+      pop.style.maxHeight = '';
+      const ph = pop.offsetHeight;
+      const top = Math.max(top0(p), Math.min(btn.bottom + 8, innerHeight - 8 - ph));
+      pop.style.left = Math.max(8, btn.right - pop.offsetWidth) + 'px';
+      pop.style.top = top + 'px';
+      pop.style.maxHeight = (innerHeight - 8 - top) + 'px';
+    }
+  }
+
+  function top0(p) {
+    return p.getBoundingClientRect().top + 48; // under the card's heading, so its × stays clear
+  }
+
+  function reposition() { positionToolbar(); positionPanel(); }
+  window.addEventListener('resize', reposition);
+  app.addEventListener('scroll', (e) => {
+    // Scrolling the card closes a menu opened in it, rather than leaving it behind.
+    const t = e.target;
+    if (t.matches && t.matches('[data-panel]')) {
+      if (t.scrollTop === t._keep) { positionPanel(); return; } // put back after a redraw, not scrolled
+      t._keep = t.scrollTop;
+      if (S.menu) { closeMenus(); return; }
+    }
+    positionPanel();
+  }, true);
 
   // A number box's change is logged once, when the person leaves the box.
   function commitNumber(num) {
@@ -808,12 +944,40 @@
       renderChrome();
       return;
     }
+    if (d.act === 'overview') {
+      S.overview = !S.overview;
+      if (S.overview) opened('the Document overview'); else note('look', 'Closed the Document overview');
+      // The page's settings or the block's, one at a time, as with the control's Page and Block tabs.
+      if (S.overview && S.panel) { S.panel = false; note('look', 'Closed the block settings'); }
+      renderChrome();
+      return;
+    }
+    if (d.otab) {
+      if (S.otab !== d.otab) { S.otab = d.otab; opened('the Document overview’s ' + (d.otab === 'page' ? 'Page' : 'List View') + ' tab'); renderChrome('[data-otab="' + d.otab + '"]'); }
+      return;
+    }
+    if (d.pick) {
+      select(d.pick);
+      blkEl(d.pick).scrollIntoView({ block: 'center' });
+      blkEl(d.pick).focus({ preventScroll: true });
+      reposition();
+      return;
+    }
     if (d.tab) {
       if (S.tab !== d.tab) { S.tab = d.tab; opened('the sidebar’s ' + (d.tab === 'page' ? 'Page' : 'Block') + ' tab'); renderChrome('[data-tab="' + d.tab + '"]'); }
       return;
     }
     if (!b) return;
 
+    if (d.act === 'panel') {
+      S.panel = !S.panel;
+      if (S.panel) opened('the block settings beside the block'); else note('look', 'Closed the block settings');
+      if (S.panel && S.overview) { S.overview = false; note('look', 'Closed the Document overview'); }
+      if (S.menu === 'typoopts') S.menu = null;
+      // From the keyboard, focus stays on the pencil; a mouse click leaves the caret in the text.
+      renderChrome(!S.panel || e.detail === 0 ? '.tb [data-act="panel"]' : null);
+      return;
+    }
     if (d.menu) { toggleMenu(d.menu); renderChrome(); return; }
     if (d.fly) {
       S.q = '';

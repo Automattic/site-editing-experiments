@@ -2943,7 +2943,7 @@
         if (IN_SIDEBAR) { ui.screen = 'site'; ui.pagesSel = id; ui.focus = 'ed-save'; }
       }, `"${title}" ${d.status === 'draft' ? 'saved as a draft' : 'published'}`);
       log('page', 'Added ' + q(title) + ', ' + (d.status === 'draft' ? 'saved as a draft' + (CANVAS_DRAFTS && isAutomatic() ? '; it is in the pages menu, switched on, so it will be in the menu once it’s published' : '') : 'published; ' + (IN_SIDEBAR ? menuWords(id) : isShown(id) ? 'it is now in the menu' : 'it is not in the menu')) + (IN_SIDEBAR ? ' (Add Page, Create draft, on the Pages screen)' : ''));
-      if (IN_SIDEBAR) log('screen', 'Left the Pages screen (Create draft opens the new page on the site, with Publish in the top bar)');
+      if (IN_SIDEBAR) log('screen', 'Left the Pages screen (Create draft opens the new page on the site; the top bar shows ' + (showsPublish() ? 'Publish' : 'Save, since the menu has unsaved changes') + ')');
       log('visit', 'The preview shows the new page, ' + q(title));
       if (ARM === 'explained') log('menu', 'Marker popover opened on its own after Add page: ' + q(title) + ' (not counted)');
     },

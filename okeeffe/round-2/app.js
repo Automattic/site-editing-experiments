@@ -3186,12 +3186,12 @@
 
   const THREE = ['not published', 'published, not in the menu', 'published and in the menu'];
   const TASKS = [
-    { text: 'Look only: which pages can a visitor reach from the top of the site?', hint: 'Never ticked automatically.' },
+    { text: 'Look only: find where you would change the menu at the top of the site.', hint: 'Never ticked automatically.' },
     { n: 2, text: 'Take “Thank you for your order” out of the menu without deleting it.', hint: 'Ticks when the page isn’t in the header menu and is still published.', state: (v) => (v ? 'out of the menu, still published' : page('thank-you') ? 'still in the menu' : 'the page is in the trash') },
     { n: 3, text: 'Move Catering to straight after Home.', hint: 'Ticks when Catering is the top-level item right after Home in the header.', state: (v) => (v ? 'right after Home' : 'not right after Home') },
     { n: 4, text: 'Make and publish a Gift cards page and get it into the menu.', hint: 'Ticks when a published page with “gift” in its title is in the header menu.', full: 2, state: (v) => THREE[v] },
     { n: 5, text: 'Make “Visit us” say “Find us” in the menu.', hint: 'Ticks when the menu item for the Visit us page reads Find us.', state: (v) => (v ? 'the menu says Find us' : 'the menu doesn’t say Find us') + '; ' + { p: 'the page is called Find us', l: 'only the link’s label was changed', 0: 'the page is called ' + q((page('visit-us') || {}).title || 'nothing: it’s in the trash') }[renameHow()] },
-    { n: 6, text: 'Publish Holiday orders.', hint: 'Ticks when it’s published. Ask first whether it will be in the menu.', full: 1, state: (v) => THREE[v] },
+    { n: 6, text: 'Publish Holiday orders.', hint: 'Ticks when it’s published. Ask the prediction first: will a page Rosa publishes next month appear in the menu by itself?', full: 1, state: (v) => THREE[v] },
     { n: 7, text: 'Add Rosa’s Instagram page (instagram.com/rosasbakery) to the menu.', hint: IN_SIDEBAR ? 'Ticks when the header menu has a link to instagram.com/rosasbakery (with or without www., a slash at the end or a query), whatever its label.' : 'Doesn’t apply here: this prototype has no way to add a link to another site, so it is always 0.', state: (v) => (v ? 'the menu has a link to it' : 'the menu has no link to it') }
   ];
 

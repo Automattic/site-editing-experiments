@@ -30,6 +30,7 @@ export default async function ({ page, baseUrl, assert, helpers: h }) {
   step('task 1: the ordinary text edit still works (click before the second “e”, type n)');
   await h.clickTextBefore(page, 'monday-text', 'beginers', 5);
   assert.equal(await h.selectedId(page), 'monday-text');
+  assert.equal((await page.locator('.ut-toolbar .ut-tb-name').textContent()).trim(), 'Paragraph', 'text blocks are named too');
   await page.keyboard.type('n');
   assert.match(await h.text(page, 'monday-text'), /beginners/);
   assert.equal(await h.taskDone(page, 1), true, 'task 1 ticked');
@@ -74,6 +75,7 @@ export default async function ({ page, baseUrl, assert, helpers: h }) {
   await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
   assert.equal(await h.selectedId(page), 'classes');
   assert.equal(await h.count(page, 'route-tab'), '1');
+  assert.equal((await page.locator('.ut-toolbar .ut-tb-name').textContent()).trim(), 'Group', 'the toolbar names the block, as the tab did');
   assert.equal(await h.count(page, 'route-padding'), '0', 'the canvas didn’t also select what was under the tab');
   assert.ok(Number(await h.count(page, 'arm-tabShown')) >= 3, 'tabShown counted');
   assert.match(await page.locator('.ut-log').innerText(), /Clicked the Group tab/);
@@ -84,6 +86,7 @@ export default async function ({ page, baseUrl, assert, helpers: h }) {
   await clickTab('classes-columns');
   assert.equal(await h.selectedId(page), 'classes-columns');
   assert.equal(await h.count(page, 'route-tab'), '2');
+  assert.equal((await page.locator('.ut-toolbar .ut-tb-name').textContent()).trim(), 'Columns', 'the toolbar names the Columns');
 
   step('task 2: the Group tab, then Move up');
   await hoverText('wednesday-text');
@@ -139,4 +142,37 @@ export default async function ({ page, baseUrl, assert, helpers: h }) {
   await page.mouse.move(5, 5);
   await hoverText('hours-text');
   assert.match(await page.locator('.ut-log').innerText(), /Tab shown for the first time: Group \(hours\)/, 'first-shown logged again after Reset');
+
+  step('The block name in the toolbar lists the section’s blocks');
+  await h.clickTextBefore(page, 'monday-text', 'gentle');
+  assert.equal(await h.selectedId(page), 'monday-text');
+  const nameBtn = page.locator('.ut-toolbar .ut-tb-name-btn');
+  assert.equal(await nameBtn.getAttribute('aria-expanded'), 'false');
+  await nameBtn.click();
+  const tree = page.locator('.uta-tree');
+  await tree.waitFor({ state: 'visible' });
+  assert.equal(await nameBtn.getAttribute('aria-expanded'), 'true');
+  const ids = await tree.locator('[data-tree-id]').evaluateAll((els) => els.map((e) => e.dataset.treeId));
+  assert.equal(ids[0], 'classes', 'the list starts with the section');
+  assert.ok(ids.includes('monday-text') && ids.includes('saturday'), 'and has everything in it');
+  assert.equal(await tree.locator('.is-selected [data-tree-id]').getAttribute('data-tree-id'), 'monday-text', 'the selected block is marked');
+  const nb = await nameBtn.boundingBox(); const tb = await tree.boundingBox();
+  assert.ok(tb.y >= nb.y + nb.height && Math.abs(tb.x - nb.x) <= 2, 'the list opens under the name');
+  await page.keyboard.press('Escape');
+  await tree.waitFor({ state: 'hidden' });
+  assert.equal(await h.selectedId(page), 'monday-text', 'Escape only closes the list');
+  await nameBtn.click();
+  await tree.locator('[data-tree-id="classes"]').click();
+  await tree.waitFor({ state: 'hidden' });
+  assert.equal(await h.selectedId(page), 'classes');
+  assert.equal(await h.count(page, 'route-tree'), '1');
+  assert.equal(await h.count(page, 'arm-treeOpened'), '2');
+  assert.equal(await h.count(page, 'arm-treePicked'), '1');
+  assert.equal((await page.locator('.ut-toolbar .ut-tb-name').textContent()).trim(), 'Group');
+  await page.locator('.ut-toolbar .ut-tb-name-btn').click();
+  await tree.waitFor({ state: 'visible' });
+  await page.mouse.click(5, 5);
+  await tree.waitFor({ state: 'hidden' });
+  const code2 = await h.finishCode(page);
+  h.checkCode(code2, { arm: 'UA', routes: '0.0.0.0.0.1' });
 }

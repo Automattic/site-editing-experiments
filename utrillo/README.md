@@ -11,21 +11,20 @@ The idea being tested: people select the container around what they clicked more
 | | Prototype | How the section around a block is selected |
 | --- | --- | --- |
 | 0 | [Control](control.html) | As the WordPress editor is today. A click selects the innermost block. To get to its parent: the toolbar's **Select parent block** button (the parent's icon, one level per click), **Select parent block (Group)** in the ⋮ menu, the **breadcrumb** under the canvas, **Document Overview**, or a click on a container's own area (its padding, the gap between columns, a column's empty space). This is the baseline the others are compared with. |
-| A | [Hover tab](hover-tab.html) | Pointing at the page outlines every container under the pointer, from the section inwards, each with a small blue tab with its name ("Group", "Columns", "Column", "Cover"), side by side like a breadcrumb. Clicking a tab selects that container. The tabs follow the pointer, whatever is selected, and a section's tab stays at the top of the canvas while the top of the section is scrolled out of view. |
-| B | [Section first](section-first.html) | Clicks go from the outside in, as in section-based editors. The first click on a section selects the whole section. The next click inside it selects the column under the pointer, if there is one, and the next reaches the block, with the caret where you clicked. A double click goes straight to the text (and, as in the editor, selects the word under the pointer). Escape steps back out a level at a time. The hover outline shows what the next click will select. |
+| A | [Hover tab](hover-tab.html) | Pointing at the page outlines every container under the pointer, from the section inwards, each with a small blue tab with its name ("Group", "Columns", "Column", "Cover"), side by side like a breadcrumb. Clicking a tab selects that container. The tabs follow the pointer, whatever is selected, and a section's tab stays at the top of the canvas while the top of the section is scrolled out of view. The block toolbar also shows the selected block's name beside its icon ("Group", "Column"), so it says the same as the tab; in the control and D it shows the icon only, as the editor does. Clicking that name opens a list of everything in the selected block's section, starting with the section itself; clicking a row selects that block. |
 | D | [Layers](layers.html) | Each section has a **Layers** button at its top-right corner, shown while the pointer is over the section and while something in it is selected. Like A's tabs, it stays in view at the top of the canvas when the top of the section is scrolled away. It opens a list of everything in that section, nested; clicking a row selects that block. |
 
-A, B and D all keep every one of the control's ways to a parent, so each differs from the control in one thing.
+A and D both keep every one of the control's ways to a parent, so each differs from the control in one thing.
 
-A fourth idea, C, a labelled "Select Columns" button beside the toolbar in place of the parent's icon, was left out before building: it's the cheapest change but the least likely to be found, since it still needs the block inside selected first.
+Two other ideas were dropped, which is why the letters skip. C, a labelled "Select Columns" button beside the toolbar in place of the parent's icon, was left out before building: it's the cheapest change but the least likely to be found, since it still needs the block inside selected first. B, section first (the first click selects the whole section and each further click goes one level in, as in section-based editors), was built and then dropped before testing; it's in this folder's history.
 
-What's the same in all four:
+What's the same in all three:
 
 - **The page**: an invented yoga studio, Fernhill Yoga, one page in the editor. A Cover with the studio's name; an About section (a Group with two Columns, a picture and some text); a Classes section (a Group with a heading and three Columns, each with a picture, a heading and a short description); an Opening hours section (a Group with a heading and a paragraph); and a contact line. Blocks have the editor's own names and icons (Group, Columns, Column, Cover, and headings by level, "Heading 2"; the icons are copied from the current @wordpress/icons), with no custom names, as when a pattern is inserted.
 - **The editor**: a top bar with Document Overview, Undo and Redo; the canvas; the block inspector on the right, open, as in the editor; and the breadcrumb under the canvas. The block toolbar floats above the selected block as in the editor: Select parent block in its own box on the left, with a gap before the toolbar, then the block's icon, the move arrows and the ⋮ menu (Duplicate, Add before, Add after, Select parent block, Delete). The inspector has a Background colour for Groups, Columns (each column), Headings and Paragraphs (Paragraphs and Headings have one in the editor too, which is the trap in task 3), an Overlay colour for the Cover, and a Columns count for the Columns block (lowering it removes the last column, as in the editor).
 - **Moving**: by the move arrows only. There's no drag handle in any of them, so dragging doesn't get in the way of what's being tested. [Pollock](../pollock/) tests dragging.
 - **The Finished button**, in a bar along the bottom, which asks "Have you done all four tasks?" before it shows the code.
-- **The browser tab's title**, "Fernhill Yoga · Editor", so it doesn't name the prototype. The address still does (`control.html`, `hover-tab.html`, `section-first.html`, `layers.html`).
+- **The browser tab's title**, "Fernhill Yoga · Editor", so it doesn't name the prototype. The address still does (`control.html`, `hover-tab.html`, `layers.html`).
 
 Nothing is saved anywhere. Reload the page to start again.
 
@@ -34,9 +33,9 @@ Nothing is saved anywhere. Reload the page to start again.
 Add `?notes` or `#notes` to the address (`hover-tab.html?notes`) for a panel on the right that participants shouldn't see. It has:
 
 - the four tasks, ticked with the time when the page reaches the result, and unticked if it's undone. You can tick and untick them yourself.
-- counts of container selections by route: the toolbar button, the ⋮ menu, the breadcrumb, Document Overview, a click on a container's own area, and the prototype's own (tab clicks in A, clicks that stop at a section or column in B, Layers rows in D); wrong targets; undos; clicks before the caret first landed in the Monday description; seconds to each task; and what's particular to each prototype: tabs shown (A), Escape steps out and double click first presses (B), Layers opened and rows picked (D).
+- counts of container selections by route: the toolbar button, the ⋮ menu, the breadcrumb, Document Overview, a click on a container's own area, and the prototype's own (tab clicks and rows picked from the toolbar's block list in A, Layers rows in D); wrong targets; undos; clicks before the caret first landed in the Monday description; seconds to each task; and what's particular to each prototype: tabs shown and the block list opened and rows picked (A), Layers opened and rows picked (D).
 - a log of everything, with times since the page opened (or since Reset), and **Copy log**,
-- Control | A | B | D links to switch prototype, and **Reset**, which puts the page back and clears the log.
+- Control | A | D links to switch prototype, and **Reset**, which puts the page back and clears the log.
 
 The log records every selection (which block, how, and what was selected before), every change (text before and after, moves, deletes, duplicates, colours, the column count), undo and redo, Document Overview opened and closed, the ⋮ menu opened, each prototype's own events, and Finished.
 
@@ -54,12 +53,12 @@ The **Finished** button gives a code to copy into the next question of an unmode
 
 | Part | Meaning |
 | --- | --- |
-| `UC`, `UA`, `UB`, `UD` | The prototype: the control, A hover tab, B section first, D Layers. |
+| `UC`, `UA`, `UD` | The prototype: the control, A hover tab, D Layers. |
 | `1101` | The four tasks when Finished was clicked: 1 done, 0 not. |
-| `r2.0.1.0.3.4` | Container selections by route: the toolbar button, the ⋮ menu, the breadcrumb, Document Overview, a click on a container's own area, then the prototype's own (always 0 in the control). In B this counts every click that stops at a section or a column, including the clicks on the way into text, so every B participant has several; see below. |
+| `r2.0.1.0.3.4` | Container selections by route: the toolbar button, the ⋮ menu, the breadcrumb, Document Overview, a click on a container's own area, then the prototype's own (always 0 in the control; in A, tab clicks and block list picks together, which the notes panel shows apart). |
 | `x1` | Wrong targets. |
 | `u0` | Undos. |
-| `k3` | Clicks on the canvas before the caret first landed in the Monday description, for task 1 (`kx` if it never did). Only presses on the page count, not on A's tabs, D's Layers button or the grey around the page. In B the first click on a section only selects the section, so this is where B's cost shows. |
+| `k3` | Clicks on the canvas before the caret first landed in the Monday description, for task 1 (`kx` if it never did). Only presses on the page count, not on A's tabs, D's Layers button or the grey around the page. |
 | `s245` | Seconds from opening the page to clicking Finished. |
 
 ## Running a test
@@ -83,9 +82,9 @@ Start with: "This is the home page of a yoga studio, Fernhill Yoga, in the edito
 ### Tasks
 
 1. "There's a spelling mistake in the description of the Monday class: 'beginers' should be 'beginners'. Fix it."
-   *Watch for:* in B, whether the first click selecting the whole section surprises or annoys them, how many clicks it takes to reach the text, and whether anyone finds the double click. In the others, this is one click.
+   *Watch for:* a warm-up: one click on the word in every prototype. Note whether A's tabs or D's button get in the way of an ordinary text edit.
 2. "Move the whole 'Classes this week' section, with all three classes, so it comes before 'About the studio'."
-   *Watch for:* what they click first (the heading, a picture, the background), whether they move the heading or the columns inside the section instead, and how they get to the section: in the control, which of its ways they find, if any; in A, whether they see and click the Group tab; in B, whether one click is enough; in D, whether they open Layers and what they make of the list.
+   *Watch for:* what they click first (the heading, a picture, the background), whether they move the heading or the columns inside the section instead, and how they get to the section: in the control, which of its ways they find, if any; in A, whether they see and click the Group tab; in D, whether they open Layers and what they make of the list.
 3. "Give the 'Opening hours' section a different background colour."
    *Watch for:* a background given to the heading or the paragraph instead, which looks almost right. Do they notice it isn't the whole section? Clear also counts as a different background, since it takes the sand colour away.
 4. "The Saturday class has been cancelled. Remove it, its picture and its words, so only two classes are left."
@@ -96,7 +95,6 @@ Start with: "This is the home page of a yoga studio, Fernhill Yoga, in the edito
 - "When you wanted to change the whole section, not just the text in it, how did you do it? How did you know?"
 - "Was anything hard to click on, or did you get something you didn't expect when you clicked?"
 - In A: "Did you notice the small blue labels? What did they tell you?" If yes: "What do 'Group', 'Columns' and 'Column' mean to you?"
-- In B: "When you clicked a section the first time, what happened? Was that what you expected?"
 - In D: "Did you use the Layers button? What did you expect it to do before you clicked it?"
 - In the control: "Did you use any of the buttons above the block, or the line along the bottom of the editor?"
 
@@ -104,22 +102,20 @@ Start with: "This is the home page of a yoga studio, Fernhill Yoga, in the edito
 
 - **Tasks 2, 3 and 4 done.** This is the main measure. Count them per prototype and compare each with the control.
 - **Wrong targets.** The `x` part of the code. Fewer in a prototype means people found the section rather than settling for what was under the pointer.
-- **How the section was reached.** The `r` part of the code. In A and D, if the prototype's own route is barely used, any difference from the control isn't because of it. B can't be read this way: every click into a section counts as B's route, including clicks on the way to text, and the first press of each double click counts too (the notes panel's "Double click first presses" says how many to take off). For B, use the log: what was selected when the person moved, recoloured or deleted something.
-- **B's cost.** The `k` part of the code and task 1's time. If B makes text edits noticeably slower or more confusing, that cost lands on the most common thing people do.
+- **How the section was reached.** The `r` part of the code. If the prototype's own route is barely used, any difference from the control isn't because of it.
 - **The words.** Group, Columns and Column are the editor's names, not the participant's. Note what people call the sections ("the box", "the green bit", "the panel") and whether A's tabs or D's list help or confuse because of them.
 
 ### What would favour each
 
 - **A (hover tab)**: more people finish tasks 2 to 4 than in the control, with fewer wrong targets, and most selections of a section are by a tab. It counts against A if people don't notice the tabs, or find them noisy while writing.
-- **B (section first)**: the most people finish tasks 2 to 4, with the fewest wrong targets, and task 1 isn't much slower. If B wins on the sections but people struggle in task 1, the next step is to keep B for sections and find a cheaper way into text.
 - **D (Layers)**: people open Layers when they're stuck and pick the right row. It counts against D if few open it, or if they open it and can't tell which row is the section.
 - **The control**: people do as well as in the others. Then the editor's own ways are enough once found, and the problem is elsewhere.
 
-A and D aren't exclusive, and either could be added to B.
+A and D aren't exclusive: the editor could have both.
 
 ## Running it
 
-Plain HTML, CSS and JavaScript with no build step and nothing loaded from elsewhere: `app.js` and `style.css` are the shared editor, and each prototype page sets `data-variant` on `<body>` (`control`, `hover-tab`, `section-first` or `layers`) and loads its own script and stylesheet from `variants/`. A's tabs are for the pointer only: the keyboard reaches parents through the toolbar, the breadcrumb and Document Overview, as in the editor. The arms only use the small API `app.js` exposes as `window.Utrillo`, documented in `app.js`. Serve the repository root with any static server and open `utrillo/`.
+Plain HTML, CSS and JavaScript with no build step and nothing loaded from elsewhere: `app.js` and `style.css` are the shared editor, and each prototype page sets `data-variant` on `<body>` (`control`, `hover-tab` or `layers`) and loads its own script and stylesheet from `variants/`. A's tabs are for the pointer only: the keyboard reaches parents through the toolbar, the breadcrumb and Document Overview, as in the editor. The arms only use the small API `app.js` exposes as `window.Utrillo`, documented in `app.js`. Serve the repository root with any static server and open `utrillo/`.
 
 `node utrillo/e2e/smoke.mjs` runs every prototype in headless Chrome with Playwright: it starts its own server, does each task by the control's routes and by each prototype's own, and checks the ticks, the counts and the completion codes.
 

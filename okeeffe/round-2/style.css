@@ -99,6 +99,8 @@ a { color: var(--blue); }
 .group.menu .list { border-color: var(--blue-line); background: #f7f8fe; }
 .group.menu.auto .list { border-left: 4px solid var(--blue); }
 .row { border-top: 1px solid var(--line-2); position: relative; }
+/* Dragging a row mustn't select its text (Safari needs the prefix). */
+.arm-control .panel .row, .arm-auto-add .panel .row, .arm-menu-switches .panel .row { -webkit-user-select: none; user-select: none; }
 .row:first-child { border-top: none; }
 .row.gap-before { border-top: 8px solid var(--ground); }
 .row.flash { animation: flash 1.6s ease-out; }
@@ -305,18 +307,11 @@ button.row-title:hover { text-decoration: underline; }
 /* Its list: the menu's items, as rows. */
 .nav-list { position: relative; }
 .nav-row .row-main { min-height: 40px; gap: 4px; padding: 0 0 0 8px; }
-.nav-row .handle { height: 36px; width: 24px; margin-left: -6px; }
 .nav-row .icon-btn { width: 36px; height: 36px; }
 .nav-label { flex: 1; min-width: 0; border: none; background: none; padding: 6px 2px; margin: 0; text-align: left; color: inherit; font-size: 13px; font-weight: 500; line-height: 1.35; overflow-wrap: anywhere; }
 span.nav-label { cursor: default; }
 button.nav-label:hover { color: var(--blue-dark); }
-.nav-row.selected > .row-main { background: var(--blue); color: var(--white); }
-.nav-row.selected > .row-main .handle, .nav-row.selected > .row-main .icon-btn, .nav-row.selected > .row-main .nav-chevron, .nav-row.selected > .row-main .nav-hidden { color: var(--white); }
-.nav-row.selected > .row-main .handle:hover, .nav-row.selected > .row-main .handle:focus-visible, .nav-row.selected > .row-main .icon-btn:hover { background: var(--blue-dark); color: var(--white); }
-.nav-row.selected > .row-main button.nav-label:hover { color: var(--white); }
-.nav-row.selected > .row-main :focus-visible { outline-color: var(--white); outline-offset: -3px; }
 .nav-row.dim .nav-label { font-weight: 400; color: var(--ink-3); }
-.nav-row.selected.dim .nav-label { color: var(--white); }
 .nav-inner .row-main { min-height: 36px; }
 .nav-inner .nav-label { font-weight: 400; }
 .nav-chevron { flex: none; width: 20px; display: flex; align-items: center; justify-content: center; color: var(--ink-3); }
@@ -331,12 +326,6 @@ button.nav-label:hover { color: var(--blue-dark); }
 .moremenu button[aria-disabled="true"]:hover { background: none; }
 .drop-line { position: absolute; right: 4px; height: 3px; border-radius: 2px; background: var(--blue); pointer-events: none; z-index: 2; }
 
-.nav-settings { padding: 10px 10px 12px; display: flex; flex-direction: column; gap: 10px; background: #f6f7f7; border-top: 1px solid var(--line-2); }
-.nav-settings .field input[type="text"] { height: 40px; width: 100%; min-width: 0; }
-.nav-settings .hint { overflow-wrap: anywhere; }
-.nav-panel { display: flex; flex-direction: column; gap: 8px; padding-top: 12px; border-top: 1px solid var(--line); }
-.nav-panel h3 { margin: 0; font-size: 13px; font-weight: 600; }
-.nav-panel-sub { margin: 0; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-3); }
 .nav-wide { width: 100%; justify-content: center; height: auto; min-height: 40px; padding: 6px 12px; white-space: normal; text-align: center; }
 .nav-empty { margin: 0; font-size: 13px; color: var(--ink-3); }
 .nav-append { align-self: flex-start; width: 36px; height: 36px; border: none; border-radius: 2px; background: var(--ink); color: var(--white); display: flex; align-items: center; justify-content: center; }
@@ -350,7 +339,6 @@ button.nav-label:hover { color: var(--blue-dark); }
 .nav-results button { width: 100%; border: none; background: none; text-align: left; padding: 6px 8px; min-height: 40px; border-radius: 4px; display: flex; flex-direction: column; font-size: 13px; overflow-wrap: anywhere; }
 .nav-results button:hover, .nav-results button:focus-visible { background: var(--blue-tint); }
 .nav-results small { font-size: 11px; color: var(--ink-3); }
-.nav-none { margin: 0; font-size: 12px; color: var(--ink-3); }
 .nav-auto { height: auto; min-height: 40px; padding: 4px 0; text-align: left; line-height: 1.3; }
 .nav-auto .switch-track { flex: none; }
 
@@ -401,3 +389,73 @@ button.nav-label:hover { color: var(--blue-dark); }
 .site-hero h1 { font-size: clamp(28px, 3.4vw, 42px); overflow-wrap: anywhere; }
 .site-footer { padding: 18px clamp(14px, 2.2vw, 28px); }
 .moremenu { min-width: min(220px, calc(100% - 12px)); }
+
+/* ======================================================================================
+   The editor's saving, Undo and Redo, and core's list view, in the three sidebar arms.
+   ====================================================================================== */
+
+.topbar { flex-wrap: nowrap; }
+.ed-tools { display: inline-flex; align-items: center; gap: 2px; margin-left: 8px; padding-left: 12px; border-left: 1px solid var(--line); }
+.ed-tool { width: 36px; height: 36px; color: var(--ink); }
+.ed-tool svg { width: 20px; height: 20px; }
+.ed-tool[aria-disabled="true"] { color: #b4b6b9; cursor: default; }
+.ed-tool[aria-disabled="true"]:hover { background: none; color: #b4b6b9; }
+.ed-save { height: 36px; }
+.ed-save[aria-disabled="true"] { opacity: 0.45; cursor: default; }
+.ed-save[aria-disabled="true"]:hover { background: var(--blue); border-color: var(--blue); }
+
+/* Rows are dragged by their name: no handles. */
+.nav-row { -webkit-user-select: none; user-select: none; }
+.nav-row .row-main { padding-left: 10px; }
+.nav-grip { cursor: grab; }
+.nav-row.dragging .nav-grip { cursor: grabbing; }
+.nav-placeholder > .row-main { color: var(--blue-dark); }
+.nav-placeholder .nav-label { cursor: default; }
+.nav-row > .nav-picker { margin: 0 6px 8px 10px; }
+.nav-desc { margin: 0; font-size: 12px; line-height: 1.45; color: var(--ink-3); }
+.nav-heading { margin: 4px 0 0; font-size: 13px; font-weight: 600; }
+.nav-caps { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.02em; color: var(--ink); }
+.navside-body .field input[type="text"] { height: 40px; width: 100%; min-width: 0; }
+.nav-linkto { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border: 1px solid #949494; border-radius: 4px; font-size: 13px; overflow-wrap: anywhere; }
+.nav-linkto span { color: var(--ink-3); font-size: 12px; }
+.nav-badges { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.nav-linkto .nav-badge { border: 1px solid var(--line); border-radius: 2px; padding: 1px 6px; font-size: 11px; color: var(--ink); background: #f6f7f7; }
+.nav-outline { border-color: var(--blue); color: var(--blue); background: var(--white); }
+.nav-outline:hover { border-color: var(--blue-dark); color: var(--blue-dark); }
+.navside-head.has-back { padding-left: 4px; justify-content: flex-start; gap: 2px; }
+.navside-head.has-back h2 { flex: 1; }
+.nav-back-btn svg { width: 20px; height: 20px; }
+.nav-create-open { display: flex; align-items: center; gap: 8px; border: none; border-top: 1px solid var(--line-2); background: none; padding: 8px 4px 2px; min-height: 40px; font-size: 13px; font-weight: 500; text-align: left; }
+.nav-create-open:hover { color: var(--blue-dark); }
+.nav-create-open svg { width: 16px; height: 16px; flex: none; }
+.nav-picker .field { gap: 4px; }
+.nav-picker .nav-back { align-self: flex-start; min-height: 32px; }
+.nav-publish { height: auto; min-height: 36px; padding: 2px 0; }
+.nav-help { margin: 0; font-size: 12px; line-height: 1.45; color: var(--ink-3); }
+.nav-picker-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+.nav-picker input[aria-invalid="true"] { border-color: var(--red); }
+
+/* The control's Detach dialog has core's close button. */
+.dialog.has-x { position: relative; }
+.dialog.has-x h2 { padding-right: 40px; }
+.dialog-x { position: absolute; top: 12px; right: 12px; width: 40px; height: 40px; }
+/* WordPress's ConfirmDialog: in the middle of the screen, with a text-style Cancel. */
+.scrim.centred { align-items: center; padding-top: 16px; }
+.btn-text { border-color: transparent; background: none; color: var(--blue); }
+.btn-text:hover { border-color: transparent; color: var(--blue-dark); text-decoration: underline; }
+.dialog:focus { outline: none; }
+
+/* The save panel, in the sidebar's place. */
+.savepanel-actions { flex: none; display: flex; gap: 8px; padding: 12px 10px; border-bottom: 1px solid var(--line); }
+.savepanel-actions .btn { flex: 1; justify-content: center; height: 36px; }
+.savepanel .navside-body { padding: 0 0 32px; gap: 0; }
+.savepanel-prompt { padding: 16px; border-bottom: 1px solid var(--line); font-size: 13px; line-height: 1.5; }
+.savepanel-prompt p { margin: 8px 0 0; }
+.savepanel-group { padding: 12px 16px 16px; border-bottom: 1px solid var(--line); display: flex; flex-direction: column; gap: 8px; }
+.savepanel-group h3 { margin: 0 0 4px; font-size: 13px; font-weight: 600; }
+.savepanel-item { display: flex; align-items: flex-start; gap: 8px; font-size: 13px; overflow-wrap: anywhere; }
+.savepanel-item input { width: 18px; height: 18px; margin: 0; flex: none; accent-color: var(--blue); }
+
+.notes .tasks li.is-unsaved label { color: #7a4a00; }
+.notes .tasks .unsaved { display: block; font-style: normal; font-weight: 600; color: #7a4a00; }
+.notes .log .is-save { color: #00527a; }

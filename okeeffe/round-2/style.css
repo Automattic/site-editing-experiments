@@ -209,8 +209,9 @@ a { color: var(--blue); }
 .site-name { font-size: 22px; font-weight: 600; border: none; background: none; padding: 0; color: inherit; font-family: inherit; }
 .site-nav { font-family: system-ui, sans-serif; }
 .site-nav > ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 22px; font-size: 15px; }
-.site-nav li { position: relative; }
-.site-nav a { color: var(--site-ink); text-decoration: none; display: inline-flex; align-items: center; gap: 4px; padding: 6px 0; }
+.site-nav li { position: relative; min-width: 0; max-width: 100%; }
+/* A typed address can be one long word: it wraps instead of pushing the menu out of the header. */
+.site-nav a { color: var(--site-ink); text-decoration: none; display: inline-flex; align-items: center; gap: 4px; padding: 6px 0; max-width: 100%; overflow-wrap: anywhere; }
 .site-nav a:hover { text-decoration: underline; }
 .site-nav a[aria-current="page"] { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 6px; }
 .site-nav .draft-link { opacity: 0.55; outline: 1.5px dashed #8c8f94; outline-offset: 4px; border-radius: 2px; }
@@ -314,7 +315,13 @@ button.nav-label:hover { color: var(--blue-dark); }
 .nav-row.dim .nav-label { font-weight: 400; color: var(--ink-3); }
 .nav-inner .row-main { min-height: 36px; }
 .nav-inner .nav-label { font-weight: 400; }
-.nav-chevron { flex: none; width: 20px; display: flex; align-items: center; justify-content: center; color: var(--ink-3); }
+/* Core's list view: a chevron before a row's name when there are rows under it, a gap the same
+   width when there aren't. It points down when they're shown. */
+.nav-expander { flex: none; width: 20px; height: 24px; display: flex; align-items: center; justify-content: center; color: var(--ink); }
+.nav-expander[data-action] { cursor: pointer; }
+.nav-expander svg { width: 20px; height: 20px; transition: transform 0.1s; }
+.nav-expander.is-open svg { transform: rotate(90deg); }
+.nav-list > li[hidden] { display: none; }
 .nav-hidden { flex: none; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; color: var(--ink-3); }
 .nav-hidden svg { width: 18px; height: 18px; }
 .nav-switch { flex: none; height: 36px; padding: 0 2px; }
@@ -416,8 +423,11 @@ button.nav-label:hover { color: var(--blue-dark); }
 .nav-heading { margin: 4px 0 0; font-size: 13px; font-weight: 600; }
 .nav-caps { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.02em; color: var(--ink); }
 .navside-body .field input[type="text"] { height: 40px; width: 100%; min-width: 0; }
+.nav-linkto { width: 100%; text-align: left; background: var(--white); color: var(--ink); font: inherit; cursor: pointer; }
+.nav-linkto:hover { border-color: var(--blue); }
+.nav-linkto-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .nav-linkto { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border: 1px solid #949494; border-radius: 4px; font-size: 13px; overflow-wrap: anywhere; }
-.nav-linkto span { color: var(--ink-3); font-size: 12px; }
+.nav-linkto-text > span { color: var(--ink-3); font-size: 12px; }
 .nav-badges { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
 .nav-linkto .nav-badge { border: 1px solid var(--line); border-radius: 2px; padding: 1px 6px; font-size: 11px; color: var(--ink); background: #f6f7f7; }
 .nav-outline { border-color: var(--blue); color: var(--blue); background: var(--white); }
@@ -425,9 +435,10 @@ button.nav-label:hover { color: var(--blue-dark); }
 .navside-head.has-back { padding-left: 4px; justify-content: flex-start; gap: 2px; }
 .navside-head.has-back h2 { flex: 1; }
 .nav-back-btn svg { width: 20px; height: 20px; }
-.nav-create-open { display: flex; align-items: center; gap: 8px; border: none; border-top: 1px solid var(--line-2); background: none; padding: 8px 4px 2px; min-height: 40px; font-size: 13px; font-weight: 500; text-align: left; }
-.nav-create-open:hover { color: var(--blue-dark); }
-.nav-create-open svg { width: 16px; height: 16px; flex: none; }
+.nav-create-open, .nav-blocks-open { display: flex; align-items: center; gap: 8px; border: none; border-top: 1px solid var(--line-2); background: none; padding: 8px 4px 2px; min-height: 40px; font-size: 13px; font-weight: 500; text-align: left; }
+.nav-create-open:hover, .nav-blocks-open:hover { color: var(--blue-dark); }
+.nav-create-open + .nav-blocks-open { border-top: none; padding-top: 2px; }
+.nav-create-open svg, .nav-blocks-open svg { width: 16px; height: 16px; flex: none; }
 .nav-picker .field { gap: 4px; }
 .nav-picker .nav-back { align-self: flex-start; min-height: 32px; }
 .nav-publish { height: auto; min-height: 36px; padding: 2px 0; }
@@ -459,3 +470,35 @@ button.nav-label:hover { color: var(--blue-dark); }
 .notes .tasks li.is-unsaved label { color: #7a4a00; }
 .notes .tasks .unsaved { display: block; font-style: normal; font-weight: 600; color: #7a4a00; }
 .notes .log .is-save { color: #00527a; }
+
+/* Search or type URL, and Link to's field, with core's Apply (↵) inside the field. */
+.nav-search-wrap { position: relative; display: flex; }
+.nav-search-wrap input, .navside-body .field .nav-search-wrap input[type="text"] { height: 40px; width: 100%; min-width: 0; border: 1px solid #949494; border-radius: 4px; padding: 0 44px 0 10px; font-size: 13px; }
+.nav-apply { position: absolute; top: 4px; right: 4px; width: 32px; height: 32px; display: grid; place-items: center; padding: 0; border: none; border-radius: 2px; background: none; color: var(--ink); cursor: pointer; }
+.nav-apply svg { width: 20px; height: 20px; }
+.nav-apply:hover { color: var(--blue); }
+.nav-apply[aria-disabled="true"] { color: #a7aaad; cursor: default; }
+
+/* Add block, in Add link. */
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.nav-caps-btn { display: inline-flex; align-items: center; gap: 2px; text-transform: uppercase; font-size: 11px; font-weight: 600; letter-spacing: 0.04em; }
+.nav-caps-btn svg { width: 16px; height: 16px; }
+.nav-blocks-head { margin: 6px 4px 0; }
+.nav-block-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2px; }
+.nav-block-btn { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 12px 4px; min-width: 0; border: none; border-radius: 2px; background: none; color: var(--ink); font: inherit; font-size: 12px; font-weight: 500; text-align: center; overflow-wrap: anywhere; cursor: pointer; }
+.nav-block-btn svg { width: 24px; height: 24px; }
+.nav-block-btn:hover, .nav-block-btn:focus-visible { background: #f0f0f0; color: var(--blue); }
+
+/* Blocks other than links, in the header, as the editor's canvas draws them. */
+.site-nav .site-block { text-decoration: none; }
+.site-nav .site-button { padding: 8px 18px; border-radius: 999px; background: #111; color: #9a9a9a; font-size: 14px; }
+.site-nav .site-search { display: inline-flex; align-items: center; gap: 8px; padding: 3px 3px 3px 12px; border: 1px solid #949494; color: #8c8f94; font-size: 13px; }
+.site-nav .site-search-btn { display: grid; place-items: center; width: 40px; height: 28px; border-radius: 999px; background: #111; color: #fff; }
+.site-nav .site-search-btn svg { width: 16px; height: 16px; }
+.site-nav .site-social { display: grid; place-items: center; width: 30px; height: 30px; padding: 0; border: 1px solid var(--site-ink); color: var(--site-ink); }
+.site-nav .site-social svg { width: 16px; height: 16px; }
+
+/* Drafts in Q's pages menu: the Pages panel's Draft badge in the sidebar, and in the preview a
+   draft drawn as the editor's canvas draws a link to a draft page (title, "(Draft)", a wavy underline). */
+.nav-row .nav-draft { flex: none; margin-right: 4px; }
+.site-nav .site-draft-label { text-decoration: underline wavy; text-decoration-skip-ink: none; text-underline-offset: 0.25rem; }

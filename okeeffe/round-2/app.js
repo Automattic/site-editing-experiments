@@ -44,7 +44,10 @@
  *                   excluded, [{ pageId, depth }]; links / advanced -> state.menu.items,
  *                   with a Page List replaced by its pages ({ pageId, depth, list }).
  *   shownMenu()     what visitors see, as a tree [{ pageId, itemId, label, sub: [] }]:
- *                   no drafts, no hidden links. The preview and the tasks read this.
+ *                   no drafts, no hidden links. The tasks and the code read this.
+ *   shownMenu(true) the menu as the preview draws it, standing in for the editor's canvas:
+ *                   the same, except that Q's pages menu also shows its drafts that are
+ *                   switched on, marked draft (CANVAS_DRAFTS). The preview reads this.
  *   entryLabel(e)   a link's own label, or the page's title while the menu is automatic.
  *   isExcluded(id), inMenu(pageId), linkFor(pageId), itemById(id).
  *
@@ -126,6 +129,12 @@
   // The auto-add arm has no Page List: its menu is links from the start, with a switch that
   // keeps new pages arriving.
   const STARTS_AS_LINKS = ARM === 'auto-add';
+  // Q's pages menu lists draft pages among the pages, each with its toggle, and the preview,
+  // which stands in for the editor's canvas, draws the drafts that are on as the canvas draws
+  // a link to a draft: "Holiday orders (Draft)", underlined with a wavy line. Core's Page List
+  // shows no drafts, so the control's doesn't; links to drafts stay out of the preview in
+  // every arm, as before.
+  const CANVAS_DRAFTS = ARM === 'menu-switches';
   const IS_MAC = /Mac|iPhone|iPad/.test((navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || '');
   const SITE = 'rosasbakery.example';
   const NOTES = new URLSearchParams(location.search).has('notes') || location.hash === '#notes';
@@ -175,7 +184,7 @@
   }
 
   function startingUi() {
-    return { pop: null, more: null, dialog: null, current: 'home', flash: null, focus: null, sidebar: false, navSel: null, navAdd: null, savePanel: null, typing: null };
+    return { pop: null, more: null, dialog: null, current: 'home', flash: null, focus: null, sidebar: false, navSel: null, navAdd: null, linkEdit: null, collapsed: {}, savePanel: null, typing: null };
   }
 
   function startingStats() {
@@ -207,7 +216,7 @@
         // What was open, so that a reload can say what it closed.
         dialog: ui.dialog ? dialogLabel(ui.dialog) : null, finish: finishStep, panel: !!ui.savePanel,
         // An Add link that was open, and a Text being typed, so a reload can finish them.
-        adding: ui.navAdd ? placeWords(ui.navAdd) : null, typing: ui.typing
+        adding: ui.navAdd ? placeWords(ui.navAdd) : null, addingText: ui.navAdd ? (ui.navAdd.q || '').trim() : '', typing: ui.typing
       }));
     } catch (e) { /* in memory only */ }
   }
@@ -232,7 +241,7 @@
       const unsaved = unsavedCount();
       events.push({ at: elapsed(), kind: 'reload', text: 'Page reloaded' + (unsaved ? ', with ' + unsaved + ' unsaved menu ' + (unsaved === 1 ? 'change' : 'changes') + ', which ' + (unsaved === 1 ? 'is' : 'are') + ' kept' : '') });
       if (saved.panel) events.push({ at: elapsed(), kind: 'save', text: 'The save panel was open and was closed by the reload (not counted as cancelled)' });
-      if (saved.adding) events.push({ at: elapsed(), kind: 'sidebar', text: 'Add link closed without adding anything (the page was reloaded): the “Page link” row ' + saved.adding + ' goes' });
+      if (saved.adding) events.push({ at: elapsed(), kind: 'sidebar', text: 'Add link closed without adding anything (the page was reloaded' + (saved.addingText ? ', with ' + q(saved.addingText) + ' typed in Search or type URL' : '') + '): the “Page link” row ' + saved.adding + ' goes' });
       // Typing in a link's Text when the page was reloaded: what it came to is logged next.
       typingAtReload = IN_SIDEBAR && saved.typing ? saved.typing : null;
       if (saved.dialog) events.push({ at: elapsed(), kind: 'dialog', text: saved.dialog + ' dialog closed by reload' });
@@ -288,6 +297,13 @@
   const itemById = (id) => state.menu.items.find((i) => i.id === id);
   const linkFor = (pageId) => state.menu.items.find((i) => i.pageId === pageId);
   const isPageList = (it) => !!it && it.type === 'pagelist';
+  // A block other than a link or a Page List, added with Add block: Buttons, Search, Social Icons.
+  const isBlock = (it) => !!it && it.type === 'block';
+  const BLOCKS = {
+    buttons: { title: 'Buttons', icon: 'buttons', desc: 'Prompt visitors to take action with a group of button-style links.' },
+    search: { title: 'Search', icon: 'search', desc: 'Help visitors find your content.' },
+    social: { title: 'Social Icons', icon: 'social', desc: 'Display icons linking to your profiles or sites.' }
+  };
   const itemTitle = (it) => (isPageList(it) ? 'Page List' : it.label);
   const q = (s) => '“' + s + '”';
 
@@ -303,21 +319,25 @@
 
   // What an automatic menu holds: published pages in page order, child pages under their
   // parent, leaving out the pages that are switched off.
-  function automaticItems() {
-    const live = (p) => p.status === 'publish' && !isExcluded(p.id);
+  // With drafts (Q's pages menu, as the editor's canvas draws it), draft pages that aren't
+  // switched off are in it too, marked draft.
+  function automaticItems(drafts) {
+    const live = (p) => (p.status === 'publish' || !!drafts) && !isExcluded(p.id);
     const out = [];
     pageTreeRows().forEach(({ p, depth }) => {
       if (!live(p)) return;
       const parent = depth ? page(p.parent) : null;
       if (parent && isExcluded(parent.id) && PARENT_OFF_HIDES_CHILDREN) return;
-      out.push({ pageId: p.id, depth: parent && live(parent) ? 1 : 0 });
+      const e = { pageId: p.id, depth: parent && live(parent) ? 1 : 0 };
+      if (p.status !== 'publish') e.draft = true;
+      out.push(e);
     });
     return out;
   }
 
   // A Page List among the links (the control) stands for the published pages, as they are now.
-  function menuEntries() {
-    if (isAutomatic()) return automaticItems();
+  function menuEntries(drafts) {
+    if (isAutomatic()) return automaticItems(drafts);
     if (!state.menu.items.some(isPageList)) return state.menu.items;
     return state.menu.items.reduce((all, it) => all.concat(isPageList(it) ? automaticItems().map((e) => ({ pageId: e.pageId, depth: e.depth, list: it.id })) : it), []);
   }
@@ -328,28 +348,34 @@
 
   // What visitors see: no drafts and no hidden links. A hidden link hides its submenu; the
   // links under a draft move up a level, so they stay reachable.
-  function shownMenu() {
+  // shownMenu(true) is the menu as the preview draws it, standing in for the editor's canvas:
+  // the same, except that Q's pages menu also shows the drafts that are switched on, marked
+  // draft (node.draft). The tasks and the code read shownMenu(), never this.
+  function shownMenu(canvas) {
     const tree = [];
     let parentShown = false;
     let parentHidden = false;
-    menuEntries().forEach((e) => {
+    menuEntries(!!canvas && CANVAS_DRAFTS).forEach((e) => {
       const p = page(e.pageId);
-      // A link to a typed address has no page: it shows unless it's hidden.
-      const visible = (e.url ? true : !!p && p.status === 'publish') && !e.hidden;
+      // A link to a typed address, or another block, has no page: it shows unless it's hidden.
+      const visible = (e.url || e.block ? true : !!p && (p.status === 'publish' || !!e.draft)) && !e.hidden;
+      const draft = !!e.draft && !!p && p.status !== 'publish';
       if (e.depth === 0) {
         parentShown = visible;
         parentHidden = !!e.hidden;
-        if (visible) tree.push({ pageId: e.pageId || null, itemId: e.id || null, list: e.list || null, label: entryLabel(e), sub: [] });
+        if (visible) tree.push({ pageId: e.pageId || null, itemId: e.id || null, list: e.list || null, url: e.url || null, block: e.block || null, label: entryLabel(e), draft, sub: [] });
         return;
       }
       if (!visible || parentHidden) return;
-      const node = { pageId: e.pageId || null, itemId: e.id || null, list: e.list || null, label: entryLabel(e), sub: [] };
+      const node = { pageId: e.pageId || null, itemId: e.id || null, list: e.list || null, url: e.url || null, block: e.block || null, label: entryLabel(e), draft, sub: [] };
       if (parentShown) tree[tree.length - 1].sub.push(node); else tree.push(node);
     });
     return tree;
   }
   const shownFlat = () => shownMenu().reduce((all, n) => all.concat(n, n.sub), []);
   const isShown = (pageId) => shownFlat().some((n) => n.pageId === pageId);
+  // In the preview's menu, drafts included (Q's pages menu): for the log only.
+  const onCanvas = (pageId) => shownMenu(true).reduce((all, n) => all.concat(n, n.sub), []).some((n) => n.pageId === pageId);
   const menuSignature = () => JSON.stringify(shownMenu().map((n) => [n.pageId, n.label, n.sub.map((s) => [s.pageId, s.label])]));
 
   function makeId(title) {
@@ -385,11 +411,15 @@
     const m = state.menu;
     if (!isAutomatic()) return;
     const published = (p) => p && p.status === 'publish';
-    m.items = pageTreeRows().filter((r) => published(r.p)).map((r) => ({
+    // Q: a draft that was switched off becomes a hidden link, as a published page that was off
+    // does, so it stays out of the menu when it's published (auto-add skips a page that has a
+    // link). A draft that was on isn't a link yet; auto-add adds it when it's published.
+    const taken = (p) => published(p) || (CANVAS_DRAFTS && !!p && isExcluded(p.id));
+    m.items = pageTreeRows().filter((r) => taken(r.p)).map((r) => ({
       id: newItemId('link-'),
       pageId: r.p.id,
       label: r.p.title,
-      depth: r.depth && published(page(r.p.parent)) ? 1 : 0,
+      depth: r.depth && taken(page(r.p.parent)) ? 1 : 0,
       hidden: isExcluded(r.p.id)
     }));
     m.mode = mode === 'advanced' ? 'advanced' : 'links';
@@ -684,12 +714,28 @@
     if (screen && saved) w = 'it is now in the menu';
     else if (!screen && !saved) w = 'it is not in the menu';
     else if (saved) {
-      w = ARM === 'menu-switches' && sm.mode === 'automatic' ? 'it is in the saved pages menu, so visitors see it, but not in the advanced menu on screen, which isn’t saved yet'
+      w = ARM === 'menu-switches' && sm.mode === 'automatic' && m.mode === 'automatic' ? 'it is in the saved pages menu, so visitors see it, but switched off in the pages menu on screen, which isn’t saved yet'
+        : ARM === 'menu-switches' && sm.mode === 'automatic' ? 'it is in the saved pages menu, so visitors see it, but not in the advanced menu on screen, which isn’t saved yet'
         : ARM === 'control' && sm.items.some(isPageList) ? 'it is in the saved menu’s Page List, so visitors see it, but not in the menu on screen, whose changes aren’t saved yet'
         : 'it is in the saved menu, so visitors see it, but not in the menu on screen, whose changes aren’t saved yet';
     } else w = 'it is in the menu on screen, but not in the saved menu, so visitors don’t see it yet';
     if (m.mode === 'advanced' && sm.mode === 'advanced' && m.autoAdd !== sm.autoAdd) w += ' (the saved menu’s setting decides this: the switch was changed but not saved)';
     return w;
+  }
+
+  // Q: a draft's toggle in the pages menu, for the log line of its publishing. On screen and
+  // as saved, when they differ. Nothing once neither menu is a pages menu.
+  function draftToggleWords(pageId) {
+    const p = page(pageId);
+    if (!CANVAS_DRAFTS || !p || p.status === 'publish') return '';
+    const sw = () => (isAutomatic() ? (isExcluded(pageId) ? 'off' : 'on') : null);
+    const screen = sw();
+    const saved = onSaved(sw);
+    if (!screen && !saved) return '';
+    if (screen === saved) return ', with its toggle in the pages menu ' + screen;
+    if (!saved) return ', with its toggle ' + screen + ' in the pages menu on screen, which isn’t saved (the saved menu is an advanced menu)';
+    if (!screen) return ', with its toggle ' + saved + ' in the saved pages menu (the advanced menu on screen isn’t saved)';
+    return ', with its toggle ' + screen + ' on screen but ' + saved + ' in the saved menu (the change isn’t saved)';
   }
 
   // The pages whose place or parent on screen isn't what's saved (Q's pages menu moves
@@ -886,6 +932,13 @@
     more: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg>',
     close: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>',
     chevron: '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>',
+    enter: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6v5a3 3 0 0 1-3 3H6"/><path d="M9 10l-4 4 4 4"/></svg>',
+    expander: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M10.5 8.5L13.5 12L10.5 15.5"/></svg>',
+    customLink: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.5 14.5h-1V16h1a4 4 0 0 0 0-8h-1v1.5h1a2.5 2.5 0 0 1 0 5z"/><path d="M4 12h10M9 7.5 4.5 12 9 16.5"/></svg>',
+    buttons: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="4.75" y="4.75" width="14.5" height="5.5" rx="1.25"/><rect x="4.75" y="13.75" width="14.5" height="5.5" rx="1.25"/></svg>',
+    pageList: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M7.75 20.25H19c.69 0 1.25-.56 1.25-1.25V5.75"/><path d="M7.5 6.25h7M7.5 9.75h7M7.5 13.25h7M17.25 16V4c0-.69-.56-1.25-1.25-1.25H6c-.69 0-1.25.56-1.25 1.25v12c0 .69.56 1.25 1.25 1.25h10c.69 0 1.25-.56 1.25-1.25z"/></svg>',
+    search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><circle cx="13" cy="10" r="5.25"/><path d="M9.25 13.75 5 18"/></svg>',
+    social: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="17" cy="6" r="2.25"/><circle cx="7" cy="12" r="2.25"/><circle cx="17" cy="18" r="2.25"/><path d="m9 11 6-4M9 13l6 4"/></svg>',
     plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>',
     unseen: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12s3.5-6 9-6 9 6 9 6-3.5 6-9 6-9-6-9-6z"/><circle cx="12" cy="12" r="2.5"/><path d="M4 4l16 16"/></svg>',
     back: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>',
@@ -1191,6 +1244,7 @@
     if (!IN_SIDEBAR) return;
     if (!ui.sidebar) {
       ui.sidebar = true;
+      ui.collapsed = {};
       stats.own++;
       log('sidebar', 'Navigation sidebar opened (' + how + ')');
     }
@@ -1204,6 +1258,7 @@
     dropAdd('closed the sidebar');
     ui.sidebar = false;
     ui.navSel = null;
+    ui.collapsed = {};
     if (ui.more && ui.more.indexOf('nav:') === 0) ui.more = null;
     log('sidebar', 'Navigation sidebar closed (' + how + ')');
     render();
@@ -1216,9 +1271,10 @@
   // 'pagelist' (a Page List) or 'plpage' (a page shown under a Page List).
   function navRows() {
     if (isAutomatic()) {
-      return pageTreeRows().filter((r) => published(r.p)).map((r) => {
-        const nested = r.depth && published(page(r.p.parent));
-        return { kind: 'page', id: r.p.id, title: r.p.title, depth: nested ? 1 : 0, group: nested ? r.p.parent : '' };
+      // Q's pages menu: every page, drafts too, in page order.
+      return pageTreeRows().map((r) => {
+        const nested = !!r.depth;
+        return { kind: 'page', id: r.p.id, title: r.p.title, depth: nested ? 1 : 0, group: nested ? r.p.parent : '', draft: !published(r.p) };
       });
     }
     const rows = [];
@@ -1230,7 +1286,8 @@
         automaticItems().forEach((e) => rows.push({ kind: 'plpage', id: it.id + ':' + e.pageId, pageId: e.pageId, list: it.id, title: page(e.pageId).title, depth: e.depth + 1, group: it.id }));
         return;
       }
-      rows.push({ kind: 'item', id: it.id, title: it.label, depth: it.depth, group: it.depth ? parent : '', hidden: !!it.hidden });
+      rows.push({ kind: 'item', id: it.id, title: it.label, depth: it.depth, group: it.depth ? parent : '', hidden: !!it.hidden, block: isBlock(it) ? it.block : null });
+      if (isBlock(it) && it.block === 'buttons') rows.push({ kind: 'blockchild', id: it.id + ':button', parent: it.id, title: 'Button', depth: it.depth + 1, group: it.id });
     });
     return rows;
   }
@@ -1256,7 +1313,7 @@
   // aren't put under it. A link goes under any link, but not under a Page List, and a Page
   // List isn't put under anything.
   function canNest(kind, id, parentId) {
-    if (kind === 'item') return !isPageList(itemById(id)) && !!itemById(parentId) && !isPageList(itemById(parentId));
+    if (kind === 'item') return !isPageList(itemById(id)) && !isBlock(itemById(id)) && !!itemById(parentId) && !isPageList(itemById(parentId)) && !isBlock(itemById(parentId));
     return id !== 'home' && parentId !== 'home';
   }
 
@@ -1277,11 +1334,11 @@
       item('nav-move', 'Move down', { kind, id: row.id, dir: 1 }, k >= sibs.length - 1 ? 'use Move down on ' + name + ', which is already last' : '');
     if (row.kind !== 'page') {
       html += item('nav-ask-add', 'Add submenu link', { place: 'sub', ref: row.id },
-        row.kind === 'pagelist' ? 'use Add submenu link on the Page List' : row.depth ? 'use Add submenu link on ' + name + ', which is already in a submenu' : '');
+        row.kind === 'pagelist' ? 'use Add submenu link on the Page List' : row.block ? 'use Add submenu link on ' + name + ', which can’t have a submenu' : row.depth ? 'use Add submenu link on ' + name + ', which is already in a submenu' : '');
       html += item('nav-duplicate', 'Duplicate', { item: row.id });
       html += item('nav-ask-add', 'Add before', { place: 'before', ref: row.id });
       html += item('nav-ask-add', 'Add after', { place: 'after', ref: row.id });
-      if (CAN_HIDE && state.menu.mode === 'advanced') html += item('nav-hide', row.hidden ? 'Show' : 'Hide', { item: row.id });
+      if (CAN_HIDE && state.menu.mode === 'advanced' && row.kind !== 'pagelist' && !row.block) html += item('nav-hide', row.hidden ? 'Show' : 'Hide', { item: row.id });
       const short = row.title.length > 25 ? row.title.slice(0, 22) + '...' : row.title;
       html += '<hr>' + item('nav-remove', 'Remove ' + esc(short), { item: row.id });
     }
@@ -1308,41 +1365,77 @@
         <div class="nav-picker-actions"><button type="button" class="btn btn-small" data-action="nav-create-back" data-how="Cancel" data-focus="nav-create-cancel">Cancel</button><button type="button" class="btn btn-small btn-primary" data-action="nav-create" data-focus="nav-create">Create page</button></div>
       </div>`;
     }
+    if (a.blocks) {
+      // Add block: the blocks a Navigation offers, as core lists them. In a submenu, links only.
+      const sub = navAddDepth() > 0;
+      const offer = [['page-link', 'Page link', 'page'], ['custom-link', 'Custom Link', 'customLink'], ['buttons', 'Buttons', 'buttons'], ['page-list', 'Page List', 'pageList'], ['search', 'Search', 'search'], ['social', 'Social Icons', 'social']]
+        .filter(([b]) => !sub || b === 'page-link' || b === 'custom-link');
+      return `<div class="nav-picker" role="dialog" aria-label="Add block">
+        <p class="sr-only">Choose a block to add to your Navigation.</p>
+        <button type="button" class="link nav-back nav-caps-btn" data-action="nav-blocks-back" data-focus="nav-blocks-back">${ICON.back}<span>Back</span></button>
+        <h4 class="nav-caps nav-blocks-head">Blocks</h4>
+        <div class="nav-block-grid">${offer.map(([b, title, icon]) => `<button type="button" class="nav-block-btn" data-action="nav-block" data-block="${b}" data-focus="nav-block:${b}">${ICON[icon]}<span>${title}</span></button>`).join('')}</div>
+      </div>`;
+    }
     // The site's published pages, newest first, as the editor suggests them.
     const pages = state.made.slice().reverse().map(page).filter(published).map((p) =>
-      `<li><button type="button" data-action="nav-add" data-page="${esc(p.id)}" data-find="${esc(p.title.toLowerCase())}"><span>${esc(p.title)}</span><small>${p.id === 'home' ? 'Front page' : esc(pagePath(p)) + ' · Page'}</small></button></li>`).join('');
+      `<li${a.q && !p.title.toLowerCase().includes(a.q.trim().toLowerCase()) ? ' hidden' : ''}><button type="button" data-action="nav-add" data-page="${esc(p.id)}" data-find="${esc(p.title.toLowerCase())}"><span>${esc(p.title)}</span><small>${p.id === 'home' ? 'Front page' : esc(pagePath(p)) + ' · Page'}</small></button></li>`).join('');
     return `<div class="nav-picker" role="dialog" aria-label="Add link">
-      <input type="text" id="nav-search" placeholder="Search or type URL" aria-label="Search or type URL" autocomplete="off" data-focus="nav-search">
+      <div class="nav-search-wrap"><input type="text" id="nav-search" placeholder="Search or type URL" aria-label="Search or type URL" autocomplete="off" data-focus="nav-search" value="${esc(a.q || '')}">${applyButton('nav-apply', a.q)}</div>
       <ul class="nav-results" aria-label="Suggestions">${pages}</ul>
-      <button type="button" class="nav-create-open" data-action="nav-create-open" data-focus="nav-create-open">${ICON.plus}<span>Create page</span></button>
+      ${a.custom ? '' : `<button type="button" class="nav-create-open" data-action="nav-create-open" data-focus="nav-create-open">${ICON.plus}<span>Create page</span></button>`}
+      <button type="button" class="nav-blocks-open" data-action="nav-blocks-open" data-focus="nav-blocks-open">${ICON.plus}<span>Add block</span></button>
     </div>`;
+  }
+
+  // The ↵ inside a link field, as core's Apply: off until something is typed.
+  function applyButton(action, text) {
+    return `<button type="button" class="nav-apply" data-action="${action}" data-focus="${action}" aria-label="Apply" aria-disabled="${String(text || '').trim() ? 'false' : 'true'}">${ICON.enter}</button>`;
   }
 
   function navPlaceholderHtml(depth) {
     return `<li class="row nav-row nav-placeholder" data-row="nav:placeholder" data-depth="${depth}">
-      <div class="row-main"><span class="indent" style="width:${depth * 16}px"></span><span class="nav-label">Page link</span></div>${navPickerHtml()}</li>`;
+      <div class="row-main"><span class="indent" style="width:${depth * 16}px"></span><span class="nav-label">${ui.navAdd && ui.navAdd.custom ? 'Custom Link' : 'Page link'}</span></div>${navPickerHtml()}</li>`;
   }
 
-  function navRowHtml(row) {
+  // As in core's list view: a row with rows under it has a chevron before its name, and its
+  // name says whether they're shown (aria-expanded). The chevron itself is hidden from
+  // screen readers; ← and → on the row do the same.
+  function expanderHtml(row, x) {
+    if (!x.kids) return '<span class="nav-expander nav-expander-gap"></span>';
+    return `<span class="nav-expander${x.open ? ' is-open' : ''}" data-action="nav-expand" data-id="${esc(row.id)}" aria-hidden="true">${ICON.expander}</span>`;
+  }
+  const expandedAttr = (x) => (x.kids ? ` aria-expanded="${x.open}"` : '');
+
+  function navRowHtml(row, x) {
+    x = x || { kids: false, open: true, hidden: false };
     const key = navKey(row.id);
     const off = row.kind === 'page' && isExcluded(row.id);
+    const hid = x.hidden ? ' hidden' : '';
     if (row.kind === 'plpage') {
       // A page under a Page List: selecting it, or trying to drag it, asks to detach.
-      return `<li class="row nav-row nav-inner" data-row="${esc(key)}" data-drag-id="${esc(row.id)}" data-drag-group="${esc(row.group)}" data-depth="${row.depth}" data-locked="${esc(q(row.title) + ' under the Page List')}">
-        <div class="row-main"><span class="indent" style="width:${row.depth * 16}px"></span><button type="button" class="nav-label" data-action="nav-locked" data-page="${esc(row.pageId)}" data-list="${esc(row.list)}" data-focus="nav-row:${esc(row.id)}">${esc(row.title)}</button></div>
+      return `<li class="row nav-row nav-inner" data-row="${esc(key)}" data-drag-id="${esc(row.id)}" data-drag-group="${esc(row.group)}" data-depth="${row.depth}" data-locked="${esc(q(row.title) + ' under the Page List')}"${hid}>
+        <div class="row-main"><span class="indent" style="width:${row.depth * 16}px"></span>${expanderHtml(row, x)}<button type="button" class="nav-label" data-action="nav-locked" data-page="${esc(row.pageId)}" data-list="${esc(row.list)}" data-focus="nav-row:${esc(row.id)}"${expandedAttr(x)}>${esc(row.title)}</button></div>
+      </li>`;
+    }
+    if (row.kind === 'blockchild') {
+      // The Button inside Buttons: selecting it selects the Buttons.
+      return `<li class="row nav-row nav-inner" data-row="${esc(key)}" data-drag-id="${esc(row.id)}" data-drag-group="${esc(row.group)}" data-depth="${row.depth}"${hid}>
+        <div class="row-main"><span class="indent" style="width:${row.depth * 16}px"></span>${expanderHtml(row, x)}<button type="button" class="nav-label" data-action="nav-select" data-id="${esc(row.parent)}" data-focus="nav-row:${esc(row.id)}">${esc(row.title)}</button></div>
       </li>`;
     }
     const label = row.kind === 'page'
       ? `<span class="nav-label nav-grip" data-action="nav-dead" data-what="select ${esc(q(row.title))} in the Navigation sidebar (a page in a pages menu has nothing to show)">${esc(row.title)}</span>`
-      : `<button type="button" class="nav-label nav-grip" data-action="nav-select" data-id="${esc(row.id)}" data-focus="nav-row:${esc(row.id)}">${esc(row.title)}</button>`;
+      : `<button type="button" class="nav-label nav-grip" data-action="nav-select" data-id="${esc(row.id)}" data-focus="nav-row:${esc(row.id)}"${expandedAttr(x)}>${esc(row.title)}</button>`;
     const toggle = row.kind === 'page'
       ? `<button type="button" class="switch nav-switch" aria-pressed="${!off}" data-action="nav-toggle" data-page="${esc(row.id)}" data-focus="nav-sw:${esc(row.id)}" aria-label="Show ${esc(row.title)} in the menu"><span class="switch-track"></span></button>`
       : '';
-    return `<li class="row nav-row${off || row.hidden ? ' dim' : ''}" data-row="${esc(key)}" data-kind="${row.kind === 'page' ? 'page' : 'item'}" data-drag-id="${esc(row.id)}" data-drag-group="${esc(row.group)}" data-depth="${row.depth}"${row.kind === 'pagelist' ? ' data-pagelist="1"' : ''}>
+    return `<li class="row nav-row${off || row.hidden ? ' dim' : ''}" data-row="${esc(key)}" data-kind="${row.kind === 'page' ? 'page' : 'item'}" data-drag-id="${esc(row.id)}" data-drag-group="${esc(row.group)}" data-depth="${row.depth}"${row.kind === 'pagelist' ? ' data-pagelist="1"' : ''}${hid}>
       <div class="row-main">
         <span class="indent" style="width:${row.depth * 16}px"></span>
-        ${row.kind === 'pagelist' ? `<span class="nav-chevron">${ICON.chevron}</span>` : ''}
+        ${expanderHtml(row, x)}
         ${label}
+        ${row.draft ? '<span class="badge draft nav-draft">Draft</span>' : ''}
         ${row.hidden ? `<span class="nav-hidden" role="img" aria-label="Hidden">${ICON.unseen}</span>` : ''}
         ${toggle}
         ${navOptionsButton(row)}
@@ -1352,7 +1445,16 @@
   // The list, with the "Page link" row of a link that's being added where it will go.
   function navListHtml(rows) {
     const a = ui.navAdd;
-    const html = rows.map(navRowHtml);
+    // Rows under a collapsed row are left in the list, hidden, so a drag still takes them along.
+    let shut = -1;
+    const html = rows.map((row, i) => {
+      if (shut >= 0 && row.depth <= shut) shut = -1;
+      const kids = !!rows[i + 1] && rows[i + 1].depth > row.depth;
+      const open = !(kids && ui.collapsed[row.id]);
+      const x = { kids, open, hidden: shut >= 0 };
+      if (shut < 0 && !open) shut = row.depth;
+      return navRowHtml(row, x);
+    });
     if (a) {
       let at = rows.length;
       let depth = 0;
@@ -1381,13 +1483,19 @@
         <h3 class="nav-heading">Settings</h3>
         <button type="button" class="btn nav-wide nav-outline" data-action="nav-ask-detach" data-item="${esc(it.id)}" data-focus="nav-ask-detach">Detach Page List</button>`;
     }
+    if (isBlock(it)) {
+      const b = BLOCKS[it.block];
+      return `<p class="nav-desc">${esc(b.desc)}</p><h3 class="nav-heading">Settings</h3><p class="nav-help">This prototype has no settings for ${esc(b.title)}.</p>`;
+    }
     const p = page(it.pageId);
     const linkTo = it.url
       ? `<strong>${esc(it.url)}</strong><span>${esc(it.url)}</span><span class="nav-badges"><span class="nav-badge">External link</span></span>`
       : `<strong>${esc(p.title)}</strong><span>${esc(pagePath(p))}</span><span class="nav-badges"><span class="nav-badge">Page</span><span class="nav-badge">${p.status === 'publish' ? 'Published' : 'Draft'}</span></span>`;
     return `<h3 class="nav-heading">Settings</h3>
       <div class="field"><label class="nav-caps" for="nav-text">Text</label><input type="text" id="nav-text" value="${esc(it.label)}" autocomplete="off" data-item="${esc(it.id)}" data-focus="nav-text:${esc(it.id)}"></div>
-      <div class="field"><span class="nav-caps">Link to</span><span class="nav-linkto">${linkTo}</span></div>`;
+      <div class="field"><span class="nav-caps" id="nav-linkto-caps">Link to</span>${ui.linkEdit && ui.linkEdit.id === it.id
+        ? `<div class="nav-search-wrap"><input type="text" id="nav-linkto-input" aria-labelledby="nav-linkto-caps" placeholder="Search or type URL" value="${esc(ui.linkEdit.text)}" autocomplete="off" data-focus="nav-linkto-input">${applyButton('nav-linkto-apply', ui.linkEdit.text)}</div>`
+        : `<button type="button" class="nav-linkto" data-action="nav-linkto" data-item="${esc(it.id)}" data-focus="nav-linkto" aria-labelledby="nav-linkto-caps nav-linkto-what"><span id="nav-linkto-what" class="nav-linkto-text">${linkTo}</span></button>`}</div>`;
   }
 
   function sidebarBodyHtml() {
@@ -1433,7 +1541,7 @@
     if (ui.navAdd && (isAutomatic() || (ui.navAdd.ref && !itemById(ui.navAdd.ref)))) dropAdd('what it was beside has gone');
     const sel = ui.navSel ? itemById(ui.navSel) : null;
     const head = sel
-      ? `<button type="button" class="icon-btn nav-back-btn" data-action="nav-back" data-focus="nav-back" aria-label="Go to &quot;Navigation&quot; block">${ICON.back}</button><h2>${isPageList(sel) ? 'Page List' : 'Page link'}</h2>`
+      ? `<button type="button" class="icon-btn nav-back-btn" data-action="nav-back" data-focus="nav-back" aria-label="Go to &quot;Navigation&quot; block">${ICON.back}</button><h2>${isPageList(sel) ? 'Page List' : isBlock(sel) ? BLOCKS[sel.block].title : 'Page link'}</h2>`
       : '<h2>Navigation</h2>';
     return `<aside class="navside" aria-label="Navigation">
       <div class="navside-head${sel ? ' has-back' : ''}">${head}<button type="button" class="icon-btn" data-action="close-sidebar" data-focus="close-sidebar" aria-label="Close Navigation">${ICON.close}</button></div>
@@ -1560,6 +1668,14 @@
     return item;
   }
 
+  // The level the "Page link" row stands at: 0 at the top level, 1 in a submenu.
+  function navAddDepth() {
+    const a = ui.navAdd;
+    const ref = a && a.ref ? itemById(a.ref) : null;
+    if (!ref || a.place === 'end') return 0;
+    return a.place === 'sub' ? 1 : ref.depth;
+  }
+
   const placeWords = (a) => {
     const ref = a.ref ? itemById(a.ref) : null;
     if (!ref || a.place === 'end') return 'at the end of the menu';
@@ -1575,11 +1691,67 @@
     return null;
   }
 
-  // An Add link that ends without a link: always logged, however it ended.
+  // Collapsing and expanding a row of the sidebar's list. Not a change to the menu: not saved,
+  // not in Undo, and forgotten when the list is shown afresh, as core forgets it.
+  function toggleCollapsed(id, how, want) {
+    const row = navRows().find((r) => r.id === id);
+    if (!row) return;
+    const shut = want != null ? !want : !ui.collapsed[id];
+    if (!!ui.collapsed[id] === shut) return;
+    if (shut) ui.collapsed[id] = true; else delete ui.collapsed[id];
+    ui.focus = ui.focus && ui.focus.indexOf('nav-row:') === 0 ? 'nav-row:' + id : ui.focus;
+    log('sidebar', (shut ? 'Collapsed ' : 'Expanded ') + (row.kind === 'pagelist' ? 'the Page List' : q(row.title)) + ' in the Navigation’s list (' + how + '): the rows under it are ' + (shut ? 'hidden' : 'shown'));
+    render();
+  }
+
+  // Link to's field: Enter or Apply changes where the link goes; Escape leaves it as it was.
+  function applyLinkTo(how) {
+    const e = ui.linkEdit;
+    const it = e && itemById(e.id);
+    if (!it) { ui.linkEdit = null; return; }
+    const text = (e.text || '').trim();
+    const was = it.url || pagePath(page(it.pageId));
+    if (text === was) { closeLinkTo(how + ', unchanged'); return; }
+    const url = asAddress(text);
+    if (!url) {
+      log('tried', how + ' in Link to with ' + (text ? q(text) + ', which isn’t an address' : 'nothing typed') + ': the link isn’t changed');
+      return;
+    }
+    edit(() => {
+      const live = itemById(e.id);
+      live.url = url;
+      delete live.pageId;
+      ui.linkEdit = null;
+      ui.focus = 'nav-linkto';
+    }, q(it.label) + ' now links to ' + q(url));
+    log('menu', 'Link to changed (' + how + '): ' + q(it.label) + ' now goes to ' + q(text) + ' (' + url + '), not ' + q(was) + '; its text is unchanged');
+  }
+  function closeLinkTo(how) {
+    if (!ui.linkEdit) return false;
+    ui.linkEdit = null;
+    ui.focus = 'nav-linkto';
+    log('sidebar', 'Link to closed without a change (' + how + ')');
+    render();
+    return true;
+  }
+
+  // A typed address's label, as core makes it: the address without http:// or https://.
+  const linkLabel = (text) => text.replace(/^https?:\/\//i, '');
+
+  // Enter in Search or type URL, or its Apply (↵): a typed address becomes a link.
+  function applyTyped(how) {
+    if (!ui.navAdd) return;
+    const text = (ui.navAdd.q || '').trim();
+    if (asAddress(text)) { navActions['nav-add-url']({ text }); return; }
+    log('tried', how + ' in Search or type URL with ' + (text ? q(text) + ', which isn’t an address' : 'nothing typed') + ': nothing is added');
+  }
+
+  // An Add link that ends without a link: always logged, however it ended, with what was typed.
   function dropAdd(how) {
     if (!ui.navAdd) return false;
+    const typed = (ui.navAdd.q || '').trim();
     ui.navAdd = null;
-    log('sidebar', 'Add link closed without adding anything (' + how + '): the “Page link” row goes');
+    log('sidebar', 'Add link closed without adding anything (' + how + (typed ? ', with ' + q(typed) + ' typed in Search or type URL' : '') + '): the “Page link” row goes');
     return true;
   }
 
@@ -1610,6 +1782,8 @@
       // The click that ends a drag isn't a selection.
       if (justDragged) return;
       dropAdd('another row was selected');
+      ui.linkEdit = null;
+      ui.collapsed = {};
       ui.navSel = d.id;
       ui.more = null;
       ui.focus = isPageList(it) ? 'nav-ask-detach' : 'nav-back';
@@ -1618,6 +1792,7 @@
     },
     'nav-back'() {
       endTyping();
+      ui.linkEdit = null;
       const id = ui.navSel;
       ui.navSel = null;
       ui.focus = 'nav-row:' + id;
@@ -1639,10 +1814,12 @@
     'nav-toggle'(d) {
       const p = page(d.page);
       const on = !isExcluded(d.page);
-      const was = isShown(d.page);
+      const was = onCanvas(d.page);
+      const draft = p.status !== 'publish';
       edit(() => { setExcluded(d.page, on); ui.focus = 'nav-sw:' + d.page; }, q(p.title) + ' switched ' + (on ? 'off' : 'on'));
       log('menu', (on ? 'Took ' + q(p.title) + ' out of the menu' : 'Put ' + q(p.title) + ' in the menu') + ' (toggle, in the sidebar)' +
-        (isShown(d.page) === was ? '; the header didn’t change, because its parent page is off' : ''));
+        (draft ? ', a draft: ' + (on ? 'it will stay out of the menu when it’s published' : 'it will be in the menu once it’s published') + ', once this is saved' : '') +
+        (onCanvas(d.page) === was ? '; the header didn’t change, because its parent page is off' : ''));
     },
     'nav-move'(d) { navStep(d.kind, d.id, Number(d.dir)); },
     // + below the list, Add before, Add after, Add submenu link: a "Page link" row where the
@@ -1653,6 +1830,7 @@
       if (ui.navAdd && ui.navAdd.place === place && (ui.navAdd.ref || null) === ref) { closeAdd('the same control again'); return; }
       dropAdd('another Add was chosen');
       ui.navAdd = { place, ref, create: false, title: '', publish: true };
+      if (place === 'sub' && ref) delete ui.collapsed[ref];
       ui.more = null; ui.navSel = null;
       ui.focus = 'nav-search';
       log('sidebar', (place === 'end' ? 'Add link (+) clicked' : { before: 'Add before', after: 'Add after', sub: 'Add submenu link' }[place] + ' chosen') + ': a “Page link” row is shown ' + placeWords(ui.navAdd) + ', with Search or type URL');
@@ -1678,12 +1856,82 @@
       if (!a || !url) return;
       const where = placeWords(a);
       edit(() => {
-        insertItem({ id: newItemId('link-'), url, label: d.text, hidden: false }, a.place, a.ref);
+        insertItem({ id: newItemId('link-'), url, label: linkLabel(d.text), hidden: false }, a.place, a.ref);
         ui.navAdd = null;
         ui.focus = 'nav-append';
       }, 'a link to ' + q(url) + ' added');
       log('menu', 'Link added to a typed address: ' + q(d.text) + ' (' + url + '), ' + where);
     },
+    // Add block, in Add link: the blocks a Navigation offers.
+    'nav-blocks-open'() {
+      if (!ui.navAdd) return;
+      const field = document.getElementById('nav-search');
+      if (field) ui.navAdd.q = field.value;
+      ui.navAdd.blocks = true;
+      ui.focus = 'nav-blocks-back';
+      log('sidebar', 'Add block chosen in Add link: the blocks the menu can hold are shown');
+      render();
+    },
+    'nav-blocks-back'() {
+      if (!ui.navAdd) return;
+      ui.navAdd.blocks = false;
+      ui.focus = 'nav-blocks-open';
+      log('sidebar', 'Add block: went back to Search or type URL (Back)');
+      render();
+    },
+    'nav-block'(d) {
+      const a = ui.navAdd;
+      if (!a) return;
+      const where = placeWords(a);
+      if (d.block === 'page-link' || d.block === 'custom-link') {
+        // Both go back to Search or type URL; Custom Link's has no Create page, as in core.
+        a.blocks = false;
+        a.custom = d.block === 'custom-link';
+        a.q = '';
+        ui.focus = 'nav-search';
+        log('sidebar', 'Add block: ' + (a.custom ? 'Custom Link' : 'Page link') + ' chosen; the row reads ' + q(a.custom ? 'Custom Link' : 'Page link') + ', with Search or type URL');
+        render();
+        return;
+      }
+      if (d.block === 'page-list') {
+        edit(() => {
+          insertItem({ id: newItemId('page-list-'), type: 'pagelist', depth: 0 }, a.place, a.ref);
+          ui.navAdd = null;
+          ui.focus = 'nav-append';
+        }, 'a Page List added');
+        log('menu', 'Block added with Add block: a Page List, ' + where + '; it shows every published page');
+        return;
+      }
+      const b = BLOCKS[d.block];
+      if (!b) return;
+      edit(() => {
+        insertItem({ id: newItemId('block-'), type: 'block', block: d.block, label: b.title, hidden: false }, a.place, a.ref);
+        ui.navAdd = null;
+        ui.focus = 'nav-append';
+      }, 'a ' + b.title + ' block added');
+      log('menu', 'Block added with Add block: ' + q(b.title) + ', ' + where);
+    },
+    // A row's chevron: shows or hides the rows under it. Nothing is selected.
+    'nav-expand'(d) { toggleCollapsed(d.id, 'chevron'); },
+    'nav-apply'(d, el) {
+      if (!ui.navAdd) return;
+      const field = document.getElementById('nav-search');
+      if (field) ui.navAdd.q = field.value;
+      if (!(ui.navAdd.q || '').trim()) { log('tried', 'Clicked Apply (↵) in Search or type URL with nothing typed: it is off until something is typed'); return; }
+      applyTyped('Clicked Apply (↵)');
+    },
+    // Link to, in a link's settings: a button that opens a field for its address.
+    'nav-linkto'(d) {
+      const it = itemById(d.item);
+      if (!it) return;
+      endTyping();
+      const now = it.url || pagePath(page(it.pageId));
+      ui.linkEdit = { id: it.id, text: now };
+      ui.focus = 'nav-linkto-input';
+      log('sidebar', 'Link to clicked for ' + q(it.label) + ': a field with its address (' + now + ') opens');
+      render();
+    },
+    'nav-linkto-apply'() { applyLinkTo('Clicked Apply (↵)'); },
     'nav-create-open'() {
       if (!ui.navAdd) return;
       const typed = (document.getElementById('nav-search') || {}).value || '';
@@ -1820,7 +2068,7 @@
         confirm: 'Remove and choose pages myself'
       };
     }
-    if (ARM === 'menu-switches') {
+    if (ARM === 'menu-switches' && !detachesList(d)) {
       return {
         title: 'Switch to advanced menu',
         body: '<p>The pages will become links you can edit. New pages will still be added automatically.</p>',
@@ -1836,7 +2084,9 @@
     };
   }
 
-  const dialogName = () => (ARM === 'menu-switches' ? 'Switch to advanced menu' : ARM === 'control' ? 'Detach Page List (convert to links)' : 'Convert to links');
+  // A Page List added with Add block in A or Q's advanced menu is detached as the control's is.
+  const detachesList = (d) => !!d && !!d.itemId && isPageList(itemById(d.itemId));
+  const dialogName = (d) => (ARM === 'control' || detachesList(d) ? 'Detach Page List (convert to links)' : ARM === 'menu-switches' ? 'Switch to advanced menu' : 'Convert to links');
 
   // Show the confirm. d: { trigger: what the person did, pageId?: the page it was about,
   // then?: 'remove' | 'rename', what to do with that page once the menu is links }.
@@ -1849,7 +2099,7 @@
 
   // What a dialog is called in the log.
   function dialogLabel(d) {
-    return d.type === 'convert' ? dialogName() : { add: 'Add page', rename: 'Rename', trash: 'Move to trash', label: 'Rename in menu' }[d.type];
+    return d.type === 'convert' ? dialogName(d) : { add: 'Add page', rename: 'Rename', trash: 'Move to trash', label: 'Rename in menu' }[d.type];
   }
 
   // The page or link a dialog is about. Undo, or anything else, may have taken it away.
@@ -1951,15 +2201,26 @@
 
   // ---------- The site preview ----------
 
+  // What a block other than a link looks like in the header, as the editor's canvas draws it.
+  function siteBlockHtml(n) {
+    const sel = IN_SIDEBAR ? ` data-item="${esc(n.itemId)}"` : '';
+    if (n.block === 'buttons') return `<a href="#" class="site-block site-button"${sel} data-nav-link="Buttons" data-focus="visit:${esc(n.itemId)}">Add text…</a>`;
+    if (n.block === 'search') return `<a href="#" class="site-block site-search"${sel} data-nav-link="Search" data-focus="visit:${esc(n.itemId)}" aria-label="Search"><span>Optional placeholder…</span><span class="site-search-btn">${ICON.search}</span></a>`;
+    return `<a href="#" class="site-block site-social"${sel} data-nav-link="Social Icons" data-focus="visit:${esc(n.itemId)}" aria-label="Social Icons">${ICON.plus}</a>`;
+  }
+
   function siteLink(n) {
+    if (n.block) return siteBlockHtml(n);
     const current = ui.current === n.pageId ? ' aria-current="page"' : '';
     // Where the menu is changed in its own sidebar, a click on it selects it, as in the editor.
     const act = IN_SIDEBAR ? '' : ` data-action="visit" data-page="${esc(n.pageId)}" data-how="the header menu"`;
     const sel = IN_SIDEBAR ? ` data-item="${esc(n.itemId || n.list || '')}"` : '';
-    return `<a href="#"${act}${sel} data-nav-link="${esc(n.label)}" data-focus="visit:${esc(n.itemId || n.pageId)}"${current}>${esc(n.label)}${n.sub.length ? ' ' + ICON.chevron : ''}</a>`;
+    // A draft, as the editor's canvas draws a link to one.
+    const text = n.draft ? `<span class="site-draft-label">${esc(n.label)} (Draft)</span>` : esc(n.label);
+    return `<a href="#"${act}${sel}${n.draft ? ' data-draft="1"' : ''} data-nav-link="${esc(n.label)}" data-focus="visit:${esc(n.itemId || n.pageId)}"${current}>${text}${n.sub.length ? ' ' + ICON.chevron : ''}</a>`;
   }
 
-  const siteNavHtml = () => shownMenu().map((n) => `<li>${siteLink(n)}${n.sub.length ? `<ul class="sub">${n.sub.map((s) => `<li>${siteLink(s)}</li>`).join('')}</ul>` : ''}</li>`).join('');
+  const siteNavHtml = () => shownMenu(true).map((n) => `<li>${siteLink(n)}${n.sub.length ? `<ul class="sub">${n.sub.map((s) => `<li>${siteLink(s)}</li>`).join('')}</ul>` : ''}</li>`).join('');
 
   // The editor's Undo, Redo and Save, in the top bar of the three sidebar arms.
   function topbarToolsHtml() {
@@ -1983,7 +2244,7 @@
   }
 
   function renderSite() {
-    const nav = shownMenu().map((n) => `<li>${siteLink(n)}${n.sub.length ? `<ul class="sub">${n.sub.map((s) => `<li>${siteLink(s)}</li>`).join('')}</ul>` : ''}</li>`).join('');
+    const nav = shownMenu(true).map((n) => `<li>${siteLink(n)}${n.sub.length ? `<ul class="sub">${n.sub.map((s) => `<li>${siteLink(s)}</li>`).join('')}</ul>` : ''}</li>`).join('');
     const cur = page(ui.current) || page('home') || state.pages[0];
     const hero = cur.id === 'home'
       ? '<h1>Fresh bread, every morning.</h1><p>Sourdough, pastries and cakes baked on Mill Street since [YEAR].</p>'
@@ -2033,7 +2294,7 @@
         <div class="workspace">
           <main class="panel" aria-label="Pages">${panel}</main>
           <section class="stage" aria-label="Site preview">
-            <div class="stage-bar"><span>The site as visitors see it</span><span class="stage-url">${esc(pageUrl(cur))}</span></div>
+            <div class="stage-bar"><span>Your site</span><span class="stage-url">${esc(pageUrl(cur))}</span></div>
             ${renderSite()}
           </section>
           ${side}
@@ -2226,18 +2487,22 @@
       if (!dialogSubject(d)) { dropDialog(); return; }
       const p = d.pageId ? page(d.pageId) : null;
       const mode = ARM === 'menu-switches' ? 'advanced' : 'links';
+      const detaching = ARM === 'control' || detachesList(d);
       ui.dialog = null;
       stats.dialogsConfirmed++;
-      log('dialog', dialogName() + ' dialog confirmed');
+      log('dialog', dialogName(d) + ' dialog confirmed');
       if (IN_SIDEBAR) {
         // In the editor: an unsaved change, with no message.
+        // Q: drafts switched off become hidden links (see convertToLinks); say which.
+        const offDrafts = !detaching && CANVAS_DRAFTS && isAutomatic() ? state.pages.filter((p) => p.status !== 'publish' && isExcluded(p.id)).map((p) => q(p.title)) : [];
         edit(() => {
-          if (ARM === 'control') detachPageList(d.itemId); else convertToLinks(mode);
+          if (detaching) detachPageList(d.itemId); else convertToLinks(mode);
           ui.navSel = null;
           const firstLink = state.menu.items.find((it) => !isPageList(it));
           if (firstLink) ui.focus = 'nav-row:' + firstLink.id;
-        }, ARM === 'control' ? 'the Page List detached' : 'switched to an advanced menu');
-        log('menu', mode === 'advanced' ? 'Menu switched to an advanced menu (links, new pages still added)' : 'Page List detached: its pages are now links');
+        }, detaching ? 'the Page List detached' : 'switched to an advanced menu');
+        log('menu', (detaching ? 'Page List detached: its pages are now links' : mode === 'advanced' ? 'Menu switched to an advanced menu (links, new pages still added)' : 'Page List detached: its pages are now links') +
+          (offDrafts.length ? '; ' + (offDrafts.length === 1 ? 'the draft ' + offDrafts[0] + ', which was switched off, becomes a hidden link' : 'the drafts ' + offDrafts.join(', ') + ', which were switched off, become hidden links') + ', so it stays out of the menu when published' : ''));
         return;
       }
       if (d.then === 'remove') {
@@ -2333,8 +2598,9 @@
       const was = isShown(d.page);
       // The keyboard stays on the row: its marker (B's popover) or its ⋮ button.
       const focus = (d.how === 'its marker' ? 'pop:' : 'more:') + keyRow(d.page);
+      const toggle = draftToggleWords(d.page);
       commit(() => { publishPage(d.page); ui.pop = null; ui.flash = keyRow(d.page); ui.focus = focus; }, `"${p.title}" is published`);
-      log('page', 'Published ' + q(p.title) + ' (from ' + (d.how || 'the Pages panel') + '); ' + (IN_SIDEBAR ? menuWords(d.page) : isShown(d.page) && !was ? 'it is now in the menu' : 'it is not in the menu'));
+      log('page', 'Published ' + q(p.title) + ' (from ' + (d.how || 'the Pages panel') + ')' + toggle + '; ' + (IN_SIDEBAR ? menuWords(d.page) : isShown(d.page) && !was ? 'it is now in the menu' : 'it is not in the menu'));
     },
     'ask-add'() { openDialog({ type: 'add' }); },
     create(d) {
@@ -2352,7 +2618,7 @@
         else if (ARM === 'switches') ui.focus = 'sw:' + id;
         else ui.focus = 'more:' + keyRow(id);
       }, `"${title}" ${d.status === 'draft' ? 'saved as a draft' : 'published'}`);
-      log('page', 'Added ' + q(title) + ', ' + (d.status === 'draft' ? 'saved as a draft' : 'published; ' + (IN_SIDEBAR ? menuWords(id) : isShown(id) ? 'it is now in the menu' : 'it is not in the menu')));
+      log('page', 'Added ' + q(title) + ', ' + (d.status === 'draft' ? 'saved as a draft' + (CANVAS_DRAFTS && isAutomatic() ? '; it is in the pages menu, switched on, so it will be in the menu once it’s published' : '') : 'published; ' + (IN_SIDEBAR ? menuWords(id) : isShown(id) ? 'it is now in the menu' : 'it is not in the menu')));
       log('visit', 'The preview shows the new page, ' + q(title));
       if (ARM === 'explained') log('menu', 'Marker popover opened on its own after Add page: ' + q(title) + ' (not counted)');
     },
@@ -2375,7 +2641,7 @@
       }
       const link = linkFor(p.id);
       commit(() => { renamePage(d.page, title); ui.flash = keyRow(d.page); ui.focus = 'more:' + keyRow(d.page); }, `"${old}" is now "${title}"`);
-      log('page', 'Renamed a page’s title: ' + q(old) + ' to ' + q(title) + (followsTitle(p.id) ? (isShown(p.id) ? '; the menu follows' : '') : link ? '; its link in the menu still says ' + q(link.label) : ''));
+      log('page', 'Renamed a page’s title: ' + q(old) + ' to ' + q(title) + (followsTitle(p.id) ? (isShown(p.id) || onCanvas(p.id) ? '; the menu follows' : '') : link ? '; its link in the menu still says ' + q(link.label) : ''));
     },
     'ask-trash'(d) { openDialog({ type: 'trash', pageId: d.page }); },
     trash() {
@@ -2575,18 +2841,28 @@
       if (ui.pop) { const k = ui.pop; ui.pop = null; ui.focus = 'pop:' + k; render(); return; }
       if (ui.savePanel) { closeSavePanel('Escape'); return; }
       if (ui.navAdd) { closeAdd('Escape'); return; }
+      if (ui.linkEdit && ui.navSel === ui.linkEdit.id) { closeLinkTo('Escape'); return; }
       if (ui.navSel) { navActions['nav-back'](); return; }
       if (ui.sidebar) closeSidebar('Escape');
       return;
     }
+    if ((ev.key === 'ArrowLeft' || ev.key === 'ArrowRight') && !ev.altKey && !ev.ctrlKey && !ev.metaKey && ev.target.closest && ev.target.tagName !== 'INPUT' && !ev.target.closest('.moremenu')) {
+      const li = ev.target.closest('.navside .nav-list > li[data-drag-id]');
+      const ex = li && li.querySelector(':scope > .row-main > .nav-expander[data-id]');
+      if (ex) {
+        const open = ex.classList.contains('is-open');
+        if (ev.key === 'ArrowLeft' ? open : !open) { ev.preventDefault(); toggleCollapsed(ex.dataset.id, ev.key === 'ArrowLeft' ? '← key' : '→ key', ev.key === 'ArrowRight'); return; }
+      }
+    }
     if (ev.key === 'Enter' && ev.target.id === 'nav-text') { ev.preventDefault(); endTyping(); return; }
+    if (ev.key === 'Enter' && ev.target.id === 'nav-linkto-input') { ev.preventDefault(); if (ui.linkEdit) ui.linkEdit.text = ev.target.value; applyLinkTo('Pressed Enter'); return; }
     // Search or type URL: Enter adds a typed address. ArrowDown goes into the suggestions.
     if (ev.target.id === 'nav-search' && (ev.key === 'Enter' || ev.key === 'ArrowDown')) {
       ev.preventDefault();
       const text = ev.target.value.trim();
       if (ev.key === 'ArrowDown') { const first = root.querySelector('.nav-results li:not([hidden]) button'); if (first) first.focus(); return; }
-      if (asAddress(text)) navActions['nav-add-url']({ text });
-      else log('tried', 'Pressed Enter in Search or type URL with ' + (text ? q(text) + ', which isn’t an address' : 'nothing typed') + ': nothing is added');
+      if (ui.navAdd) ui.navAdd.q = text;
+      applyTyped('Pressed Enter');
       return;
     }
     if (ev.target.closest && ev.target.closest('.nav-results') && (ev.key === 'ArrowDown' || ev.key === 'ArrowUp')) {
@@ -2852,7 +3128,10 @@
     if (t.id === 'nav-text') { typeLabel(t.dataset.item, t.value); return; }
     if (t.id === 'nav-create-title' && ui.navAdd) { ui.navAdd.title = t.value; t.removeAttribute('aria-invalid'); return; }
     // Search or type URL narrows the suggestions as you type, without redrawing.
+    if (t.id === 'nav-linkto-input' && ui.linkEdit) { ui.linkEdit.text = t.value; t.parentElement.querySelector('.nav-apply').setAttribute('aria-disabled', t.value.trim() ? 'false' : 'true'); return; }
     if (t.id !== 'nav-search') return;
+    if (ui.navAdd) { ui.navAdd.q = t.value; save(); }
+    t.parentElement.querySelector('.nav-apply').setAttribute('aria-disabled', t.value.trim() ? 'false' : 'true');
     const want = t.value.trim().toLowerCase();
     t.closest('.nav-picker').querySelectorAll('.nav-results li').forEach((li) => { li.hidden = !li.firstElementChild.dataset.find.includes(want); });
   });
@@ -2871,7 +3150,11 @@
 
   const hasText = (s, want) => String(s || '').trim().toLowerCase() === want;
 
-  // The state of tasks 2 to 6 right now. Tasks 2, 3 and 5 are 1 or 0; tasks 4 and 6 are
+  // Task 7: a link to Rosa's Instagram: any case, with or without www. or m., a slash at the
+  // end, or a query or fragment after it; not another account that starts the same.
+  const INSTAGRAM = /(^|\/\/|\.)instagram\.com\/rosasbakery\/?($|[?#])/i;
+
+  // The state of tasks 2 to 7 right now. Tasks 2, 3, 5 and 7 are 1 or 0; tasks 4 and 6 are
   // 0 (not published), 1 (published, not shown in the menu) or 2 (published and shown).
   function taskValues() {
     const tree = shownMenu();
@@ -2887,7 +3170,9 @@
       3: home >= 0 && tree[home + 1] && tree[home + 1].pageId === 'catering' ? 1 : 0,
       4: !gift.length ? 0 : gift.some((p) => shown(p.id)) ? 2 : 1,
       5: flat.some((n) => n.pageId === 'visit-us' && hasText(n.label, 'find us')) ? 1 : 0,
-      6: !holiday || holiday.status !== 'publish' ? 0 : shown('holiday-orders') ? 2 : 1
+      6: !holiday || holiday.status !== 'publish' ? 0 : shown('holiday-orders') ? 2 : 1,
+      // Any label counts. B and F can't hold a link to another site, so it's always 0 there.
+      7: flat.some((n) => n.url && INSTAGRAM.test(n.url)) ? 1 : 0
     };
   }
 
@@ -2901,12 +3186,13 @@
 
   const THREE = ['not published', 'published, not in the menu', 'published and in the menu'];
   const TASKS = [
-    { text: 'Look only: which pages can a visitor reach from the top of the site?', hint: 'Never ticked automatically.' },
+    { text: 'Look only: find where you would change the menu at the top of the site.', hint: 'Never ticked automatically.' },
     { n: 2, text: 'Take “Thank you for your order” out of the menu without deleting it.', hint: 'Ticks when the page isn’t in the header menu and is still published.', state: (v) => (v ? 'out of the menu, still published' : page('thank-you') ? 'still in the menu' : 'the page is in the trash') },
     { n: 3, text: 'Move Catering to straight after Home.', hint: 'Ticks when Catering is the top-level item right after Home in the header.', state: (v) => (v ? 'right after Home' : 'not right after Home') },
     { n: 4, text: 'Make and publish a Gift cards page and get it into the menu.', hint: 'Ticks when a published page with “gift” in its title is in the header menu.', full: 2, state: (v) => THREE[v] },
     { n: 5, text: 'Make “Visit us” say “Find us” in the menu.', hint: 'Ticks when the menu item for the Visit us page reads Find us.', state: (v) => (v ? 'the menu says Find us' : 'the menu doesn’t say Find us') + '; ' + { p: 'the page is called Find us', l: 'only the link’s label was changed', 0: 'the page is called ' + q((page('visit-us') || {}).title || 'nothing: it’s in the trash') }[renameHow()] },
-    { n: 6, text: 'Publish Holiday orders.', hint: 'Ticks when it’s published. Ask first whether it will be in the menu.', full: 1, state: (v) => THREE[v] }
+    { n: 6, text: 'Publish Holiday orders.', hint: 'Ticks when it’s published. Ask the prediction first: will a page Rosa publishes next month appear in the menu by itself?', full: 1, state: (v) => THREE[v] },
+    { n: 7, text: 'Add Rosa’s Instagram page (instagram.com/rosasbakery) to the menu.', hint: IN_SIDEBAR ? 'Ticks when the header menu has a link to instagram.com/rosasbakery (with or without www., a slash at the end or a query), whatever its label.' : 'Doesn’t apply here: this prototype has no way to add a link to another site, so it is always 0.', state: (v) => (v ? 'the menu has a link to it' : 'the menu has no link to it') }
   ];
 
   // In the three sidebar arms the tasks are read from the saved site: a change to the menu
@@ -2938,8 +3224,8 @@
 
   /*
    * For pasting into an unmoderated testing tool. For example:
-   *   OB-11212-ml140-d1.1-f35-r1.2-np-x0-u2.0-k3-e0-w0-v0.0-s412
-   * OC, OA, OB, OF, OQ: the arm · tasks 2 to 6 when Finished was clicked ·
+   *   OC-112121-mp140-d0.0-f35-r1.2-nl-x0-u2.1-k3-e0-w0-v2.1-s412
+   * OC, OA, OB, OF, OQ: the arm · tasks 2 to 7 when Finished was clicked ·
    * m: the menu at the end (ma automatic, ml links, mv advanced and still adding pages,
    *    mx advanced with adding turned off; each with the seconds when it was converted.
    *    In OA nothing is converted: mv, with no seconds, while Auto add pages is on, and mx
@@ -2951,7 +3237,7 @@
    * done every task?" · w: unsaved menu changes at Finished · v: saves, save panels closed
    * without saving · s: seconds until Finished.
    * In the sidebar arms the tasks, m and n are read from the saved site; if the screen showed
-   * different task digits they follow after a dot (10200.11212). The control's m: ma the Page
+   * different task digits they follow after a dot (102000.112121). The control's m: ma the Page
    * List alone, mp it has links (or a second Page List) beside it, ml detached, mr removed
    * without detaching.
    */
@@ -2965,12 +3251,15 @@
       return m.convertedAt != null ? 'ml' + m.convertedAt : 'mr' + m.removedAt;
     }
     if (m.mode === 'links') return 'ml' + m.convertedAt;
-    if (STARTS_AS_LINKS) return m.autoAdd ? 'mv' : 'mx' + m.autoAddOffAt;
-    return (m.autoAdd ? 'mv' : 'mx') + m.convertedAt;
+    // A Page List added with Add block (and not detached) in A or Q's advanced menu: a p
+    // after mv / mx (mvp, mxp140), before the seconds.
+    const p = m.items.some(isPageList) ? 'p' : '';
+    if (STARTS_AS_LINKS) return m.autoAdd ? 'mv' + p : 'mx' + p + m.autoAddOffAt;
+    return (m.autoAdd ? 'mv' : 'mx') + p + m.convertedAt;
   }
 
   function completionCode() {
-    const digits = (v) => [2, 3, 4, 5, 6].map((n) => v[n]).join('');
+    const digits = (v) => [2, 3, 4, 5, 6, 7].map((n) => v[n]).join('');
     const saved = digits(savedTaskValues());
     const screen = digits(taskValues());
     return [

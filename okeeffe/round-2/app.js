@@ -184,11 +184,14 @@
       start.menu.mode = 'advanced';
       start.menu.autoAdd = true;
     }
+    // Each page's Order number (WordPress's menu_order), as the round's site was set up in
+    // WordPress: 0 to 8 in page order. Page order is these numbers, then the title.
+    start.pages.forEach((p, i) => { p.order = i; });
     start.made = start.pages.map((p) => p.id);
     if (IN_SIDEBAR) {
       // The editor's saving: what has been saved, and the history that Undo and Redo walk.
-      const first = { menu: JSON.parse(JSON.stringify(start.menu)), order: start.pages.map((p) => p.id), parents: {}, what: '' };
-      start.pages.forEach((p) => { first.parents[p.id] = p.parent; });
+      const first = { menu: JSON.parse(JSON.stringify(start.menu)), order: start.pages.map((p) => p.id), parents: {}, nums: {}, what: '' };
+      start.pages.forEach((p) => { first.parents[p.id] = p.parent; first.nums[p.id] = p.order; });
       start.saved = JSON.parse(JSON.stringify(first));
       start.hist = { stack: [first], at: 0, dirty: 0 };
     }
@@ -203,7 +206,7 @@
   }
 
   function startingStats() {
-    return { dialogsShown: 0, dialogsConfirmed: 0, firstMenuChange: 0, dragReorders: 0, moveReorders: 0, undos: 0, redos: 0, saves: 0, panelCancels: 0, own: 0, finishBack: 0, firstPages: 0 };
+    return { dialogsShown: 0, dialogsConfirmed: 0, firstMenuChange: 0, dragReorders: 0, moveReorders: 0, undos: 0, redos: 0, saves: 0, panelCancels: 0, own: 0, finishBack: 0, firstPages: 0, firstNavScreen: 0, orderUses: 0 };
   }
 
   let state = startingState();
@@ -536,6 +539,32 @@
     state.pages.splice(state.pages.indexOf(p), 1);
     const i = state.pages.indexOf(page(targetId));
     state.pages.splice(after ? i + 1 : i, 0, p);
+    renumber();
+  }
+
+  // A page's Order number (menu_order). Moving pages by hand numbers them afresh, in order.
+  const orderOf = (p) => (typeof p.order === 'number' ? p.order : state.pages.indexOf(p));
+  function renumber() { state.pages.forEach((p, i) => { p.order = i; }); }
+  const byOrder = (num, title) => (a, b) => (num(a) - num(b)) || title(a).localeCompare(title(b), undefined, { sensitivity: 'base' });
+
+  // Order… on the Pages screen (the sidebar arms): the page's number changes, and page order
+  // is the numbers, then the titles, as in WordPress. It's saved at once, like Rename, so it
+  // changes the saved order and every step of the editor's history alike.
+  function setPageOrder(pageId, n) {
+    const p = page(pageId);
+    if (!p) return;
+    state.pages.forEach((x) => { x.order = orderOf(x); });
+    p.order = n;
+    const at = (x) => state.pages.indexOf(x);
+    state.pages = state.pages.slice().sort((a, b) => byOrder((x) => x.order, (x) => x.title)(a, b) || at(a) - at(b));
+    if (!IN_SIDEBAR) return;
+    const title = (id) => (page(id) || { title: '' }).title;
+    [state.saved].concat(state.hist.stack).forEach((snap) => {
+      if (!snap.nums) { snap.nums = {}; snap.order.forEach((id, i) => { snap.nums[id] = i; }); }
+      snap.nums[pageId] = n;
+      const idx = (id) => snap.order.indexOf(id);
+      snap.order = snap.order.slice().sort((a, b) => byOrder((id) => (id in snap.nums ? snap.nums[id] : idx(id)), title)(a, b) || idx(a) - idx(b));
+    });
   }
 
   function stepEntry(kind, id, dir) {
@@ -572,6 +601,7 @@
     // It goes last under its new parent.
     state.pages.splice(state.pages.indexOf(p), 1);
     state.pages.push(p);
+    renumber();
   }
 
   function unnestPage(pageId) {
@@ -601,7 +631,8 @@
 
   function createPage(title, status, quietly) {
     const id = makeId(title);
-    state.pages.push({ id, title, status, parent: null });
+    // A new page goes last in page order (in WordPress its Order would be 0: see the README).
+    state.pages.push({ id, title, status, parent: null, order: state.pages.reduce((m, p) => Math.max(m, orderOf(p)), -1) + 1 });
     if (state.made) state.made.push(id);
     if (status === 'publish' && !quietly) pageWentLive(id);
     flagIfNeeded(id);
@@ -656,7 +687,9 @@
   function snapshot(what, pageId) {
     const parents = {};
     state.pages.forEach((p) => { parents[p.id] = p.parent || null; });
-    return { menu: clone(state.menu), order: state.pages.map((p) => p.id), parents, what: what || '', page: pageId || null };
+    const nums = {};
+    state.pages.forEach((p) => { nums[p.id] = orderOf(p); });
+    return { menu: clone(state.menu), order: state.pages.map((p) => p.id), parents, nums, what: what || '', page: pageId || null };
   }
 
   // Pages in a snapshot's order, with its parents. Pages made since go last.
@@ -668,6 +701,8 @@
       const parent = snap.parents[p.id];
       p.parent = parent && pages.some((x) => x.id === parent) ? parent : null;
     });
+    // The Order numbers that went with that order.
+    if (snap.nums) out.forEach((p) => { if (p.id in snap.nums) p.order = snap.nums[p.id]; });
     return out;
   }
 
@@ -2128,7 +2163,7 @@
 
   // What a dialog is called in the log.
   function dialogLabel(d) {
-    return d.type === 'convert' ? dialogName(d) : { add: 'Add page', rename: 'Rename', trash: 'Move to trash', label: 'Rename in menu' }[d.type];
+    return d.type === 'convert' ? dialogName(d) : { add: 'Add page', rename: 'Rename', trash: 'Move to trash', label: 'Rename in menu', order: 'Order' }[d.type];
   }
 
   // The page or link a dialog is about. Undo, or anything else, may have taken it away.
@@ -2190,6 +2225,14 @@
         <div class="field"><label for="dlg-name">Title</label><input type="text" id="dlg-name" value="${esc(d.name || '')}" autocomplete="off"></div>
         <div class="dialog-actions">${btn('close-dialog', 'Cancel')}${btn('create', 'Save as draft', { status: 'draft' })}${btn('create', 'Publish', { status: 'publish' }, 'btn-primary')}</div>`;
     }
+    if (d.type === 'order') {
+      // WordPress's Order… dialog, from the Pages screen: the page's menu_order, saved at once.
+      const p = page(d.pageId);
+      body = `<button type="button" class="icon-btn dialog-x" data-action="close-dialog" data-how="the close button" data-focus="dialog-x" aria-label="Close">${ICON.close}</button><h2 id="dlg-title">Order</h2>
+        <p>Determines the order of pages. Pages with the same order value are sorted alphabetically. Negative order values are supported.</p>
+        <div class="field"><label class="nav-caps" for="dlg-order">Order</label><input type="number" id="dlg-order" value="${orderOf(p)}" autocomplete="off"></div>
+        <div class="dialog-actions">${btn('close-dialog', 'Cancel')}${btn('order', 'Save', { page: p.id }, 'btn-primary')}</div>`;
+    }
     if (d.type === 'rename') {
       const p = page(d.pageId);
       body = `<h2 id="dlg-title">${IN_SIDEBAR ? 'Rename' : 'Rename page'}</h2>
@@ -2221,7 +2264,7 @@
         <p>Visitors won't be able to see this page any more.</p>
         <div class="dialog-actions">${btn('close-dialog', 'Cancel')}${btn('trash', 'Move to trash', { page: p.id }, 'btn-danger')}</div>`;
     }
-    return `<div class="scrim${isConfirm(d) ? ' centred' : ''}" data-action="scrim"><div class="dialog${isConfirm(d) ? ' has-x' : ''}" role="dialog" aria-modal="true" aria-labelledby="dlg-title"${isConfirm(d) ? ' tabindex="-1"' : ''}>${body}</div></div>`;
+    return `<div class="scrim${isConfirm(d) ? ' centred' : ''}" data-action="scrim"><div class="dialog${isConfirm(d) || d.type === 'order' ? ' has-x' : ''}" role="dialog" aria-modal="true" aria-labelledby="dlg-title"${isConfirm(d) ? ' tabindex="-1"' : ''}>${body}</div></div>`;
   }
 
   function closeDialog(how) {
@@ -2267,8 +2310,18 @@
       left: `<span class="ed-tools">${tool('ed-undo', 'Undo', ICON.undo, h.at === 0)}${tool('ed-redo', 'Redo', ICON.redo, h.at >= h.stack.length - 1)}</span>`,
       // While the save panel is open its own Cancel and Save stand where Save was.
       // On the site, showing a draft: core's page editor has Publish in the top bar.
-      right: ui.savePanel ? '' : `<div class="topbar-right">${ui.screen === 'site' && (page(ui.current) || {}).status === 'draft' ? `<button type="button" class="btn btn-primary ed-publish" data-action="publish" data-page="${esc(ui.current)}" data-how="the top bar’s Publish, with the page on the site" data-focus="ed-publish">Publish</button>` : ''}<button type="button" class="btn btn-primary ed-save" data-action="ed-save" data-focus="ed-save" aria-disabled="${!saveEntities().length}">Save</button></div>`
+      right: ui.savePanel ? '' : `<div class="topbar-right">${topSaveHtml()}</div>`
     };
+  }
+
+  // The top bar's one button, as in WordPress's page editor: Publish while the page on the site
+  // is a draft and nothing else is waiting to be saved (with "Saved" beside it); otherwise Save,
+  // which opens the save panel, and is pale with nothing to save. With a draft and unsaved menu
+  // changes it's Save, which saves those; Publish comes back after.
+  const showsPublish = () => IN_SIDEBAR && ui.screen === 'site' && (page(ui.current) || {}).status === 'draft' && !saveEntities().length;
+  function topSaveHtml() {
+    if (showsPublish()) return `<span class="ed-saved">${SN_ICON.check}Saved</span><button type="button" class="btn btn-primary ed-publish ed-save-slot" data-action="publish" data-page="${esc(ui.current)}" data-how="the top bar’s Publish, with the page on the site" data-focus="ed-save">Publish</button>`;
+    return `<button type="button" class="btn btn-primary ed-save ed-save-slot" data-action="ed-save" data-focus="ed-save" aria-disabled="${!saveEntities().length}">Save</button>`;
   }
 
   function syncTopbar() {
@@ -2278,6 +2331,13 @@
     set('[data-action="ed-undo"]', h.at === 0);
     set('[data-action="ed-redo"]', h.at >= h.stack.length - 1);
     set('[data-action="ed-save"]', !saveEntities().length);
+    // Publish and Save trade places as the menu gets or loses unsaved changes.
+    const slot = root.querySelector('.topbar-right');
+    if (slot && !ui.savePanel && !!slot.querySelector('.ed-publish') !== showsPublish()) {
+      const had = document.activeElement && document.activeElement.closest('.topbar-right');
+      slot.innerHTML = topSaveHtml();
+      if (had) slot.querySelector('.ed-save-slot').focus();
+    }
     const foot = root.querySelector('.sn-foot');
     if (foot) foot.innerHTML = snFootHtml();
   }
@@ -2305,8 +2365,7 @@
 
   // ---------- The site editor's navigation (control, auto-add, menu-switches) ----------
   //
-  // As WordPress's site editor (seen in 7.1.5 with Gutenberg 24.4.2; core-ref NOTES, "Site editor
-  // navigation"): a dark column on the left. At the start it's "Design" with the entries
+  // As WordPress's site editor (seen running in WordPress 7.1.5 with Gutenberg 24.4.2): a dark column on the left. At the start it's "Design" with the entries
   // Identity, Styles, Pages, Navigation, Patterns and Templates, and the main area is the site,
   // which is edited as before (click the header menu for its sidebar). Pages swaps the main area
   // for core's pages screen: a list column (Add Page, Search, a row per page, by title) and a
@@ -2325,6 +2384,7 @@
     ui.screen = screen;
     if (screen === 'navigation') ui.collapsed = {};
     if (screen === 'pages' && !stats.firstPages) stats.firstPages = Math.max(1, seconds());
+    if (screen === 'navigation' && !stats.firstNavScreen) stats.firstNavScreen = Math.max(1, seconds());
     if (from !== 'site') log('screen', 'Left the ' + SCREENS[from] + ' screen (' + how + ')');
     if (screen !== 'site') log('screen', 'Opened the ' + SCREENS[screen] + ' screen (' + how + ')' + (OTHER_SCREENS.includes(screen) ? ': it isn’t part of this prototype' : ''));
     else log('screen', 'Back to Design: the site, where it can be edited (' + how + ')');
@@ -2415,8 +2475,9 @@
     let html = item('pages-edit', 'Edit', { page: p.id, how: 'Edit in its ⋮ on the Pages screen' }) +
       item('view', 'View', { page: p.id, how: 'View in its ⋮ on the Pages screen' });
     if (p.id !== 'home') html += item('ask-trash', 'Trash…', { page: p.id }, 'danger');
-    html += dead('Duplicate…') + item('ask-rename', 'Rename…', { page: p.id }) + dead('Order…');
-    if (p.status === 'publish') html += dead('Set as homepage…') + dead('Set as posts page…');
+    html += dead('Duplicate…') + item('ask-rename', 'Rename…', { page: p.id }) + item('ask-order', 'Order…', { page: p.id });
+    // WordPress doesn't offer these on the page that is already the homepage.
+    if (p.status === 'publish' && p.id !== 'home') html += dead('Set as homepage…') + dead('Set as posts page…');
     return `<div class="moremenu" role="menu">${html}</div>`;
   }
 
@@ -2608,6 +2669,15 @@
     if (!toast) { t.hidden = true; return; }
     const covered = toast.canUndo && (!!ui.dialog || !!finishStep);
     t.hidden = covered;
+    // On the Pages screen the message sits over the preview, clear of the list and its ⋮ buttons.
+    if (IN_SIDEBAR) {
+      const ps = root.querySelector('.pagescreen');
+      const app = root.querySelector('.app');
+      if (ps && app) {
+        const left = ps.getBoundingClientRect().right + 16;
+        Object.assign(t.style, { left: left + 'px', right: 'auto', transform: 'none', maxWidth: Math.max(160, app.getBoundingClientRect().right - left - 16) + 'px' });
+      } else Object.assign(t.style, { left: '', right: '', transform: '', maxWidth: '' });
+    }
     const paused = covered || toast.hover || toast.focus;
     if (paused && toast.timer) {
       clearTimeout(toast.timer);
@@ -2870,7 +2940,7 @@
         else if (ARM === 'switches') ui.focus = 'sw:' + id;
         else ui.focus = 'more:' + keyRow(id);
         // Core opens a new draft in the editor: here, the site, showing it, with Publish in the top bar.
-        if (IN_SIDEBAR) { ui.screen = 'site'; ui.pagesSel = id; ui.focus = 'ed-publish'; }
+        if (IN_SIDEBAR) { ui.screen = 'site'; ui.pagesSel = id; ui.focus = 'ed-save'; }
       }, `"${title}" ${d.status === 'draft' ? 'saved as a draft' : 'published'}`);
       log('page', 'Added ' + q(title) + ', ' + (d.status === 'draft' ? 'saved as a draft' + (CANVAS_DRAFTS && isAutomatic() ? '; it is in the pages menu, switched on, so it will be in the menu once it’s published' : '') : 'published; ' + (IN_SIDEBAR ? menuWords(id) : isShown(id) ? 'it is now in the menu' : 'it is not in the menu')) + (IN_SIDEBAR ? ' (Add Page, Create draft, on the Pages screen)' : ''));
       if (IN_SIDEBAR) log('screen', 'Left the Pages screen (Create draft opens the new page on the site, with Publish in the top bar)');
@@ -2899,6 +2969,27 @@
       log('page', 'Renamed a page’s title: ' + q(old) + ' to ' + q(title) + (followsTitle(p.id) ? (isShown(p.id) || onCanvas(p.id) ? '; the menu follows' : '') : link ? '; its link in the menu still says ' + q(link.label) : '') + whereWords());
     },
     'ask-trash'(d) { openDialog({ type: 'trash', pageId: d.page }); },
+    'ask-order'(d) { openDialog({ type: 'order', pageId: d.page }); },
+    // Order…: WordPress takes the whole number in what's typed (0.5 is 0, nothing is 0).
+    order() {
+      const dlg = ui.dialog;
+      if (!dlg || dlg.type !== 'order') return;
+      if (!dialogSubject(dlg)) { dropDialog(); return; }
+      const p = page(dlg.pageId);
+      const field = document.getElementById('dlg-order');
+      const typed = Number(field ? field.value : 0);
+      const n = Number.isFinite(typed) ? Math.trunc(typed) : 0;
+      const was = orderOf(p);
+      const before = shownMenu().map((x) => x.label).join(', ');
+      const placeBefore = state.pages.filter((x) => (x.parent || null) === (p.parent || null)).indexOf(p);
+      ui.dialog = null;
+      commit(() => { setPageOrder(p.id, n); ui.flash = keyRow(p.id); ui.focus = 'more:' + keyRow(p.id); }, 'Order updated.');
+      const after = shownMenu().map((x) => x.label).join(', ');
+      const placeAfter = state.pages.filter((x) => (x.parent || null) === (p.parent || null)).indexOf(p);
+      if (n !== was && placeAfter !== placeBefore) stats.orderUses++;
+      log('order', 'Order… on ' + q(p.title) + ': ' + was + ' to ' + n + whereWords() + '; in page order it went from place ' + (placeBefore + 1) + ' to place ' + (placeAfter + 1) + (p.parent && page(p.parent) ? ' under ' + q(page(p.parent).title) : ' at the top level') +
+        (after !== before ? '; the header menu now reads ' + after : '; the header menu didn’t change'));
+    },
     trash() {
       const dlg = ui.dialog;
       if (!dlg || dlg.type !== 'trash') return;
@@ -3530,12 +3621,16 @@
       'd' + stats.dialogsShown + '.' + stats.dialogsConfirmed,
       'f' + stats.firstMenuChange,
       'r' + stats.dragReorders + '.' + stats.moveReorders,
+      // Order… used to move a page in page order (Pages screen); always o0 in B and F.
+      'o' + (stats.orderUses || 0),
       'n' + onSaved(renameHow),
       'x' + state.trashed.length,
       'u' + stats.undos + '.' + stats.redos,
       'k' + stats.own,
       // Seconds until the Pages screen was first opened (sidebar arms); always g0 in B and F.
       'g' + (stats.firstPages || 0),
+      // Seconds until the site editor's Navigation screen was first opened; always y0 in B and F.
+      'y' + (stats.firstNavScreen || 0),
       'e' + stats.finishBack,
       'w' + unsavedCount(),
       'v' + stats.saves + '.' + stats.panelCancels,
@@ -3684,7 +3779,7 @@
       `<dt>Pages in the trash</dt><dd>${state.trashed.length}</dd>` +
       `<dt>Uses of Undo${IN_SIDEBAR ? '; Redo' : ''}</dt><dd>${stats.undos}${IN_SIDEBAR ? '; ' + stats.redos : ''}</dd>` +
       `<dt>${own}</dt><dd>${stats.own}</dd>` +
-      (IN_SIDEBAR ? `<dt>First opened the Pages screen</dt><dd>${stats.firstPages ? stats.firstPages + 's' : 'not yet'}</dd>` : '') +
+      (IN_SIDEBAR ? `<dt>First opened the Pages screen</dt><dd>${stats.firstPages ? stats.firstPages + 's' : 'not yet'}</dd><dt>First opened the Navigation screen</dt><dd>${stats.firstNavScreen ? stats.firstNavScreen + 's' : 'not yet'}</dd><dt>Pages moved with Order…</dt><dd>${stats.orderUses || 0}</dd>` : '') +
       `<dt>Turned back at “Have you done every task?”</dt><dd>${stats.finishBack}</dd></dl>` +
       `<h3>Log</h3><ol class="log">${events.map((l) => `<li class="is-${l.kind}"><time>${l.at}</time>${esc(l.text)}</li>`).join('') || '<li>Nothing yet.</li>'}</ol>` +
       '<div class="actions"><button type="button" class="btn btn-small" data-copy>Copy log</button><button type="button" class="btn btn-small" data-reset>Reset</button></div>';

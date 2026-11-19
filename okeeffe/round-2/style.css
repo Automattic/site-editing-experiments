@@ -582,5 +582,7 @@ div.prow-main { cursor: default; }
 .preview-edit:hover, .preview-edit:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 .ed-publish { margin-right: 4px; }
 .dialog .dialog-q { font-size: 15px; color: var(--ink); }
-/* On the Pages screen the message sits over the preview, not the list's ⋮ buttons. */
-body:has(.app.screen-pages) .toast { left: auto; right: calc(var(--notes-w, 0px) + 24px); transform: none; max-width: min(480px, calc(100% - 32px)); }
+/* The top bar's "Saved" beside Publish, while the page on the site is a draft. */
+.ed-saved { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; color: var(--ink-3); margin-right: 8px; }
+.ed-saved svg { width: 18px; height: 18px; }
+.dialog input[type="number"] { height: 44px; border: 1px solid #949494; border-radius: 4px; padding: 0 12px; font-size: 14px; }

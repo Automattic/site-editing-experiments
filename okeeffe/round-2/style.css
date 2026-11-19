@@ -417,8 +417,11 @@ button.nav-label:hover { color: var(--blue-dark); }
 .nav-heading { margin: 4px 0 0; font-size: 13px; font-weight: 600; }
 .nav-caps { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.02em; color: var(--ink); }
 .navside-body .field input[type="text"] { height: 40px; width: 100%; min-width: 0; }
+.nav-linkto { width: 100%; text-align: left; background: var(--white); color: var(--ink); font: inherit; cursor: pointer; }
+.nav-linkto:hover { border-color: var(--blue); }
+.nav-linkto-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .nav-linkto { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border: 1px solid #949494; border-radius: 4px; font-size: 13px; overflow-wrap: anywhere; }
-.nav-linkto span { color: var(--ink-3); font-size: 12px; }
+.nav-linkto-text > span { color: var(--ink-3); font-size: 12px; }
 .nav-badges { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
 .nav-linkto .nav-badge { border: 1px solid var(--line); border-radius: 2px; padding: 1px 6px; font-size: 11px; color: var(--ink); background: #f6f7f7; }
 .nav-outline { border-color: var(--blue); color: var(--blue); background: var(--white); }
@@ -460,3 +463,11 @@ button.nav-label:hover { color: var(--blue-dark); }
 .notes .tasks li.is-unsaved label { color: #7a4a00; }
 .notes .tasks .unsaved { display: block; font-style: normal; font-weight: 600; color: #7a4a00; }
 .notes .log .is-save { color: #00527a; }
+
+/* Search or type URL, and Link to's field, with core's Apply (↵) inside the field. */
+.nav-search-wrap { position: relative; display: flex; }
+.nav-search-wrap input, .navside-body .field .nav-search-wrap input[type="text"] { height: 40px; width: 100%; min-width: 0; border: 1px solid #949494; border-radius: 4px; padding: 0 44px 0 10px; font-size: 13px; }
+.nav-apply { position: absolute; top: 4px; right: 4px; width: 32px; height: 32px; display: grid; place-items: center; padding: 0; border: none; border-radius: 2px; background: none; color: var(--ink); cursor: pointer; }
+.nav-apply svg { width: 20px; height: 20px; }
+.nav-apply:hover { color: var(--blue); }
+.nav-apply[aria-disabled="true"] { color: #a7aaad; cursor: default; }

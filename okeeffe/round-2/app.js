@@ -175,7 +175,7 @@
   }
 
   function startingUi() {
-    return { pop: null, more: null, dialog: null, current: 'home', flash: null, focus: null, sidebar: false, navSel: null, navAdd: null, savePanel: null, typing: null };
+    return { pop: null, more: null, dialog: null, current: 'home', flash: null, focus: null, sidebar: false, navSel: null, navAdd: null, linkEdit: null, savePanel: null, typing: null };
   }
 
   function startingStats() {
@@ -886,6 +886,7 @@
     more: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg>',
     close: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>',
     chevron: '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>',
+    enter: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6v5a3 3 0 0 1-3 3H6"/><path d="M9 10l-4 4 4 4"/></svg>',
     plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>',
     unseen: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12s3.5-6 9-6 9 6 9 6-3.5 6-9 6-9-6-9-6z"/><circle cx="12" cy="12" r="2.5"/><path d="M4 4l16 16"/></svg>',
     back: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>',
@@ -1310,12 +1311,17 @@
     }
     // The site's published pages, newest first, as the editor suggests them.
     const pages = state.made.slice().reverse().map(page).filter(published).map((p) =>
-      `<li><button type="button" data-action="nav-add" data-page="${esc(p.id)}" data-find="${esc(p.title.toLowerCase())}"><span>${esc(p.title)}</span><small>${p.id === 'home' ? 'Front page' : esc(pagePath(p)) + ' · Page'}</small></button></li>`).join('');
+      `<li${a.q && !p.title.toLowerCase().includes(a.q.trim().toLowerCase()) ? ' hidden' : ''}><button type="button" data-action="nav-add" data-page="${esc(p.id)}" data-find="${esc(p.title.toLowerCase())}"><span>${esc(p.title)}</span><small>${p.id === 'home' ? 'Front page' : esc(pagePath(p)) + ' · Page'}</small></button></li>`).join('');
     return `<div class="nav-picker" role="dialog" aria-label="Add link">
-      <input type="text" id="nav-search" placeholder="Search or type URL" aria-label="Search or type URL" autocomplete="off" data-focus="nav-search">
+      <div class="nav-search-wrap"><input type="text" id="nav-search" placeholder="Search or type URL" aria-label="Search or type URL" autocomplete="off" data-focus="nav-search" value="${esc(a.q || '')}">${applyButton('nav-apply', a.q)}</div>
       <ul class="nav-results" aria-label="Suggestions">${pages}</ul>
       <button type="button" class="nav-create-open" data-action="nav-create-open" data-focus="nav-create-open">${ICON.plus}<span>Create page</span></button>
     </div>`;
+  }
+
+  // The ↵ inside a link field, as core's Apply: off until something is typed.
+  function applyButton(action, text) {
+    return `<button type="button" class="nav-apply" data-action="${action}" data-focus="${action}" aria-label="Apply" aria-disabled="${String(text || '').trim() ? 'false' : 'true'}">${ICON.enter}</button>`;
   }
 
   function navPlaceholderHtml(depth) {
@@ -1387,7 +1393,9 @@
       : `<strong>${esc(p.title)}</strong><span>${esc(pagePath(p))}</span><span class="nav-badges"><span class="nav-badge">Page</span><span class="nav-badge">${p.status === 'publish' ? 'Published' : 'Draft'}</span></span>`;
     return `<h3 class="nav-heading">Settings</h3>
       <div class="field"><label class="nav-caps" for="nav-text">Text</label><input type="text" id="nav-text" value="${esc(it.label)}" autocomplete="off" data-item="${esc(it.id)}" data-focus="nav-text:${esc(it.id)}"></div>
-      <div class="field"><span class="nav-caps">Link to</span><span class="nav-linkto">${linkTo}</span></div>`;
+      <div class="field"><span class="nav-caps" id="nav-linkto-caps">Link to</span>${ui.linkEdit && ui.linkEdit.id === it.id
+        ? `<div class="nav-search-wrap"><input type="text" id="nav-linkto-input" aria-labelledby="nav-linkto-caps" placeholder="Search or type URL" value="${esc(ui.linkEdit.text)}" autocomplete="off" data-focus="nav-linkto-input">${applyButton('nav-linkto-apply', ui.linkEdit.text)}</div>`
+        : `<button type="button" class="nav-linkto" data-action="nav-linkto" data-item="${esc(it.id)}" data-focus="nav-linkto" aria-labelledby="nav-linkto-caps nav-linkto-what"><span id="nav-linkto-what" class="nav-linkto-text">${linkTo}</span></button>`}</div>`;
   }
 
   function sidebarBodyHtml() {
@@ -1575,11 +1583,54 @@
     return null;
   }
 
-  // An Add link that ends without a link: always logged, however it ended.
+  // Link to's field: Enter or Apply changes where the link goes; Escape leaves it as it was.
+  function applyLinkTo(how) {
+    const e = ui.linkEdit;
+    const it = e && itemById(e.id);
+    if (!it) { ui.linkEdit = null; return; }
+    const text = (e.text || '').trim();
+    const was = it.url || pagePath(page(it.pageId));
+    if (text === was) { closeLinkTo(how + ', unchanged'); return; }
+    const url = asAddress(text);
+    if (!url) {
+      log('tried', how + ' in Link to with ' + (text ? q(text) + ', which isn’t an address' : 'nothing typed') + ': the link isn’t changed');
+      return;
+    }
+    edit(() => {
+      const live = itemById(e.id);
+      live.url = url;
+      delete live.pageId;
+      ui.linkEdit = null;
+      ui.focus = 'nav-linkto';
+    }, q(it.label) + ' now links to ' + q(url));
+    log('menu', 'Link to changed (' + how + '): ' + q(it.label) + ' now goes to ' + q(text) + ' (' + url + '), not ' + q(was) + '; its text is unchanged');
+  }
+  function closeLinkTo(how) {
+    if (!ui.linkEdit) return false;
+    ui.linkEdit = null;
+    ui.focus = 'nav-linkto';
+    log('sidebar', 'Link to closed without a change (' + how + ')');
+    render();
+    return true;
+  }
+
+  // A typed address's label, as core makes it: the address without http:// or https://.
+  const linkLabel = (text) => text.replace(/^https?:\/\//i, '');
+
+  // Enter in Search or type URL, or its Apply (↵): a typed address becomes a link.
+  function applyTyped(how) {
+    if (!ui.navAdd) return;
+    const text = (ui.navAdd.q || '').trim();
+    if (asAddress(text)) { navActions['nav-add-url']({ text }); return; }
+    log('tried', how + ' in Search or type URL with ' + (text ? q(text) + ', which isn’t an address' : 'nothing typed') + ': nothing is added');
+  }
+
+  // An Add link that ends without a link: always logged, however it ended, with what was typed.
   function dropAdd(how) {
     if (!ui.navAdd) return false;
+    const typed = (ui.navAdd.q || '').trim();
     ui.navAdd = null;
-    log('sidebar', 'Add link closed without adding anything (' + how + '): the “Page link” row goes');
+    log('sidebar', 'Add link closed without adding anything (' + how + (typed ? ', with ' + q(typed) + ' typed in Search or type URL' : '') + '): the “Page link” row goes');
     return true;
   }
 
@@ -1610,6 +1661,7 @@
       // The click that ends a drag isn't a selection.
       if (justDragged) return;
       dropAdd('another row was selected');
+      ui.linkEdit = null;
       ui.navSel = d.id;
       ui.more = null;
       ui.focus = isPageList(it) ? 'nav-ask-detach' : 'nav-back';
@@ -1618,6 +1670,7 @@
     },
     'nav-back'() {
       endTyping();
+      ui.linkEdit = null;
       const id = ui.navSel;
       ui.navSel = null;
       ui.focus = 'nav-row:' + id;
@@ -1678,12 +1731,31 @@
       if (!a || !url) return;
       const where = placeWords(a);
       edit(() => {
-        insertItem({ id: newItemId('link-'), url, label: d.text, hidden: false }, a.place, a.ref);
+        insertItem({ id: newItemId('link-'), url, label: linkLabel(d.text), hidden: false }, a.place, a.ref);
         ui.navAdd = null;
         ui.focus = 'nav-append';
       }, 'a link to ' + q(url) + ' added');
       log('menu', 'Link added to a typed address: ' + q(d.text) + ' (' + url + '), ' + where);
     },
+    'nav-apply'(d, el) {
+      if (!ui.navAdd) return;
+      const field = document.getElementById('nav-search');
+      if (field) ui.navAdd.q = field.value;
+      if (!(ui.navAdd.q || '').trim()) { log('tried', 'Clicked Apply (↵) in Search or type URL with nothing typed: it is off until something is typed'); return; }
+      applyTyped('Clicked Apply (↵)');
+    },
+    // Link to, in a link's settings: a button that opens a field for its address.
+    'nav-linkto'(d) {
+      const it = itemById(d.item);
+      if (!it) return;
+      endTyping();
+      const now = it.url || pagePath(page(it.pageId));
+      ui.linkEdit = { id: it.id, text: now };
+      ui.focus = 'nav-linkto-input';
+      log('sidebar', 'Link to clicked for ' + q(it.label) + ': a field with its address (' + now + ') opens');
+      render();
+    },
+    'nav-linkto-apply'() { applyLinkTo('Clicked Apply (↵)'); },
     'nav-create-open'() {
       if (!ui.navAdd) return;
       const typed = (document.getElementById('nav-search') || {}).value || '';
@@ -2575,18 +2647,20 @@
       if (ui.pop) { const k = ui.pop; ui.pop = null; ui.focus = 'pop:' + k; render(); return; }
       if (ui.savePanel) { closeSavePanel('Escape'); return; }
       if (ui.navAdd) { closeAdd('Escape'); return; }
+      if (ui.linkEdit && ui.navSel === ui.linkEdit.id) { closeLinkTo('Escape'); return; }
       if (ui.navSel) { navActions['nav-back'](); return; }
       if (ui.sidebar) closeSidebar('Escape');
       return;
     }
     if (ev.key === 'Enter' && ev.target.id === 'nav-text') { ev.preventDefault(); endTyping(); return; }
+    if (ev.key === 'Enter' && ev.target.id === 'nav-linkto-input') { ev.preventDefault(); if (ui.linkEdit) ui.linkEdit.text = ev.target.value; applyLinkTo('Pressed Enter'); return; }
     // Search or type URL: Enter adds a typed address. ArrowDown goes into the suggestions.
     if (ev.target.id === 'nav-search' && (ev.key === 'Enter' || ev.key === 'ArrowDown')) {
       ev.preventDefault();
       const text = ev.target.value.trim();
       if (ev.key === 'ArrowDown') { const first = root.querySelector('.nav-results li:not([hidden]) button'); if (first) first.focus(); return; }
-      if (asAddress(text)) navActions['nav-add-url']({ text });
-      else log('tried', 'Pressed Enter in Search or type URL with ' + (text ? q(text) + ', which isn’t an address' : 'nothing typed') + ': nothing is added');
+      if (ui.navAdd) ui.navAdd.q = text;
+      applyTyped('Pressed Enter');
       return;
     }
     if (ev.target.closest && ev.target.closest('.nav-results') && (ev.key === 'ArrowDown' || ev.key === 'ArrowUp')) {
@@ -2852,7 +2926,10 @@
     if (t.id === 'nav-text') { typeLabel(t.dataset.item, t.value); return; }
     if (t.id === 'nav-create-title' && ui.navAdd) { ui.navAdd.title = t.value; t.removeAttribute('aria-invalid'); return; }
     // Search or type URL narrows the suggestions as you type, without redrawing.
+    if (t.id === 'nav-linkto-input' && ui.linkEdit) { ui.linkEdit.text = t.value; t.parentElement.querySelector('.nav-apply').setAttribute('aria-disabled', t.value.trim() ? 'false' : 'true'); return; }
     if (t.id !== 'nav-search') return;
+    if (ui.navAdd) ui.navAdd.q = t.value;
+    t.parentElement.querySelector('.nav-apply').setAttribute('aria-disabled', t.value.trim() ? 'false' : 'true');
     const want = t.value.trim().toLowerCase();
     t.closest('.nav-picker').querySelectorAll('.nav-results li').forEach((li) => { li.hidden = !li.firstElementChild.dataset.find.includes(want); });
   });
@@ -2871,8 +2948,9 @@
 
   const hasText = (s, want) => String(s || '').trim().toLowerCase() === want;
 
-  // Task 7: a link to Rosa's Instagram, in whatever form the address was typed.
-  const INSTAGRAM = /instagram\.com\/rosasbakery/i;
+  // Task 7: a link to Rosa's Instagram: any case, with or without www. or m., a slash at the
+  // end, or a query or fragment after it; not another account that starts the same.
+  const INSTAGRAM = /(^|\/\/|\.)instagram\.com\/rosasbakery\/?($|[?#])/i;
 
   // The state of tasks 2 to 7 right now. Tasks 2, 3, 5 and 7 are 1 or 0; tasks 4 and 6 are
   // 0 (not published), 1 (published, not shown in the menu) or 2 (published and shown).
@@ -2912,7 +2990,7 @@
     { n: 4, text: 'Make and publish a Gift cards page and get it into the menu.', hint: 'Ticks when a published page with “gift” in its title is in the header menu.', full: 2, state: (v) => THREE[v] },
     { n: 5, text: 'Make “Visit us” say “Find us” in the menu.', hint: 'Ticks when the menu item for the Visit us page reads Find us.', state: (v) => (v ? 'the menu says Find us' : 'the menu doesn’t say Find us') + '; ' + { p: 'the page is called Find us', l: 'only the link’s label was changed', 0: 'the page is called ' + q((page('visit-us') || {}).title || 'nothing: it’s in the trash') }[renameHow()] },
     { n: 6, text: 'Publish Holiday orders.', hint: 'Ticks when it’s published. Ask first whether it will be in the menu.', full: 1, state: (v) => THREE[v] },
-    { n: 7, text: 'Add Rosa’s Instagram page (instagram.com/rosasbakery) to the menu.', hint: IN_SIDEBAR ? 'Ticks when the header menu has a link whose address contains instagram.com/rosasbakery, whatever its label.' : 'Doesn’t apply here: this prototype has no way to add a link to another site, so it is always 0.', state: (v) => (v ? 'the menu has a link to it' : 'the menu has no link to it') }
+    { n: 7, text: 'Add Rosa’s Instagram page (instagram.com/rosasbakery) to the menu.', hint: IN_SIDEBAR ? 'Ticks when the header menu has a link to instagram.com/rosasbakery (with or without www., a slash at the end or a query), whatever its label.' : 'Doesn’t apply here: this prototype has no way to add a link to another site, so it is always 0.', state: (v) => (v ? 'the menu has a link to it' : 'the menu has no link to it') }
   ];
 
   // In the three sidebar arms the tasks are read from the saved site: a change to the menu

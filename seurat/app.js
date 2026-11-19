@@ -8,8 +8,8 @@
  *
  *   sidebar  The control, after the WordPress editor as it is today. The
  *            controls are in the Typography panel of the settings sidebar's
- *            Block tab. Only Size shows at first; the others are turned on
- *            from the panel's options menu.
+ *            Block tab. Font and Size show at first (core shows only Size);
+ *            the others are turned on from the panel's options menu.
  *   toolbar  The controls are on the toolbar above the selected text, the way
  *            Squarespace arranges its text toolbar: a text style menu first,
  *            then Font and Size, each naming what the text is set in now, and
@@ -35,10 +35,10 @@
   'use strict';
 
   const VARIANTS = {
-    sidebar: { code: 'SC', letter: '0', file: 'sidebar.html', name: 'Control: as the WordPress editor does today, the typography controls are in the settings sidebar’s Typography panel, with only Size showing until the others are turned on' },
+    sidebar: { code: 'SC', letter: '0', file: 'sidebar.html', name: 'Control: as the WordPress editor does today, the typography controls are in the settings sidebar’s Typography panel, with Font and Size showing and the others turned on from the panel’s options menu' },
     toolbar: { code: 'ST', letter: 'A', file: 'toolbar.html', name: 'On the toolbar: text style, Font and Size are on the toolbar above the selected text, with the rest under “More text options”' },
     menu: { code: 'SM', letter: 'B', file: 'menu.html', name: 'In the options menu: the toolbar is block name, movers, options and delete, and the typography controls are a Typography flyout in the options menu' },
-    beside: { code: 'SP', letter: 'C', file: 'beside.html', name: 'Beside the block, after Nevelson: the pencil on the toolbar opens the block’s settings in a card beside it, with the same Typography panel as the control (only Size showing until the others are turned on); there’s no sidebar' }
+    beside: { code: 'SP', letter: 'C', file: 'beside.html', name: 'Beside the block, after Nevelson: the pencil on the toolbar opens the block’s settings in a card beside it, with the same Typography panel as the control (Font and Size showing, the others turned on from its options menu); there’s no sidebar' }
   };
   const VARIANT = VARIANTS[document.body.dataset.variant] ? document.body.dataset.variant : 'sidebar';
   const NOTES = new URLSearchParams(location.search).has('notes') || location.hash === '#notes';
@@ -605,10 +605,12 @@
     return '<div class="sb-card"><span class="sb-card-icon">' + blockIcon(b) + '</span><div><strong>' + (b.type === 'heading' ? 'Heading' : 'Paragraph') + '</strong><p>' + blockDescription(b) + '</p></div></div>';
   }
 
-  // Core's Typography panel: Size showing, the rest turned on from its options menu.
+  // Core's Typography panel, with Font and Size showing and the rest turned on from its options menu.
+  // Core shows only Size for a paragraph; Font shows here too, at Ben's request.
+  const ALWAYS = ['font', 'size'];
   function typoPanel(b) {
     const shown = S.shown[b.id] || {};
-    const on = (k) => k === 'size' || shown[k] || hasValue(b, k);
+    const on = (k) => ALWAYS.includes(k) || shown[k] || hasValue(b, k);
     const open = S.menu === 'typoopts';
     return '<section class="sb-panel"><div class="sb-panel-head"><h3>Typography</h3>' +
       '<span class="tb-item"><button class="ctl-icon' + (open ? ' is-open' : '') + '" data-menu="typoopts" aria-haspopup="true" aria-expanded="' + open + '" title="Typography options" aria-label="Typography options">' + ICON.dots + '</button>' +
@@ -980,7 +982,7 @@
     if (d.show) {
       const shown = S.shown[b.id] || (S.shown[b.id] = {});
       const k = d.show;
-      const isOn = k === 'size' || shown[k] || hasValue(b, k);
+      const isOn = ALWAYS.includes(k) || shown[k] || hasValue(b, k);
       if (isOn) {
         // Unticking a control resets it, as the editor's panel does.
         const before = describe(b, k);

@@ -4,13 +4,13 @@
  *   node utrillo/e2e/smoke.mjs
  *
  * Serves the repository with a tiny static server on a free port, opens each
- * of the three arms in headless Chrome and checks that it loads without
+ * of the four arms in headless Chrome and checks that it loads without
  * console errors. Then, in the control, it does all four tasks through the
  * editor's own routes, twice (with Reset between), checking the task ticks,
  * the counts in the facilitator panel and the completion code.
  *
  * Finally it runs utrillo/e2e/<arm>.mjs for each arm that has one
- * (hover-tab, layers). Each exports a default async function
+ * (hover-tab, layers, create-not-learn). Each exports a default async function
  * that receives { page, baseUrl, assert, helpers }: `page` is a fresh page
  * that hasn't loaded anything yet (console errors on it fail the test),
  * `baseUrl` is the server's address for the utrillo folder, and `helpers` are
@@ -112,7 +112,7 @@ const helpers = {
   },
   // Check a completion code's parts. Seconds are checked as a number only.
   checkCode(code, expected) {
-    const m = /^(U[CABD])-([01]{4})-r(\d+\.\d+\.\d+\.\d+\.\d+\.\d+)-x(\d+)-u(\d+)-k(\d+|x)-s(\d+)$/.exec(code);
+    const m = /^(U[CADE])-([01]{4})-r(\d+\.\d+\.\d+\.\d+\.\d+\.\d+)-x(\d+)-u(\d+)-k(\d+|x)-s(\d+)$/.exec(code);
     assert.ok(m, 'code has the right shape: ' + code);
     const [, arm, tasks, routes, x, u, k] = m;
     const got = { arm, tasks, routes, x: Number(x), u: Number(u), k: k === 'x' ? 'x' : Number(k) };
@@ -139,7 +139,7 @@ async function test(name, fn) {
 
 // ---------- Every arm loads cleanly ----------
 
-const ARMS = { control: 'UC', 'hover-tab': 'UA', layers: 'UD' };
+const ARMS = { control: 'UC', 'hover-tab': 'UA', layers: 'UD', 'create-not-learn': 'UE' };
 for (const [arm, code] of Object.entries(ARMS)) {
   await test('Loads ' + arm + '.html', async () => {
     const page = await newPage();
@@ -358,7 +358,7 @@ await test('Control, run 3 at 1024×768: undo while typing keeps the caret, the 
 
 // ---------- The arms' own tests ----------
 
-for (const arm of ['hover-tab', 'layers']) {
+for (const arm of ['hover-tab', 'layers', 'create-not-learn']) {
   const file = path.join(here, arm + '.mjs');
   if (!fs.existsSync(file)) { console.log(arm + '.mjs: none yet, skipped'); continue; }
   await test('Arm ' + arm + ' (' + arm + '.mjs)', async () => {

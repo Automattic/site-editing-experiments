@@ -423,7 +423,8 @@
     const id = 'c-' + key;
     if (key === 'font') {
       return '<div class="ctl"><label for="' + id + '">Font</label><select id="' + id + '" data-k="font">' +
-        '<option value="">Default</option>' + FONTS.map((f) => '<option value="' + f.id + '"' + (t.font === f.id ? ' selected' : '') + '>' + f.name + '</option>').join('') +
+        // The theme's font for this block is the default: one entry, and choosing it clears the block's own font.
+        FONTS.map((f) => { const v = f.id === d.font ? '' : f.id; return '<option value="' + v + '"' + (eff(b).font === f.id ? ' selected' : '') + '>' + f.name + '</option>'; }).join('') +
         '</select></div>';
     }
     if (key === 'size') {
@@ -513,8 +514,7 @@
     if (name === 'style') return levelItems(b) + item('data-type="paragraph"', 'Paragraph', { current: b.type === 'paragraph' });
     if (name === 'font') {
       const d = fontOf(defaults(b).font);
-      return item('data-set="font" data-v=""', 'Default', { current: !b.typo.font, value: d.name, style: 'font-family:' + d.stack }) +
-        FONTS.map((f) => item('data-set="font" data-v="' + f.id + '"', f.name, { current: b.typo.font === f.id, style: 'font-family:' + f.stack })).join('');
+      return FONTS.map((f) => item('data-set="font" data-v="' + (f.id === d.id ? '' : f.id) + '"', f.name, { current: eff(b).font === f.id, style: 'font-family:' + f.stack })).join('');
     }
     if (name === 'size') return '<div class="fly-controls">' + control('size', b) + '</div>';
     if (name === 'moretext') return '<div class="fly-controls">' + ['appearance', 'lineHeight', 'letterSpacing', 'decoration', 'case'].map((k) => control(k, b)).join('') + '</div>';

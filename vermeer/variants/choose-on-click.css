@@ -1,0 +1,38 @@
+/* Vermeer · C · Choose on click: the popup at the click point. */
+
+.vm-choose {
+  position: absolute;
+  z-index: 1;
+  width: max-content;
+  max-width: min(360px, calc(100% - 16px));
+  padding: 8px;
+  border-radius: 10px;
+  background: #fff;
+  color: var(--vm-ink);
+  font-family: var(--vm-font);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, .1), 0 8px 24px rgba(0, 0, 0, .18);
+  pointer-events: auto;
+  animation: vm-choose-in .12s ease-out;
+}
+.vm-choose::before {
+  content: "";
+  position: absolute;
+  left: calc(var(--arrow-x, 24px) - 6px);
+  width: 12px;
+  height: 12px;
+  background: #fff;
+  transform: rotate(45deg);
+  pointer-events: none;
+}
+.vm-choose[data-side="below"]::before { top: -6px; box-shadow: -1px -1px 0 rgba(0, 0, 0, .1); }
+.vm-choose[data-side="above"]::before { bottom: -6px; box-shadow: 1px 1px 0 rgba(0, 0, 0, .1); }
+.vm-choose[data-side="none"]::before { display: none; }
+
+.vm-choose-actions { position: relative; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.vm-choose .vm-btn { min-width: 132px; height: auto; min-height: 36px; padding: 8px 14px; line-height: 1.3; white-space: normal; text-align: center; }
+.vm-choose .vm-btn svg { flex: none; }
+
+@keyframes vm-choose-in { from { opacity: 0; transform: translateY(-2px); } to { opacity: 1; transform: none; } }
+.vm-choose[data-side="above"] { animation-name: vm-choose-in-up; }
+@keyframes vm-choose-in-up { from { opacity: 0; transform: translateY(2px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .vm-choose { animation: none; } }

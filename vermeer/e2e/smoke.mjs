@@ -476,12 +476,19 @@ await test('Control: double clicks, focus after page changes and forms, a reload
   assert.equal(await h.currentPage(page), 'events');
   assert.equal(await h.k(page, 'nav-home').evaluate((a) => !a.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }))), true, 'context menu prevented');
 
+  step('a double click on a menu link follows it once');
+  const followsBefore = Number(await h.count(page, 'follows'));
+  await h.k(page, 'nav-contact').dblclick();
+  await page.waitForTimeout(200);
+  assert.equal(await h.currentPage(page), 'contact');
+  assert.equal(Number(await h.count(page, 'follows')), followsBefore + 1, 'one follow for a double click');
+
   step('a second tab of the same arm: the first stops saving and says so; “Carry on here” takes over');
   const second = await page.context().newPage();
   second.errors = [];
   second.on('pageerror', (err) => second.errors.push(String(err)));
   await second.goto(baseUrl + '/control.html?notes');
-  assert.match(await h.lastLog(second), /^Opened again in another tab/);
+  assert.match(await h.lastLog(second), /^Opened again in a new tab/);
   await page.locator('dialog.vm-stale').waitFor();
   assert.equal(await page.locator('dialog.vm-stale').innerText().then((t) => /open in another tab/.test(t)), true);
   const before = (await h.state(second)).log.length;

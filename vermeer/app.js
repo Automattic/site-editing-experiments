@@ -702,10 +702,18 @@
   }, true);
 
   // The default action, in the bubble phase, unless an arm took the click.
+  let lastDefaultActionAt = -Infinity;
   viewport.addEventListener('click', (e) => {
     if (!bornInBrowse.has(e) || S.mode !== 'browse' || e.defaultPrevented) return;
     if (!e.target.isConnected || !site.contains(e.target)) return;
     const info = infoByEvent.get(e) || classify(e.target);
+    // A double click follows a link or presses a button once, in every arm,
+    // as C's box asks once: the second press would land on the new page.
+    // Only when the first press of the same double click did act: a first
+    // touch that stood in for hover (B, D) leaves the second free to act.
+    const isLinkOrButton = info.kind === 'link' || info.kind === 'button';
+    if (isLinkOrButton && e.detail > 1 && e.timeStamp - lastDefaultActionAt < 800) { e.preventDefault(); return; }
+    if (isLinkOrButton) lastDefaultActionAt = e.timeStamp;
     if (info.kind === 'link') { e.preventDefault(); follow(info.el, null); }
     else if (info.kind === 'button') {
       if (info.el.type === 'submit') { countUse(info.el, null); return; } // the form's submit does the rest
@@ -1584,7 +1592,7 @@
   viewport.scrollTop = S.scroll[S.mode] || 0;
   if (reloaded) {
     const open = Object.keys(S.prompts.open);
-    note('reload', (openedAgain ? 'Opened again in another tab or window (the earlier one stops saving)' : 'Page reloaded') + (S.mode === 'edit' ? ' (in edit mode on ' + PAGES[page()] + (hasUnsaved() ? ', with ' + unsavedCount() + ' unsaved change' + (unsavedCount() === 1 ? '' : 's') : '') + ')' : ' (browsing ' + PAGES[page()] + ')'));
+    note('reload', (openedAgain ? 'Opened again in a new tab or window (any earlier tab stops saving)' : 'Page reloaded') + (S.mode === 'edit' ? ' (in edit mode on ' + PAGES[page()] + (hasUnsaved() ? ', with ' + unsavedCount() + ' unsaved change' + (unsavedCount() === 1 ? '' : 's') : '') + ')' : ' (browsing ' + PAGES[page()] + ')'));
     for (const id of open) promptOutcome(Number(id), 'ignored', 'page reloaded');
     // Text being typed in when the page was reloaded: its change is in the
     // draft already; log it and count it as an edit, as finishing would have.

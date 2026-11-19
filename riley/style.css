@@ -141,11 +141,11 @@ svg { display: block; }
 @media (prefers-reduced-motion: reduce) {
   .gate-label { transition: none; }
 }
-/* A: a grey overlay over the whole part, with the label and button in the middle. */
-.variant-marked .gate { align-items: center; border: none; }
-.variant-marked .gate:hover, .variant-marked .gate:focus-visible, .variant-marked .gate.is-shown { background-color: rgba(30,30,30,.35); }
-.variant-marked .gate:focus-visible { outline: 2px solid var(--blue); outline-offset: -2px; }
-.variant-marked .gate-label { transform: none; }
+/* B2: a grey overlay over the whole part, with the button in the middle. */
+.variant-r2button .gate { align-items: center; border: none; }
+.variant-r2button .gate:hover, .variant-r2button .gate:focus-visible, .variant-r2button .gate.is-shown { background-color: rgba(30,30,30,.35); }
+.variant-r2button .gate:focus-visible { outline: 2px solid var(--blue); outline-offset: -2px; }
+.variant-r2button .gate-label { transform: none; }
 
 .is-site-editing { display: block; outline: 3px solid var(--blue); outline-offset: -3px; z-index: 5; }
 .is-site-editing:focus { outline: 3px solid var(--blue); }

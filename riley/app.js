@@ -362,8 +362,8 @@
 
     if (VARIANT === 'r2button') {
       if (siteEdit === part) {
+        // Unlocked: no banner. Clicking elsewhere or Escape locks it again.
         return '<' + tag + ' class="part part-' + part + ' is-site-editing" tabindex="-1" data-region="' + part + '">' +
-          '<div class="site-banner"><p><strong>Editing the site ' + name + '.</strong> Changes show on every page.</p><button class="btn btn-primary" data-done>Done</button></div>' +
           '<div class="part-inner">' + inner + '</div></' + tag + '>';
       }
       return '<' + tag + ' class="part part-' + part + ' is-gated is-locked" data-region="' + part + '">' +
@@ -375,8 +375,8 @@
 
     if (VARIANT === 'marked') {
       if (siteEdit === part) {
-        // Unlocked: no banner. Clicking elsewhere or Escape locks it again.
         return '<' + tag + ' class="part part-' + part + ' is-site-editing" tabindex="-1" data-region="' + part + '">' +
+          '<div class="site-banner"><p><strong>Editing the ' + name + ' for the whole site.</strong> Changes show on every page.</p><button class="btn btn-primary" data-done>Done</button></div>' +
           '<div class="part-inner">' + inner + '</div></' + tag + '>';
       }
       // Locked. It looks like the rest of the page until the pointer is over
@@ -796,19 +796,20 @@
       }
       return;
     }
+    if (e.key === 'Escape' && siteEdit) {
+      const part = doneSiteEdit('Escape');
+      render('[data-gate="' + part + '"]');
+    }
   });
 
-  // Escape locks an unlocked part again, wherever focus is (after Enter
-  // finishes a bit of text, focus is on the page, not the part).
   document.addEventListener('keydown', (e) => {
-    if (e.key !== 'Escape' || !siteEdit || e.defaultPrevented) return;
+    if (e.key === 'Escape' && pickerOpen) { pickerOpen = false; render('[data-docbar]'); return; }
+    // B2: Escape locks an unlocked part again wherever focus is (after Enter
+    // finishes a bit of text, focus is on the page, not the part).
+    if (e.key !== 'Escape' || VARIANT !== 'r2button' || !siteEdit || e.defaultPrevented) return;
     if (e.target.closest && (e.target.closest('.field') || e.target.closest('dialog'))) return;
     const part = doneSiteEdit('Escape');
     render('[data-gate="' + part + '"]');
-  });
-
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && pickerOpen) { pickerOpen = false; render('[data-docbar]'); }
   });
 
   // Pasted text goes in as plain text.

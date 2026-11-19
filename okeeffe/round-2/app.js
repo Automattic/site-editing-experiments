@@ -105,6 +105,12 @@
  * The completion code (completionCode()) and the tasks (taskValues()) read only the model
  * above, so nothing in them is specific to an arm.
  *
+ * The site editor (control, A, Q): search for "The site editor's navigation". A dark column
+ * on the left (ui.screen: Design, Pages, Navigation, or a screen that isn't part of the
+ * prototype), the site as the main area on Design, and core's Pages screen (Add Page, Edit,
+ * View, Rename…, Trash…) in its place on Pages. A draft is published from the top bar's
+ * Publish, with the page on the site. B and F keep their Pages panel.
+ *
  * The Navigation sidebar: search for "THE NAVIGATION SIDEBAR". It is one component, drawn
  * from the model above, that follows the Navigation block's list view in WordPress's editor;
  * its actions, and the top bar's Undo, Redo and Save, are in navActions.
@@ -139,6 +145,12 @@
   const SITE = 'rosasbakery.example';
   const NOTES = new URLSearchParams(location.search).has('notes') || location.hash === '#notes';
   const STORE_KEY = 'okeeffe-round-2:' + ARM;
+  // The site editor's screens (sidebar arms): Design (the site), and its entries. The entries
+  // with a › lead to a screen of their own in core; Identity and Styles are listed as core lists
+  // them. Only Pages and Navigation are part of the prototype.
+  const SCREENS = { site: 'Design', identity: 'Identity', styles: 'Styles', pages: 'Pages', navigation: 'Navigation', patterns: 'Patterns', templates: 'Templates' };
+  const SN_ENTRIES = { identity: false, styles: false, pages: true, navigation: true, patterns: true, templates: true };
+  const OTHER_SCREENS = ['identity', 'styles', 'patterns', 'templates'];
 
   // ---------- Starting state ----------
 
@@ -184,11 +196,14 @@
   }
 
   function startingUi() {
-    return { pop: null, more: null, dialog: null, current: 'home', flash: null, focus: null, sidebar: false, navSel: null, navAdd: null, linkEdit: null, collapsed: {}, savePanel: null, typing: null };
+    return { pop: null, more: null, dialog: null, current: 'home', flash: null, focus: null, sidebar: false, navSel: null, navAdd: null, linkEdit: null, collapsed: {}, savePanel: null, typing: null,
+      // The sidebar arms' site editor: the screen in its navigation column, and the Pages screen's
+      // selected row, status filter and search.
+      screen: 'site', pagesSel: null, pagesFilter: 'all', pagesSearch: '' };
   }
 
   function startingStats() {
-    return { dialogsShown: 0, dialogsConfirmed: 0, firstMenuChange: 0, dragReorders: 0, moveReorders: 0, undos: 0, redos: 0, saves: 0, panelCancels: 0, own: 0, finishBack: 0 };
+    return { dialogsShown: 0, dialogsConfirmed: 0, firstMenuChange: 0, dragReorders: 0, moveReorders: 0, undos: 0, redos: 0, saves: 0, panelCancels: 0, own: 0, finishBack: 0, firstPages: 0 };
   }
 
   let state = startingState();
@@ -213,6 +228,7 @@
     try {
       sessionStorage.setItem(STORE_KEY, JSON.stringify({
         state, stats, events, startedAt, firstDone, ticked, current: ui.current, sidebar: ui.sidebar,
+        screen: ui.screen, pagesSel: ui.pagesSel, pagesFilter: ui.pagesFilter, pagesSearch: ui.pagesSearch,
         // What was open, so that a reload can say what it closed.
         dialog: ui.dialog ? dialogLabel(ui.dialog) : null, finish: finishStep, panel: !!ui.savePanel,
         // An Add link that was open, and a Text being typed, so a reload can finish them.
@@ -236,6 +252,9 @@
       ui.current = saved.current && page(saved.current) ? saved.current : 'home';
       // A reload leaves the Navigation sidebar as it was, without counting another opening.
       ui.sidebar = IN_SIDEBAR && !!saved.sidebar;
+      // ... and on the site editor's screen it was on.
+      if (IN_SIDEBAR && SCREENS[saved.screen]) ui.screen = saved.screen;
+      if (IN_SIDEBAR) { ui.pagesSel = saved.pagesSel && page(saved.pagesSel) ? saved.pagesSel : null; ui.pagesFilter = saved.pagesFilter || 'all'; ui.pagesSearch = saved.pagesSearch || ''; }
       // A reload closes whatever dialog was open: say so, so that dialogs shown, confirmed
       // and cancelled still add up.
       const unsaved = unsavedCount();
@@ -604,6 +623,9 @@
   }
 
   function trashPage(pageId) {
+    // The Pages screen's Trash lists what's in the trash, by title.
+    const gone = page(pageId);
+    if (gone) (state.bin || (state.bin = [])).push({ id: pageId, title: gone.title });
     // Its links go from the menu: on screen, as saved, and at every step Undo can go back to.
     everyMenu(() => {
       const m = state.menu;
@@ -1498,11 +1520,14 @@
         : `<button type="button" class="nav-linkto" data-action="nav-linkto" data-item="${esc(it.id)}" data-focus="nav-linkto" aria-labelledby="nav-linkto-caps nav-linkto-what"><span id="nav-linkto-what" class="nav-linkto-text">${linkTo}</span></button>`}</div>`;
   }
 
-  function sidebarBodyHtml() {
+  // screen: drawn on the site editor's Navigation screen, with that screen's description.
+  function sidebarBodyHtml(screen) {
     const m = state.menu;
     const sel = ui.navSel ? itemById(ui.navSel) : null;
     if (sel) return navInspectorHtml(sel);
-    const intro = '<p class="nav-desc">A collection of blocks that allow visitors to get around your site.</p>';
+    const intro = screen
+      ? '<p class="nav-desc">Navigation Menus are a curated collection of blocks that allow visitors to get around your site.</p>'
+      : '<p class="nav-desc">A collection of blocks that allow visitors to get around your site.</p>';
     const list = navListHtml(navRows());
     if (isAutomatic()) {
       return `${intro}${list}<button type="button" class="btn nav-wide" data-action="nav-ask-advanced" data-focus="nav-ask-advanced">Switch to advanced menu</button>`;
@@ -1531,17 +1556,21 @@
     </aside>`;
   }
 
+  // Undo, trash or detaching can take the selected row, or the row a link was going beside, away.
+  function tidyNav() {
+    if (ui.navSel && !itemById(ui.navSel)) ui.navSel = null;
+    if (ui.navAdd && (isAutomatic() || (ui.navAdd.ref && !itemById(ui.navAdd.ref)))) dropAdd('what it was beside has gone');
+  }
+
   function sidebarHtml() {
     if (!IN_SIDEBAR) return '';
     if (ui.savePanel && !saveEntities().length) { ui.savePanel = null; log('save', 'Save panel closed: nothing is left to save'); }
     if (ui.savePanel) return savePanelHtml();
     if (!ui.sidebar) return '';
-    // Undo, trash or detaching can take the selected row, or the row a link was going beside, away.
-    if (ui.navSel && !itemById(ui.navSel)) ui.navSel = null;
-    if (ui.navAdd && (isAutomatic() || (ui.navAdd.ref && !itemById(ui.navAdd.ref)))) dropAdd('what it was beside has gone');
+    tidyNav();
     const sel = ui.navSel ? itemById(ui.navSel) : null;
     const head = sel
-      ? `<button type="button" class="icon-btn nav-back-btn" data-action="nav-back" data-focus="nav-back" aria-label="Go to &quot;Navigation&quot; block">${ICON.back}</button><h2>${isPageList(sel) ? 'Page List' : isBlock(sel) ? BLOCKS[sel.block].title : 'Page link'}</h2>`
+      ? `<button type="button" class="icon-btn nav-back-btn" data-action="nav-back" data-focus="nav-back" aria-label="Go to &quot;Navigation&quot; block">${ICON.back}</button><h2>${navSelName(sel)}</h2>`
       : '<h2>Navigation</h2>';
     return `<aside class="navside" aria-label="Navigation">
       <div class="navside-head${sel ? ' has-back' : ''}">${head}<button type="button" class="icon-btn" data-action="close-sidebar" data-focus="close-sidebar" aria-label="Close Navigation">${ICON.close}</button></div>
@@ -2151,15 +2180,20 @@
     if (!d) return '';
     if (!dialogSubject(d)) { ui.dialog = null; return ''; }
     let body = '';
-    if (d.type === 'add') {
+    if (d.type === 'add' && IN_SIDEBAR) {
+      // Core's Add Page on the Pages screen: a draft, which then opens.
+      body = `<h2 id="dlg-title">Draft new: Page</h2>
+        <div class="field"><label for="dlg-name">Title</label><input type="text" id="dlg-name" value="${esc(d.name || '')}" placeholder="No title" autocomplete="off"></div>
+        <div class="dialog-actions">${btn('close-dialog', 'Cancel')}${btn('create', 'Create draft', { status: 'draft' }, 'btn-primary')}</div>`;
+    } else if (d.type === 'add') {
       body = `<h2 id="dlg-title">New page</h2>
         <div class="field"><label for="dlg-name">Title</label><input type="text" id="dlg-name" value="${esc(d.name || '')}" autocomplete="off"></div>
         <div class="dialog-actions">${btn('close-dialog', 'Cancel')}${btn('create', 'Save as draft', { status: 'draft' })}${btn('create', 'Publish', { status: 'publish' }, 'btn-primary')}</div>`;
     }
     if (d.type === 'rename') {
       const p = page(d.pageId);
-      body = `<h2 id="dlg-title">Rename page</h2>
-        <div class="field"><label for="dlg-name">Title</label><input type="text" id="dlg-name" value="${esc(p.title)}" autocomplete="off"></div>
+      body = `<h2 id="dlg-title">${IN_SIDEBAR ? 'Rename' : 'Rename page'}</h2>
+        <div class="field"><label for="dlg-name">${IN_SIDEBAR ? 'Name' : 'Title'}</label><input type="text" id="dlg-name" value="${esc(p.title)}" autocomplete="off"></div>
         <div class="dialog-actions">${btn('close-dialog', 'Cancel')}${btn('rename', 'Save', { page: p.id }, 'btn-primary')}</div>`;
     }
     if (d.type === 'label') {
@@ -2180,8 +2214,10 @@
     }
     if (d.type === 'trash') {
       const p = page(d.pageId);
-      // The same words in every arm, and nothing about the menu.
-      body = `<h2 id="dlg-title">Move "${esc(p.title)}" to trash?</h2>
+      // Nothing about the menu. The sidebar arms have core's words, from its Pages screen.
+      if (IN_SIDEBAR) body = `<p id="dlg-title" class="dialog-q">Are you sure you want to move "${esc(p.title)}" to the trash?</p>
+        <div class="dialog-actions">${btn('close-dialog', 'Cancel')}${btn('trash', 'Trash', { page: p.id }, 'btn-danger')}</div>`;
+      else body = `<h2 id="dlg-title">Move "${esc(p.title)}" to trash?</h2>
         <p>Visitors won't be able to see this page any more.</p>
         <div class="dialog-actions">${btn('close-dialog', 'Cancel')}${btn('trash', 'Move to trash', { page: p.id }, 'btn-danger')}</div>`;
     }
@@ -2230,7 +2266,8 @@
     return {
       left: `<span class="ed-tools">${tool('ed-undo', 'Undo', ICON.undo, h.at === 0)}${tool('ed-redo', 'Redo', ICON.redo, h.at >= h.stack.length - 1)}</span>`,
       // While the save panel is open its own Cancel and Save stand where Save was.
-      right: ui.savePanel ? '' : `<div class="topbar-right"><button type="button" class="btn btn-primary ed-save" data-action="ed-save" data-focus="ed-save" aria-disabled="${!saveEntities().length}">Save</button></div>`
+      // On the site, showing a draft: core's page editor has Publish in the top bar.
+      right: ui.savePanel ? '' : `<div class="topbar-right">${ui.screen === 'site' && (page(ui.current) || {}).status === 'draft' ? `<button type="button" class="btn btn-primary ed-publish" data-action="publish" data-page="${esc(ui.current)}" data-how="the top bar’s Publish, with the page on the site" data-focus="ed-publish">Publish</button>` : ''}<button type="button" class="btn btn-primary ed-save" data-action="ed-save" data-focus="ed-save" aria-disabled="${!saveEntities().length}">Save</button></div>`
     };
   }
 
@@ -2241,6 +2278,8 @@
     set('[data-action="ed-undo"]', h.at === 0);
     set('[data-action="ed-redo"]', h.at >= h.stack.length - 1);
     set('[data-action="ed-save"]', !saveEntities().length);
+    const foot = root.querySelector('.sn-foot');
+    if (foot) foot.innerHTML = snFootHtml();
   }
 
   function renderSite() {
@@ -2261,6 +2300,208 @@
     </div>`;
   }
 
+  // Where a Pages action was done, for the log: the sidebar arms say whether it was the Pages screen.
+  const whereWords = () => (!IN_SIDEBAR ? '' : ui.screen === 'pages' ? ' (on the Pages screen)' : ' (on the ' + SCREENS[ui.screen] + ' screen)');
+
+  // ---------- The site editor's navigation (control, auto-add, menu-switches) ----------
+  //
+  // As WordPress's site editor (seen in 7.1.5 with Gutenberg 24.4.2; core-ref NOTES, "Site editor
+  // navigation"): a dark column on the left. At the start it's "Design" with the entries
+  // Identity, Styles, Pages, Navigation, Patterns and Templates, and the main area is the site,
+  // which is edited as before (click the header menu for its sidebar). Pages swaps the main area
+  // for core's pages screen: a list column (Add Page, Search, a row per page, by title) and a
+  // preview of the selected page. Navigation shows the menu's list in the column itself, the
+  // same list as the menu's sidebar, editing the same menu with the same saving. The other four
+  // entries aren't part of the prototype: each says so. ui.screen is where the column is.
+
+  // Leaving a screen (or opening one) is logged, so the log shows how people found Pages.
+  function goScreen(screen, how) {
+    if (!IN_SIDEBAR || !SCREENS[screen] || ui.screen === screen) return;
+    const from = ui.screen;
+    endTyping();
+    if (from === 'navigation') { dropAdd('left the Navigation screen'); ui.navSel = null; ui.linkEdit = null; ui.collapsed = {}; }
+    if (screen !== 'site' && ui.sidebar) closeSidebar('opened the ' + SCREENS[screen] + ' screen');
+    ui.more = null; ui.pop = null;
+    ui.screen = screen;
+    if (screen === 'navigation') ui.collapsed = {};
+    if (screen === 'pages' && !stats.firstPages) stats.firstPages = Math.max(1, seconds());
+    if (from !== 'site') log('screen', 'Left the ' + SCREENS[from] + ' screen (' + how + ')');
+    if (screen !== 'site') log('screen', 'Opened the ' + SCREENS[screen] + ' screen (' + how + ')' + (OTHER_SCREENS.includes(screen) ? ': it isn’t part of this prototype' : ''));
+    else log('screen', 'Back to Design: the site, where it can be edited (' + how + ')');
+    ui.focus = screen === 'site' ? (from === 'pages' || from === 'navigation' || OTHER_SCREENS.includes(from) ? 'sn:' + from : null) : 'sn-back';
+    render();
+  }
+
+  const SN_ICON = {
+    identity: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="7.25"/><path d="M5 12h14M12 4.75c2.2 2.4 2.2 12.1 0 14.5"/></svg>',
+    styles: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7.25" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M12 4.75a7.25 7.25 0 0 1 0 14.5z" fill="currentColor"/></svg>',
+    pages: ICON.page,
+    navigation: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="7.25"/><path d="M14.5 9.5l-1.5 3.5-3.5 1.5 1.5-3.5z"/></svg>',
+    patterns: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M8 7l-5 5 5 5M16 7l5 5-5 5M12 7l-3.5 5L12 17l3.5-5z"/></svg>',
+    templates: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="4.75" y="4.75" width="14.5" height="14.5" rx="1.25"/><path d="M4.75 10h14.5M10 10v9.25"/></svg>',
+    chev: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M10 7l5 5-5 5"/></svg>',
+    check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5.5 12.5l4 4 9-9"/></svg>',
+    published: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="7.25"/><path d="M8.75 12.25l2.25 2.25 4.25-4.5"/></svg>',
+    draft: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="7.25"/><path d="M5.5 12h13" /><path d="M6.6 15.5h10.8" /></svg>',
+    trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6 7.5h12M9.5 7.5V5.75h5V7.5M7.5 7.5l.75 11h7.5l.75-11"/></svg>',
+    filter: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="7.25"/></svg>'
+  };
+  const PAGE_FILTERS = [['all', 'All Pages', 'pages'], ['publish', 'Published', 'published'], ['future', 'Scheduled', 'filter'], ['draft', 'Drafts', 'draft'], ['pending', 'Pending', 'filter'], ['private', 'Private', 'filter'], ['trash', 'Trash', 'trash']];
+
+  function snBack(label, action, data, focus) {
+    const attrs = Object.entries(data || {}).map(([k, v]) => ` data-${k}="${esc(v)}"`).join('');
+    return `<button type="button" class="icon-btn sn-back" data-action="${action}"${attrs} data-focus="${focus || 'sn-back'}" aria-label="${esc(label)}">${ICON.back}</button>`;
+  }
+
+  // The column's foot: "Saved", or a button that opens the save panel, as in core.
+  function snFootHtml() {
+    const n = saveEntities().length;
+    return n
+      ? `<button type="button" class="btn btn-primary sn-review" data-action="sn-review" data-focus="sn-review">Review ${n} ${n === 1 ? 'change' : 'changes'}…</button>`
+      : `<span class="sn-saved">${SN_ICON.check}Saved</span>`;
+  }
+
+  function siteNavColumnHtml() {
+    const s = ui.screen;
+    let head;
+    let body;
+    if (s === 'site') {
+      head = `${snBack('Go to the Dashboard', 'sn-dashboard', {}, 'sn-dashboard')}<h2>Design</h2>`;
+      body = `<p class="sn-desc">Customize the appearance of your website using the block editor.</p>
+        <ul class="sn-entries">${Object.keys(SN_ENTRIES).map((k) => `<li><button type="button" class="sn-entry" data-action="sn-screen" data-screen="${k}" data-how="the ${SCREENS[k]} entry" data-focus="sn:${k}">${SN_ICON[k]}<span>${SCREENS[k]}</span>${SN_ENTRIES[k] ? SN_ICON.chev : ''}</button></li>`).join('')}</ul>`;
+    } else if (s === 'pages') {
+      head = `${snBack('Back', 'sn-screen', { screen: 'site', how: 'the Pages screen’s back arrow' })}<h2>Pages</h2>`;
+      body = `<p class="sn-desc">Manage or edit the pages that make up your site, and their appearance.</p>
+        <ul class="sn-entries">${PAGE_FILTERS.map(([k, t, icon]) => `<li><button type="button" class="sn-entry${ui.pagesFilter === k ? ' is-current' : ''}" data-action="pages-filter" data-filter="${k}" data-focus="pf:${k}" aria-current="${ui.pagesFilter === k ? 'true' : 'false'}">${SN_ICON[icon]}<span>${t}</span></button></li>`).join('')}</ul>`;
+    } else if (s === 'navigation') {
+      tidyNav();
+      const sel = ui.navSel ? itemById(ui.navSel) : null;
+      head = sel
+        ? `${snBack('Go to "Navigation" block', 'nav-back', {}, 'nav-back')}<h2>${navSelName(sel)}</h2>`
+        : `${snBack('Back', 'sn-screen', { screen: 'site', how: 'the Navigation screen’s back arrow' })}<h2>Navigation</h2>`;
+      body = `<div class="navside navscreen" aria-label="Navigation"><div class="navside-body">${sidebarBodyHtml(true)}</div></div>`;
+    } else {
+      head = `${snBack('Back', 'sn-screen', { screen: 'site', how: 'the ' + SCREENS[s] + ' screen’s back arrow' })}<h2>${SCREENS[s]}</h2>`;
+      body = `<p class="sn-desc">${SCREENS[s]} isn’t part of this prototype.</p>`;
+    }
+    return `<nav class="sitenav" aria-label="Site editor">
+      <div class="sn-head">${head}</div>
+      <div class="sn-body">${body}</div>
+      <div class="sn-foot">${snFootHtml()}</div>
+    </nav>`;
+  }
+
+  // Core's list: by title, A to Z, each top-level page followed by its child pages (not
+  // indented). Not page order.
+  function pagesListPages() {
+    const byTitle = (a, b) => a.title.localeCompare(b.title, undefined, { sensitivity: 'base' });
+    const out = [];
+    state.pages.filter((p) => !hasParent(p)).sort(byTitle).forEach((t) => {
+      out.push(t);
+      state.pages.filter((c) => c.parent === t.id).sort(byTitle).forEach((c) => out.push(c));
+    });
+    const f = ui.pagesFilter;
+    const want = (p) => f === 'all' || p.status === f;
+    const words = ui.pagesSearch.trim().toLowerCase();
+    return out.filter((p) => want(p) && (!words || p.title.toLowerCase().includes(words)));
+  }
+
+  function pagesMoreHtml(p) {
+    const item = (action, text, data, cls) => {
+      const attrs = Object.entries(data).map(([k, v]) => ` data-${k}="${esc(v)}"`).join('');
+      return `<button type="button" role="menuitem" class="${cls || ''}" data-action="${action}"${attrs}>${text}</button>`;
+    };
+    const dead = (text) => `<button type="button" role="menuitem" aria-disabled="true" data-action="pages-dead" data-what="${esc(text + ' on ' + q(p.title))}">${text}</button>`;
+    let html = item('pages-edit', 'Edit', { page: p.id, how: 'Edit in its ⋮ on the Pages screen' }) +
+      item('view', 'View', { page: p.id, how: 'View in its ⋮ on the Pages screen' });
+    if (p.id !== 'home') html += item('ask-trash', 'Trash…', { page: p.id }, 'danger');
+    html += dead('Duplicate…') + item('ask-rename', 'Rename…', { page: p.id }) + dead('Order…');
+    if (p.status === 'publish') html += dead('Set as homepage…') + dead('Set as posts page…');
+    return `<div class="moremenu" role="menu">${html}</div>`;
+  }
+
+  function pagesScreenHtml() {
+    const sel = ui.pagesSel && page(ui.pagesSel) ? ui.pagesSel : null;
+    let list;
+    if (ui.pagesFilter === 'trash') {
+      const bin = (state.bin || []).filter((b) => !page(b.id) && (!ui.pagesSearch.trim() || b.title.toLowerCase().includes(ui.pagesSearch.trim().toLowerCase())));
+      list = bin.length ? `<ul class="plist" aria-label="Pages">${bin.map((b) => `<li class="prow is-trash"><div class="prow-main"><span class="prow-thumb"></span><span class="prow-text"><span class="prow-line"><span class="prow-title">${esc(b.title)}</span></span><span class="prow-status">${SN_ICON.trash}Trash</span></span></div></li>`).join('')}</ul>` : '';
+    } else {
+      const rows = pagesListPages().map((p) => {
+        const key = keyRow(p.id);
+        const on = sel === p.id;
+        return `<li class="prow${on ? ' is-selected' : ''}${ui.flash === key ? ' flash' : ''}" data-row="${esc(key)}">
+          <button type="button" class="prow-main" data-action="pages-select" data-page="${esc(p.id)}" data-focus="title:${esc(p.id)}" aria-pressed="${on}">
+            <span class="prow-thumb"></span>
+            <span class="prow-text"><span class="prow-line"><span class="prow-title">${esc(p.title)}</span>${p.id === 'home' ? '<span class="prow-badge">Homepage</span>' : ''}</span>
+            <span class="prow-status">${p.status === 'publish' ? SN_ICON.published + 'Published' : SN_ICON.draft + 'Draft'}</span></span>
+          </button>
+          <button type="button" class="prow-edit" data-action="pages-edit" data-page="${esc(p.id)}" data-how="Edit on its row on the Pages screen" data-focus="pedit:${esc(p.id)}" aria-label="Edit ${esc(p.title)}">Edit</button>
+          <button type="button" class="icon-btn" data-action="more" data-key="${esc(key)}" data-focus="more:${esc(key)}" aria-label="Actions for ${esc(p.title)}" aria-expanded="${ui.more === key ? 'true' : 'false'}">${ICON.more}</button>
+          ${ui.more === key ? pagesMoreHtml(p) : ''}</li>`;
+      }).join('');
+      list = rows ? `<ul class="plist" aria-label="Pages">${rows}</ul>` : '';
+    }
+    const filterName = PAGE_FILTERS.find((x) => x[0] === ui.pagesFilter)[1];
+    const shown = page(sel || ui.current) || page('home') || state.pages[0];
+    // The preview of the selected page (the front page until a row is chosen). A click on it
+    // edits that page: back to the site, showing it.
+    return `<main class="pagescreen" aria-label="Pages">
+        <div class="ps-head"><h2>Pages</h2>${btn('ask-add', 'Add Page', {}, 'btn-small btn-primary')}</div>
+        <div class="ps-tools"><input type="search" id="pages-search" placeholder="Search" aria-label="Search" value="${esc(ui.pagesSearch)}" autocomplete="off" data-focus="pages-search">${ui.pagesFilter !== 'all' ? `<span class="ps-chip">Status includes: ${esc(filterName)}</span>` : ''}</div>
+        ${list || '<p class="ps-empty">No results</p>'}
+      </main>
+      ${previewHtml(shown, 'pages-edit', { page: shown.id, how: 'a click on the preview of ' + q(shown.title) + ' on the Pages screen' }, 'Edit ' + shown.title)}`;
+  }
+
+  // The site as a preview that can't be changed (the main area of every screen but Design's):
+  // a click on it edits it, as in core.
+  function previewHtml(p, action, data, label) {
+    const attrs = Object.entries(data).map(([k, v]) => ` data-${k}="${esc(v)}"`).join('');
+    let site = '';
+    if (p) { const keep = ui.current; ui.current = p.id; site = renderSite(); ui.current = keep; }
+    return `<section class="stage preview" aria-label="Site preview">
+        <div class="stage-bar"><span>Your site</span><span class="stage-url">${esc(pageUrl(p))}</span></div>
+        <div class="preview-wrap"><div class="preview-site" inert>${site}</div><button type="button" class="preview-edit" data-action="${action}"${attrs} data-focus="preview-edit" aria-label="${esc(label)}"></button></div>
+      </section>`;
+  }
+
+  // The selected item's name, as the sidebar's heading says it.
+  const navSelName = (sel) => (isPageList(sel) ? 'Page List' : isBlock(sel) ? BLOCKS[sel.block].title : 'Page link');
+
+  const siteNavActions = {
+    'sn-screen'(d) { goScreen(d.screen, d.how || 'the ' + SCREENS[d.screen] + ' entry'); },
+    'sn-dashboard'() { log('tried', 'Tried to go to the Dashboard (the Design screen’s back arrow): not part of this prototype'); },
+    'sn-review'() { openSavePanel('the Review changes button at the foot of the site editor’s navigation'); },
+    'pages-filter'(d) {
+      if (ui.pagesFilter === d.filter) return;
+      ui.pagesFilter = d.filter;
+      ui.more = null;
+      ui.focus = 'pf:' + d.filter;
+      log('screen', 'Pages screen: showing ' + PAGE_FILTERS.find((x) => x[0] === d.filter)[1]);
+      render();
+    },
+    'pages-select'(d) {
+      const p = page(d.page);
+      if (!p) return;
+      ui.more = null;
+      if (ui.pagesSel !== p.id) {
+        ui.pagesSel = p.id;
+        log('visit', 'Pages screen: selected ' + q(p.title) + '; the preview beside the list shows it');
+      }
+      ui.focus = 'title:' + p.id;
+      render();
+    },
+    'pages-edit'(d) {
+      const p = page(d.page);
+      if (!p) return;
+      ui.pagesSel = p.id;
+      visit(p.id, d.how);
+      goScreen('site', d.how);
+    },
+    'pages-dead'(d) { ui.more = null; log('tried', 'Tried ' + d.what + ' on the Pages screen: not part of this prototype'); render(); }
+  };
+
   // ---------- Render ----------
 
   const root = document.getElementById('app');
@@ -2270,11 +2511,11 @@
     const active = document.activeElement;
     const focusKey = ui.focus || (active && active.dataset && active.dataset.focus);
     ui.focus = null;
-    const panelScroll = (root.querySelector('.panel') || {}).scrollTop || 0;
+    const panelScroll = (root.querySelector('.panel, .pagescreen') || {}).scrollTop || 0;
     const stageScroll = (root.querySelector('.stage') || {}).scrollTop || 0;
     const sideScroll = (root.querySelector('.navside-body') || {}).scrollTop || 0;
 
-    const panel = ARM === 'explained' ? renderExplained() : ARM === 'switches' ? renderSwitches() : renderPlain();
+    const panel = ARM === 'explained' ? renderExplained() : ARM === 'switches' ? renderSwitches() : IN_SIDEBAR ? '' : renderPlain();
     const cur = page(ui.current) || page('home') || state.pages[0];
     const dialog = dialogHtml();
     const tools = topbarToolsHtml();
@@ -2286,25 +2527,31 @@
       drawnDialog = ui.dialog;
     }
 
-    root.innerHTML = `
-      <div class="app arm-${ARM}">
-        <div class="topbar">
-          <div class="topbar-left"><span class="site-icon" aria-hidden="true">R</span><span class="topbar-title">Pages</span><span class="topbar-sub">Rosa's Bakery</span>${tools.left}</div>${tools.right}
-        </div>
-        <div class="workspace">
-          <main class="panel" aria-label="Pages">${panel}</main>
-          <section class="stage" aria-label="Site preview">
+    const stage = `<section class="stage" aria-label="Site preview">
             <div class="stage-bar"><span>Your site</span><span class="stage-url">${esc(pageUrl(cur))}</span></div>
             ${renderSite()}
-          </section>
+          </section>`;
+    // The sidebar arms: the site editor's navigation column, then the screen's main area.
+    const main = !IN_SIDEBAR ? `<main class="panel" aria-label="Pages">${panel}</main>
+          ${stage}`
+      : ui.screen === 'site' ? siteNavColumnHtml() + stage
+      : ui.screen === 'pages' ? siteNavColumnHtml() + pagesScreenHtml()
+      : siteNavColumnHtml() + previewHtml(cur, 'sn-screen', { screen: 'site', how: 'a click on the preview' }, 'Edit your site');
+    root.innerHTML = `
+      <div class="app arm-${ARM}${IN_SIDEBAR ? ' screen-' + ui.screen : ''}">
+        <div class="topbar">
+          <div class="topbar-left"><span class="site-icon" aria-hidden="true">R</span>${IN_SIDEBAR ? '' : '<span class="topbar-title">Pages</span>'}<span class="topbar-sub">Rosa's Bakery</span>${tools.left}</div>${tools.right}
+        </div>
+        <div class="workspace">
+          ${main}
           ${side}
         </div>
         <div class="bottombar"><button type="button" class="btn btn-primary" data-action="finish" data-focus="finish">Finished</button><p>Click Finished when you've done everything you were asked to.</p></div>
       </div>
       ${dialog}`;
 
-    const panelEl = root.querySelector('.panel');
-    panelEl.scrollTop = panelScroll;
+    const panelEl = root.querySelector('.panel, .pagescreen');
+    if (panelEl) panelEl.scrollTop = panelScroll;
     root.querySelector('.stage').scrollTop = stageScroll;
     const sideEl = root.querySelector('.navside-body');
     if (sideEl) sideEl.scrollTop = sideScroll;
@@ -2590,17 +2837,22 @@
     move(d) { step(d.kind, d.id, Number(d.dir), 'move'); },
 
     // The basics, in every arm.
-    view(d) { visit(d.page, d.how || 'the Pages panel'); ui.more = null; render(); },
+    view(d) {
+      visit(d.page, d.how || 'the Pages panel'); ui.more = null;
+      // The Pages screen's View: the site, showing the page (core opens the page in a new tab).
+      if (IN_SIDEBAR && ui.screen === 'pages') { ui.pagesSel = d.page; goScreen('site', d.how); return; }
+      render();
+    },
     visit(d) { visit(d.page, d.how || 'the preview'); ui.focus = 'visit:' + d.page; render(); },
     publish(d) {
       const p = page(d.page);
       if (!p) return;
       const was = isShown(d.page);
       // The keyboard stays on the row: its marker (B's popover) or its ⋮ button.
-      const focus = (d.how === 'its marker' ? 'pop:' : 'more:') + keyRow(d.page);
+      const focus = d.how && d.how.indexOf('top bar') >= 0 ? 'ed-save' : (d.how === 'its marker' ? 'pop:' : 'more:') + keyRow(d.page);
       const toggle = draftToggleWords(d.page);
       commit(() => { publishPage(d.page); ui.pop = null; ui.flash = keyRow(d.page); ui.focus = focus; }, `"${p.title}" is published`);
-      log('page', 'Published ' + q(p.title) + ' (from ' + (d.how || 'the Pages panel') + ')' + toggle + '; ' + (IN_SIDEBAR ? menuWords(d.page) : isShown(d.page) && !was ? 'it is now in the menu' : 'it is not in the menu'));
+      log('page', 'Published ' + q(p.title) + ' (from ' + (d.how || 'the Pages panel') + ')' + toggle + (IN_SIDEBAR && ui.screen !== 'site' ? whereWords() : '') + '; ' + (IN_SIDEBAR ? menuWords(d.page) : isShown(d.page) && !was ? 'it is now in the menu' : 'it is not in the menu'));
     },
     'ask-add'() { openDialog({ type: 'add' }); },
     create(d) {
@@ -2617,8 +2869,11 @@
         if (ARM === 'explained') { ui.pop = keyRow(id); ui.focus = 'pop:' + keyRow(id); popOpenedItselfAt = Date.now(); }
         else if (ARM === 'switches') ui.focus = 'sw:' + id;
         else ui.focus = 'more:' + keyRow(id);
+        // Core opens a new draft in the editor: here, the site, showing it, with Publish in the top bar.
+        if (IN_SIDEBAR) { ui.screen = 'site'; ui.pagesSel = id; ui.focus = 'ed-publish'; }
       }, `"${title}" ${d.status === 'draft' ? 'saved as a draft' : 'published'}`);
-      log('page', 'Added ' + q(title) + ', ' + (d.status === 'draft' ? 'saved as a draft' + (CANVAS_DRAFTS && isAutomatic() ? '; it is in the pages menu, switched on, so it will be in the menu once it’s published' : '') : 'published; ' + (IN_SIDEBAR ? menuWords(id) : isShown(id) ? 'it is now in the menu' : 'it is not in the menu')));
+      log('page', 'Added ' + q(title) + ', ' + (d.status === 'draft' ? 'saved as a draft' + (CANVAS_DRAFTS && isAutomatic() ? '; it is in the pages menu, switched on, so it will be in the menu once it’s published' : '') : 'published; ' + (IN_SIDEBAR ? menuWords(id) : isShown(id) ? 'it is now in the menu' : 'it is not in the menu')) + (IN_SIDEBAR ? ' (Add Page, Create draft, on the Pages screen)' : ''));
+      if (IN_SIDEBAR) log('screen', 'Left the Pages screen (Create draft opens the new page on the site, with Publish in the top bar)');
       log('visit', 'The preview shows the new page, ' + q(title));
       if (ARM === 'explained') log('menu', 'Marker popover opened on its own after Add page: ' + q(title) + ' (not counted)');
     },
@@ -2641,7 +2896,7 @@
       }
       const link = linkFor(p.id);
       commit(() => { renamePage(d.page, title); ui.flash = keyRow(d.page); ui.focus = 'more:' + keyRow(d.page); }, `"${old}" is now "${title}"`);
-      log('page', 'Renamed a page’s title: ' + q(old) + ' to ' + q(title) + (followsTitle(p.id) ? (isShown(p.id) || onCanvas(p.id) ? '; the menu follows' : '') : link ? '; its link in the menu still says ' + q(link.label) : ''));
+      log('page', 'Renamed a page’s title: ' + q(old) + ' to ' + q(title) + (followsTitle(p.id) ? (isShown(p.id) || onCanvas(p.id) ? '; the menu follows' : '') : link ? '; its link in the menu still says ' + q(link.label) : '') + whereWords());
     },
     'ask-trash'(d) { openDialog({ type: 'trash', pageId: d.page }); },
     trash() {
@@ -2652,11 +2907,11 @@
       const p = page(d.page);
       ui.dialog = null;
       // The keyboard goes to the row that takes its place, or the one above.
-      const keys = [...root.querySelectorAll('.panel [data-row]')].map((el) => el.dataset.row);
+      const keys = [...root.querySelectorAll('.panel [data-row], .pagescreen [data-row]')].map((el) => el.dataset.row);
       const at = keys.indexOf(keyRow(d.page));
       const near = keys[at + 1] || keys[at - 1];
-      commit(() => { trashPage(d.page); ui.pop = null; if (near) ui.focus = 'more:' + near; }, `"${p.title}" moved to trash`);
-      log('page', 'Moved ' + q(p.title) + ' to trash');
+      commit(() => { trashPage(d.page); ui.pop = null; if (near) ui.focus = 'more:' + near; if (ui.pagesSel === d.page) ui.pagesSel = null; }, `"${p.title}" moved to trash`);
+      log('page', 'Moved ' + q(p.title) + ' to trash' + whereWords());
     },
     'close-dialog'(d) { closeDialog((d && d.how) || 'Cancel'); },
     // A click outside a dialog closes it only if the pointer went down outside it too, and
@@ -2677,6 +2932,7 @@
     },
     'close-sidebar'() { closeSidebar('close button'); },
     ...navActions,
+    ...siteNavActions,
 
     // One level of Undo: the last change, until the next one. From the message's button
     // or with Ctrl+Z / Cmd+Z (how === 'keyboard').
@@ -2779,7 +3035,7 @@
       }
       if (ui.navAdd && !ev.target.closest('.nav-picker, [data-action="nav-ask-add"]')) {
         const named = ev.target.closest('[data-action="ed-save"]') ? 'Save' : ev.target.closest('[data-action="close-sidebar"]') ? 'closed the sidebar' : null;
-        const where = ev.target.closest('.panel') ? 'clicked the Pages panel' : ev.target.closest('.stage') ? 'clicked the preview' : ev.target.closest('.navside') ? 'clicked elsewhere in the sidebar' : ev.target.closest('.topbar') ? 'clicked the top bar' : 'clicked elsewhere';
+        const where = ev.target.closest('.panel') ? 'clicked the Pages panel' : ev.target.closest('.sitenav .sn-head, .sitenav .sn-foot, .sitenav .sn-entries') ? 'clicked the site editor’s navigation' : ev.target.closest('.stage') ? 'clicked the preview' : ev.target.closest('.navside') ? 'clicked elsewhere in the sidebar' : ev.target.closest('.topbar') ? 'clicked the top bar' : 'clicked elsewhere';
         if (dropAdd(named || where)) render();
       }
     }
@@ -2795,7 +3051,8 @@
     if (!action) return;
     // A ⋮ item, and a row whose click puts its settings in the list's place: the second click of
     // a double-click would land on whatever has just appeared there.
-    const guarded = IN_SIDEBAR && (el.closest('.moremenu') || el.dataset.action === 'nav-select');
+    // So is a click that changes the site editor's screen: what's under the pointer is new.
+    const guarded = IN_SIDEBAR && (el.closest('.moremenu') || ['nav-select', 'sn-screen', 'pages-edit', 'view'].includes(el.dataset.action));
     if (guarded) moreItemAt = Date.now();
     action(Object.assign({}, el.dataset), el, ev);
     if (guarded) guardFocus = document.activeElement;
@@ -3129,6 +3386,8 @@
     if (t.id === 'nav-create-title' && ui.navAdd) { ui.navAdd.title = t.value; t.removeAttribute('aria-invalid'); return; }
     // Search or type URL narrows the suggestions as you type, without redrawing.
     if (t.id === 'nav-linkto-input' && ui.linkEdit) { ui.linkEdit.text = t.value; t.parentElement.querySelector('.nav-apply').setAttribute('aria-disabled', t.value.trim() ? 'false' : 'true'); return; }
+    // The Pages screen's Search narrows the list as you type.
+    if (t.id === 'pages-search') { ui.pagesSearch = t.value; ui.more = null; const at = t.selectionStart; render(); const el = root.querySelector('#pages-search'); if (el) { el.focus(); el.setSelectionRange(at, at); } return; }
     if (t.id !== 'nav-search') return;
     if (ui.navAdd) { ui.navAdd.q = t.value; save(); }
     t.parentElement.querySelector('.nav-apply').setAttribute('aria-disabled', t.value.trim() ? 'false' : 'true');
@@ -3224,7 +3483,7 @@
 
   /*
    * For pasting into an unmoderated testing tool. For example:
-   *   OC-112121-mp140-d0.0-f35-r1.2-nl-x0-u2.1-k3-e0-w0-v2.1-s412
+   *   OC-112121-mp140-d0.0-f35-r1.2-nl-x0-u2.1-k3-g40-e0-w0-v2.1-s412
    * OC, OA, OB, OF, OQ: the arm · tasks 2 to 7 when Finished was clicked ·
    * m: the menu at the end (ma automatic, ml links, mv advanced and still adding pages,
    *    mx advanced with adding turned off; each with the seconds when it was converted.
@@ -3233,7 +3492,8 @@
    * d: convert dialogs shown, confirmed · f: seconds until the first change to what the
    * menu shows (0 never) · r: reorders by drag, by Move up/down · n: how task 5 was done
    * (np page renamed, nl only a link's label, n0 neither) · x: pages in the trash ·
-   * u: uses of Undo, of Redo · k: the arm's own count · e: times turned back at "Have you
+   * u: uses of Undo, of Redo · k: the arm's own count · g: seconds until the Pages screen was
+   * first opened (sidebar arms; 0 never, always 0 in B and F) · e: times turned back at "Have you
    * done every task?" · w: unsaved menu changes at Finished · v: saves, save panels closed
    * without saving · s: seconds until Finished.
    * In the sidebar arms the tasks, m and n are read from the saved site; if the screen showed
@@ -3274,6 +3534,8 @@
       'x' + state.trashed.length,
       'u' + stats.undos + '.' + stats.redos,
       'k' + stats.own,
+      // Seconds until the Pages screen was first opened (sidebar arms); always g0 in B and F.
+      'g' + (stats.firstPages || 0),
       'e' + stats.finishBack,
       'w' + unsavedCount(),
       'v' + stats.saves + '.' + stats.panelCancels,
@@ -3422,6 +3684,7 @@
       `<dt>Pages in the trash</dt><dd>${state.trashed.length}</dd>` +
       `<dt>Uses of Undo${IN_SIDEBAR ? '; Redo' : ''}</dt><dd>${stats.undos}${IN_SIDEBAR ? '; ' + stats.redos : ''}</dd>` +
       `<dt>${own}</dt><dd>${stats.own}</dd>` +
+      (IN_SIDEBAR ? `<dt>First opened the Pages screen</dt><dd>${stats.firstPages ? stats.firstPages + 's' : 'not yet'}</dd>` : '') +
       `<dt>Turned back at “Have you done every task?”</dt><dd>${stats.finishBack}</dd></dl>` +
       `<h3>Log</h3><ol class="log">${events.map((l) => `<li class="is-${l.kind}"><time>${l.at}</time>${esc(l.text)}</li>`).join('') || '<li>Nothing yet.</li>'}</ol>` +
       '<div class="actions"><button type="button" class="btn btn-small" data-copy>Copy log</button><button type="button" class="btn btn-small" data-reset>Reset</button></div>';

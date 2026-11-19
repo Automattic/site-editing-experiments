@@ -13,6 +13,8 @@
  *
  * The block toolbar also shows the selected block's name beside its icon
  * ("Group", "Column"), so it says the same as the tab that was clicked.
+ * Clicking that name lists everything in the selected block's section
+ * (route `tree`); picking a row selects that block.
  *
  * This file uses only the API in ../app.js (window.Utrillo.registerVariant).
  */
@@ -28,7 +30,9 @@
     id: 'hover-tab',
     code: 'UA',
     init: function (api) {
-      api.showBlockNameInToolbar(true);
+      // The toolbar shows the block's name too, and clicking it lists the
+      // blocks in the selected block's section (see "The section's blocks").
+      api.showBlockNameInToolbar(true, (info) => toggleTree(info.id));
       const canvas = api.canvas;
       const overlay = api.overlay;
 
@@ -243,6 +247,160 @@
       api.on('select', () => draw());
       // Reset puts the page back: "first time" starts over.
       api.on('change', (info) => { if (info && info.reason === 'reset') seen.clear(); });
+
+      // ---------- The section's blocks, from the name in the toolbar ----------
+
+      const escHtml = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+      const name = (id) => { const b = api.getBlock(id); return b ? b.title + ' (' + id + ')' : id; };
+      const tree = document.createElement('div');
+      tree.className = 'uta-tree';
+      tree.setAttribute('role', 'dialog');
+      tree.hidden = true;
+      document.body.append(tree);
+      let treeTop = null;      // the section whose blocks are listed, or null
+      let treeHighlight = null;
+
+      function toggleTree(id) {
+        const top = api.getTopLevelId(id);
+        if (treeTop && treeTop === top) { closeTree({ focusButton: true }); return; }
+        openTree(top);
+      }
+
+      function renderTree() {
+        const section = api.getBlock(treeTop);
+        if (!section) { closeTree(); return; }
+        const sel = api.getSelectedId();
+        const rows = [];
+        const add = (node, depth) => {
+          const selected = node.id === sel;
+          rows.push('<li class="ut-lv-row uta-tree-row' + (selected ? ' is-selected' : '') + '" style="--depth:' + depth + '">' +
+            '<span class="ut-lv-expander"></span>' +
+            '<button type="button" class="ut-lv-select" data-tree-id="' + escHtml(node.id) + '"' + (selected ? ' aria-current="true"' : '') + '>' + node.icon + '<span>' + escHtml(node.title) + '</span></button></li>');
+          node.children.forEach((c) => add(c, depth + 1));
+        };
+        add(section, 0);
+        tree.setAttribute('aria-label', 'Blocks in this ' + section.title);
+        tree.innerHTML = '<div class="uta-tree-head"><h2>' + escHtml(section.title) + '</h2></div>' +
+          '<ul class="ut-lv uta-tree-list" aria-label="Blocks in this ' + escHtml(section.title) + '">' + rows.join('') + '</ul>';
+      }
+
+      // Under the name button, left edges lined up, kept inside the canvas.
+      function placeTree() {
+        if (!treeTop) return;
+        const btn = api.toolbarNameButton();
+        if (!btn) { tree.style.visibility = 'hidden'; return; }
+        tree.style.visibility = '';
+        btn.setAttribute('aria-expanded', 'true');
+        const b = btn.getBoundingClientRect();
+        const c = canvas.getBoundingClientRect();
+        const vis = { top: c.top + 8, left: c.left + 8, bottom: c.top + canvas.clientHeight - 8, right: c.left + canvas.clientWidth - 8 };
+        const below = Math.max(vis.top, b.bottom + 4);
+        const room = vis.bottom - below;
+        tree.style.maxHeight = (room >= 240 ? room : Math.max(120, vis.bottom - vis.top)) + 'px';
+        const w = tree.offsetWidth;
+        const h = tree.offsetHeight;
+        let top = below;
+        if (top + h > vis.bottom) top = vis.bottom - h;
+        if (top < vis.top) top = vis.top;
+        let left = b.left;
+        if (left + w > vis.right) left = vis.right - w;
+        if (left < vis.left) left = vis.left;
+        tree.style.top = Math.round(top) + 'px';
+        tree.style.left = Math.round(left) + 'px';
+      }
+
+      function openTree(top) {
+        treeTop = top;
+        setTreeHighlight(null);
+        renderTree();
+        tree.hidden = false;
+        placeTree();
+        api.count('treeOpened', 'Block list opened');
+        api.log('arm', 'Opened the block list of ' + name(top) + ' from the toolbar. Selected: ' + (api.getSelectedId() ? name(api.getSelectedId()) : 'nothing'));
+        // Open at the top, on the section's own row: the list is there to
+        // reach the section, which is the first row. The selected block is
+        // still marked further down.
+        tree.scrollTop = 0;
+        const focusRow = tree.querySelector('.ut-lv-select');
+        if (focusRow) focusRow.focus({ preventScroll: true });
+      }
+
+      function closeTree(opts) {
+        if (!treeTop) return;
+        treeTop = null;
+        tree.hidden = true;
+        tree.innerHTML = '';
+        setTreeHighlight(null);
+        const btn = api.toolbarNameButton();
+        if (btn) {
+          btn.setAttribute('aria-expanded', 'false');
+          if (opts && opts.focusButton) btn.focus({ preventScroll: true });
+        }
+      }
+
+      function setTreeHighlight(id) {
+        if (id === treeHighlight) return;
+        treeHighlight = id;
+        api.highlight(id);
+      }
+
+      tree.addEventListener('pointerover', (e) => {
+        const row = e.target.closest('[data-tree-id]');
+        setTreeHighlight(row ? row.dataset.treeId : null);
+      });
+      tree.addEventListener('pointerleave', () => setTreeHighlight(null));
+      tree.addEventListener('focusin', (e) => {
+        const row = e.target.closest('[data-tree-id]');
+        if (row && row.matches(':focus-visible')) setTreeHighlight(row.dataset.treeId);
+      });
+      tree.addEventListener('click', (e) => {
+        const row = e.target.closest('[data-tree-id]');
+        if (!row) return;
+        const id = row.dataset.treeId;
+        const section = treeTop;
+        closeTree();
+        api.count('treePicked', 'Block list rows picked');
+        api.log('arm', 'Picked ' + name(id) + ' in the block list of ' + name(section));
+        // No caretAt: text blocks are selected without a caret.
+        if (id !== api.getSelectedId()) api.select(id, { route: 'tree' });
+        else { const el = api.elementFor(id); if (el) el.focus({ preventScroll: true }); }
+      });
+      tree.addEventListener('keydown', (e) => {
+        if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp' && e.key !== 'Home' && e.key !== 'End') return;
+        const rows = Array.from(tree.querySelectorAll('[data-tree-id]'));
+        let i = rows.indexOf(document.activeElement);
+        if (e.key === 'ArrowDown') i = Math.min(rows.length - 1, i + 1);
+        else if (e.key === 'ArrowUp') i = Math.max(0, i - 1);
+        else if (e.key === 'Home') i = 0;
+        else i = rows.length - 1;
+        e.preventDefault();
+        if (rows[i]) rows[i].focus();
+      });
+
+      // A press outside the list and its button closes it; the press still
+      // does whatever it does.
+      document.addEventListener('pointerdown', (e) => {
+        if (!treeTop) return;
+        if (tree.contains(e.target)) return;
+        const btn = api.toolbarNameButton();
+        if (btn && btn.contains(e.target)) return;
+        closeTree();
+      }, true);
+
+      api.setEscapeHandler(() => {
+        if (!treeTop) return false;
+        closeTree({ focusButton: true });
+        return true;
+      });
+
+      api.on('select', () => { if (treeTop) { renderTree(); placeTree(); } });
+      api.on('change', () => { if (treeTop && !api.getBlock(treeTop)) closeTree(); else if (treeTop) { renderTree(); placeTree(); } });
+      api.on('render', (e) => {
+        if (e && e.reason === 'reset') closeTree();
+        if (treeTop) placeTree();
+      });
+      api.on('scroll', () => placeTree());
+      window.addEventListener('resize', () => placeTree());
     }
   });
 })();

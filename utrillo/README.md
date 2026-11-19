@@ -11,7 +11,7 @@ The idea being tested: people select the container around what they clicked more
 | | Prototype | How the section around a block is selected |
 | --- | --- | --- |
 | 0 | [Control](control.html) | As the WordPress editor is today. A click selects the innermost block. To get to its parent: the toolbar's **Select parent block** button (the parent's icon, one level per click), **Select parent block (Group)** in the ⋮ menu, the **breadcrumb** under the canvas, **Document Overview**, or a click on a container's own area (its padding, the gap between columns, a column's empty space). This is the baseline the others are compared with. |
-| A | [Hover tab](hover-tab.html) | Pointing at the page outlines every container under the pointer, from the section inwards, each with a small blue tab with its name ("Group", "Columns", "Column", "Cover"), side by side like a breadcrumb. Clicking a tab selects that container. The tabs follow the pointer, whatever is selected, and a section's tab stays at the top of the canvas while the top of the section is scrolled out of view. The block toolbar also shows the selected block's name beside its icon ("Group", "Column"), so it says the same as the tab; in the control and D it shows the icon only, as the editor does. |
+| A | [Hover tab](hover-tab.html) | Pointing at the page outlines every container under the pointer, from the section inwards, each with a small blue tab with its name ("Group", "Columns", "Column", "Cover"), side by side like a breadcrumb. Clicking a tab selects that container. The tabs follow the pointer, whatever is selected, and a section's tab stays at the top of the canvas while the top of the section is scrolled out of view. The block toolbar also shows the selected block's name beside its icon ("Group", "Column"), so it says the same as the tab; in the control and D it shows the icon only, as the editor does. Clicking that name opens a list of everything in the selected block's section, starting with the section itself; clicking a row selects that block. |
 | D | [Layers](layers.html) | Each section has a **Layers** button at its top-right corner, shown while the pointer is over the section and while something in it is selected. Like A's tabs, it stays in view at the top of the canvas when the top of the section is scrolled away. It opens a list of everything in that section, nested; clicking a row selects that block. |
 
 A and D both keep every one of the control's ways to a parent, so each differs from the control in one thing.
@@ -33,7 +33,7 @@ Nothing is saved anywhere. Reload the page to start again.
 Add `?notes` or `#notes` to the address (`hover-tab.html?notes`) for a panel on the right that participants shouldn't see. It has:
 
 - the four tasks, ticked with the time when the page reaches the result, and unticked if it's undone. You can tick and untick them yourself.
-- counts of container selections by route: the toolbar button, the ⋮ menu, the breadcrumb, Document Overview, a click on a container's own area, and the prototype's own (tab clicks in A, Layers rows in D); wrong targets; undos; clicks before the caret first landed in the Monday description; seconds to each task; and what's particular to each prototype: tabs shown (A), Layers opened and rows picked (D).
+- counts of container selections by route: the toolbar button, the ⋮ menu, the breadcrumb, Document Overview, a click on a container's own area, and the prototype's own (tab clicks and rows picked from the toolbar's block list in A, Layers rows in D); wrong targets; undos; clicks before the caret first landed in the Monday description; seconds to each task; and what's particular to each prototype: tabs shown and the block list opened and rows picked (A), Layers opened and rows picked (D).
 - a log of everything, with times since the page opened (or since Reset), and **Copy log**,
 - Control | A | D links to switch prototype, and **Reset**, which puts the page back and clears the log.
 
@@ -55,7 +55,7 @@ The **Finished** button gives a code to copy into the next question of an unmode
 | --- | --- |
 | `UC`, `UA`, `UD` | The prototype: the control, A hover tab, D Layers. |
 | `1101` | The four tasks when Finished was clicked: 1 done, 0 not. |
-| `r2.0.1.0.3.4` | Container selections by route: the toolbar button, the ⋮ menu, the breadcrumb, Document Overview, a click on a container's own area, then the prototype's own (always 0 in the control). |
+| `r2.0.1.0.3.4` | Container selections by route: the toolbar button, the ⋮ menu, the breadcrumb, Document Overview, a click on a container's own area, then the prototype's own (always 0 in the control; in A, tab clicks and block list picks together, which the notes panel shows apart). |
 | `x1` | Wrong targets. |
 | `u0` | Undos. |
 | `k3` | Clicks on the canvas before the caret first landed in the Monday description, for task 1 (`kx` if it never did). Only presses on the page count, not on A's tabs, D's Layers button or the grey around the page. |

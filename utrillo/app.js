@@ -36,7 +36,7 @@
 
   const ARMS = {
     control: { code: 'UC', letter: 'Control', file: 'control.html', route: null, title: 'Control', name: 'Control: the editor as it is today, with nothing added' },
-    'hover-tab': { code: 'UA', letter: 'A', file: 'hover-tab.html', route: 'tab', title: 'A · Hover tab', name: 'A · Hover tab: the containers under the pointer are outlined, each with a name tab that selects it' },
+    'hover-tab': { code: 'UA', letter: 'A', file: 'hover-tab.html', route: ['tab', 'tree'], title: 'A · Hover tab', name: 'A · Hover tab: the containers under the pointer are outlined, each with a name tab that selects it' },
     layers: { code: 'UD', letter: 'D', file: 'layers.html', route: 'layers', title: 'D · Layers', name: 'D · Layers: each section has a Layers button that lists its blocks to pick from' }
   };
   const ARM = ARMS[document.body.dataset.variant] ? document.body.dataset.variant : 'control';
@@ -45,7 +45,7 @@
   // The routes to a container that are counted, in the order the completion
   // code lists them. The last one is the arm's own (none for the control).
   const CORE_ROUTES = ['toolbar', 'menu', 'breadcrumb', 'listview', 'padding'];
-  const ARM_ROUTES = ['tab', 'layers'];
+  const ARM_ROUTES = ['tab', 'tree', 'layers'];
   const ROUTE_NAME = {
     toolbar: 'the toolbar’s Select parent block button',
     menu: 'Select parent block in the ⋮ menu',
@@ -53,6 +53,7 @@
     listview: 'Document Overview',
     padding: 'a click on its own area (padding, gap or empty space)',
     tab: 'a hover tab',
+    tree: 'the section’s block list, from the block name in the toolbar',
     layers: 'the Layers popover'
   };
 
@@ -215,7 +216,7 @@
     newIds = 0;
     log = [];
     stats = {
-      routes: { toolbar: 0, menu: 0, breadcrumb: 0, listview: 0, padding: 0, tab: 0, click: 0, layers: 0 },
+      routes: { toolbar: 0, menu: 0, breadcrumb: 0, listview: 0, padding: 0, tab: 0, tree: 0, click: 0, layers: 0 },
       wrong: 0,
       undos: 0,
       redos: 0,
@@ -917,6 +918,9 @@
   // A variant can ask for the block's name beside its icon in the toolbar
   // (arm A does, so the toolbar says the same as its hover tabs).
   let toolbarShowsName = false;
+  // ... and can make that name a button (arm A: it opens the section's
+  // block list). The variant gets { id, button } and draws what it opens.
+  let toolbarNameClick = null;
 
   function renderToolbar() {
     if (!selectedId) { toolbarEl.hidden = true; toolbarEl.innerHTML = ''; return; }
@@ -934,7 +938,9 @@
       (parent ? '<div class="ut-tb-parent">' + btn('select-parent', 'Select parent block: ' + parent.title, parent.icon, 'ut-tb-parent-btn') + '</div>' : '') +
       '<div class="ut-tb-main">' +
       '<div class="ut-tb-group">' +
-        (toolbarShowsName
+        (toolbarShowsName && toolbarNameClick
+          ? '<button type="button" class="ut-tb-btn ut-tb-icon has-name ut-tb-name-btn" aria-haspopup="true" aria-expanded="false" aria-label="' + t.title + ': show the blocks in this section">' + t.icon + '<span class="ut-tb-name">' + t.title + '</span>' + ICONS.chevronDownSmall + '</button>'
+          : toolbarShowsName
           ? '<span class="ut-tb-btn ut-tb-icon has-name" role="img" aria-label="' + t.title + '">' + t.icon + '<span class="ut-tb-name">' + t.title + '</span></span>'
           : '<span class="ut-tb-btn ut-tb-icon" role="img" aria-label="' + t.title + '" data-tooltip="' + t.title + '">' + t.icon + '</span>') +
         '<div class="ut-tb-movers' + (h ? ' is-horizontal' : '') + '">' +
@@ -1142,6 +1148,8 @@
   // ---------- Clicks on the editor ----------
 
   app.addEventListener('click', (e) => {
+    const nameBtn = e.target.closest('.ut-tb-name-btn');
+    if (nameBtn && toolbarNameClick && selectedId) { toolbarNameClick({ id: selectedId, button: nameBtn }); return; }
     const el = e.target.closest('[data-action]');
     if (!el || el.getAttribute('aria-disabled') === 'true') return;
     const action = el.dataset.action;
@@ -1348,7 +1356,11 @@
    *   s: seconds from opening to Finished.
    */
   let armCode = ARMS[ARM].code;
-  const armRouteCount = () => (ARMS[ARM].route ? stats.routes[ARMS[ARM].route] : 0);
+  // An arm can have more than one route of its own (A: its tabs, and the
+  // section's block list from the toolbar); the code's last route number is
+  // their total, and the notes panel shows each.
+  const armRoutes = [].concat(ARMS[ARM].route || []);
+  const armRouteCount = () => armRoutes.reduce((n, r) => n + stats.routes[r], 0);
   function completionCode() {
     return [
       armCode,
@@ -1440,7 +1452,7 @@
       (firstDone[i] ? ' <time>' + firstDone[i].at + '</time>' : '') +
       '<small>' + t.hint + '</small></li>').join('');
     const dd = (key, value) => '<dd data-count="' + key + '">' + value + '</dd>';
-    const routeRows = CORE_ROUTES.concat(ARMS[ARM].route ? [ARMS[ARM].route] : []).map((r) => '<dt>' + r + ' <span>· ' + ROUTE_NAME[r] + '</span></dt>' + dd('route-' + r, stats.routes[r])).join('');
+    const routeRows = CORE_ROUTES.concat(armRoutes).map((r) => '<dt>' + r + ' <span>· ' + ROUTE_NAME[r] + '</span></dt>' + dd('route-' + r, stats.routes[r])).join('');
     const taskTimes = TASKS.map((t, i) => '<dt>Seconds to task ' + (i + 1) + ' done</dt>' + dd('task-' + (i + 1) + '-seconds', firstDone[i] ? firstDone[i].s : '–')).join('');
     const armKeys = Object.keys(stats.arm);
     const armRows = armKeys.length
@@ -1535,7 +1547,8 @@
     setClickResolver(fn) { clickResolver = typeof fn === 'function' ? fn : null; },
     setEscapeHandler(fn) { escapeHandler = typeof fn === 'function' ? fn : null; },
     setHoverResolver(fn) { hoverResolver = typeof fn === 'function' ? fn : null; },
-    showBlockNameInToolbar(on) { toolbarShowsName = on !== false; renderToolbar(); },
+    showBlockNameInToolbar(on, onClick) { toolbarShowsName = on !== false; toolbarNameClick = typeof onClick === 'function' ? onClick : null; renderToolbar(); },
+    toolbarNameButton() { return toolbarEl.querySelector('.ut-tb-name-btn'); },
     log(kind, text) { note(String(kind || 'arm'), String(text)); },
     count(key, label) {
       stats.arm[key] = (stats.arm[key] || 0) + 1;

@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vermeer · From looking at your site to changing it</title>
+<style>
+  body { margin: 0; background: #F4F2EE; color: #1A1A1A; font-family: system-ui, sans-serif; }
+  main { max-width: 720px; margin: 0 auto; padding: 64px 24px; }
+  h1 { margin: 0 0 8px; font-size: 32px; }
+  p { margin: 0 0 16px; color: #3A3A3A; line-height: 1.5; }
+  .lede { margin-bottom: 32px; }
+  ul { list-style: none; margin: 0 0 32px; padding: 0; display: grid; gap: 12px; }
+  a.card { display: block; padding: 20px; background: #fff; border-radius: 10px; color: inherit; text-decoration: none; border: 1px solid #E2DED6; }
+  a.card:hover, a.card:focus-visible { border-color: #3858E9; }
+  strong { display: block; font-size: 18px; margin-bottom: 4px; }
+  em { display: block; margin: -2px 0 6px; font-style: normal; font-weight: 600; font-size: 14px; color: #3A3A3A; }
+  span { color: #4A4A4A; font-size: 15px; line-height: 1.5; }
+  a { color: #3858E9; }
+</style>
+</head>
+<body>
+<main>
+  <h1>From looking at your site to changing it</h1>
+  <p class="lede">The editor opens with your site on view, as visitors see it. To change it, you press Edit. Someone who has just made their first site may not know to look there, and may click on the thing they want to change instead, with nothing happening. These six prototypes are the same small bookshop site in the same simple editor, all with the Edit button. Five add one more way in, through the site itself, so a test can tell whether a site that responds to the first click or hover gets people into editing faster, and with fewer wrong turns, than a button they have to find.</p>
+  <ul>
+    <li><a class="card" href="control.html"><strong>0 · Control</strong><em>Only the Edit button, as Create not Learn has today</em><span>Clicking the site does what a visitor's click does, and nothing else. The baseline for the others.</span></a></li>
+    <li><a class="card" href="click-to-edit.html"><strong>A1 · Click to edit</strong><em>A click on anything that isn't a link or button goes straight in</em><span>The words clicked get the caret where the click was; a picture or background outlines its section. Links, buttons and boxes work as usual.</span></a></li>
+    <li><a class="card" href="ask-on-click.html"><strong>A2 · Ask on click</strong><em>The same click asks "Do you want to edit?"</em><span>A small box at the click, with Edit and No. Edit lands as A1 does.</span></a></li>
+    <li><a class="card" href="hover-notice.html"><strong>B · Hover notice</strong><em>Resting on the site shows a notice with Start editing</em><span>"Trying to change something on this page?", floating over the bottom of the site, with a × that keeps it away until the next time out of editing.</span></a></li>
+    <li><a class="card" href="choose-on-click.html"><strong>C · Choose on click</strong><em>Every click offers its own action or Edit</em><span>"Go to Events" or "Edit this", "Use this button" or "Edit this", "Keep looking" or "Edit this page", in a box at the click.</span></a></li>
+    <li><a class="card" href="hover-choice.html"><strong>D · Hover choice</strong><em>Resting on the site shows Edit or Browse</em><span>A pale layer over the site asks "What would you like to do?" with two large buttons. Browse keeps it away until the next time out of editing.</span></a></li>
+  </ul>
+  <p>Add <code>?notes</code> (or <code>#notes</code>) to any of them for the facilitator panel, or open <a href="control.html?notes">the control</a>, <a href="click-to-edit.html?notes">A1</a>, <a href="ask-on-click.html?notes">A2</a>, <a href="hover-notice.html?notes">B</a>, <a href="choose-on-click.html?notes">C</a> or <a href="hover-choice.html?notes">D</a> with it: it lists the tasks, counts how and when people went into editing, and logs every click, prompt and change. Finished, in the bar at the bottom, gives a code to paste into a testing tool. Everything is kept in the browser, so a reload carries on where it was; use Reset in the panel to start again. The test script is in the <a href="https://github.com/Automattic/site-editing-experiments/tree/trunk/vermeer">README</a>. The bookshop and its pages are placeholders.</p>
+</main>
+</body>
+</html>

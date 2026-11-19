@@ -193,9 +193,6 @@ p.blk { color: var(--site-ink-2); }
 
 .tb-btn[aria-pressed="true"] { background: var(--ink); color: var(--white); }
 .tb-btn[aria-pressed="true"]:hover { color: var(--white); }
-.tb-out { position: absolute; display: flex; flex-direction: column; width: 30px; padding: 2px 0; background: var(--white); border: 1px solid var(--ink); border-radius: 2px; pointer-events: auto; }
-.tb-out .tb-btn { min-width: 28px; height: 28px; padding: 0; }
-.tb-out svg { width: 20px; height: 20px; }
 
 .bpanel { position: fixed; z-index: 40; width: 280px; overflow: auto; background: var(--white); border: 1px solid #ccc; border-radius: 4px; box-shadow: 0 4px 16px rgba(0,0,0,.16); color: var(--ink); font-size: 13px; }
 .bpanel[hidden] { display: none; }

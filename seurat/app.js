@@ -19,8 +19,8 @@
  *            the menu", so the controls are a Typography flyout in the options
  *            menu, and formatting appears when text is selected.
  *   beside   After Nevelson in this repo: by the block, the toolbar keeps the
- *            block's name, formatting, a pencil and the options menu, with
- *            the movers outside the block's left edge. The pencil opens the
+ *            block's name, drag handle and movers (where the control has
+ *            them), formatting, a pencil and the options menu. The pencil opens the
  *            block's settings, core's own panels, in a card beside the block.
  *            There's no sidebar; the page's settings are in the Document
  *            overview on the left.
@@ -570,7 +570,9 @@
         tb({ menu: 'moretext', title: 'More text options', inner: ICON.textopts }, b) + sep + options;
     }
     if (VARIANT === 'beside') {
-      return tb({ menu: 'blockname', title: 'Change block', inner: blockIcon(b) + '<span>' + (b.type === 'heading' ? 'Heading' : 'Paragraph') + '</span>', wide: true }, b) + sep +
+      return tb({ menu: 'blockname', title: 'Change block', inner: blockIcon(b) + '<span>' + (b.type === 'heading' ? 'Heading' : 'Paragraph') + '</span>', wide: true }, b) +
+        tb({ attrs: 'data-inert="Drag"', title: 'Drag', inner: ICON.drag }, b) +
+        '<span class="tb-movers">' + up + down + '</span>' + sep +
         bold + italic + link + tb({ menu: 'moreformat', title: 'More', inner: ICON.down }, b) + sep +
         tb({ attrs: 'data-act="panel" aria-pressed="' + S.panel + '"', title: 'Block settings', inner: ICON.pencil }, b) + sep + options;
     }
@@ -678,12 +680,7 @@
   function renderChrome(focus) {
     const b = selected();
     const layer = app.querySelector('[data-tb]');
-    layer.innerHTML = b ? '<div class="tb" role="toolbar" aria-label="Block tools">' + toolbarHTML(b) + '</div>' +
-      // C: the drag handle and movers, just outside the block's left edge.
-      (VARIANT === 'beside' ? '<div class="tb-out" role="toolbar" aria-label="Move block">' +
-        tb({ attrs: 'data-inert="Drag"', title: 'Drag', inner: ICON.drag }, b) +
-        tb({ attrs: 'data-move="-1"', title: 'Move up', inner: ICON.up, disabled: S.blocks.indexOf(b) === 0 }, b) +
-        tb({ attrs: 'data-move="1"', title: 'Move down', inner: ICON.down, disabled: S.blocks.indexOf(b) === S.blocks.length - 1 }, b) + '</div>' : '') : '';
+    layer.innerHTML = b ? '<div class="tb" role="toolbar" aria-label="Block tools">' + toolbarHTML(b) + '</div>' : '';
     const side = app.querySelector('[data-sidebar]');
     side.hidden = !S.sidebar;
     side.innerHTML = S.sidebar ? sidebarHTML() : '';
@@ -836,11 +833,6 @@
     const el = blkEl(b.id);
     bar.style.top = (el.offsetTop - bar.offsetHeight - 12) + 'px';
     bar.style.left = el.offsetLeft + 'px';
-    const out = app.querySelector('.tb-out');
-    if (out) {
-      out.style.top = el.offsetTop + 'px';
-      out.style.left = (el.offsetLeft - out.offsetWidth - 10) + 'px';
-    }
   }
 
   // C: the card goes to the right of the block and its toolbar if there's room, and

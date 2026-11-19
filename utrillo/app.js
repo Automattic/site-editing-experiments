@@ -1,12 +1,12 @@
 /*
  * Utrillo · Selecting the section around what you clicked
  *
- * One simplified site editor, three arms. People click what they can see (a
+ * One simplified site editor, four arms. People click what they can see (a
  * paragraph, a picture) and the editor selects that innermost block. Then they
  * have to find how to select the section around it, the Group, Columns, Column
  * or Cover, to move it, change its background or delete it.
  *
- * This file is everything the three arms share: the page, the editor around it
+ * This file is everything the four arms share: the page, the editor around it
  * (toolbar, inspector, breadcrumb, Document Overview, undo), the tasks, the
  * log, the facilitator panel and the completion code. It also keeps every one
  * of the editor's own routes to a parent block, in every arm:
@@ -18,12 +18,15 @@
  *   padding     a click that lands on a container's own area: its padding,
  *               the gap between columns, a column's empty space
  *
- * The control (control.html) is this file alone. Each other arm adds ONE thing
- * in its own file under variants/, using only the API at the end of this file
- * (window.Utrillo.registerVariant):
+ * The control (control.html) is this file alone. Each other arm adds its own
+ * thing in its own file under variants/, using only the API at the end of
+ * this file (window.Utrillo.registerVariant):
  *
- *   hover-tab      A: containers under the pointer get a name tab to click
- *   layers         D: each section has a Layers button with its block tree
+ *   hover-tab         A: containers under the pointer get a name tab to click
+ *   layers            D: each section has a Layers button with its block tree
+ *   create-not-learn  E: as the Create not Learn prototype: section-first
+ *                     clicks, and its parent selector, with a "···" list of
+ *                     every block further up (two changes, not one)
  *
  * Each HTML page picks its arm with <body data-variant="…">.
  *
@@ -37,7 +40,8 @@
   const ARMS = {
     control: { code: 'UC', letter: 'Control', file: 'control.html', route: null, title: 'Control', name: 'Control: the editor as it is today, with nothing added' },
     'hover-tab': { code: 'UA', letter: 'A', file: 'hover-tab.html', route: ['tab', 'tree'], title: 'A · Hover tab', name: 'A · Hover tab: the containers under the pointer are outlined, each with a name tab that selects it' },
-    layers: { code: 'UD', letter: 'D', file: 'layers.html', route: 'layers', title: 'D · Layers', name: 'D · Layers: each section has a Layers button that lists its blocks to pick from' }
+    layers: { code: 'UD', letter: 'D', file: 'layers.html', route: 'layers', title: 'D · Layers', name: 'D · Layers: each section has a Layers button that lists its blocks to pick from' },
+    'create-not-learn': { code: 'UE', letter: 'E', file: 'create-not-learn.html', route: ['click', 'lineage'], title: 'E · As Create not Learn', name: 'E · As Create not Learn: the first click selects the section, the next goes in a level, and the parent selector has a “···” list of every block further up' }
   };
   const ARM = ARMS[document.body.dataset.variant] ? document.body.dataset.variant : 'control';
   const NOTES = new URLSearchParams(location.search).has('notes') || location.hash === '#notes';
@@ -45,7 +49,7 @@
   // The routes to a container that are counted, in the order the completion
   // code lists them. The last one is the arm's own (none for the control).
   const CORE_ROUTES = ['toolbar', 'menu', 'breadcrumb', 'listview', 'padding'];
-  const ARM_ROUTES = ['tab', 'tree', 'layers'];
+  const ARM_ROUTES = ['tab', 'tree', 'layers', 'click', 'lineage'];
   const ROUTE_NAME = {
     toolbar: 'the toolbar’s Select parent block button',
     menu: 'Select parent block in the ⋮ menu',
@@ -54,7 +58,9 @@
     padding: 'a click on its own area (padding, gap or empty space)',
     tab: 'a hover tab',
     tree: 'the section’s block list, from the block name in the toolbar',
-    layers: 'the Layers popover'
+    layers: 'the Layers popover',
+    click: 'a section-first click (the section, then a row of cards)',
+    lineage: 'the “···” list of blocks further up'
   };
 
   // ---------- Icons: the editor's own, copied from @wordpress/icons 20 ----------
@@ -201,6 +207,7 @@
   let log, stats, startedAt, firstDone, ticked, doneNow, caretLanded, lastCanvasDown, emptiedFlagged;
 
   function reset() {
+    if (held) { clearTimeout(held.timer); held = null; }
     tree = START();
     selectedId = null;
     undoStack = [];
@@ -216,7 +223,7 @@
     newIds = 0;
     log = [];
     stats = {
-      routes: { toolbar: 0, menu: 0, breadcrumb: 0, listview: 0, padding: 0, tab: 0, tree: 0, click: 0, layers: 0 },
+      routes: { toolbar: 0, menu: 0, breadcrumb: 0, listview: 0, padding: 0, tab: 0, tree: 0, click: 0, layers: 0, lineage: 0 },
       wrong: 0,
       undos: 0,
       redos: 0,
@@ -547,7 +554,9 @@
     if (id) {
       const container = isContainer(id);
       const counted = container && (CORE_ROUTES.includes(route) || ARM_ROUTES.includes(route));
-      if (counted) stats.routes[route]++;
+      // A held press (see the page's pointerdown) counts its route later, or not at all.
+      if (counted && opts.hold && held) held.route = route;
+      else if (counted) stats.routes[route]++;
       note(counted ? 'container' : 'select', 'Selected ' + describe(id) + ' by ' + (ROUTE_NAME[route] || route) + (counted ? ' [' + route + ']' : '') + '. Before: ' + (opts.previous ? opts.previous.name : describeOr(prev, 'nothing')));
     } else if (prev) {
       note('select', 'Cleared the selection (' + route + '). Before: ' + describe(prev));
@@ -588,8 +597,8 @@
    * under the pointer, and on text the caret lands where the person clicked.
    * A press on a container's own area (padding, gap, empty space) selects
    * the container: the `padding` route. A variant can choose another target
-   * with setClickResolver. No arm does now: B (section first) did, and was
-   * dropped before testing. Its hooks, and its `click` route, are left in.
+   * with setClickResolver (E does: section first, as B did before it was
+   * dropped); a container it selects that way is the `click` route.
    */
   let suppressMouse = false;
   /*
@@ -599,29 +608,57 @@
    * ⋮ menu or anything a variant draws in the overlay (A's tabs, D's Layers
    * button and popover) don't. The press that puts the caret there is taken
    * off again in the focusin handler below.
+   *
+   * A click resolver can answer `provisional: true` (or a number of ms) for a
+   * press that may be the first of a double click (E). The press selects as
+   * usual, but its counts (its route and its k click) are held: they count
+   * once the time is up or the next press on the page isn't its second, and
+   * are dropped if the next press answers `double: true`. So a double click
+   * counts as one press. With no resolver, nothing is held.
    */
+  const HOLD_MS = 500;
+  let held = null; // { route, k, timer }: the counts of a press that may be a double click's first
+  function commitHeld() {
+    if (!held) return;
+    const h = held;
+    held = null;
+    clearTimeout(h.timer);
+    if (h.route) stats.routes[h.route]++;
+    if (h.k) stats.clicksBeforeCaret++;
+    renderNotes();
+  }
+  function dropHeld() {
+    if (!held) return;
+    const h = held;
+    held = null;
+    clearTimeout(h.timer);
+    if (h.route || h.k) note('select', 'That press was the first of a double click: not counted');
+  }
   page.addEventListener('pointerdown', (e) => {
     if (e.button !== 0) return;
     suppressMouse = false;
     lastCanvasDown = performance.now();
-    if (!caretLanded) stats.clicksBeforeCaret++;
     const targetId = idFromElement(e.target);
+    let r = null;
+    if (targetId && clickResolver) {
+      try { r = clickResolver({ event: e, targetId, selectedId }); } catch (err) { console.error(err); }
+    }
+    if (held) { if (r && r.double) dropHeld(); else commitHeld(); }
+    const hold = !!(r && r.provisional && r.id && find(r.id));
+    if (hold) held = { route: null, k: !caretLanded, timer: setTimeout(commitHeld, typeof r.provisional === 'number' ? r.provisional : HOLD_MS) };
+    else if (!caretLanded) stats.clicksBeforeCaret++;
     if (!targetId) return;
     let id = targetId;
     let caret = isText(targetId);
     let byVariant = false;
-    if (clickResolver) {
-      let r = null;
-      try { r = clickResolver({ event: e, targetId, selectedId }); } catch (err) { console.error(err); }
-      if (r && r.id && find(r.id)) { id = r.id; caret = !!r.caret && isText(r.id); byVariant = true; }
-    }
+    if (r && r.id && find(r.id)) { id = r.id; caret = !!r.caret && isText(r.id); byVariant = true; }
     const route = isContainer(id) ? (byVariant ? 'click' : 'padding') : 'canvas';
     const rich = caret ? richFor(id) : null;
     // Let the browser put the caret where the person clicked, if they clicked
     // the text itself. Otherwise do it here and stop the browser moving focus.
     const native = !!(rich && rich.contains(e.target));
     if (!native) suppressMouse = true;
-    selectBlock(id, { route });
+    selectBlock(id, { route, hold });
     if (!native) {
       if (caret) placeCaret(rich, e.clientX, e.clientY);
       else focusBlock(id);
@@ -678,7 +715,8 @@
     if (id === 'monday-text' && !caretLanded) {
       caretLanded = true;
       // The click that put it there doesn't count as a click before it.
-      if (performance.now() - lastCanvasDown < 800) stats.clicksBeforeCaret = Math.max(0, stats.clicksBeforeCaret - 1);
+      if (held && held.k) held.k = false;
+      else if (performance.now() - lastCanvasDown < 800) stats.clicksBeforeCaret = Math.max(0, stats.clicksBeforeCaret - 1);
       note('caret', 'The caret first landed in the Monday paragraph, after ' + stats.clicksBeforeCaret + ' other click' + (stats.clicksBeforeCaret === 1 ? '' : 's') + ' on the page');
     }
   });
@@ -921,6 +959,21 @@
   // ... and can make that name a button (arm A: it opens the section's
   // block list). The variant gets { id, button } and draws what it opens.
   let toolbarNameClick = null;
+  // A variant can change the parent selector's box (arm E): its own icon for
+  // the select-parent button, and its own button(s) before it in the same
+  // box. See setParentSelector in the API.
+  let parentSelector = null;
+
+  function parentSelectorHTML(parent, btn) {
+    if (!parentSelector) return '<div class="ut-tb-parent">' + btn('select-parent', 'Select parent block: ' + parent.title, parent.icon, 'ut-tb-parent-btn') + '</div>';
+    let before = '';
+    if (parentSelector.before) {
+      try { before = parentSelector.before(selectedId) || ''; } catch (err) { console.error(err); }
+    }
+    return '<div class="ut-tb-parent is-custom">' +
+      (before ? '<span class="ut-tb-parent-extra">' + before + '</span>' : '') +
+      btn('select-parent', 'Select parent block: ' + parent.title, parentSelector.icon || parent.icon, 'ut-tb-parent-btn') + '</div>';
+  }
 
   function renderToolbar() {
     if (!selectedId) { toolbarEl.hidden = true; toolbarEl.innerHTML = ''; return; }
@@ -935,7 +988,7 @@
     toolbarEl.innerHTML =
       // As in the editor, the parent selector is its own box, 8px to the left of
       // the toolbar, and the toolbar starts 56px in from the block's left edge.
-      (parent ? '<div class="ut-tb-parent">' + btn('select-parent', 'Select parent block: ' + parent.title, parent.icon, 'ut-tb-parent-btn') + '</div>' : '') +
+      (parent ? parentSelectorHTML(parent, btn) : '') +
       '<div class="ut-tb-main">' +
       '<div class="ut-tb-group">' +
         (toolbarShowsName && toolbarNameClick
@@ -964,7 +1017,11 @@
     const visibleTop = canvas.getBoundingClientRect().top - inner.getBoundingClientRect().top;
     let top = r.top - h - 8;
     if (top < visibleTop + 4) top = Math.min(visibleTop + 4, Math.max(r.top, r.bottom - h));
-    const left = Math.max(4, Math.min(r.left, inner.clientWidth - w - 4));
+    // A parent selector box wider than the usual one (arm E's, with its
+    // "···") grows to the left, so the toolbar itself stays where it is.
+    const box = toolbarEl.querySelector('.ut-tb-parent');
+    const grow = box ? Math.max(0, box.offsetWidth - 48) : 0;
+    const left = Math.max(4, Math.min(r.left - grow, inner.clientWidth - w - 4));
     toolbarEl.style.top = Math.round(top) + 'px';
     toolbarEl.style.left = Math.round(left) + 'px';
     placeMenu();
@@ -1150,6 +1207,11 @@
   app.addEventListener('click', (e) => {
     const nameBtn = e.target.closest('.ut-tb-name-btn');
     if (nameBtn && toolbarNameClick && selectedId) { toolbarNameClick({ id: selectedId, button: nameBtn }); return; }
+    const extra = e.target.closest('.ut-tb-parent-extra');
+    if (extra && parentSelector && parentSelector.onClick && selectedId) {
+      try { parentSelector.onClick({ id: selectedId, target: e.target, box: extra.parentElement, event: e }); } catch (err) { console.error(err); }
+      return;
+    }
     const el = e.target.closest('[data-action]');
     if (!el || el.getAttribute('aria-disabled') === 'true') return;
     const action = el.dataset.action;
@@ -1346,7 +1408,7 @@
   /*
    * For pasting into the testing tool. For example:
    *   UA-1101-r2.0.1.0.3.4-x1-u0-k3-s245
-   *   arm (UC control, UA hover tab, UD layers) ·
+   *   arm (UC control, UA hover tab, UD layers, UE as Create not Learn) ·
    *   tasks 1–4 done (1) or not (0) when Finished was clicked ·
    *   r: container selections by route: toolbar . menu . breadcrumb .
    *      listview . padding . the arm's own (always 0 for the control) ·
@@ -1357,11 +1419,13 @@
    */
   let armCode = ARMS[ARM].code;
   // An arm can have more than one route of its own (A: its tabs, and the
-  // section's block list from the toolbar); the code's last route number is
+  // section's block list from the toolbar; E: its clicks, and the "···"
+  // list); the code's last route number is
   // their total, and the notes panel shows each.
   const armRoutes = [].concat(ARMS[ARM].route || []);
   const armRouteCount = () => armRoutes.reduce((n, r) => n + stats.routes[r], 0);
   function completionCode() {
+    commitHeld();
     return [
       armCode,
       TASKS.map((t) => (t.done() ? 1 : 0)).join(''),
@@ -1549,6 +1613,21 @@
     setHoverResolver(fn) { hoverResolver = typeof fn === 'function' ? fn : null; },
     showBlockNameInToolbar(on, onClick) { toolbarShowsName = on !== false; toolbarNameClick = typeof onClick === 'function' ? onClick : null; renderToolbar(); },
     toolbarNameButton() { return toolbarEl.querySelector('.ut-tb-name-btn'); },
+    /*
+     * Change the parent selector, the box left of the toolbar (null puts the
+     * editor's back). `icon` (SVG) stands in for the parent's icon on the
+     * select-parent button, which still selects the parent (route `toolbar`).
+     * `before(id)` returns HTML for buttons before it in the same box, for
+     * the selected block `id` ('' for none); don't give them data-action,
+     * which is the editor's own. A click on them calls
+     * `onClick({ id, target, box, event })`. The toolbar is drawn again on every
+     * selection, so look the buttons up again with parentSelectorBox().
+     */
+    setParentSelector(opts) {
+      parentSelector = opts ? { icon: opts.icon || null, before: typeof opts.before === 'function' ? opts.before : null, onClick: typeof opts.onClick === 'function' ? opts.onClick : null } : null;
+      renderToolbar();
+    },
+    parentSelectorBox() { return toolbarEl.hidden ? null : toolbarEl.querySelector('.ut-tb-parent'); },
     log(kind, text) { note(String(kind || 'arm'), String(text)); },
     count(key, label) {
       stats.arm[key] = (stats.arm[key] || 0) + 1;

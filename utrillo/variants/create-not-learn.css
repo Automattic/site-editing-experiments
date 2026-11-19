@@ -1,0 +1,38 @@
+/* Utrillo · E · As Create not Learn. Styles for this arm only, on top of ../style.css. */
+
+/* Section-first clicks, as B had them: the pointer says what the next click
+   does, an arrow where it selects a container (a section or a Column), a
+   text cursor where it reaches text. */
+.ut-canvas.cnl-next-arrow .ut-page,
+.ut-canvas.cnl-next-arrow .ut-page * { cursor: default; }
+.ut-canvas.cnl-next-text .ut-page,
+.ut-canvas.cnl-next-text .ut-page * { cursor: text; }
+
+/* The "···" button with its list open: pressed in grey, as Create not
+   Learn's open menu buttons are (rather than core's black). */
+.ut-tb-btn.cnl-lineage-btn[aria-expanded="true"],
+.ut-tb-btn.cnl-lineage-btn[aria-expanded="true"]:hover { color: var(--ink); background: #ededed; }
+
+/* The list of blocks further up, above the toolbar: drawn as the ⋮ menu is,
+   at Create not Learn's width (.cnl-block-lineage there). */
+.cnl-lineage {
+  position: fixed;
+  z-index: 60;
+  min-width: 260px;
+  padding: 8px;
+  background: var(--white);
+  color: var(--ink);
+  border: 1px solid #cccccc;
+  border-radius: 2px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, .05), 0 8px 24px rgba(0, 0, 0, .08);
+}
+.cnl-lineage:focus { outline: none; }
+.cnl-lineage__label { display: inline-flex; gap: 8px; align-items: center; }
+.cnl-lineage__icon { display: flex; }
+.cnl-lineage__icon svg { width: 24px; height: 24px; }
+/* How deep a block is, as a rule before its name (.cnl-block-lineage__rule). */
+.cnl-lineage__rule {
+  width: calc(var(--cnl-lineage-depth) * 16px);
+  margin-inline-end: -6px;
+  border-top: 1px solid currentColor;
+}

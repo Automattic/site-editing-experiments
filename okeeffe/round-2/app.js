@@ -127,7 +127,7 @@
     explained: { code: 'OB', letter: 'B', file: 'explained.html', where: 'pages', name: 'Explained: the menu is changed on the Pages screen, and taking a page out or renaming it in the menu converts the menu to links, after one confirm that says so' },
     switches: { code: 'OF', letter: 'F', file: 'switches.html', where: 'pages', name: 'Connected switches: every page has an “In menu” switch on the Pages screen, the list is the menu’s order, and the menu never converts' },
     'menu-switches': { code: 'OQ', letter: 'Q', file: 'menu-switches.html', where: 'sidebar', name: 'Menu switches: the menu’s own sidebar lists the pages with a show/hide toggle each, and the menu stays connected' },
-    'menu-sections': { code: 'OS', letter: 'S', file: 'menu-sections.html', where: 'sidebar', name: 'Menu sections: the menu’s own sidebar lists the pages in two groups, In your menu and Other pages, with buttons to add and remove them (round 1’s D in the editor’s sidebar), and the menu stays connected; otherwise Q' }
+    'menu-sections': { code: 'OS', letter: 'S', file: 'menu-sections.html', where: 'sidebar', name: 'Menu sections: the menu’s own sidebar lists the pages in two groups, In your menu and Other pages, with buttons to add and remove them (round 1’s D in the editor’s sidebar), and the menu stays connected, but new pages start under Other pages until they’re added with +; otherwise Q' }
   };
   const ARM = ARMS[(window.PROTOTYPE || {}).arm] ? window.PROTOTYPE.arm : 'control';
   const IN_SIDEBAR = ARMS[ARM].where === 'sidebar';
@@ -649,6 +649,10 @@
     // A new page goes last in page order (in WordPress its Order would be 0: see the README).
     state.pages.push({ id, title, status, parent: null, order: state.pages.reduce((m, p) => Math.max(m, orderOf(p)), -1) + 1 });
     if (state.made) state.made.push(id);
+    // S: every new page starts under Other pages, however it was made, and stays there when it's
+    // published: + puts it in the menu. In the menu on screen, as saved and at every step Undo
+    // can go back to, so making a page leaves nothing to save.
+    if (SECTIONS) everyMenu(() => { if (state.menu.mode === 'automatic') setExcluded(id, true); });
     if (status === 'publish' && !quietly) pageWentLive(id);
     flagIfNeeded(id);
     return id;
@@ -784,7 +788,7 @@
     const sm = state.saved.menu;
     let w;
     if (screen && saved) w = 'it is now in the menu';
-    else if (!screen && !saved) w = 'it is not in the menu';
+    else if (!screen && !saved) w = 'it is not in the menu' + (SECTIONS && isAutomatic() && isExcluded(pageId) ? ' (it is under Other pages: + puts it in the menu)' : '');
     else if (saved) {
       w = PAGES_MENU && sm.mode === 'automatic' && m.mode === 'automatic' ? 'it is in the saved pages menu, so visitors see it, but ' + (SECTIONS ? 'under Other pages' : 'switched off') + ' in the pages menu on screen, which isn’t saved yet'
         : PAGES_MENU && sm.mode === 'automatic' ? 'it is in the saved pages menu, so visitors see it, but not in the advanced menu on screen, which isn’t saved yet'
@@ -1466,7 +1470,7 @@
   }
 
   // Q's and S's pages menus: an "Add page" text button, below Q's list and at the foot of S's
-  // In your menu (where round 1's D had "+ New page in menu"). Each opens the same Create page form as Add link's, without
+  // Other pages, where S's new pages start. Each opens the same Create page form as Add link's, without
   // its Back (there's no Search to go back to). The page is made at once, as Create page makes
   // one elsewhere: the pages menu follows the pages, so there's nothing to save or undo.
   function pageAddHtml() {
@@ -1616,7 +1620,7 @@
       const draft = p.status !== 'publish';
       const parent = hasParent(p) ? page(p.parent) : null;
       const viaParent = !draft && !isExcluded(p.id) && parent && !shown.has(parent.id);
-      const meta = draft ? 'Joins the menu when published' : viaParent ? 'In ' + parent.title + '’s dropdown, which is out of the menu' : '';
+      const meta = viaParent ? 'In ' + parent.title + '’s dropdown, which is out of the menu' : '';
       const add = draft
         ? `<button type="button" class="icon-btn add sec-btn" aria-disabled="true" data-action="sec-add-draft" data-page="${esc(p.id)}" data-focus="sec-add:${esc(p.id)}" aria-label="Add ${esc(p.title)} to your menu" aria-describedby="sec-why-${esc(p.id)}">${ICON.plus}<span class="sr-only" id="sec-why-${esc(p.id)}">Publish this page to add it to the menu</span></button>`
         : `<button type="button" class="icon-btn add sec-btn" data-action="sec-add" data-page="${esc(p.id)}" data-focus="sec-add:${esc(p.id)}" aria-label="Add ${esc(p.title)} to your menu">${ICON.plus}</button>`;
@@ -1626,12 +1630,12 @@
     return `<section class="group menu sec-group" aria-label="In your menu">
         <div class="group-head"><h3 class="group-title">In your menu</h3><span class="tag blue">Header</span></div>
         ${list.indexOf('nav-empty') >= 0 ? '<div class="empty">Nothing in this menu yet.</div>' : list}
-        ${pageAddHtml()}
       </section>
       <section class="group sec-group" aria-label="Other pages">
         <div class="group-head"><h3 class="group-title">Other pages</h3></div>
         <div class="group-sub">Live on your site with their own address, just not in a menu.</div>
         ${other ? `<ul class="list sec-list" aria-label="Other pages">${other}</ul>` : '<div class="empty">Every page is in your menu.</div>'}
+        ${pageAddHtml()}
       </section>
       <p class="footnote">Pages outside the menu are still public at their address and can show in search results.</p>`;
   }
@@ -1991,7 +1995,7 @@
       const parent = hasParent(p) ? page(p.parent) : null;
       const withParent = parent && isExcluded(parent.id);
       edit(() => { setExcluded(p.id, false); if (withParent) setExcluded(parent.id, false); ui.focus = 'sec-rm:' + p.id; }, q(p.title) + ' added to the menu');
-      log('menu', 'Put ' + q(p.title) + ' in the menu (+, in the sidebar)' + (withParent ? ', with its parent page ' + q(parent.title) : '') + '; it goes back to its place in page order');
+      log('menu', 'Put ' + q(p.title) + ' in the menu (+, in the sidebar)' + (withParent ? ', with its parent page ' + q(parent.title) : '') + '; it goes in at its place in page order');
     },
     'sec-add-draft'(d) {
       const p = page(d.page);
@@ -2002,7 +2006,7 @@
       ui.pageAdd = { title: '', publish: true };
       ui.more = null;
       ui.focus = 'nav-create-title';
-      log('sidebar', (SECTIONS ? 'Add page clicked, under In your menu' : 'Add page clicked, below the pages menu') + ': the Create page form opens');
+      log('sidebar', (SECTIONS ? 'Add page clicked, under Other pages' : 'Add page clicked, below the pages menu') + ': the Create page form opens');
       save();
       render();
       const form = root.querySelector('.pm-create');
@@ -2032,10 +2036,10 @@
       checkTasks();
       save();
       render();
-      log('page', 'Added ' + q(title) + ' from the menu’s sidebar, ' + (status === 'draft' ? 'as a draft' : 'published') + ' (' + (SECTIONS ? 'Add page, under In your menu' : 'Add page, below the pages menu') + '); ' +
+      log('page', 'Added ' + q(title) + ' from the menu’s sidebar, ' + (status === 'draft' ? 'as a draft' : 'published') + ' (' + (SECTIONS ? 'Add page, under Other pages' : 'Add page, below the pages menu') + '); ' +
         (status === 'draft'
-          ? (SECTIONS ? 'it is listed under Other pages, and joins the menu once it’s published' : 'it is listed in the pages menu with its toggle off, and joins the menu, switched on, once it’s published')
-          : (SECTIONS ? 'it is in In your menu, last in page order' : 'it is in the pages menu, switched on, last in page order') + '; there is nothing to save'));
+          ? (SECTIONS ? 'it is listed under Other pages, and stays there when it’s published (+ puts it in the menu)' : 'it is listed in the pages menu with its toggle off, and joins the menu, switched on, once it’s published')
+          : (SECTIONS ? 'it is listed under Other pages, not in the menu (+ puts it there)' : 'it is in the pages menu, switched on, last in page order') + '; there is nothing to save'));
     },
     'nav-toggle-draft'(d) {
       const p = page(d.page);
@@ -3109,7 +3113,7 @@
         // Core opens a new draft in the editor: here, the site, showing it, with Publish in the top bar.
         if (IN_SIDEBAR) { ui.screen = 'site'; ui.pagesSel = id; ui.focus = 'ed-save'; }
       }, `"${title}" ${d.status === 'draft' ? 'saved as a draft' : 'published'}`);
-      log('page', 'Added ' + q(title) + ', ' + (d.status === 'draft' ? 'saved as a draft' + (CANVAS_DRAFTS && isAutomatic() ? (SECTIONS ? '; it is listed under Other pages, and joins the menu once it’s published' : '; it is listed in the pages menu with its toggle off, and joins the menu, switched on, once it’s published') : '') : 'published; ' + (IN_SIDEBAR ? menuWords(id) : isShown(id) ? 'it is now in the menu' : 'it is not in the menu')) + (IN_SIDEBAR ? ' (Add Page, Create draft, on the Pages screen)' : ''));
+      log('page', 'Added ' + q(title) + ', ' + (d.status === 'draft' ? 'saved as a draft' + (CANVAS_DRAFTS && isAutomatic() ? (SECTIONS ? '; it is listed under Other pages, and stays there when it’s published (+ puts it in the menu)' : '; it is listed in the pages menu with its toggle off, and joins the menu, switched on, once it’s published') : '') : 'published; ' + (IN_SIDEBAR ? menuWords(id) : isShown(id) ? 'it is now in the menu' : 'it is not in the menu')) + (IN_SIDEBAR ? ' (Add Page, Create draft, on the Pages screen)' : ''));
       if (IN_SIDEBAR) log('screen', 'Left the Pages screen (Create draft opens the new page on the site; the top bar shows ' + (showsPublish() ? 'Publish' : 'Save, since the menu has unsaved changes') + ')');
       log('visit', 'The preview shows the new page, ' + q(title));
       if (ARM === 'explained') log('menu', 'Marker popover opened on its own after Add page: ' + q(title) + ' (not counted)');
@@ -3767,7 +3771,7 @@
    * For pasting into an unmoderated testing tool. For example:
    *   OC-21111-mp140-d0.0-f35-r1.2-o0-n0-x0-u2.1-k3-g40-y30-e0-w0-v2.1-s412
    * OC, OA, OB, OF, OQ: the arm · the five tasks when Finished was clicked ·
-   * m: the menu at the end (ma automatic, ml links, mv advanced and still adding pages,
+   * m: the menu at the end (ma automatic, ms S's sections, which don't add new pages, ml links, mv advanced and still adding pages,
    *    mx advanced with adding turned off; each with the seconds when it was converted.
    *    In OA nothing is converted: mv, with no seconds, while Auto add pages is on, and mx
    *    with the seconds when it was last turned off) ·
@@ -3785,7 +3789,8 @@
    */
   function menuPart() {
     const m = state.menu;
-    if (m.mode === 'automatic') return 'ma';
+    // S's sections: connected, but new pages don't join by themselves (ms).
+    if (m.mode === 'automatic') return SECTIONS ? 'ms' : 'ma';
     if (ARM === 'control') {
       // The Page List alone; the Page List with links beside it; detached; or removed.
       const lists = m.items.filter(isPageList).length;

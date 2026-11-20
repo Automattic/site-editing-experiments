@@ -601,3 +601,10 @@ div.prow-main { cursor: default; }
 .sec-text { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 2px 6px; padding: 6px 0; }
 .sec-text .nav-label { flex: 0 1 auto; padding: 0 2px; }
 .sec-text .sec-meta { flex: 1 1 100%; padding: 0 2px; }
+
+/* Q's and S's pages menus: Create page, below the list (Q) or at the foot of In your menu (S). */
+.pm-create { margin: 0 2px; }
+.sec-group .pm-create { margin: 8px 0 0; }
+.sec-group .group-foot { margin-top: 8px; }
+/* "In a dropdown" goes under a child page's name in In your menu, as Other pages' notes do. */
+.nav-row .row-main > .sec-text { padding: 4px 0; }

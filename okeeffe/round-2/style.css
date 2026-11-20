@@ -608,3 +608,6 @@ div.prow-main { cursor: default; }
 .sec-group .group-foot { margin-top: 8px; }
 /* "In a dropdown" goes under a child page's name in In your menu, as Other pages' notes do. */
 .nav-row .row-main > .sec-text { padding: 4px 0; }
+/* Q's and S's "Add page" text button, below the pages menu (Q) and under In your menu (S). */
+.pm-foot { display: flex; }
+.sec-group .pm-foot { margin-top: 8px; }

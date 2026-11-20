@@ -246,7 +246,9 @@
         // What was open, so that a reload can say what it closed.
         dialog: ui.dialog ? dialogLabel(ui.dialog) : null, finish: finishStep, panel: !!ui.savePanel,
         // An Add link that was open, and a Text being typed, so a reload can finish them.
-        adding: ui.navAdd ? placeWords(ui.navAdd) : null, addingText: ui.navAdd ? (ui.navAdd.q || '').trim() : '', typing: ui.typing
+        adding: ui.navAdd ? placeWords(ui.navAdd) : null, addingText: ui.navAdd ? (ui.navAdd.q || '').trim() : '', typing: ui.typing,
+        // Q's and S's Create page form, open, with what was typed as its title.
+        pageAdd: ui.pageAdd ? { title: (ui.pageAdd.title || '').trim() } : null
       }));
     } catch (e) { /* in memory only */ }
   }
@@ -275,6 +277,7 @@
       events.push({ at: elapsed(), kind: 'reload', text: 'Page reloaded' + (unsaved ? ', with ' + unsaved + ' unsaved menu ' + (unsaved === 1 ? 'change' : 'changes') + ', which ' + (unsaved === 1 ? 'is' : 'are') + ' kept' : '') });
       if (saved.panel) events.push({ at: elapsed(), kind: 'save', text: 'The save panel was open and was closed by the reload (not counted as cancelled)' });
       if (saved.adding) events.push({ at: elapsed(), kind: 'sidebar', text: 'Add link closed without adding anything (the page was reloaded' + (saved.addingText ? ', with ' + q(saved.addingText) + ' typed in Search or type URL' : '') + '): the “Page link” row ' + saved.adding + ' goes' });
+      if (saved.pageAdd) events.push({ at: elapsed(), kind: 'sidebar', text: 'Create page closed without making a page (the page was reloaded' + (saved.pageAdd.title ? ', with ' + q(saved.pageAdd.title) + ' typed as its title' : '') + ')' });
       // Typing in a link's Text when the page was reloaded: what it came to is logged next.
       typingAtReload = IN_SIDEBAR && saved.typing ? saved.typing : null;
       if (saved.dialog) events.push({ at: elapsed(), kind: 'dialog', text: saved.dialog + ' dialog closed by reload' });
@@ -1485,6 +1488,7 @@
     ui.pageAdd = null;
     if (!keepFocus) ui.focus = 'pm-add';
     log('sidebar', 'Create page closed without making a page (' + how + (typed ? ', with ' + q(typed) + ' typed as its title' : '') + ')');
+    save();
     return true;
   }
 
@@ -1638,7 +1642,9 @@
     const m = state.menu;
     const sel = ui.navSel ? itemById(ui.navSel) : null;
     if (sel) return navInspectorHtml(sel);
-    const intro = screen
+    const intro = menuTitle() === 'Pages'
+      ? '<p class="nav-desc">The pages on your site.</p>'
+      : screen
       ? '<p class="nav-desc">Navigation Menus are a curated collection of blocks that allow visitors to get around your site.</p>'
       : '<p class="nav-desc">A collection of blocks that allow visitors to get around your site.</p>';
     const list = navListHtml(navRows());
@@ -1984,6 +1990,7 @@
       ui.more = null;
       ui.focus = 'nav-create-title';
       log('sidebar', (SECTIONS ? '+ New page in menu clicked, under In your menu' : 'Add page (+) clicked, below the pages menu') + ': the Create page form opens');
+      save();
       render();
       const form = root.querySelector('.pm-create');
       if (form) form.scrollIntoView({ block: 'nearest' });
@@ -3638,7 +3645,7 @@
     const t = ev.target;
     if (t.id === 'nav-text') { typeLabel(t.dataset.item, t.value); return; }
     if (t.id === 'nav-create-title' && ui.navAdd) { ui.navAdd.title = t.value; t.removeAttribute('aria-invalid'); return; }
-    if (t.id === 'nav-create-title' && ui.pageAdd) { ui.pageAdd.title = t.value; t.removeAttribute('aria-invalid'); return; }
+    if (t.id === 'nav-create-title' && ui.pageAdd) { ui.pageAdd.title = t.value; t.removeAttribute('aria-invalid'); save(); return; }
     // Search or type URL narrows the suggestions as you type, without redrawing.
     if (t.id === 'nav-linkto-input' && ui.linkEdit) { ui.linkEdit.text = t.value; t.parentElement.querySelector('.nav-apply').setAttribute('aria-disabled', t.value.trim() ? 'false' : 'true'); return; }
     // The Pages screen's Search narrows the list as you type.

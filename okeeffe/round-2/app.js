@@ -78,7 +78,8 @@
  *   createPage(title, status), publishPage(id), renamePage(id, title), trashPage(id)
  * createPage and publishPage already do the right thing for every mode: an automatic menu
  * or a Page List shows the page; a links menu doesn't; an advanced menu with autoAdd adds a
- * link at the end (or at the end of its parent's submenu when the parent is in the menu).
+ * link at the end (or at the end of its parent's submenu when the parent is in the menu), in A
+ * and Q as soon as a draft is made too (DRAFT_LINKS), and only once per page.
  *
  * Changing the menu in the sidebar arms. Wrap the change in edit(fn, what): it adds a step
  * to the history (what is how Undo and Redo name it in the log), shows no message, and
@@ -141,6 +142,11 @@
   // shows no drafts, so the control's doesn't; links to drafts stay out of the preview in
   // every arm, as before.
   const CANVAS_DRAFTS = ARM === 'menu-switches';
+  // The two menus that add new pages by themselves (A's, with Auto add pages; Q's advanced menu,
+  // with Add new pages automatically) add drafts too, the moment they're made, and the preview
+  // draws a link to a draft as the canvas does, "Holiday orders (Draft)". Visitors don't see it
+  // until the page is published. The control's links don't change.
+  const DRAFT_LINKS = ARM === 'auto-add' || ARM === 'menu-switches';
   const IS_MAC = /Mac|iPhone|iPad/.test((navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || '');
   const SITE = 'rosasbakery.example';
   const NOTES = new URLSearchParams(location.search).has('notes') || location.hash === '#notes';
@@ -179,8 +185,10 @@
     }
     if (STARTS_AS_LINKS) {
       // The same links, with the same ids, as the control's menu straight after detaching.
-      const live = (id) => start.pages.find((p) => p.id === id).status === 'publish';
-      start.menu.items = start.pages.filter((p) => live(p.id)).map((p) => ({ id: 'link-' + start.seq++, pageId: p.id, label: p.title, depth: p.parent && live(p.parent) ? 1 : 0, hidden: false }));
+      // The control's links straight after detaching (same ids), and Holiday orders, the draft,
+      // which Auto add pages added when it was made: A and Q start with the same menu on screen.
+      start.menu.items = start.pages.map((p) => ({ id: 'link-' + start.seq++, pageId: p.id, label: p.title, depth: p.parent ? 1 : 0, hidden: false }));
+      start.pages.forEach((p) => { if (p.status !== 'publish') p.autoAdded = true; });
       start.menu.mode = 'advanced';
       start.menu.autoAdd = true;
     }
@@ -377,11 +385,13 @@
     const tree = [];
     let parentShown = false;
     let parentHidden = false;
+    const draftLinks = !!canvas && DRAFT_LINKS && state.menu.mode === 'advanced';
     menuEntries(!!canvas && CANVAS_DRAFTS).forEach((e) => {
       const p = page(e.pageId);
+      const linkToDraft = draftLinks && !!p && !e.list && p.status !== 'publish';
       // A link to a typed address, or another block, has no page: it shows unless it's hidden.
-      const visible = (e.url || e.block ? true : !!p && (p.status === 'publish' || !!e.draft)) && !e.hidden;
-      const draft = !!e.draft && !!p && p.status !== 'publish';
+      const visible = (e.url || e.block ? true : !!p && (p.status === 'publish' || !!e.draft || linkToDraft)) && !e.hidden;
+      const draft = (!!e.draft || linkToDraft) && !!p && p.status !== 'publish';
       if (e.depth === 0) {
         parentShown = visible;
         parentHidden = !!e.hidden;
@@ -436,7 +446,11 @@
     // Q: a draft that was switched off becomes a hidden link, as a published page that was off
     // does, so it stays out of the menu when it's published (auto-add skips a page that has a
     // link). A draft that was on isn't a link yet; auto-add adds it when it's published.
-    const taken = (p) => published(p) || (CANVAS_DRAFTS && !!p && isExcluded(p.id));
+    // Q: drafts become links too, as they're in the pages menu (shown as drafts until they're
+    // published); one that was switched off becomes a hidden link, as a published page that was
+    // off does, so it stays out when it's published.
+    const taken = (p) => published(p) || (CANVAS_DRAFTS && !!p);
+    if (CANVAS_DRAFTS && mode === 'advanced') pageTreeRows().forEach((r) => { if (!published(r.p)) r.p.autoAdded = true; });
     m.items = pageTreeRows().filter((r) => taken(r.p)).map((r) => ({
       id: newItemId('link-'),
       pageId: r.p.id,
@@ -635,6 +649,7 @@
     state.pages.push({ id, title, status, parent: null, order: state.pages.reduce((m, p) => Math.max(m, orderOf(p)), -1) + 1 });
     if (state.made) state.made.push(id);
     if (status === 'publish' && !quietly) pageWentLive(id);
+    if (status !== 'publish' && !quietly && IN_SIDEBAR) addOnPublish(id, true);
     flagIfNeeded(id);
     return id;
   }
@@ -732,10 +747,16 @@
   // A page has just been published. The Page List and Q's pages menu show it without being
   // told. A menu of links gets a link only if the SAVED menu has its auto-add setting on,
   // since that's the menu the site acts on; the link is then in every copy.
-  function addOnPublish(pageId) {
+  // A draft just made, in A and Q's advanced menu: added in the same way (addOnPublish(id, true)).
+  // A page is only ever added once: a draft whose link was added, then removed, stays out when
+  // it's published, as a removed link does.
+  function addOnPublish(pageId, asDraft) {
     const sm = state.saved.menu;
     if (!(sm.mode === 'advanced' && sm.autoAdd)) return;
+    if (asDraft && !DRAFT_LINKS) return;
     const p = page(pageId);
+    if (p.autoAdded) return;
+    p.autoAdded = true;
     const id = newItemId('link-');
     everyMenu(() => {
       const m = state.menu;
@@ -1552,7 +1573,7 @@
       <div class="field"><label class="nav-caps" for="nav-text">Text</label><input type="text" id="nav-text" value="${esc(it.label)}" autocomplete="off" data-item="${esc(it.id)}" data-focus="nav-text:${esc(it.id)}"></div>
       <div class="field"><span class="nav-caps" id="nav-linkto-caps">Link to</span>${ui.linkEdit && ui.linkEdit.id === it.id
         ? `<div class="nav-search-wrap"><input type="text" id="nav-linkto-input" aria-labelledby="nav-linkto-caps" placeholder="Search or type URL" value="${esc(ui.linkEdit.text)}" autocomplete="off" data-focus="nav-linkto-input">${applyButton('nav-linkto-apply', ui.linkEdit.text)}</div>`
-        : `<button type="button" class="nav-linkto" data-action="nav-linkto" data-item="${esc(it.id)}" data-focus="nav-linkto" aria-labelledby="nav-linkto-caps nav-linkto-what"><span id="nav-linkto-what" class="nav-linkto-text">${linkTo}</span></button>`}</div>`;
+        : `<button type="button" class="nav-linkto" data-action="nav-linkto" data-item="${esc(it.id)}" data-focus="nav-linkto" aria-labelledby="nav-linkto-caps nav-linkto-what"><span id="nav-linkto-what" class="nav-linkto-text">${linkTo}</span></button>`}${p && !it.url && p.status !== 'publish' ? '<p class="nav-help nav-draft-note">This link is to a draft page and will not appear on your site until the page is published.</p>' : ''}</div>`;
   }
 
   // screen: drawn on the site editor's Navigation screen, with that screen's description.
@@ -2033,7 +2054,7 @@
       // this one as it adds any page that's published, wherever it was made: one link, at the
       // end, in the saved menu too. Nothing is left to save.
       const sm = state.saved.menu;
-      if (status === 'publish' && sm.mode === 'advanced' && sm.autoAdd) {
+      if ((status === 'publish' || DRAFT_LINKS) && sm.mode === 'advanced' && sm.autoAdd) {
         const sig = menuSignature();
         endTyping();
         ui.navAdd = null;
@@ -2044,8 +2065,8 @@
         checkTasks();
         save();
         render();
-        log('page', 'Added ' + q(title) + ' with Create page in the sidebar’s Add link, published');
-        log('menu', 'The saved menu’s “' + AUTO_ADD_LABEL + '” added a link to it at the end of the menu, as for any page that’s published' + (a.place === 'end' ? '' : ' (not ' + where + ')') + '; there is nothing to save');
+        log('page', 'Added ' + q(title) + ' with Create page in the sidebar’s Add link, ' + (status === 'draft' ? 'saved as a draft' : 'published'));
+        log('menu', 'The saved menu’s “' + AUTO_ADD_LABEL + '” added a link to it at the end of the menu, as for any ' + (status === 'draft' ? 'new page, drafts included (shown as a draft until it’s published)' : 'page that’s published') + (a.place === 'end' ? '' : ' (not ' + where + ')') + '; there is nothing to save');
         return;
       }
       // The page: applied everywhere at once. Its own link is the one being added, so the
@@ -2921,8 +2942,10 @@
       // The keyboard stays on the row: its marker (B's popover) or its ⋮ button.
       const focus = d.how && d.how.indexOf('top bar') >= 0 ? 'ed-save' : (d.how === 'its marker' ? 'pop:' : 'more:') + keyRow(d.page);
       const toggle = draftToggleWords(d.page);
+      // A and Q's advanced menu: the link Auto add pages added while it was a draft, or not.
+      const draftLink = DRAFT_LINKS && !isAutomatic() && p.status !== 'publish' && p.autoAdded ? (linkFor(d.page) ? ' (the link added to the menu while it was a draft is kept: no second link)' : ' (its link, added while it was a draft, was removed, so it isn’t added again)') : '';
       commit(() => { publishPage(d.page); ui.pop = null; ui.flash = keyRow(d.page); ui.focus = focus; }, `"${p.title}" is published`);
-      log('page', 'Published ' + q(p.title) + ' (from ' + (d.how || 'the Pages panel') + ')' + toggle + (IN_SIDEBAR && ui.screen !== 'site' ? whereWords() : '') + '; ' + (IN_SIDEBAR ? menuWords(d.page) : isShown(d.page) && !was ? 'it is now in the menu' : 'it is not in the menu'));
+      log('page', 'Published ' + q(p.title) + ' (from ' + (d.how || 'the Pages panel') + ')' + toggle + draftLink + (IN_SIDEBAR && ui.screen !== 'site' ? whereWords() : '') + '; ' + (IN_SIDEBAR ? menuWords(d.page) : isShown(d.page) && !was ? 'it is now in the menu' : 'it is not in the menu'));
     },
     'ask-add'() { openDialog({ type: 'add' }); },
     create(d) {
@@ -2943,6 +2966,7 @@
         if (IN_SIDEBAR) { ui.screen = 'site'; ui.pagesSel = id; ui.focus = 'ed-save'; }
       }, `"${title}" ${d.status === 'draft' ? 'saved as a draft' : 'published'}`);
       log('page', 'Added ' + q(title) + ', ' + (d.status === 'draft' ? 'saved as a draft' + (CANVAS_DRAFTS && isAutomatic() ? '; it is in the pages menu, switched on, so it will be in the menu once it’s published' : '') : 'published; ' + (IN_SIDEBAR ? menuWords(id) : isShown(id) ? 'it is now in the menu' : 'it is not in the menu')) + (IN_SIDEBAR ? ' (Add Page, Create draft, on the Pages screen)' : ''));
+      if (d.status === 'draft' && DRAFT_LINKS && linkFor(id) && !isAutomatic()) log('menu', 'The saved menu’s “' + AUTO_ADD_LABEL + '” added a link to the draft ' + q(title) + ' at the end of the menu (shown as a draft until it’s published); there is nothing to save');
       if (IN_SIDEBAR) log('screen', 'Left the Pages screen (Create draft opens the new page on the site; the top bar shows ' + (showsPublish() ? 'Publish' : 'Save, since the menu has unsaved changes') + ')');
       log('visit', 'The preview shows the new page, ' + q(title));
       if (ARM === 'explained') log('menu', 'Marker popover opened on its own after Add page: ' + q(title) + ' (not counted)');

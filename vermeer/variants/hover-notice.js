@@ -11,6 +11,8 @@
  *     site area, with no wait. A pointer that was already over the site when
  *     the page loaded doesn't count until it moves. Not while a button is
  *     held down (a drag to select text).
+ *   - A notice that stays up for 1 s is counted as seen (`b-seen`, in the
+ *     notes): with no wait, shown and ignored mostly follow the pointer's path.
  *   - Stays while the pointer, or keyboard focus, is anywhere in the site area
  *     (the notice included). Goes 1 s after both have left: ignored. Coming
  *     back within that second keeps it. Going to another page keeps it.
@@ -50,6 +52,7 @@
       let notice = null;      // the element while shown
       let promptId = null;    // its prompt id (memory only: see the note above)
       let leaveTimer = null;
+      let seenTimer = null;
       let pointerInside = false;
       let moved = false;      // a real pointer movement on the site since load
       let kbAnchor = null;    // the site element keyboard focus went to when it opened
@@ -81,6 +84,9 @@
           '<button type="button" class="vb-notice-close" data-vb="close" aria-label="Close">' + cross + '</button>';
         api.layer.append(notice);
         api.viewport.classList.add('vb-room');
+        // Counted as seen once it has stayed up for a second.
+        clearTimeout(seenTimer);
+        seenTimer = setTimeout(() => { if (notice) api.count('b-seen', 'Notices up for at least 1 s (seen)'); }, 1000);
         requestAnimationFrame(() => { if (notice) notice.classList.add('is-in'); });
         api.announce('Trying to change something on this page? ' + (how === 'keyboard focus' ? 'Press Tab for Start editing.' : 'Start editing button.'));
       }
@@ -88,6 +94,7 @@
       function hide(outcome, detail) {
         if (!notice) return;
         clearTimeout(leaveTimer);
+        clearTimeout(seenTimer);
         const hadFocus = notice.contains(document.activeElement);
         if (promptId != null) api.promptOutcome(promptId, outcome, detail);
         promptId = null;

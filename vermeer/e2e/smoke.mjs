@@ -431,6 +431,73 @@ await test('Control: the save task in the code: unsaved at Finished (dotted digi
   await closePage(page);
 });
 
+await test('Control: Ctrl/Cmd+S everywhere; Review changes’ focus, Discard all’s snackbar, a reload with it open; the Pages screen’s Homepage', async () => {
+  const page = await newPage();
+  await page.goto(baseUrl + '/control.html?notes');
+
+  step('while browsing it does nothing but is logged (and the browser’s Save page as is held off)');
+  const prevented = await page.evaluate(() => { const e = new KeyboardEvent('keydown', { key: 's', ctrlKey: true, metaKey: true, bubbles: true, cancelable: true }); document.body.dispatchEvent(e); return e.defaultPrevented; });
+  assert.equal(prevented, true);
+  await page.keyboard.press(mod + '+s');
+  assert.match(await h.lastLog(page), /while browsing \(nothing happens\)$/);
+
+  step('with nothing to save in edit mode, logged');
+  await h.edit(page);
+  await page.keyboard.press(mod + '+s');
+  assert.match(await h.lastLog(page), /with nothing to save$/);
+
+  step('Review changes opens with focus on its ×, not Save; Ctrl+S in it saves (k)');
+  await h.retype(page, 'home-heading', 'New heading');
+  await page.keyboard.press('Enter');
+  await h.tool(page, 'save').click();
+  const review = page.locator('dialog.vm-review');
+  await review.waitFor();
+  assert.equal(await page.evaluate(() => document.activeElement.dataset.review), 'close');
+  await page.keyboard.press(mod + '+s');
+  await review.waitFor({ state: 'hidden' });
+  assert.equal(await h.taskDone(page, 2), true);
+  assert.match((await h.logTexts(page)).join('\n'), /Pressed (Ctrl\+S|⌘S) in Review changes/);
+
+  step('Discard all: confirmed, then the “Changes discarded.” snackbar');
+  await h.retype(page, 'cafe-heading', 'Coffee');
+  await page.keyboard.press('Enter');
+  await h.tool(page, 'save').click();
+  await review.getByRole('button', { name: 'Discard all' }).click();
+  await review.getByRole('button', { name: 'Discard changes' }).click();
+  assert.equal(await h.text(page, 'cafe-heading'), 'The café corner');
+  assert.equal(await page.locator('.vm-snackbar').innerText(), 'Changes discarded.');
+
+  step('a reload with Review changes open counts it as closed without saving');
+  await h.retype(page, 'cafe-heading', 'Coffee');
+  await page.keyboard.press('Enter');
+  await h.tool(page, 'save').click();
+  await review.waitFor();
+  await page.reload();
+  assert.match((await h.logTexts(page)).join('\n'), /Review changes closed without saving \(page reloaded\)/);
+  assert.equal(await h.count(page, 'reviews'), '3 / 1', 'Discard all isn’t counted as closed without saving; the reload is');
+
+  step('Ctrl+S in the Exit dialog saves and leaves (k), logged as pressed there');
+  await h.tool(page, 'exit').click();
+  await page.locator('dialog.vm-exit').waitFor();
+  await page.keyboard.press(mod + '+s');
+  assert.equal(await h.mode(page), 'browse');
+  assert.equal(await h.text(page, 'cafe-heading'), 'Coffee');
+  assert.match((await h.logTexts(page)).join('\n'), /Pressed (Ctrl\+S|⌘S) in the Exit dialog/);
+
+  step('on the Pages screen the homepage reads “Homepage · Home” in the page bar');
+  await h.chrome(page, 'sidebar', 'Pages');
+  assert.equal(await page.locator('.vm-address-title').innerText(), 'Homepage');
+  assert.equal(await page.locator('.vm-address-meta').innerText(), 'Home');
+  await h.chrome(page, 'sidebar', 'Events in the list of pages');
+  assert.equal(await page.locator('.vm-address-title').innerText(), 'Events');
+  assert.equal(await page.locator('.vm-address-meta').count(), 0);
+
+  const code = await h.finishCode(page);
+  h.checkCode(code, { tasks: '110000', v: 'k.2.0', w: 0 });
+  noErrors(page);
+  await closePage(page);
+});
+
 // ---------- Reload, the Exit dialog, Reset ----------
 
 await test('Control: a reload puts everything back; the Exit dialog’s three choices; Reset', async () => {

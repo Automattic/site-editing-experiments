@@ -646,6 +646,7 @@
     S.ui.parent = (from === 'design' && ['colors', 'fonts', 'identity'].includes(id)) ? 'design' : 'home';
     S.ui.screen = id;
     renderSidebar();
+    renderToolbar();
     persist();
     // From the keyboard, focus goes into the screen opened.
     if (keyboardLast) { const f = sidebar.querySelector('.vm-back, button'); if (f) f.focus(); }
@@ -695,6 +696,7 @@
     return (n ? plural(n, 'unsaved change', 'unsaved changes') : S.ui.allSaved ? 'All changes saved' : '') + (n || S.ui.allSaved ? ' · ' : '') + SAVE_KEYS;
   }
   let toolbarDrawn = '';
+  const drawnKey = () => S.mode + ':' + page() + ':' + (S.ui.screen === 'pages' && page() === 'home');
   let saveBusy = false;
   let lastChangeCount = 0;
   // Redraws the toolbar when the mode or page changes; otherwise updates the
@@ -702,7 +704,7 @@
   // still lands on the button it started on.
   function renderToolbar() {
     const edit = S.mode === 'edit';
-    if (toolbarDrawn === S.mode + ':' + page()) {
+    if (toolbarDrawn === drawnKey()) {
       const set = (action, off) => { const el = toolbar.querySelector('[data-action="' + action + '"]'); if (el) { if (off) el.setAttribute('aria-disabled', 'true'); else el.removeAttribute('aria-disabled'); } };
       if (edit) {
         set('undo', !S.undo.length);
@@ -714,9 +716,13 @@
       }
       return;
     }
-    toolbarDrawn = S.mode + ':' + page();
-    const center = '<div class="vm-switcher"><button type="button" class="vm-address-btn" data-action="pages" aria-haspopup="true" aria-expanded="false" aria-label="' + PAGES[page()] + ', Published. Go to another page"' + tip(ADDRESS + PAGE_PATH[page()]) + '>' +
-        ICONS.search + '<span class="vm-address-title">' + PAGES[page()] + '</span></button>' +
+    toolbarDrawn = drawnKey();
+    // On the Pages screen the homepage is named as Create not Learn's Pages
+    // canvas names it: "Homepage", with what it shows after it.
+    const asHomepage = S.ui.screen === 'pages' && page() === 'home';
+    const title = asHomepage ? 'Homepage' : PAGES[page()];
+    const center = '<div class="vm-switcher"><button type="button" class="vm-address-btn" data-action="pages" aria-haspopup="true" aria-expanded="false" aria-label="' + title + ', Published. Go to another page"' + tip(ADDRESS + PAGE_PATH[page()]) + '>' +
+        ICONS.search + '<span class="vm-address-title">' + title + '</span>' + (asHomepage ? '<span class="vm-address-meta">Home</span>' : '') + '</button>' +
         '<span class="vm-address-status" data-action="pages-status" aria-hidden="true"' + tip('Published') + '>' + ICONS.published + '</span></div>' +
       (page() === 'home' ? '<button type="button" class="vm-icon-btn vm-small-btn" data-action="page-options" aria-label="Page options" aria-haspopup="true"' + tip('Page options') + '>' + ICONS.moreHorizontal + '</button>' : '');
     const view = '<button type="button" class="vm-icon-btn" data-action="view" aria-label="View" aria-haspopup="true"' + tip('View') + '>' + ICONS.desktop + '</button>';
@@ -1574,13 +1580,20 @@
   }
 
   const isMac = /Mac|iPhone|iPad/.test(navigator.platform || '');
+  // Ctrl/Cmd+S is always caught, so the browser's "Save page as" never opens.
+  window.addEventListener('keydown', (e) => {
+    const mod = isMac ? e.metaKey : e.ctrlKey;
+    if (!mod || e.altKey || e.key.toLowerCase() !== 's') return;
+    e.preventDefault();
+    e.stopPropagation();
+    keySave();
+  }, true);
   document.addEventListener('keydown', (e) => {
     if (S.mode !== 'edit' || document.querySelector('dialog[open]')) return;
     const mod = isMac ? e.metaKey : e.ctrlKey;
     const key = e.key.toLowerCase();
     if (mod && key === 'z') { e.preventDefault(); if (e.shiftKey) redo(); else undo(); }
     else if (mod && key === 'y') { e.preventDefault(); redo(); }
-    else if (mod && key === 's') { e.preventDefault(); commitEditing({ keepSelected: !!editing }); if (!save('k')) { S.stats.saveGrey++; note('save', 'Pressed ' + SAVE_KEYS + ' with nothing to save'); } }
     else if (e.key === 'Escape' && !editing && selectedBox) { clearSelected(); }
   });
 
@@ -1682,6 +1695,33 @@
    * save records how it was made: t (the toolbar's Save), k (the keyboard),
    * d (the Exit dialog).
    */
+  // Ctrl/Cmd+S: in edit mode it saves (k), also from Review changes or the
+  // Exit dialog (where it does what their Save does, and leaves with the
+  // Exit dialog's); elsewhere it does nothing but is logged.
+  function keySave() {
+    const open = document.querySelector('dialog[open]');
+    if (open && open === reviewDialog) {
+      if (!hasUnsaved()) return;
+      note('save', 'Pressed ' + SAVE_KEYS + ' in Review changes');
+      setReviewOpen(false);
+      reviewDialog.close();
+      save('k');
+      restoreFocusToToolbar();
+      return;
+    }
+    if (open && open === exitDialog) {
+      note('save', 'Pressed ' + SAVE_KEYS + ' in the Exit dialog');
+      exitDialog.close();
+      save('k');
+      leaveEdit('Save, by ' + SAVE_KEYS, 'yes');
+      return;
+    }
+    if (open) { note('save', 'Pressed ' + SAVE_KEYS + ' with a dialog open (nothing happens)'); return; }
+    if (S.mode !== 'edit') { note('save', 'Pressed ' + SAVE_KEYS + ' while browsing (nothing happens)'); return; }
+    commitEditing({ keepSelected: !!editing });
+    if (!save('k')) note('save', 'Pressed ' + SAVE_KEYS + ' with nothing to save');
+  }
+
   function save(how) {
     if (S.mode !== 'edit') return false;
     if (!hasUnsaved()) return false;
@@ -1736,7 +1776,7 @@
         if (!b) return;
         const what = b.dataset.review;
         if (what === 'cancel' || what === 'close') closeReview(what === 'cancel' ? 'Cancel' : '×');
-        else if (what === 'save') { reviewDialog.close(); save('t'); restoreFocusToToolbar(); }
+        else if (what === 'save') { setReviewOpen(false); reviewDialog.close(); save('t'); restoreFocusToToolbar(); }
         else if (what === 'discard') {
           const id = b.dataset.entity;
           discardEntity(id);
@@ -1744,30 +1784,38 @@
           S.stats.discards++;
           persist();
           redrawKeepingScroll();
-          if (!hasUnsaved()) { reviewDialog.close(); restoreFocusToToolbar(); } else drawReview();
+          if (!hasUnsaved()) { setReviewOpen(false); reviewDialog.close(); restoreFocusToToolbar(); } else { drawReview(); reviewDialog.querySelector('[data-review="close"]').focus(); }
         } else if (what === 'discard-all') drawReview(true);
-        else if (what === 'keep') drawReview();
+        else if (what === 'keep') { drawReview(); reviewDialog.querySelector('[data-review="close"]').focus(); }
         else if (what === 'discard-all-sure') {
           const n = changes().length;
           S.draft = deepCopy(S.saved);
           S.undo = []; S.redo = [];
           S.stats.discards += n;
           note('save', 'Review changes: Discard all (' + plural(n, 'change', 'changes') + ' thrown away)');
-          persist();
+          setReviewOpen(false);
           reviewDialog.close();
           redrawKeepingScroll();
           restoreFocusToToolbar();
+          snackbar('Changes discarded.');
         }
       });
     }
     drawReview();
     reviewDialog.showModal();
+    setReviewOpen(true);
+    // As core's Modal: focus starts on its first control, the × in its
+    // header, so Enter doesn't save at once.
+    reviewDialog.querySelector('[data-review="close"]').focus();
   }
+  // Kept, so a reload with it open is counted as closed without saving.
+  function setReviewOpen(on) { S.ui.reviewOpen = on; persist(); }
   function restoreFocusToToolbar() {
     const b = toolbar.querySelector('[data-action="save"]');
     if (b) b.focus();
   }
   function closeReview(how) {
+    setReviewOpen(false);
     S.stats.reviewsCancelled++;
     note('save', 'Review changes closed without saving (' + how + ')');
     reviewDialog.close();
@@ -1799,7 +1847,17 @@
       '<div class="vm-review-groups">' + group(true) + group(false) + '</div>' +
       '<div class="vm-dialog-actions vm-review-foot"><button type="button" class="vm-btn vm-btn-tertiary vm-btn-danger" data-review="discard-all">Discard all</button><span></span>' +
         '<button type="button" class="vm-btn vm-btn-tertiary" data-review="cancel">Cancel</button><button type="button" class="vm-btn vm-btn-primary" data-review="save">Save ' + plural(n, 'change', 'changes') + '</button></div>';
-    reviewDialog.querySelector('[data-review="save"]').focus();
+  }
+
+  // Core's snackbar, at the foot of the canvas, for a few seconds.
+  let snackTimer = null;
+  function snackbar(text) {
+    let el = app.querySelector('.vm-snackbar');
+    if (!el) { el = document.createElement('div'); el.className = 'vm-snackbar'; el.setAttribute('role', 'status'); app.querySelector('.vm-stage').append(el); }
+    el.textContent = text;
+    el.hidden = false;
+    clearTimeout(snackTimer);
+    snackTimer = setTimeout(() => { el.hidden = true; }, 4000);
   }
 
   // The Exit dialog, when there are unsaved changes. Create not Learn's Exit
@@ -2178,6 +2236,11 @@
     const open = Object.keys(S.prompts.open);
     note('reload', (openedAgain ? 'Opened again in a new tab or window (any earlier tab stops saving)' : 'Page reloaded') + (S.mode === 'edit' ? ' (in edit mode on ' + PAGES[page()] + (hasUnsaved() ? ', with ' + unsavedCount() + ' unsaved change' + (unsavedCount() === 1 ? '' : 's') : '') + ')' : ' (browsing ' + PAGES[page()] + ')'));
     for (const id of open) promptOutcome(Number(id), 'ignored', 'page reloaded');
+    if (S.ui.reviewOpen) {
+      S.ui.reviewOpen = false;
+      S.stats.reviewsCancelled++;
+      note('save', 'Review changes closed without saving (page reloaded)');
+    }
     // Text being typed in when the page was reloaded: its change is in the
     // draft already; log it and count it as an edit, as finishing would have.
     if (S.pending) {

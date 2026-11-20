@@ -123,6 +123,8 @@ body { background: var(--vm-bg); color: var(--vm-ink); font-family: var(--vm-fon
 .vm-address-btn { position: relative; width: clamp(160px, 24vw, 340px); min-width: 0; height: 32px; display: flex; align-items: center; justify-content: center; gap: 4px; padding: 0 32px; border: 0; border-radius: 4px; background: #F0F0F0; color: var(--vm-ink); font: inherit; font-size: 13px; font-weight: 500; cursor: pointer; }
 .vm-address-btn > svg { position: absolute; left: 8px; width: 20px; height: 20px; fill: var(--vm-ink); }
 .vm-address-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vm-address-meta { flex: none; color: var(--vm-ink-2); font-weight: 400; white-space: nowrap; }
+.vm-address-meta::before { content: "·"; margin: 0 6px; }
 .vm-address-btn:hover { background: #E8E8E8; }
 .vm-address-status { position: absolute; right: 6px; top: 6px; width: 20px; height: 20px; cursor: pointer; }
 .vm-address-status svg { width: 20px; height: 20px; fill: var(--vm-ink-2); }
@@ -142,6 +144,8 @@ body { background: var(--vm-bg); color: var(--vm-ink); font-family: var(--vm-fon
 .vm-zoom { position: absolute; z-index: 25; right: 24px; bottom: 24px; display: none; flex-direction: column; gap: 2px; padding: 2px; background: #fff; border-radius: 4px; box-shadow: 0 0 0 1px rgba(0,0,0,.08), 0 2px 8px rgba(0,0,0,.12); }
 .vm-app.is-edit .vm-zoom { display: flex; }
 .vm-zoom .vm-icon-btn { width: 32px; height: 32px; }
+.vm-snackbar { position: absolute; z-index: 30; left: 24px; bottom: 24px; max-width: calc(100% - 48px); padding: 12px 24px; border-radius: 2px; background: #1E1E1E; color: #fff; font-size: 13px; box-shadow: 0 2px 8px rgba(0,0,0,.2); }
+.vm-snackbar[hidden] { display: none; }
 
 .vm-bottombar { flex: none; display: flex; align-items: center; gap: 16px; padding: 8px 16px; background: #F0F0F1; }
 .vm-bottombar p { margin: 0; color: var(--vm-ink-2); font-size: 13px; }
@@ -407,7 +411,7 @@ textarea.cl-input { resize: vertical; min-height: 104px; }
   .cl-club-in { grid-template-columns: 1fr; }
 }
 @container (max-width: 720px) {
-  .cl-wrap { padding: 0 24px; }
+  .cl-wrap { padding-left: 24px; padding-right: 24px; }
   .cl-logo { width: 32px; height: 32px; }
   .cl-brand-name { font-size: 18px; }
   .cl-nav-link { padding: 8px 6px; font-size: 14px; }

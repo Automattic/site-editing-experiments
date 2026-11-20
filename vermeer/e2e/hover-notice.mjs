@@ -43,6 +43,8 @@ export default async function ({ page, baseUrl, assert, helpers: h }) {
     assert.ok(menu.y + menu.height < n.y, 'doesn’t cover the menu');
   }
   await expectPrompts({ shown: 1, accepted: 0, dismissed: 0, ignored: 0 }, 'shown once');
+  await page.waitForTimeout(1100);
+  assert.equal((await h.state(page)).stats.arm['b-seen'], 1, 'up for a second: counted as seen');
 
   h.step('moving while it shows, scrolling and going to another page keep it; the site isn’t pushed down');
   const top0 = await page.locator('.vm-site').evaluate((el) => el.getBoundingClientRect().top);

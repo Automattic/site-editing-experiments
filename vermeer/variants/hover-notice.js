@@ -122,7 +122,7 @@
 
       function scheduleLeave() {
         clearTimeout(leaveTimer);
-        clearTimeout(seenTimer);
+        if (!focusInside()) clearTimeout(seenTimer); // focus still in keeps the clock going
         if (!notice) return;
         leaveTimer = setTimeout(() => {
           if (!notice || pointerInside || focusInside()) return;

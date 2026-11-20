@@ -8,7 +8,7 @@ These prototypes put the Pages screen next to a live preview of the site, so eve
 
 ## Round 2
 
-[`round-2/`](round-2/) has five more prototypes, for one test that asks whether people understand pages and the menu as one thing or two, and whether they can change the menu. It crosses two things: whether the menu converts to links when it's changed (as WordPress does today) or stays connected to the pages, and whether it's changed on the Pages screen or in the menu's own sidebar. The fifth, A, changes two things about WordPress today: the menu is links from the start, with no Page List to detach, and a switch keeps adding new pages to it.
+[`round-2/`](round-2/) has six more prototypes, for one test that asks whether people understand pages and the menu as one thing or two, and whether they can change the menu. It crosses two things: whether the menu converts to links when it's changed (as WordPress does today) or stays connected to the pages, and whether it's changed on the Pages screen or in the menu's own sidebar. A changes two things about WordPress today: the menu is links from the start, with no Page List to detach, and a switch keeps adding new pages to it. S is Q with its sidebar drawn as round 1's D: "In your menu" and "Other pages", with add and remove buttons.
 
 | | Prototype | The menu after a change | Where it's changed |
 | --- | --- | --- | --- |
@@ -17,8 +17,9 @@ These prototypes put the Pages screen next to a live preview of the site, so eve
 | B | [Explained](round-2/explained.html) | Converts to links, and says so | The Pages screen |
 | F | [Connected switches](round-2/switches.html) | Stays connected | The Pages screen |
 | Q | [Menu switches](round-2/menu-switches.html) | Stays connected | The menu's own sidebar |
+| S | [Menu sections](round-2/menu-sections.html) | Stays connected | The menu's own sidebar, in two groups (round 1's D) |
 
-This round's test uses three of them, the control, A and Q, and has a seventh task, a link to another website; B and F are not in this round's test, and are kept for reference. B and F are the first round's B and F, changed so that all five share one site, one shell and one set of tasks. Round 2 has its own copy of the engine, a facilitator panel (`?notes`), an event log, and a Finished button that gives a completion code for an unmoderated testing tool. The three that change the menu in its own sidebar (the control, A and Q) follow the Navigation block's list in WordPress's editor, and have the editor's Save, Undo and Redo: a change to the menu there counts once it's saved. Its [README](round-2/README.md) has the tasks, what to watch for, and where the control departs from WordPress.
+This round's test uses four of them, the control, A, Q and S, with five tasks, one of them a link to another website; B and F are not in this round's test, and are kept for reference. B and F are the first round's B and F, changed so that all six share one site, one shell and one set of tasks. Round 2 has its own copy of the engine, a facilitator panel (`?notes`), an event log, and a Finished button that gives a completion code for an unmoderated testing tool. The four that change the menu in its own sidebar (the control, A, Q and S) follow the Navigation block's list in WordPress's editor, and have the editor's Save, Undo and Redo: a change to the menu there counts once it's saved. Its [README](round-2/README.md) has the tasks, what to watch for, and where the control departs from WordPress.
 
 The rest of this page is about the first round.
 

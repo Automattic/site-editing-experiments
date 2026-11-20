@@ -1,17 +1,19 @@
 /*
  * O'Keeffe round 2 · Pages and the site's menu.
  *
- * One engine for five prototypes. Each HTML page sets window.PROTOTYPE = { arm }:
+ * One engine for six prototypes. Each HTML page sets window.PROTOTYPE = { arm }:
  *   control        OC  the menu converts to links; changed in the menu's own sidebar
  *   auto-add       OA  the menu is links from the start, and still gets new pages while its
  *                      "Auto add pages" switch is on; changed in the menu's own sidebar
  *   explained      OB  the menu converts to links, explained; changed on the Pages screen
  *   switches       OF  the menu stays connected; changed on the Pages screen
  *   menu-switches  OQ  the menu stays connected; changed in the menu's own sidebar
+ *   menu-sections  OS  Q, with its pages menu drawn as two groups, In your menu and Other
+ *                      pages, with + and − (round 1's D in the editor's sidebar)
  *
- * The same in all five: the site, the shell, the preview, the Pages panel's basics, the
- * tasks, the log and the completion code. The three arms that change the menu in its own
- * sidebar (control, auto-add, menu-switches) simulate WordPress's editor, so they also have
+ * The same in all six: the site, the shell, the preview, the Pages panel's basics, the
+ * tasks, the log and the completion code. The four arms that change the menu in its own
+ * sidebar (control, auto-add, menu-switches, menu-sections) simulate WordPress's editor, so they also have
  * its saving: a menu change is unsaved until Save, and Undo and Redo are the editor's. B and
  * F apply every change at once, with the message's Undo.
  *
@@ -24,7 +26,7 @@
  *               pageTreeRows() gives them as a tree: [{ p, depth }].
  * state.menu    {
  *                 mode: 'automatic' | 'links' | 'advanced',
- *                 excluded: [pageId],   automatic only: pages switched off (F, Q)
+ *                 excluded: [pageId],   automatic only: pages switched off (F, Q; S's −)
  *                 items: [{ id, pageId, label, depth: 0 | 1, hidden }],   links / advanced
  *                                       A link to a typed address has url and no pageId.
  *                                       The control's menu is 'links' from the start, and
@@ -124,21 +126,26 @@
     'auto-add': { code: 'OA', letter: 'A', file: 'auto-add.html', where: 'sidebar', name: 'Auto add: the menu is links from the start, changed in its own sidebar as in WordPress today, and an “Auto add pages” switch, on at the start, keeps adding newly published pages' },
     explained: { code: 'OB', letter: 'B', file: 'explained.html', where: 'pages', name: 'Explained: the menu is changed on the Pages screen, and taking a page out or renaming it in the menu converts the menu to links, after one confirm that says so' },
     switches: { code: 'OF', letter: 'F', file: 'switches.html', where: 'pages', name: 'Connected switches: every page has an “In menu” switch on the Pages screen, the list is the menu’s order, and the menu never converts' },
-    'menu-switches': { code: 'OQ', letter: 'Q', file: 'menu-switches.html', where: 'sidebar', name: 'Menu switches: the menu’s own sidebar lists the pages with a show/hide toggle each, and the menu stays connected' }
+    'menu-switches': { code: 'OQ', letter: 'Q', file: 'menu-switches.html', where: 'sidebar', name: 'Menu switches: the menu’s own sidebar lists the pages with a show/hide toggle each, and the menu stays connected' },
+    'menu-sections': { code: 'OS', letter: 'S', file: 'menu-sections.html', where: 'sidebar', name: 'Menu sections: the menu’s own sidebar lists the pages in two groups, In your menu and Other pages, with buttons to add and remove them (round 1’s D in the editor’s sidebar), and the menu stays connected; otherwise Q' }
   };
   const ARM = ARMS[(window.PROTOTYPE || {}).arm] ? window.PROTOTYPE.arm : 'control';
   const IN_SIDEBAR = ARMS[ARM].where === 'sidebar';
   // Q follows Quinn: switching a parent off hides its child pages too. F keeps O'Keeffe's
   // behaviour: child pages that are on move up to the top level.
-  const PARENT_OFF_HIDES_CHILDREN = ARM === 'menu-switches';
+  // S, menu sections, is Q in everything but how its pages menu is drawn: two groups, "In your
+  // menu" and "Other pages", with + and − (round 1's D). PAGES_MENU is either of them.
+  const SECTIONS = ARM === 'menu-sections';
+  const PAGES_MENU = ARM === 'menu-switches' || SECTIONS;
+  const PARENT_OFF_HIDES_CHILDREN = PAGES_MENU;
   // Hiding a link is Quinn's, so only Q's advanced menu has Hide and Show.
-  const CAN_HIDE = ARM === 'menu-switches';
+  const CAN_HIDE = PAGES_MENU;
   // The auto-add arm has no Page List: its menu is links from the start, with a switch that
   // keeps new pages arriving.
   const STARTS_AS_LINKS = ARM === 'auto-add';
   // Q's pages menu lists draft pages in its sidebar (with a Draft badge and a toggle that can't
   // be switched until the page is published); they're never in the menu on the site.
-  const CANVAS_DRAFTS = ARM === 'menu-switches';
+  const CANVAS_DRAFTS = PAGES_MENU;
   // A link to a draft page, which only Create page (Publish off) in Add link makes, is drawn on
   // the site as the editor's canvas draws it, "Gift cards (Draft)" with a wavy underline, in the
   // control, A and Q's advanced menu. Visitors don't see it until the page is published.
@@ -210,7 +217,7 @@
   }
 
   function startingStats() {
-    return { dialogsShown: 0, dialogsConfirmed: 0, firstMenuChange: 0, dragReorders: 0, moveReorders: 0, undos: 0, redos: 0, saves: 0, panelCancels: 0, own: 0, finishBack: 0, firstPages: 0, firstNavScreen: 0, orderUses: 0, catOutSaved: false, catOutScreen: false };
+    return { dialogsShown: 0, dialogsConfirmed: 0, firstMenuChange: 0, dragReorders: 0, moveReorders: 0, undos: 0, redos: 0, saves: 0, panelCancels: 0, own: 0, finishBack: 0, firstPages: 0, firstNavScreen: 0, orderUses: 0, catOutSaved: false, catOutScreen: false, secClicks: 0 };
   }
 
   let state = startingState();
@@ -776,8 +783,8 @@
     if (screen && saved) w = 'it is now in the menu';
     else if (!screen && !saved) w = 'it is not in the menu';
     else if (saved) {
-      w = ARM === 'menu-switches' && sm.mode === 'automatic' && m.mode === 'automatic' ? 'it is in the saved pages menu, so visitors see it, but switched off in the pages menu on screen, which isn’t saved yet'
-        : ARM === 'menu-switches' && sm.mode === 'automatic' ? 'it is in the saved pages menu, so visitors see it, but not in the advanced menu on screen, which isn’t saved yet'
+      w = PAGES_MENU && sm.mode === 'automatic' && m.mode === 'automatic' ? 'it is in the saved pages menu, so visitors see it, but ' + (SECTIONS ? 'under Other pages' : 'switched off') + ' in the pages menu on screen, which isn’t saved yet'
+        : PAGES_MENU && sm.mode === 'automatic' ? 'it is in the saved pages menu, so visitors see it, but not in the advanced menu on screen, which isn’t saved yet'
         : ARM === 'control' && sm.items.some(isPageList) ? 'it is in the saved menu’s Page List, so visitors see it, but not in the menu on screen, whose changes aren’t saved yet'
         : 'it is in the saved menu, so visitors see it, but not in the menu on screen, whose changes aren’t saved yet';
     } else w = 'it is in the menu on screen, but not in the saved menu, so visitors don’t see it yet';
@@ -992,6 +999,7 @@
     search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><circle cx="13" cy="10" r="5.25"/><path d="M9.25 13.75 5 18"/></svg>',
     social: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="17" cy="6" r="2.25"/><circle cx="7" cy="12" r="2.25"/><circle cx="17" cy="18" r="2.25"/><path d="m9 11 6-4M9 13l6 4"/></svg>',
     plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>',
+    minus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14"/></svg>',
     unseen: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12s3.5-6 9-6 9 6 9 6-3.5 6-9 6-9-6-9-6z"/><circle cx="12" cy="12" r="2.5"/><path d="M4 4l16 16"/></svg>',
     back: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>',
     undo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6L4 10l4 4"/><path d="M4 10h10a5 5 0 0 1 0 10h-2"/></svg>',
@@ -1322,6 +1330,14 @@
   // The rows of the sidebar's list. kind: 'page' (Q's pages menu), 'item' (a link),
   // 'pagelist' (a Page List) or 'plpage' (a page shown under a Page List).
   function navRows() {
+    // S: the "In your menu" group: the pages the menu shows, in page order, child pages under
+    // their parent ("Other pages" is drawn apart, by sectionsHtml).
+    if (isAutomatic() && SECTIONS) {
+      return automaticItems().map((e) => {
+        const p = page(e.pageId);
+        return { kind: 'page', id: p.id, title: p.title, depth: e.depth, group: e.depth ? p.parent : '', draft: false };
+      });
+    }
     if (isAutomatic()) {
       // Q's pages menu: every page, drafts too, in page order.
       return pageTreeRows().map((r) => {
@@ -1482,6 +1498,8 @@
     // A draft's toggle is off and can't be switched until the page is published (it then joins
     // the menu, switched on, as a newly published page does). A click on it is logged.
     const toggle = row.kind !== 'page' ? ''
+      : SECTIONS
+        ? `${row.depth ? '<span class="sec-meta">In a dropdown</span>' : ''}<button type="button" class="icon-btn sec-btn" data-action="sec-remove" data-page="${esc(row.id)}" data-focus="sec-rm:${esc(row.id)}" aria-label="Remove ${esc(row.title)} from your menu">${ICON.minus}</button>`
       : row.draft
         ? `<button type="button" class="switch nav-switch" aria-pressed="false" aria-disabled="true" data-action="nav-toggle-draft" data-page="${esc(row.id)}" data-focus="nav-sw:${esc(row.id)}" aria-label="Show ${esc(row.title)} in the menu" aria-describedby="nav-sw-why-${esc(row.id)}"><span class="switch-track"></span><span class="sr-only" id="nav-sw-why-${esc(row.id)}">Publish this page to add it to the menu</span></button>`
         : `<button type="button" class="switch nav-switch" aria-pressed="${!off}" data-action="nav-toggle" data-page="${esc(row.id)}" data-focus="nav-sw:${esc(row.id)}" aria-label="Show ${esc(row.title)} in the menu"><span class="switch-track"></span></button>`;
@@ -1553,6 +1571,35 @@
         : `<button type="button" class="nav-linkto" data-action="nav-linkto" data-item="${esc(it.id)}" data-focus="nav-linkto" aria-labelledby="nav-linkto-caps nav-linkto-what"><span id="nav-linkto-what" class="nav-linkto-text">${linkTo}</span></button>`}${p && !it.url && p.status !== 'publish' ? '<p class="nav-help nav-draft-note">This link is to a draft page and will not appear on your site until the page is published.</p>' : ''}</div>`;
   }
 
+  // S: round 1's D, in the menu's sidebar. "In your menu" (the list, drawn by navListHtml, rows
+  // with −), then "Other pages": every page the menu doesn't show, in page order, with +. A
+  // draft's + is unavailable until the page is published; a child page whose parent is out of
+  // the menu is listed here too, and its + puts the parent back with it.
+  function sectionsHtml(list) {
+    const shown = new Set(automaticItems().map((e) => e.pageId));
+    const other = pageTreeRows().filter((r) => !shown.has(r.p.id)).map(({ p }) => {
+      const draft = p.status !== 'publish';
+      const parent = hasParent(p) ? page(p.parent) : null;
+      const viaParent = !draft && !isExcluded(p.id) && parent && !shown.has(parent.id);
+      const meta = draft ? 'Joins the menu when published' : viaParent ? 'In ' + parent.title + '’s dropdown, which is out of the menu' : '';
+      const add = draft
+        ? `<button type="button" class="icon-btn add sec-btn" aria-disabled="true" data-action="sec-add-draft" data-page="${esc(p.id)}" data-focus="sec-add:${esc(p.id)}" aria-label="Add ${esc(p.title)} to your menu" aria-describedby="sec-why-${esc(p.id)}">${ICON.plus}<span class="sr-only" id="sec-why-${esc(p.id)}">Publish this page to add it to the menu</span></button>`
+        : `<button type="button" class="icon-btn add sec-btn" data-action="sec-add" data-page="${esc(p.id)}" data-focus="sec-add:${esc(p.id)}" aria-label="Add ${esc(p.title)} to your menu">${ICON.plus}</button>`;
+      return `<li class="row nav-row sec-other${ui.flash === 'sec:' + p.id ? ' flash' : ''}" data-row="sec:${esc(p.id)}">
+        <div class="row-main"><span class="sec-text"><span class="nav-label sec-title">${esc(p.title)}</span>${draft ? '<span class="badge draft nav-draft">Draft</span>' : ''}${meta ? `<span class="sec-meta">${esc(meta)}</span>` : ''}</span>${add}</div></li>`;
+    }).join('');
+    return `<section class="group menu sec-group" aria-label="In your menu">
+        <div class="group-head"><h3 class="group-title">In your menu</h3><span class="tag blue">Header</span></div>
+        ${list.indexOf('nav-empty') >= 0 ? '<div class="empty">Nothing in this menu yet.</div>' : list}
+      </section>
+      <section class="group sec-group" aria-label="Other pages">
+        <div class="group-head"><h3 class="group-title">Other pages</h3></div>
+        <div class="group-sub">Live on your site with their own address, just not in a menu.</div>
+        ${other ? `<ul class="list sec-list" aria-label="Other pages">${other}</ul>` : '<div class="empty">Every page is in your menu.</div>'}
+      </section>
+      <p class="footnote">Pages outside the menu are still public at their address and can show in search results.</p>`;
+  }
+
   // screen: drawn on the site editor's Navigation screen, with that screen's description.
   function sidebarBodyHtml(screen) {
     const m = state.menu;
@@ -1562,6 +1609,7 @@
       ? '<p class="nav-desc">Navigation Menus are a curated collection of blocks that allow visitors to get around your site.</p>'
       : '<p class="nav-desc">A collection of blocks that allow visitors to get around your site.</p>';
     const list = navListHtml(navRows());
+    if (isAutomatic() && SECTIONS) return `${intro}${sectionsHtml(list)}<button type="button" class="btn nav-wide" data-action="nav-ask-advanced" data-focus="nav-ask-advanced">Switch to advanced menu</button>`;
     if (isAutomatic()) {
       return `${intro}${list}<button type="button" class="btn nav-wide" data-action="nav-ask-advanced" data-focus="nav-ask-advanced">Switch to advanced menu</button>`;
     }
@@ -1873,6 +1921,28 @@
     'nav-dead'(d) { if (!justDragged) log('tried', 'Tried to ' + d.what); },
     'nav-ask-detach'(d) { askConvert({ trigger: 'the Detach Page List button', itemId: d.item }); },
     'nav-ask-advanced'() { askConvert({ trigger: 'the Switch to advanced menu button' }); },
+    // S: − in "In your menu", + in "Other pages". Unsaved menu changes, as Q's toggles are.
+    'sec-remove'(d) {
+      const p = page(d.page);
+      if (!p) return;
+      stats.secClicks = (stats.secClicks || 0) + 1;
+      edit(() => { setExcluded(p.id, true); ui.focus = 'sec-add:' + p.id; ui.flash = 'sec:' + p.id; }, q(p.title) + ' removed from the menu');
+      const kids = state.pages.filter((c) => c.parent === p.id && c.status === 'publish');
+      log('menu', 'Took ' + q(p.title) + ' out of the menu (−, in the sidebar): it moves to Other pages' + (kids.length ? ', with ' + kids.map((c) => q(c.title)).join(' and ') + ' from its dropdown' : ''));
+    },
+    'sec-add'(d) {
+      const p = page(d.page);
+      if (!p) return;
+      stats.secClicks = (stats.secClicks || 0) + 1;
+      const parent = hasParent(p) ? page(p.parent) : null;
+      const withParent = parent && isExcluded(parent.id);
+      edit(() => { setExcluded(p.id, false); if (withParent) setExcluded(parent.id, false); ui.focus = 'sec-rm:' + p.id; }, q(p.title) + ' added to the menu');
+      log('menu', 'Put ' + q(p.title) + ' in the menu (+, in the sidebar)' + (withParent ? ', with its parent page ' + q(parent.title) : '') + '; it goes back to its place in page order');
+    },
+    'sec-add-draft'(d) {
+      const p = page(d.page);
+      if (p) log('tried', 'Tried to add ' + q(p.title) + ', a draft, to the menu (+ under Other pages): it can’t be added until the page is published');
+    },
     'nav-toggle-draft'(d) {
       const p = page(d.page);
       if (p) log('tried', 'Tried the toggle of ' + q(p.title) + ', a draft, in the pages menu: it can’t be switched until the page is published');
@@ -2134,7 +2204,7 @@
         confirm: 'Remove and choose pages myself'
       };
     }
-    if (ARM === 'menu-switches' && !detachesList(d)) {
+    if (PAGES_MENU && !detachesList(d)) {
       return {
         title: 'Switch to advanced menu',
         body: '<p>The pages will become links you can edit. New pages will still be added automatically.</p>',
@@ -2152,7 +2222,7 @@
 
   // A Page List added with Add block in A or Q's advanced menu is detached as the control's is.
   const detachesList = (d) => !!d && !!d.itemId && isPageList(itemById(d.itemId));
-  const dialogName = (d) => (ARM === 'control' || detachesList(d) ? 'Detach Page List (convert to links)' : ARM === 'menu-switches' ? 'Switch to advanced menu' : 'Convert to links');
+  const dialogName = (d) => (ARM === 'control' || detachesList(d) ? 'Detach Page List (convert to links)' : PAGES_MENU ? 'Switch to advanced menu' : 'Convert to links');
 
   // Show the confirm. d: { trigger: what the person did, pageId?: the page it was about,
   // then?: 'remove' | 'rename', what to do with that page once the menu is links }.
@@ -2805,7 +2875,7 @@
       if (!d || d.type !== 'convert') return;
       if (!dialogSubject(d)) { dropDialog(); return; }
       const p = d.pageId ? page(d.pageId) : null;
-      const mode = ARM === 'menu-switches' ? 'advanced' : 'links';
+      const mode = PAGES_MENU ? 'advanced' : 'links';
       const detaching = ARM === 'control' || detachesList(d);
       ui.dialog = null;
       stats.dialogsConfirmed++;
@@ -2944,7 +3014,7 @@
         // Core opens a new draft in the editor: here, the site, showing it, with Publish in the top bar.
         if (IN_SIDEBAR) { ui.screen = 'site'; ui.pagesSel = id; ui.focus = 'ed-save'; }
       }, `"${title}" ${d.status === 'draft' ? 'saved as a draft' : 'published'}`);
-      log('page', 'Added ' + q(title) + ', ' + (d.status === 'draft' ? 'saved as a draft' + (CANVAS_DRAFTS && isAutomatic() ? '; it is listed in the pages menu with its toggle off, and joins the menu, switched on, once it’s published' : '') : 'published; ' + (IN_SIDEBAR ? menuWords(id) : isShown(id) ? 'it is now in the menu' : 'it is not in the menu')) + (IN_SIDEBAR ? ' (Add Page, Create draft, on the Pages screen)' : ''));
+      log('page', 'Added ' + q(title) + ', ' + (d.status === 'draft' ? 'saved as a draft' + (CANVAS_DRAFTS && isAutomatic() ? (SECTIONS ? '; it is listed under Other pages, and joins the menu once it’s published' : '; it is listed in the pages menu with its toggle off, and joins the menu, switched on, once it’s published') : '') : 'published; ' + (IN_SIDEBAR ? menuWords(id) : isShown(id) ? 'it is now in the menu' : 'it is not in the menu')) + (IN_SIDEBAR ? ' (Add Page, Create draft, on the Pages screen)' : ''));
       if (IN_SIDEBAR) log('screen', 'Left the Pages screen (Create draft opens the new page on the site; the top bar shows ' + (showsPublish() ? 'Publish' : 'Save, since the menu has unsaved changes') + ')');
       log('visit', 'The preview shows the new page, ' + q(title));
       if (ARM === 'explained') log('menu', 'Marker popover opened on its own after Add page: ' + q(title) + ' (not counted)');
@@ -3780,7 +3850,7 @@
       : m.mode === 'links' ? 'links, since ' + m.convertedAt + 's'
       : STARTS_AS_LINKS ? 'links from the start; Auto add pages ' + (m.autoAdd ? 'on' : 'off, turned off at ' + m.autoAddOffAt + 's')
       : 'advanced, since ' + m.convertedAt + 's, ' + (m.autoAdd ? 'still adding new pages' : 'adding new pages turned off at ' + m.autoAddOffAt + 's');
-    const own = { control: 'Times the Navigation sidebar was opened', 'auto-add': 'Times the Navigation sidebar was opened', 'menu-switches': 'Times the Navigation sidebar was opened', explained: 'Marker popovers opened', switches: 'Switches flipped' }[ARM];
+    const own = { control: 'Times the Navigation sidebar was opened', 'auto-add': 'Times the Navigation sidebar was opened', 'menu-switches': 'Times the Navigation sidebar was opened', 'menu-sections': 'Times the Navigation sidebar was opened', explained: 'Marker popovers opened', switches: 'Switches flipped' }[ARM];
     notesEl.innerHTML =
       `<div class="notes-head"><h2>${ARMS[ARM].letter} · Facilitator notes</h2><nav class="switcher" aria-label="Prototype">${links}</nav></div>` +
       `<p>${ARMS[ARM].name}. Only you can see this panel; open the page without <code>?notes</code> for participants.</p>` +
@@ -3795,7 +3865,7 @@
       `<dt>Pages in the trash</dt><dd>${state.trashed.length}</dd>` +
       `<dt>Uses of Undo${IN_SIDEBAR ? '; Redo' : ''}</dt><dd>${stats.undos}${IN_SIDEBAR ? '; ' + stats.redos : ''}</dd>` +
       `<dt>${own}</dt><dd>${stats.own}</dd>` +
-      (IN_SIDEBAR ? `<dt>First opened the Pages screen</dt><dd>${stats.firstPages ? stats.firstPages + 's' : 'not yet'}</dd><dt>First opened the Navigation screen</dt><dd>${stats.firstNavScreen ? stats.firstNavScreen + 's' : 'not yet'}</dd><dt>Pages moved with Order…</dt><dd>${stats.orderUses || 0}</dd>` : '') +
+      (IN_SIDEBAR ? `<dt>First opened the Pages screen</dt><dd>${stats.firstPages ? stats.firstPages + 's' : 'not yet'}</dd><dt>First opened the Navigation screen</dt><dd>${stats.firstNavScreen ? stats.firstNavScreen + 's' : 'not yet'}</dd><dt>Pages moved with Order…</dt><dd>${stats.orderUses || 0}</dd>${SECTIONS ? `<dt>Clicks on + and − in the menu’s sidebar</dt><dd>${stats.secClicks || 0}</dd>` : ''}` : '') +
       `<dt>Turned back at “Have you done every task?”</dt><dd>${stats.finishBack}</dd></dl>` +
       `<h3>Log</h3><ol class="log">${events.map((l) => `<li class="is-${l.kind}"><time>${l.at}</time>${esc(l.text)}</li>`).join('') || '<li>Nothing yet.</li>'}</ol>` +
       '<div class="actions"><button type="button" class="btn btn-small" data-copy>Copy log</button><button type="button" class="btn btn-small" data-reset>Reset</button></div>';

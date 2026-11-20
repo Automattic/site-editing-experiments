@@ -142,5 +142,5 @@ export default async function ({ page, baseUrl, assert, helpers: h }) {
   // picks background, events intro, events note, the double-click (counted
   // once) = 8. Book club button used twice, menu
   // links followed twice.
-  h.checkCode(code, { arm: 'VA2', tasks: '10000', f: 'a', n: 8, p: '12.2.5.5', l: '2.2', x: 2, b: 3 });
+  h.checkCode(code, { arm: 'VA2', tasks: '110000', f: 'a', n: 8, p: '12.2.5.5', l: '2.2', x: 2, b: 3 });
 }

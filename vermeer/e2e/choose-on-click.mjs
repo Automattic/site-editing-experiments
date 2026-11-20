@@ -206,7 +206,7 @@ export default async function ({ page, baseUrl, assert, helpers: h }) {
   // buttons: Book a place, Sign up, the Enter in the box (a submit), Join the
   // book club, the panel's × = 5.
   const code = await h.finishCode(page);
-  h.checkCode(code, { arm: 'VC', tasks: '00001', f: 'a', n: 4, p: '19.3.14.2', l: '2.5', x: 2, b: 3 });
+  h.checkCode(code, { arm: 'VC', tasks: '000001', f: 'a', n: 4, p: '19.3.14.2', l: '2.5', x: 2, b: 3 });
 
   h.step('C: a link further down the same page offers “Follow this link”');
   await h.pickPage(page, 'Contact');

@@ -6,12 +6,16 @@
  *   if Playwright is installed globally)
  *
  * Serves the repository with a tiny static server on a free port, opens each
- * of the six arms in headless Chrome and checks that it loads without console
- * errors. Then, in the control, it does all five tasks through the Edit
- * button, checking the task ticks, the counts in the facilitator panel and the
- * completion code; checks that a reload puts everything back, in browse and in
- * edit mode with an unsaved change; the Exit dialog's three choices; Reset; and
- * the layout at 1024×768.
+ * of the five arms in headless Chrome and checks that it loads without console
+ * errors, with Create not Learn's chrome around the site. Then, in the
+ * control, it does all six tasks through the Edit button, with clicks on the
+ * strip, the sidebar (its Pages screen showing a page) and the admin bar on
+ * the way, and saves through Review changes and with the keyboard, checking
+ * the task ticks, the counts in the facilitator panel and the completion code;
+ * checks the code's save parts with changes left unsaved and saved from the
+ * Exit dialog; that a reload puts everything back, in browse and in edit mode
+ * with an unsaved change; the Exit dialog's three choices; Reset; the API the
+ * arms use; and the layout at 1024×768.
  *
  * Finally it runs vermeer/e2e/<arm>.mjs for each arm that has one. Each
  * exports a default async function that receives { page, baseUrl, assert,
@@ -75,7 +79,6 @@ const mod = process.platform === 'darwin' ? 'Meta' : 'Control';
 
 const helpers = {
   mod,
-  HOVER_REST_MS: 500,
   step,
   // The site and its text, by key (data-k), as in app.js's TEXT table.
   site: (page) => page.locator('.vm-site'),
@@ -123,7 +126,7 @@ const helpers = {
     const box = await el.boundingBox();
     await page.mouse.click(box.x + dx, box.y + dy);
   },
-  // Rest the pointer on a point for HOVER_REST_MS plus a margin.
+  // Move the pointer to a point (in steps) and wait a moment there.
   async restAt(page, x, y, extra = 150) {
     await page.mouse.move(x, y, { steps: 4 });
     await page.waitForTimeout(500 + extra);
@@ -139,7 +142,15 @@ const helpers = {
   },
 
   edit: (page) => helpers.tool(page, 'edit').click(),
-  save: (page) => helpers.tool(page, 'save').click(),
+  // Save as Create not Learn does: the toolbar's Save opens Review changes,
+  // whose "Save N changes" saves.
+  async save(page) {
+    await helpers.tool(page, 'save').click();
+    const d = page.locator('dialog.vm-review');
+    await d.waitFor();
+    await d.getByRole('button', { name: /^Save \d+ changes?$/ }).click();
+    await d.waitFor({ state: 'hidden' });
+  },
   // Exit; with a choice ('Save', 'Discard', 'Keep editing') for the dialog.
   async exit(page, choice) {
     await helpers.tool(page, 'exit').click();
@@ -148,11 +159,14 @@ const helpers = {
     await d.getByText('Save your changes?').waitFor();
     await d.locator('.vm-dialog-actions').getByRole('button', { name: choice, exact: true }).click();
   },
-  // Go to a page with the address bar's page picker.
+  // Go to a page with the page finder (the page's name in the toolbar).
   async pickPage(page, name) {
-    await helpers.tool(page, 'pages').click();
-    await page.locator('.vm-picker').getByRole('menuitemradio', { name }).click();
+    await page.locator('.vm-toolbar .vm-address-btn').click();
+    const id = { Home: 'home', Events: 'events', Contact: 'contact' }[name];
+    await page.locator('.vm-finder [data-page="' + id + '"]').click();
   },
+  // A click on the admin bar, the strip of icons or the sidebar, by its label.
+  chrome: (page, where, label) => page.locator({ 'admin bar': '.vm-adminbar', rail: '.vm-rail', sidebar: '.vm-sidebar' }[where] + ' [data-chrome="' + label + '"]').first().click(),
   // Follow a link in the site's menu (browse).
   followMenu: (page, to) => helpers.k(page, 'nav-' + to).click(),
   // Select all of an element's text with the keyboard and type over it.
@@ -172,19 +186,22 @@ const helpers = {
     await d.getByRole('button', { name: 'Keep editing' }).click();
     return code;
   },
-  // Check a completion code's parts. Seconds are checked as numbers only;
-  // `f` can be 'x', 'e' or 'a' (the route letter) or a full value like '3.2e'.
+  // Check a completion code's parts. Seconds are checked as numbers only:
+  // `f` is 'x', 'e' or 'a' (the route letter); `tasks` is the saved digits
+  // and `screen` what the screen showed after the dot (null if no dot); `v`
+  // is 'x' or the save part without its seconds, like 't.2.0'.
   checkCode(code, expected) {
-    const m = /^(V0|VA1|VA2|VB|VC|VD)-([01]{5})-f(x|(\d+\.\d)([ea]))-n(\d+)-p(\d+\.\d+\.\d+\.\d+)-l(\d+\.\d+)-x(\d+)-b(\d+)-s(\d+)$/.exec(code);
+    const m = /^(V0|VA1|VA2|VB|VC)-([01]{6})(?:\.([01]{6}))?-f(x|(\d+\.\d)([ea]))-n(\d+)-g(\d+)-p(\d+\.\d+\.\d+\.\d+)-l(\d+\.\d+)-x(\d+)-b(\d+)-v(x|(\d+)([tkd])\.(\d+)\.(\d+))-w(\d+)-s(\d+)$/.exec(code);
     assert.ok(m, 'code has the right shape: ' + code);
-    const [, arm, tasks, f, , fRoute, n, p, l, x, b] = m;
-    const got = { arm, tasks, f: f === 'x' ? 'x' : fRoute, n: Number(n), p, l, x: Number(x), b: Number(b) };
+    const [, arm, tasks, screen, f, , fRoute, n, g, p, l, x, b, v, , vHow, vSaves, vDialog, w] = m;
+    const got = { arm, tasks, screen: screen || null, f: f === 'x' ? 'x' : fRoute, n: Number(n), g: Number(g), p, l, x: Number(x), b: Number(b),
+      v: v === 'x' ? 'x' : vHow + '.' + vSaves + '.' + vDialog, w: Number(w) };
     for (const key of Object.keys(expected)) assert.deepEqual(got[key], expected[key], 'code part ' + key + ' in ' + code);
     return got;
   },
   async reset(page) {
     await Promise.all([page.waitForEvent('load'), page.locator('.vm-notes [data-reset]').click()]);
-    for (let n = 1; n <= 5; n++) assert.equal(await helpers.taskDone(page, n), false, 'task ' + n + ' unticked after Reset');
+    for (let n = 1; n <= 6; n++) assert.equal(await helpers.taskDone(page, n), false, 'task ' + n + ' unticked after Reset');
   }
 };
 const h = helpers;
@@ -202,7 +219,7 @@ async function test(name, fn) {
 
 // ---------- Every arm loads cleanly ----------
 
-const ARMS = { control: 'V0', 'click-to-edit': 'VA1', 'ask-on-click': 'VA2', 'hover-notice': 'VB', 'choose-on-click': 'VC', 'hover-choice': 'VD' };
+const ARMS = { control: 'V0', 'click-to-edit': 'VA1', 'ask-on-click': 'VA2', 'hover-notice': 'VB', 'choose-on-click': 'VC' };
 for (const [arm, code] of Object.entries(ARMS)) {
   await test('Loads ' + arm + '.html', async () => {
     const page = await newPage();
@@ -215,7 +232,8 @@ for (const [arm, code] of Object.entries(ARMS)) {
     assert.equal(await page.locator('.vm-notes').count(), 0, 'no notes panel without ?notes');
     assert.equal(await h.tool(page, 'edit').innerText(), 'Edit', 'every arm keeps the Edit button');
     const c = await h.finishCode(page);
-    h.checkCode(c, { arm: code, tasks: '00000', f: 'x', n: 0, p: '0.0.0.0', l: '0.0', x: 0, b: 0 });
+    h.checkCode(c, { arm: code, tasks: '000000', screen: null, f: 'x', n: 0, g: 0, p: '0.0.0.0', l: '0.0', x: 0, b: 0, v: 'x', w: 0 });
+    for (const sel of ['.vm-adminbar', '.vm-rail', '.vm-sidebar', '.vm-toolbar [data-action="view"]']) assert.equal(await page.locator(sel).isVisible(), true, sel + ' shown');
     await page.goto(baseUrl + '/' + arm + '.html#notes');
     await page.reload();
     assert.equal(await page.locator('.vm-notes').count(), 1, 'notes panel with #notes');
@@ -225,11 +243,22 @@ for (const [arm, code] of Object.entries(ARMS)) {
   });
 }
 
-// ---------- The control: all five tasks through the Edit button ----------
+// ---------- The control: all six tasks through the Edit button ----------
 
-await test('Control: the five tasks by the Edit button, with ticks, counts and the code', async () => {
+await test('Control: the six tasks by the Edit button, with the chrome, ticks, counts and the code', async () => {
   const page = await newPage();
   await page.goto(baseUrl + '/control.html?notes');
+
+  step('clicks on the strip, the sidebar and the admin bar before editing are counted (g) and logged');
+  await h.chrome(page, 'rail', 'Colors');
+  assert.equal(await page.locator('.vm-sidebar .vm-screen').getAttribute('data-screen'), 'colors');
+  assert.equal(await page.locator('.vm-sidebar h2').innerText(), 'Colors');
+  await h.chrome(page, 'sidebar', 'Back');
+  assert.equal(await page.locator('.vm-sidebar .vm-screen').getAttribute('data-screen'), 'home');
+  assert.deepEqual(await page.locator('.vm-sidebar .vm-link-row strong').allInnerTexts(), ['Your homepage', 'Pages', 'Name & logo', 'Design', 'Header & footer']);
+  await h.chrome(page, 'admin bar', 'New');
+  assert.match(await h.lastLog(page), /^Tried the admin bar: New$/);
+  assert.equal(await h.count(page, 'g-before'), '3');
 
   step('two clicks on non-functional spots before editing count; a drag to select text doesn’t');
   await h.k(page, 'picks-intro').click();
@@ -237,33 +266,54 @@ await test('Control: the five tasks by the Edit button, with ticks, counts and t
   await h.dragSelect(page, 'picks-intro');
   assert.equal(await h.count(page, 'nf-before'), '2');
   assert.equal(await h.mode(page), 'browse', 'the control does nothing on those clicks');
-  assert.match((await h.logTexts(page)).join('\n'), /Clicked background of Top of the Home page/);
 
-  step('task 4 and 2: follow the menu links; book a place on Events; the hours come into view on Contact');
-  await h.followMenu(page, 'events');
+  step('the Pages screen shows a page in the site area');
+  await h.chrome(page, 'sidebar', 'Pages');
+  assert.equal(await page.locator('.vm-sidebar .vm-screen').getAttribute('data-screen'), 'pages');
+  await h.chrome(page, 'sidebar', 'Events in the list of pages');
   assert.equal(await h.currentPage(page), 'events');
-  assert.equal(await page.locator('.vm-notes [data-menu-progress]').innerText(), '1/3');
+  assert.match((await h.logTexts(page)).join('\n'), /Went to Events from Home \(the Pages screen\)/);
+  assert.equal(await page.locator('.vm-sidebar .vm-page-row.is-shown .vm-page-pick').innerText(), 'Events');
+  await h.chrome(page, 'sidebar', 'the menu switch for Contact');
+  assert.match(await h.lastLog(page), /^Tried the sidebar: the menu switch for Contact$/);
+  await h.chrome(page, 'sidebar', 'Back');
+  assert.equal(await h.count(page, 'g-before'), '7');
+
+  step('tasks 5 and 3: follow the menu links; book a place on Events; the hours come into view on Contact');
   await page.locator('.vm-site [data-act="book:1"]').click();
   assert.equal(await page.locator('.vm-site [data-act="book:1"]').innerText(), 'Place booked ✓');
   await h.followMenu(page, 'contact');
   await page.locator('.vm-site [data-hours]').scrollIntoViewIfNeeded();
-  await page.waitForFunction(() => document.querySelector('.vm-notes [data-task-row="2"]').classList.contains('is-done'));
-  assert.match(await page.locator('.vm-notes [data-task-row="2"]').innerText(), /Reached by menu link/);
+  await page.waitForFunction(() => document.querySelector('.vm-notes [data-task-row="3"]').classList.contains('is-done'));
+  assert.match(await page.locator('.vm-notes [data-task-row="3"]').innerText(), /Reached by menu link/);
+  await h.followMenu(page, 'events');
   await h.followMenu(page, 'home');
-  assert.equal(await h.taskDone(page, 4), true, 'task 4 ticked');
+  assert.equal(await h.taskDone(page, 5), true, 'task 5 ticked');
   assert.equal(await h.count(page, 'follows'), '3');
   assert.equal(await h.count(page, 'uses'), '1');
 
-  step('back and forward');
+  step('back and forward, the page finder, and the toolbar’s inert controls');
   await h.tool(page, 'back').click();
-  assert.equal(await h.currentPage(page), 'contact');
+  assert.equal(await h.currentPage(page), 'events');
   await h.tool(page, 'forward').click();
   assert.equal(await h.currentPage(page), 'home');
+  await page.locator('.vm-toolbar .vm-address-btn').click();
+  await page.keyboard.type('cont');
+  assert.deepEqual(await page.locator('.vm-finder [data-page]').allInnerTexts(), ['Contact']);
+  await page.keyboard.press('Escape');
+  assert.equal(await page.locator('.vm-finder').count(), 0);
+  await h.tool(page, 'view').click();
+  await page.locator('.vm-menu').getByRole('menuitemradio', { name: /Tablet/ }).click();
+  assert.match(await h.lastLog(page), /^Tried View, Tablet$/);
+  assert.equal(await h.count(page, 'g-before'), '7', 'the toolbar isn’t counted in g');
 
-  step('an accidental entry: Edit, then Exit with no change');
+  step('an accidental entry: Edit, then Exit with no change; the rail and sidebar go, the admin bar stays');
   await h.edit(page);
   assert.equal(await h.mode(page), 'edit');
   assert.equal(await page.locator('.vm-sidebar').isVisible(), false, 'the sidebar hides while editing');
+  assert.equal(await page.locator('.vm-rail').isVisible(), false, 'so does the strip');
+  assert.equal(await page.locator('.vm-adminbar').isVisible(), true, 'the admin bar stays');
+  assert.equal(await page.locator('.vm-zoom').isVisible(), true, 'the zoom controls show');
   assert.equal(await h.editingKey(page), null, 'the Edit button selects nothing');
   assert.match(await h.count(page, 'first-entry'), /s, by the Edit button$/);
   await h.exit(page);
@@ -271,25 +321,35 @@ await test('Control: the five tasks by the Edit button, with ticks, counts and t
   assert.equal(await h.count(page, 'accidental'), '1');
   assert.equal(await h.count(page, 'exits'), '1');
 
-  step('Edit by keyboard; links do nothing while editing; Escape with nothing being edited stays in edit mode');
+  step('Edit by keyboard; Save while greyed out is logged; Escape with nothing being edited stays in edit mode');
   await h.tool(page, 'edit').focus();
   await page.keyboard.press('Enter');
   assert.equal(await h.mode(page), 'edit');
   assert.equal(await h.count(page, 'route-edit-button-keyboard'), '1');
   assert.equal(await page.locator('.vm-site a, .vm-site button').count(), 0, 'no live links or buttons in edit mode');
+  assert.equal(await h.tool(page, 'save').getAttribute('aria-disabled'), 'true');
+  await h.tool(page, 'save').click({ force: true }); // greyed, but clickable, as in Create not Learn
+  assert.equal(await page.locator('dialog.vm-review[open]').count(), 0, 'nothing to review');
+  assert.match(await h.lastLog(page), /Clicked Save while it was greyed out/);
+  assert.equal(await h.count(page, 'save-grey'), '1');
   await page.keyboard.press('Escape');
   assert.equal(await h.mode(page), 'edit');
 
-  step('task 1: change the heading; undo and redo');
+  step('task 1: change the heading (ticked on screen); task 2 waits for a save; undo and redo');
   await h.retype(page, 'home-heading', 'Good books and good coffee');
   assert.equal(await h.text(page, 'home-heading'), 'Good books and good coffee');
+  assert.equal(await page.locator('.vm-site .vm-section-focus').getAttribute('data-name'), 'Hero', 'the section around it is outlined, named');
   await page.keyboard.press(mod + '+z');
   assert.equal(await h.text(page, 'home-heading'), 'Books, coffee and a quiet corner');
   await page.keyboard.press(mod + '+Shift+z');
   assert.equal(await h.text(page, 'home-heading'), 'Good books and good coffee');
   await page.keyboard.press('Enter');
   assert.equal(await h.editingKey(page), null, 'Enter finishes a heading');
-  assert.equal(await h.taskDone(page, 1), false, 'not ticked until saved');
+  assert.equal(await h.taskDone(page, 1), true, 'task 1 is what’s on screen');
+  assert.equal(await h.taskDone(page, 2), false, 'task 2 waits for a save');
+  assert.match(await page.locator('.vm-notes [data-task-row="2"]').innerText(), /On screen, not saved/);
+  assert.equal(await h.tool(page, 'save').getAttribute('aria-disabled'), null);
+  assert.match(await h.tool(page, 'save').getAttribute('data-tip'), /^1 unsaved change · /);
 
   step('Escape puts text back');
   await h.clickTextBefore(page, 'picks-heading', 'month', 0);
@@ -298,25 +358,41 @@ await test('Control: the five tasks by the Edit button, with ticks, counts and t
   assert.equal(await h.text(page, 'picks-heading'), 'This month’s picks');
   assert.equal(await h.count(page, 'escapes'), '1');
 
-  step('task 5: the “See what’s on” button text');
+  step('task 6: the “See what’s on” button text; task 4: the footer typo');
   await h.clickTextBefore(page, 'home-cta', 'on', 2);
   assert.equal(await h.editingKey(page), 'home-cta', 'the caret lands in the button’s text');
   await page.keyboard.type(' this month');
   assert.equal(await h.text(page, 'home-cta'), 'See what’s on this month');
-
-  step('task 3: the footer typo, caret placed in the word');
   await h.clickTextBefore(page, 'footer-open', 'exept', 2);
   await page.keyboard.type('c');
   assert.equal(await h.text(page, 'footer-open'), 'Open every day except Mondays');
+  assert.equal(await page.locator('.vm-site .vm-section-focus').getAttribute('data-name'), 'Footer');
 
-  step('Save');
-  assert.equal(await h.tool(page, 'save').isEnabled(), true);
-  await h.save(page);
-  assert.equal(await h.tool(page, 'save').innerText(), 'Saved');
-  assert.equal(await h.tool(page, 'save').isEnabled(), false);
-  for (const n of [1, 3, 5]) assert.equal(await h.taskDone(page, n), true, 'task ' + n + ' ticked');
-  assert.equal(await h.count(page, 'saves'), '1');
-  assert.equal(await h.count(page, 'edits'), '3');
+  step('Save opens Review changes: site-wide first, then the page; Discard on the footer; Save 1 change');
+  await h.tool(page, 'save').click();
+  const review = page.locator('dialog.vm-review');
+  await review.waitFor();
+  const heads = await review.locator('h3').allInnerTexts();
+  assert.match(heads[0], /^Site-wide changes\s*1$/);
+  assert.match(heads[1], /^Page changes\s*1$/);
+  assert.deepEqual(await review.locator('li strong').allInnerTexts(), ['Footer', 'Home']);
+  await review.getByRole('button', { name: 'Discard change to Footer' }).click();
+  assert.equal(await h.text(page, 'footer-open'), 'Open every day exept Mondays', 'the footer change is gone');
+  await review.getByRole('button', { name: 'Save 1 change' }).click();
+  await review.waitFor({ state: 'hidden' });
+  for (const n of [1, 2, 6]) assert.equal(await h.taskDone(page, n), true, 'task ' + n + ' ticked');
+  assert.equal(await h.taskDone(page, 4), false, 'the typo was discarded');
+  assert.equal(await h.tool(page, 'save').getAttribute('aria-disabled'), 'true');
+  assert.match(await h.tool(page, 'save').getAttribute('data-tip'), /^All changes saved · /);
+  assert.match((await h.logTexts(page)).join('\n'), /Saved 1 change \(Home\) by the toolbar’s Save, in Review changes/);
+
+  step('the typo again, saved with the keyboard');
+  await h.clickTextBefore(page, 'footer-open', 'exept', 2);
+  await page.keyboard.type('c');
+  await page.keyboard.press(mod + '+s');
+  assert.equal(await h.taskDone(page, 4), true, 'task 4 ticked');
+  assert.match(await h.count(page, 'saves'), /^2 \(0\)$/);
+  assert.match(await h.count(page, 'first-save'), /by the toolbar’s Save/);
 
   step('Exit: straight back to browse, which shows the saved site');
   await h.exit(page);
@@ -325,14 +401,32 @@ await test('Control: the five tasks by the Edit button, with ticks, counts and t
   assert.equal(await h.count(page, 'exits'), '2');
   assert.equal(await h.count(page, 'accidental'), '1');
   assert.equal(await h.count(page, 'nf-before'), '2');
-  assert.equal(await h.count(page, 'nf-total'), '2');
   await h.k(page, 'picks-intro').click();
   assert.equal(await h.count(page, 'nf-total'), '3', 'later clicks count in the total');
-  assert.equal(await h.count(page, 'nf-before'), '2', 'but not before the first entry');
+  await h.chrome(page, 'admin bar', 'Comments');
+  assert.equal(await h.count(page, 'g-before'), '7', 'but not before the first entry');
+  assert.equal(await h.count(page, 'g-total'), '8');
 
   const code = await h.finishCode(page);
-  h.checkCode(code, { arm: 'V0', tasks: '11111', f: 'e', n: 2, p: '0.0.0.0', l: '3.1', x: 1, b: 2 });
-  assert.match((await h.logTexts(page)).join('\n'), /Finished\. Code V0-11111/);
+  h.checkCode(code, { arm: 'V0', tasks: '111111', screen: null, f: 'e', n: 2, g: 7, p: '0.0.0.0', l: '3.1', x: 1, b: 2, v: 't.2.0', w: 0 });
+  assert.match((await h.logTexts(page)).join('\n'), /Finished\. Code V0-111111-/);
+  noErrors(page);
+  await closePage(page);
+});
+
+await test('Control: the save task in the code: unsaved at Finished (dotted digits, w), then saved from the Exit dialog (d)', async () => {
+  const page = await newPage();
+  await page.goto(baseUrl + '/control.html?notes');
+  await h.edit(page);
+  await h.retype(page, 'home-heading', 'Hello');
+  await page.keyboard.press('Enter');
+  let code = await h.finishCode(page);
+  h.checkCode(code, { tasks: '100000', screen: '110000', v: 'x', w: 1 });
+  await h.retype(page, 'cafe-heading', 'Our café');
+  await page.keyboard.press('Enter');
+  await h.exit(page, 'Save');
+  code = await h.finishCode(page);
+  h.checkCode(code, { tasks: '110000', screen: null, v: 'd.1.1', w: 0, b: 1, x: 0 });
   noErrors(page);
   await closePage(page);
 });
@@ -457,10 +551,10 @@ await test('Control: double clicks, focus after page changes and forms, a reload
   all = await h.logTexts(page);
   assert.match(all.filter((t) => /^Left edit mode/.test(t)).pop(), /Changes in this visit: yes; saved: yes; dialog: not shown/);
 
-  step('Exit → Discard logs “saved: no”; the address bar while editing is logged once as such');
+  step('Exit → Discard logs “saved: no”; the page finder while editing is logged once as such');
   await h.edit(page);
   await h.pickPage(page, 'Contact');
-  assert.match((await h.logTexts(page)).filter((t) => /^Went to Contact/.test(t)).pop(), /\(address bar, while editing\)$/);
+  assert.match((await h.logTexts(page)).filter((t) => /^Went to Contact/.test(t)).pop(), /\(the page finder, while editing\)$/);
   await h.retype(page, 'contact-heading', 'Say hello');
   await h.exit(page, 'Discard');
   assert.match((await h.logTexts(page)).filter((t) => /^Left edit mode/.test(t)).pop(), /saved: no; dialog: Discard/);

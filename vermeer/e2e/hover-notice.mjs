@@ -19,18 +19,17 @@ export default async function ({ page, baseUrl, assert, helpers: h }) {
   await page.goto(baseUrl + '/hover-notice.html#notes');
 
   h.step('a pointer already resting on the site when the page loads doesn’t count until it moves');
-  await page.mouse.move(...Object.values(await spot()));
-  await page.reload();
-  await page.waitForTimeout(h.HOVER_REST_MS + 400);
+  const still = await spot();
+  await page.goto('about:blank');
+  await page.mouse.move(still.x, still.y);
+  await page.goto(baseUrl + '/hover-notice.html#notes');
+  await page.waitForTimeout(900);
   assert.equal(await notice.count(), 0, 'no notice from a pointer that hasn’t moved since load');
 
-  h.step('appears after the rest, not before, centred over the bottom of the site');
+  h.step('appears on the pointer’s first movement over the site, with no wait, centred over the bottom of the site');
   const p0 = await spot(30);
-  await page.mouse.move(p0.x, p0.y, { steps: 4 });
-  await page.waitForTimeout(h.HOVER_REST_MS - 250);
-  assert.equal(await notice.count(), 0, 'not before HOVER_REST_MS');
-  await page.waitForTimeout(400);
-  await notice.waitFor();
+  await page.mouse.move(p0.x, p0.y);
+  assert.equal(await notice.count(), 1, 'shown straight away');
   assert.equal(await notice.locator('.vb-notice-text').innerText(), 'Trying to change something on this page?');
   assert.equal(await notice.getByRole('button', { name: 'Start editing' }).count(), 1);
   assert.equal(await notice.getByRole('button', { name: 'Close' }).count(), 1);
@@ -75,13 +74,13 @@ export default async function ({ page, baseUrl, assert, helpers: h }) {
   assert.equal(await notice.count(), 0, 'gone a second after leaving');
   await expectPrompts({ shown: 1, accepted: 0, dismissed: 0, ignored: 1 }, 'ignored');
 
-  h.step('the page list over the site holds it off');
+  h.step('the page finder over the site holds it off');
   await h.tool(page, 'pages').click();
-  const pick = await page.locator('.vm-picker [data-page="contact"]').boundingBox();
+  const pick = await page.locator('.vm-finder [data-page="contact"]').boundingBox();
   await h.restAt(page, pick.x + 20, pick.y + pick.height / 2);
-  assert.equal(await notice.count(), 0, 'not over the page list');
+  assert.equal(await notice.count(), 0, 'not over the page finder');
   await page.keyboard.press('Escape');
-  await page.locator('.vm-picker').waitFor({ state: 'detached' });
+  await page.locator('.vm-finder').waitFor({ state: 'detached' });
 
   h.step('Start editing: accepted, edit mode with nothing selected');
   await restOnSite();
@@ -128,7 +127,8 @@ export default async function ({ page, baseUrl, assert, helpers: h }) {
   await expectPrompts({ shown: 4, accepted: 1, dismissed: 1, ignored: 2 }, 'not counted again by a second reload');
 
   h.step('keyboard: focus moving into the site shows it, announced, with Start editing next in the Tab order');
-  await moveOut();
+  // Straight out, so no step of the move lands on the site (which now shows it at once).
+  { const o = await outside(); await page.mouse.move(o.x, o.y); }
   await h.tool(page, 'edit').focus();
   await page.keyboard.press('Tab');
   await notice.waitFor();
@@ -161,7 +161,7 @@ export default async function ({ page, baseUrl, assert, helpers: h }) {
 
   h.step('the code: VB, first entry by the notice, prompts 5.2.1.2');
   const code = await h.finishCode(page);
-  h.checkCode(code, { arm: 'VB', tasks: '00000', f: 'a', n: 0, p: '5.2.1.2', l: '0.0', x: 3, b: 3 });
+  h.checkCode(code, { arm: 'VB', tasks: '000000', f: 'a', n: 0, p: '5.2.1.2', l: '0.0', x: 3, b: 3 });
 
   h.step('the Edit button still works and gives the e letter');
   await h.reset(page);

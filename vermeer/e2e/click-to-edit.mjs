@@ -78,17 +78,24 @@ export default async function ({ page, baseUrl, assert, helpers: h }) {
   // 1 non-functional click before the first entry (the heading); 2 menu
   // links and 1 button; 2 accidental entries (picture, background) plus the
   // keyboard Edit = 3; 5 Exits.
-  h.checkCode(code, { arm: 'VA1', tasks: '10100', f: 'a', n: 1, p: '0.0.0.0', l: '2.1', x: 3, b: 5 });
+  h.checkCode(code, { arm: 'VA1', tasks: '110100', f: 'a', n: 1, p: '0.0.0.0', l: '2.1', x: 3, b: 5 });
 
   h.step('A1: a click in the Home introduction beside its last line (not on a word) still lands in its text');
   await page.evaluate(() => localStorage.clear());
   await page.reload();
   const gap = await page.evaluate(() => {
+    // The line of the paragraph with the most room after its last word.
     const p = window.Vermeer.site.querySelector('.cl-lede[data-k-near]');
-    const rects = p.querySelector('[data-k="home-intro-b"]').getClientRects();
-    const last = rects[rects.length - 1];
     const pr = p.getBoundingClientRect();
-    return { x: Math.min(pr.right - 4, last.right + 40), y: last.top + last.height / 2, room: pr.right - last.right };
+    const lines = {};
+    for (const span of p.querySelectorAll('[data-k]')) {
+      for (const r of span.getClientRects()) {
+        const key = Math.round(r.top);
+        if (!lines[key] || r.right > lines[key].right) lines[key] = { right: r.right, top: r.top, height: r.height };
+      }
+    }
+    const best = Object.values(lines).sort((a, b) => a.right - b.right)[0];
+    return { x: Math.min(pr.right - 4, best.right + 20), y: best.top + best.height / 2, room: pr.right - best.right };
   });
   assert.ok(gap.room > 30, 'the last line leaves room beside it');
   await page.mouse.click(gap.x, gap.y);

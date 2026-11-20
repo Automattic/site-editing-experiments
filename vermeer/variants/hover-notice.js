@@ -1,16 +1,16 @@
 /*
  * Vermeer · B · Hover notice
  *
- * When the pointer rests on the site for HOVER_REST_MS, a notice floats over
+ * As soon as the pointer moves over the site, a notice floats over
  * the bottom of the site area, centred: “Trying to change something on this
  * page?” with Start editing and ×. It lays over the site without moving it
  * and stays put while the site scrolls. Route: b-notice (b-notice-keyboard
  * when Start editing is pressed from the keyboard). Prompt kind: notice.
  *
- *   - Shown when the pointer (mouse or pen) has moved on the site and then
- *     rested for HOVER_REST_MS. A pointer that was already resting on the site
- *     when the page loaded doesn't count until it moves. Scrolling restarts
- *     the wait: scrolling isn't resting.
+ *   - Shown on the first movement of the pointer (mouse or pen) over the
+ *     site area, with no wait. A pointer that was already over the site when
+ *     the page loaded doesn't count until it moves. Not while a button is
+ *     held down (a drag to select text).
  *   - Stays while the pointer, or keyboard focus, is anywhere in the site area
  *     (the notice included). Goes 1 s after both have left: ignored. Coming
  *     back within that second keeps it. Going to another page keeps it.
@@ -49,7 +49,6 @@
 
       let notice = null;      // the element while shown
       let promptId = null;    // its prompt id (memory only: see the note above)
-      let restTimer = null;
       let leaveTimer = null;
       let pointerInside = false;
       let moved = false;      // a real pointer movement on the site since load
@@ -70,7 +69,6 @@
 
       function show(how) {
         if (!eligible()) return;
-        clearTimeout(restTimer);
         promptId = api.promptShown('notice', how);
         api.spell.set('shown', true);
         notice = document.createElement('div');
@@ -110,12 +108,9 @@
         }, LEAVE_MS);
       }
 
+      // No wait: the first movement over the site shows it.
       function restart() {
-        clearTimeout(restTimer);
-        if (!pointerInside || !moved || !eligible()) return;
-        restTimer = setTimeout(() => {
-          if (pointerInside && eligible()) show('pointer rested');
-        }, api.HOVER_REST_MS);
+        if (pointerInside && moved && eligible()) show('pointer moved over the site');
       }
 
       // Hover: where the pointer is, by what's under it, so the notice (in the
@@ -127,21 +122,18 @@
         if (inside) {
           moved = true;
           if (!pointerInside) { pointerInside = true; clearTimeout(leaveTimer); }
-          if (e.buttons) { clearTimeout(restTimer); return; } // dragging isn't resting
+          if (e.buttons) return; // not while dragging
           restart();
         } else if (pointerInside) {
           pointerInside = false;
-          clearTimeout(restTimer);
           scheduleLeave();
         }
       }, true);
       document.documentElement.addEventListener('pointerleave', (e) => {
         if (e.pointerType === 'touch' || !pointerInside) return;
         pointerInside = false;
-        clearTimeout(restTimer);
         scheduleLeave();
       });
-      api.on('scroll', () => { if (!notice) restart(); });
 
       // Touch: the first touch stands in for hover.
       document.addEventListener('pointerdown', (e) => {
@@ -214,7 +206,6 @@
       });
 
       api.on('modechange', ({ mode, route, label }) => {
-        clearTimeout(restTimer);
         if (mode === 'edit') hide('ignored', 'went into editing by ' + (label || api.routeLabel(route) || 'another way'));
       });
     }

@@ -1,17 +1,19 @@
 /*
  * Vermeer · From looking at your site to changing it
  *
- * One small website in one simple editor, six arms. The editor opens with the
+ * One small website in one simple editor, five arms. The editor opens with the
  * site on view, as visitors see it ("browse"). To change it, people have to
  * get into edit mode. The control has only the Edit button in the editor's
  * toolbar, as the Create not Learn prototype does today. Each other arm adds
  * one more way in, through the site itself, and keeps the Edit button.
  *
- * This file is everything the six arms share: the site (Cobble Lane Books,
- * three pages), the editor frame around it (browse and edit modes, Save,
- * Exit with its dialog, Undo and Redo, the page picker, the back and forward
- * history), state that survives a reload, the tasks, the counts, the log,
- * the facilitator panel (?notes or #notes), and Finished with its code.
+ * This file is everything the five arms share: the site (Cobble Lane Books,
+ * three pages); Create not Learn's chrome around it (WordPress's admin bar,
+ * the strip of icons, the sidebar and its screens, the canvas toolbar, the
+ * page finder, Save with Review changes), with browse and edit modes, Exit
+ * with its dialog, Undo and Redo and the back and forward history working;
+ * state that survives a reload; the tasks, the counts, the log, the
+ * facilitator panel (?notes or #notes), and Finished with its code.
  *
  * The control (control.html) is this file alone. Each other arm adds its own
  * route in variants/<arm>.js (and .css), using only the API below. The arms'
@@ -22,9 +24,8 @@
  *   control          V0   only the Edit button
  *   click-to-edit    VA1  a click on a non-functional spot goes straight in
  *   ask-on-click     VA2  that click asks "Do you want to edit?"
- *   hover-notice     VB   resting on the site shows a notice with a button
+ *   hover-notice     VB   the pointer on the site shows a notice with a button
  *   choose-on-click  VC   any click offers its action or Edit
- *   hover-choice     VD   resting on the site shows an Edit / Browse overlay
  *
  * Everything is kept in localStorage under `vermeer:<variant>` and written on
  * every change, so a reload puts the person back exactly where they were.
@@ -42,7 +43,6 @@
  * restored. Arms never need to touch this file.
  *
  * Constants and facts
- *   HOVER_REST_MS                      500: how long the pointer rests before a hover arm reacts
  *   variant                            the arm's id ('control', 'click-to-edit', …)
  *   mode()                             'browse' or 'edit'
  *   page()                             'home', 'events' or 'contact'
@@ -105,11 +105,11 @@
  *   cancelSuppress()                   clear a pending suppressNextClick
  *   announce(text)                     say text in a polite live region (screen readers)
  *
- * Prompts (A2 popover, B notice, C popup, D overlay)
+ * Prompts (A2 popover, B notice, C popup)
  *   promptShown(kind, detail?)         → id. Logs and counts it as shown. kind is a short name
- *                                      ('popover', 'notice', 'popup', 'overlay').
+ *                                      ('popover', 'notice', 'popup').
  *   promptOutcome(id, outcome, detail?) outcome: 'accepted' (chose edit), 'dismissed' (No, ×,
- *                                      Browse, Escape, Keep looking), 'followed' (C: chose the
+ *                                      Escape, Keep looking), 'followed' (C: chose the
  *                                      link, button or field; counts as dismissed in the code
  *                                      and is shown apart in the notes), or 'ignored' (went away
  *                                      without a choice). Only the first outcome of an id counts.
@@ -155,15 +155,13 @@
     control: { code: 'V0', letter: '0', file: 'control.html', name: 'Control: only the Edit button' },
     'click-to-edit': { code: 'VA1', letter: 'A1', file: 'click-to-edit.html', name: 'A1 · Click to edit: a click on anything that isn’t a link, button or box goes straight into editing it' },
     'ask-on-click': { code: 'VA2', letter: 'A2', file: 'ask-on-click.html', name: 'A2 · Ask on click: that click asks “Do you want to edit?”' },
-    'hover-notice': { code: 'VB', letter: 'B', file: 'hover-notice.html', name: 'B · Hover notice: resting on the site shows a notice with Start editing' },
-    'choose-on-click': { code: 'VC', letter: 'C', file: 'choose-on-click.html', name: 'C · Choose on click: every click offers its own action or Edit' },
-    'hover-choice': { code: 'VD', letter: 'D', file: 'hover-choice.html', name: 'D · Hover choice: resting on the site shows Edit or Browse' }
+    'hover-notice': { code: 'VB', letter: 'B', file: 'hover-notice.html', name: 'B · Hover notice: the pointer on the site shows a notice with Start editing' },
+    'choose-on-click': { code: 'VC', letter: 'C', file: 'choose-on-click.html', name: 'C · Choose on click: every click offers its own action or Edit' }
   };
   const VARIANT = VARIANTS[document.body.dataset.variant] ? document.body.dataset.variant : 'control';
   const ARM = VARIANTS[VARIANT];
   const NOTES = new URLSearchParams(location.search).has('notes') || location.hash === '#notes';
   const STORE_KEY = 'vermeer:' + VARIANT;
-  const HOVER_REST_MS = 500;
 
   // Routes into edit mode. The Edit button's are built in; arms add theirs.
   const ROUTES = {
@@ -185,7 +183,44 @@
     close: svg('M12 13.06l3.712 3.713 1.061-1.06L13.061 12l3.712-3.712-1.06-1.06L12 10.938 8.288 7.227l-1.061 1.06L10.939 12l-3.712 3.712 1.06 1.061L12 13.061z'),
     tip: svg('M12 15.8c-3.7 0-6.8-3-6.8-6.8s3-6.8 6.8-6.8c3.7 0 6.8 3 6.8 6.8s-3.1 6.8-6.8 6.8zm0-12C9.1 3.8 6.8 6.1 6.8 9s2.4 5.2 5.2 5.2c2.9 0 5.2-2.4 5.2-5.2S14.9 3.8 12 3.8zM8 17.5h8V19H8zM10 20.5h4V22h-4z'),
     check: svg('M16.7 7.1l-6.3 8.5-3.3-2.5-.9 1.2 4.5 3.4L17.9 8z'),
-    page: svg('M15.5 7.5h-7V9h7V7.5Zm-7 3.5h7v1.5h-7V11Zm7 3.5h-7V16h7v-1.5Z M17 4H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2Zm.5 14a.5.5 0 0 1-.5.5H7a.5.5 0 0 1-.5-.5V6a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 .5.5v12Z')
+    page: svg('M15.5 7.5h-7V9h7V7.5Zm-7 3.5h7v1.5h-7V11Zm7 3.5h-7V16h7v-1.5Z M17 4H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2Zm.5 14a.5.5 0 0 1-.5.5H7a.5.5 0 0 1-.5-.5V6a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 .5.5v12Z'),
+    // The admin bar's, after its dashicons.
+    wp: svg('M12 2C6.49 2 2 6.49 2 12s4.49 10 10 10 10-4.49 10-10S17.51 2 12 2zM3.01 12c0-1.3.28-2.54.78-3.66l4.3 11.78A9 9 0 0 1 3.01 12zM12 20.99c-.88 0-1.73-.13-2.54-.37l2.7-7.84 2.76 7.57.06.12c-.93.33-1.94.52-2.98.52zm1.24-13.2c.54-.03 1.03-.09 1.03-.09.49-.06.43-.77-.06-.74 0 0-1.46.11-2.4.11-.88 0-2.37-.11-2.37-.11-.49-.03-.54.71-.06.74 0 0 .46.06.94.09l1.4 3.84-1.97 5.9-3.28-9.74c.54-.03 1.03-.09 1.03-.09.49-.06.43-.77-.06-.74 0 0-1.46.11-2.4.11-.17 0-.37 0-.58-.01A8.98 8.98 0 0 1 12 3.01c2.33 0 4.44.89 6.03 2.35l-.12-.01c-.88 0-1.51.77-1.51 1.6 0 .74.43 1.37.89 2.11.34.6.74 1.37.74 2.48 0 .77-.3 1.67-.69 2.91l-.9 3-3.2-9.67zm3.28 12l2.75-7.94c.51-1.28.68-2.31.68-3.22 0-.33-.02-.64-.06-.92A8.94 8.94 0 0 1 20.99 12a8.98 8.98 0 0 1-4.47 7.78z'),
+    dashboard: svg('M12 5a8.5 8.5 0 0 0-7.4 12.7l.3.5h14.2l.3-.5A8.5 8.5 0 0 0 12 5zm0 2.3a1 1 0 1 1 0 2 1 1 0 0 1 0-2zm-4.6 2a1 1 0 1 1 0 2 1 1 0 0 1 0-2zm9.2 0a1 1 0 1 1 0 2 1 1 0 0 1 0-2zM6.3 13.5a1 1 0 1 1 0 2 1 1 0 0 1 0-2zm11.4 0a1 1 0 1 1 0 2 1 1 0 0 1 0-2zm-3.3-3.8 1 .8-2.2 3.4a1.6 1.6 0 1 1-1.2-.8z'),
+    updates: svg('M12 4.5a7.5 7.5 0 0 0-7.1 5h2.1A5.5 5.5 0 0 1 16.9 9L14.5 11.5H20V6l-1.7 1.7A7.5 7.5 0 0 0 12 4.5zM4 12.5V18l1.7-1.7A7.5 7.5 0 0 0 19.1 14.5H17a5.5 5.5 0 0 1-9.9.5l2.4-2.5z'),
+    comment: svg('M4.5 5h15c.3 0 .5.2.5.5v10c0 .3-.2.5-.5.5H10l-4.5 3.5V16h-1a.5.5 0 0 1-.5-.5v-10c0-.3.2-.5.5-.5z'),
+    plus: svg('M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6z'),
+    // The rail's and the sidebar's, after @wordpress/icons.
+    home: svg('M12 4 4 7.9V20h16V7.9L12 4zm6.5 14.5H14V13h-4v5.5H5.5V8.8L12 5.7l6.5 3.1v9.7z'),
+    pages: svg('M14.5 5.5h-7V7h7V5.5ZM7.5 9h7v1.5h-7V9Zm7 3.5h-7V14h7v-1.5Z M16 2H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2Zm.5 14a.5.5 0 0 1-.5.5H6a.5.5 0 0 1-.5-.5V4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 .5.5v12Z M20 8v11a2 2 0 0 1-2 2H8v-1.5h10a.5.5 0 0 0 .5-.5V8H20Z'),
+    postList: svg('M18 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2Zm.5 14a.5.5 0 0 1-.5.5H6a.5.5 0 0 1-.5-.5V6a.5.5 0 0 1 .5-.5h12a.5.5 0 0 1 .5.5v12ZM7 11h2V9H7v2Zm0 4h2v-2H7v2Zm3-4h7V9h-7v2Zm0 4h7v-2h-7v2Z'),
+    networking: svg('M5 4.5h4a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-.5.5H7.8v3.7h4.2v-.7a.5.5 0 0 1 .5-.5h0V11h-.5V7.5h2V11h-.5v1.5h4.1a.5.5 0 0 1 .4.5v2.5h1a.5.5 0 0 1 .5.5v3.5a.5.5 0 0 1-.5.5h-3.5a.5.5 0 0 1-.5-.5V16a.5.5 0 0 1 .5-.5h1V14h-8v1.5h1a.5.5 0 0 1 .5.5v3.5a.5.5 0 0 1-.5.5H5a.5.5 0 0 1-.5-.5V16a.5.5 0 0 1 .5-.5h1.3V9.5H5a.5.5 0 0 1-.5-.5V5a.5.5 0 0 1 .5-.5zM6 6v2h2V6H6zm0 11v1.5h2V17H6zm10.5 0v1.5h2V17h-2z'),
+    navigation: svg('M12 4a8 8 0 1 0 .001 16.001A8 8 0 0 0 12 4zm0 14.5a6.5 6.5 0 1 1 0-13 6.5 6.5 0 0 1 0 13zM9 15l2.1-4.4L15 9l-2.1 4.4z'),
+    siteLogo: svg('M12 3.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17zm0 1.5a7 7 0 0 1 6.8 8.7c-1.4-1.6-3.6-2.7-6.8-2.7s-5.4 1.1-6.8 2.7A7 7 0 0 1 12 5zm0 14a7 7 0 0 1-6-3.4c1-1.6 2.9-3.1 6-3.1s5 1.5 6 3.1A7 7 0 0 1 12 19z'),
+    media: svg('M4 5.5h10v8.6l-2.6-2.6-2.5 2.5-1.4-1.4L4 16V5.5zm-1.5-1.5v14.5h13V4h-13zM8 9.5A1.3 1.3 0 1 0 8 7a1.3 1.3 0 0 0 0 2.5zm9.5-1v7.3a2 2 0 1 0 1.5 1.9V10h2V8.5h-3.5z'),
+    color: svg('M17.2 10.9c-.5-1-1.2-2.1-2.1-3.2-.6-.9-1.3-1.7-2.1-2.6L12 4l-1 1.1c-.6.9-1.3 1.7-2 2.6-.8 1.2-1.5 2.3-2 3.2-.6 1.2-1 2.2-1 3 0 3.4 2.7 6.1 6.1 6.1s6.1-2.7 6.1-6.1c0-.8-.3-1.8-1-3zm-5.1 7.6c-2.5 0-4.6-2.1-4.6-4.6 0-.3.1-1 .8-2.3.5-.9 1.1-1.9 2-3.1.7-.9 1.3-1.7 1.8-2.3.7.8 1.3 1.6 1.8 2.3.8 1.1 1.5 2.2 2 3.1.7 1.3.8 2 .8 2.3 0 2.5-2.1 4.6-4.6 4.6z'),
+    typography: svg('M6.9 7 3 17.8h1.7l1-2.8h4.1l1 2.8h1.7L8.6 7H6.9zm-.7 6.6 1.5-4.3 1.5 4.3h-3zM21.6 17c-.1.1-.2.2-.3.2-.1.1-.2.1-.4.1s-.3-.1-.4-.2c-.1-.1-.1-.3-.1-.6V12c0-.5 0-1-.1-1.4-.1-.4-.3-.7-.5-1-.2-.2-.5-.4-.9-.5-.4 0-.8-.1-1.3-.1s-1 .1-1.4.2c-.4.1-.7.3-1 .4-.2.2-.4.3-.6.5-.1.2-.2.4-.2.7 0 .3.1.5.2.8.2.2.4.3.8.3.3 0 .6-.1.8-.3.2-.2.3-.4.3-.7 0-.3-.1-.5-.2-.7-.2-.2-.4-.3-.6-.4.2-.2.4-.3.7-.4.3-.1.6-.1.8-.1.3 0 .6 0 .8.1.2.1.4.3.5.5.1.2.2.5.2.9v1.1c0 .3-.1.5-.3.6-.2.2-.5.3-.9.4-.3.1-.7.3-1.1.4-.4.1-.8.3-1.1.5-.3.2-.6.4-.8.7-.2.3-.3.7-.3 1.2 0 .6.2 1.1.5 1.4.3.4.9.5 1.6.5.5 0 1-.1 1.4-.3.4-.2.8-.6 1.1-1.1 0 .4.1.7.3 1 .2.3.6.4 1.2.4.4 0 .7-.1.9-.2.2-.1.5-.3.7-.4h-.3zm-3-.9c-.2.4-.5.7-.8.8-.3.2-.6.2-.8.2-.4 0-.6-.1-.9-.3-.2-.2-.3-.6-.3-1.1 0-.5.1-.9.3-1.2s.5-.5.8-.7c.3-.2.7-.3 1-.5.3-.1.6-.3.7-.6v3.4z'),
+    code: svg('M20.8 10.7l-4.3-4.3-1.1 1.1 4.3 4.3c.1.1.1.3 0 .4l-4.3 4.3 1.1 1.1 4.3-4.3c.7-.8.7-1.9 0-2.6zM4.2 11.8l4.3-4.3-1-1-4.3 4.3c-.7.7-.7 1.8 0 2.5l4.3 4.3 1.1-1.1-4.3-4.3c-.2-.1-.2-.3-.1-.4z'),
+    drawerLeft: svg('M18 4H6c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zM8.5 18.5H6c-.3 0-.5-.2-.5-.5V6c0-.3.2-.5.5-.5h2.5v13zm10-.5c0 .3-.2.5-.5.5h-8v-13h8c.3 0 .5.2.5.5v12z'),
+    category: svg('M6 5.5h3a.5.5 0 01.5.5v3a.5.5 0 01-.5.5H6a.5.5 0 01-.5-.5V6a.5.5 0 01.5-.5zM4 6a2 2 0 012-2h3a2 2 0 012 2v3a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm11-.5h3a.5.5 0 01.5.5v3a.5.5 0 01-.5.5h-3a.5.5 0 01-.5-.5V6a.5.5 0 01.5-.5zM13 6a2 2 0 012-2h3a2 2 0 012 2v3a2 2 0 01-2 2h-3a2 2 0 01-2-2V6zm5 8.5h-3a.5.5 0 00-.5.5v3a.5.5 0 00.5.5h3a.5.5 0 00.5-.5v-3a.5.5 0 00-.5-.5zM15 13a2 2 0 00-2 2v3a2 2 0 002 2h3a2 2 0 002-2v-3a2 2 0 00-2-2h-3zm-9 1.5h3a.5.5 0 01.5.5v3a.5.5 0 01-.5.5H6a.5.5 0 01-.5-.5v-3a.5.5 0 01.5-.5zM4 15a2 2 0 012-2h3a2 2 0 012 2v3a2 2 0 01-2 2H6a2 2 0 01-2-2v-3z'),
+    brush: svg('M4 20h8v-1.5H4V20zM18.9 3.5c-.6-.6-1.5-.6-2.1 0l-7.2 7.2c-.4-.1-.7 0-1.1.1-.5.2-1.5.7-1.9 2.2-.4 1.7-.8 2.2-1.1 2.7-.1.1-.2.3-.3.4l-.6 1.1H6c2 0 3.4-.4 4.7-1.4.8-.6 1.2-1.4 1.3-2.3 0-.3 0-.5-.1-.7L19 5.7c.5-.6.5-1.6-.1-2.2zM9.7 14.7c-.7.5-1.5.8-2.4 1 .2-.5.5-1.2.8-2.3.2-.6.4-1 .8-1.1.5-.1 1 .1 1.3.3.2.2.3.5.2.8 0 .3-.1.9-.7 1.3z'),
+    siteParts: svg('M18 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2Zm.5 14a.5.5 0 0 1-.5.5H6a.5.5 0 0 1-.5-.5v-1.5h13V18Zm0-3h-13V9h13v6Zm0-7.5h-13V6a.5.5 0 0 1 .5-.5h12a.5.5 0 0 1 .5.5v1.5Z'),
+    header: svg('M18.5 10.5H10v8h8a.5.5 0 00.5-.5v-7.5zm-10 0h-3V18a.5.5 0 00.5.5h2.5v-8zM6 4h12a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2z'),
+    footer: svg('M18 5.5H6a.5.5 0 00-.5.5v3h13V6a.5.5 0 00-.5-.5zm.5 5h-13V18a.5.5 0 00.5.5h12a.5.5 0 00.5-.5v-7.5zM6 4h12a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2zm1 13.5h10V16H7v1.5z'),
+    chevronRight: svg('M10.6 6L9.4 7l4.6 5-4.6 5 1.2 1 5.4-6z'),
+    chevronDown: svg('M17.5 11.6 12 16l-5.5-4.4.9-1.2L12 14l4.5-3.6 1 1.2z'),
+    moreVertical: svg('M13 19h-2v-2h2v2zm0-6h-2v-2h2v2zm0-6h-2V5h2v2z'),
+    moreHorizontal: svg('M11 13h2v-2h-2v2zm-6 0h2v-2H5v2zm12-2v2h2v-2h-2z'),
+    settings: svg('m19 7.5h-7.628c-.3089-.87389-1.1423-1.5-2.122-1.5-.97966 0-1.81309.62611-2.12197 1.5h-2.12803v1.5h2.12803c.30888.87389 1.14231 1.5 2.12197 1.5.9797 0 1.8131-.62611 2.122-1.5h7.628zm-9.75 1.5c-.4142 0-.75-.33579-.75-.75 0-.41421.3358-.75.75-.75.4142 0 .75.33579.75.75 0 .41421-.3358.75-.75.75zm8.75 6.5h-2.128c-.3089-.8739-1.1423-1.5-2.122-1.5s-1.8131.6261-2.122 1.5h-7.628v1.5h7.628c.3089.8739 1.1423 1.5 2.122 1.5s1.8131-.6261 2.122-1.5h2.128zm-4.25 1.5c-.4142 0-.75-.3358-.75-.75s.3358-.75.75-.75.75.3358.75.75-.3358.75-.75.75z'),
+    listView: svg('M3 6h11v1.5H3V6Zm3.5 5.5h11V13h-11v-1.5ZM21 17H10v1.5h11V17Z'),
+    square: svg('M18 5.5H6a.5.5 0 0 0-.5.5v12a.5.5 0 0 0 .5.5h12a.5.5 0 0 0 .5-.5V6a.5.5 0 0 0-.5-.5ZM6 4h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z'),
+    minus: svg('M7 11.5h10V13H7z'),
+    published: svg('M12 18.5a6.5 6.5 0 1 1 0-13 6.5 6.5 0 0 1 0 13zM4 12a8 8 0 1 0 16 0 8 8 0 0 0-16 0zm11.53-1.47-1.06-1.06L11 12.94l-1.47-1.47-1.06 1.06L11 15.06l4.53-4.53z'),
+    globe: svg('M12 3.3a8.7 8.7 0 1 0 0 17.4 8.7 8.7 0 0 0 0-17.4zm6.7 8h-3.1a14 14 0 0 0-1.1-5.4 7.2 7.2 0 0 1 4.2 5.4zM12 4.8c.8 1 1.9 3.1 2.1 6.5H9.9C10.1 7.9 11.2 5.8 12 4.8zM9.5 5.9a14 14 0 0 0-1.1 5.4H5.3a7.2 7.2 0 0 1 4.2-5.4zm-4.2 6.9h3.1a14 14 0 0 0 1.1 5.3 7.2 7.2 0 0 1-4.2-5.3zm6.7 6.4c-.8-1-1.9-3.1-2.1-6.4h4.2c-.2 3.3-1.3 5.4-2.1 6.4zm2.5-1.1a14 14 0 0 0 1.1-5.3h3.1a7.2 7.2 0 0 1-4.2 5.3z'),
+    external: svg('M19.5 4.5h-7V6h4.44l-5.97 5.97 1.06 1.06L18 7.06v4.44h1.5v-7Zm-13 1a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3H17v3a.5.5 0 0 1-.5.5h-10a.5.5 0 0 1-.5-.5v-10a.5.5 0 0 1 .5-.5h3V5.5h-3Z'),
+    chevronLeft: svg('M14.6 7l-1.2-1L8 12l5.4 6 1.2-1-4.6-5z'),
+    tablet: svg('M17 4H7c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm.5 14c0 .3-.2.5-.5.5H7c-.3 0-.5-.2-.5-.5V6c0-.3.2-.5.5-.5h10c.3 0 .5.2.5.5v12zm-7.5-.5h4V16h-4v1.5z'),
+    mobile: svg('M15 4H9c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h6c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm.5 14c0 .3-.2.5-.5.5H9c-.3 0-.5-.2-.5-.5V6c0-.3.2-.5.5-.5h6c.3 0 .5.2.5.5v12zm-4.5-.5h2V16h-2v1.5z')
   };
 
   // ---------- The site: Cobble Lane Books ----------
@@ -311,6 +346,8 @@
         prompts: { shown: 0, accepted: 0, dismissed: 0, followed: 0, ignored: 0 }, promptKinds: {},
         follows: 0, followsVia: 0, uses: 0, usesVia: 0,
         accidental: 0, exits: 0, pages: 0, saves: 0, edits: 0, undos: 0, redos: 0, escapes: 0, finished: 0,
+        gBefore: 0, gTotal: 0, tried: 0, saveGrey: 0, reviews: 0, reviewsCancelled: 0, discards: 0,
+        firstUnsavedT: null, firstSave: null, savesDialog: 0,
         arm: {}, armLabels: {}
       },
       tasks: {}, manual: {},
@@ -321,6 +358,7 @@
       prompts: { next: 1, open: {} },
       booked: {}, sent: {}, clubOpen: false, fields: {},
       pending: null,
+      ui: { screen: 'home', parent: 'home', allSaved: false },
       scroll: { browse: 0, edit: 0 }
     };
   }
@@ -333,6 +371,7 @@
   if (!S || S.v !== 1) S = freshState();
   for (const k of Object.keys(ORIGINAL)) { if (!(k in S.saved)) S.saved[k] = ORIGINAL[k]; if (!(k in S.draft)) S.draft[k] = S.saved[k]; }
   if (!S.fields) S.fields = {};
+  if (!S.ui) S.ui = { screen: 'home', parent: 'home', allSaved: false };
 
   // Two tabs of the same arm would overwrite each other's state. The tab that
   // wrote last is the live one: when another tab writes (or Reset clears) the
@@ -376,30 +415,64 @@
     }
   }
 
-  // ---------- The frame ----------
+  // ---------- The frame: as Create not Learn draws it ----------
+
+  /*
+   * Create not Learn's chrome (trunk 54b6612), drawn here without building
+   * it: WordPress's admin bar across the top; the dark strip of icons on the
+   * left; the sidebar with Home's places to start, the Pages screen and the
+   * other screens, their controls drawn but inert; and the canvas with its
+   * toolbar. The canvas is the only part that works fully: Back and Forward,
+   * the page finder, Edit, Undo and Redo, Exit and Save.
+   *
+   * Clicks on the admin bar, the strip and the sidebar are counted (the code's
+   * `g`, before the first time in editing) and logged. Anything drawn but
+   * inert logs "Tried …".
+   */
+
+  const ADDRESS = 'cobblelanebooks.example';
+  const PAGE_PATH = { home: '/', events: '/events/', contact: '/contact/' };
 
   const app = document.getElementById('app');
   app.className = 'vm-app' + (NOTES ? ' has-notes' : '');
+  const ab = (label, inner, cls) => '<button type="button" class="vm-ab-item' + (cls ? ' ' + cls : '') + '" data-chrome="' + label + '">' + inner + '</button>';
   app.innerHTML =
+    '<div class="vm-adminbar" role="navigation" aria-label="Toolbar">' +
+      '<div class="vm-ab-left">' +
+        ab('WordPress logo', ICONS.wp, 'vm-ab-logo') +
+        ab('Cobble Lane Books', ICONS.dashboard + '<span>Cobble Lane Books</span>') +
+        ab('Updates', ICONS.updates + '<span>1</span>') +
+        ab('Search', ICONS.search + '<span>' + (/Mac|iPhone|iPad/.test(navigator.platform || '') ? '⌘K' : 'Ctrl+K') + '</span>') +
+        ab('Comments', ICONS.comment + '<span>0</span>') +
+        ab('New', ICONS.plus + '<span>New</span>') +
+      '</div>' +
+      '<div class="vm-ab-right">' + ab('Howdy, admin', '<span>Howdy, admin</span><span class="vm-ab-avatar" aria-hidden="true"></span>') + '</div>' +
+    '</div>' +
     '<div class="vm-editor">' +
-      '<aside class="vm-sidebar" aria-label="Your website">' +
-        '<div class="vm-sitecard"><span class="vm-avatar" aria-hidden="true">C</span><span class="vm-sitecard-name">Cobble Lane Books</span></div>' +
-        '<p class="vm-tip">' + ICONS.tip + '<span>Tip: follow links to look around your site, and press Edit to change the page you’re on.</span></p>' +
-      '</aside>' +
+      '<nav class="vm-rail" aria-label="Main"></nav>' +
+      '<aside class="vm-sidebar" aria-label="Sidebar"></aside>' +
       '<section class="vm-canvas" aria-label="Your page">' +
         '<div class="vm-toolbar" role="toolbar" aria-label="Page tools"></div>' +
         '<div class="vm-stage">' +
           '<div class="vm-viewport" tabindex="-1"><div class="vm-site cl"></div></div>' +
           '<div class="vm-layer"></div>' +
+          '<div class="vm-zoom" role="group" aria-label="Zoom">' +
+            '<button type="button" class="vm-icon-btn" data-tool="zoom-in" aria-disabled="true" aria-label="Zoom in" data-tip="Zoom in" data-tip-side="left">' + ICONS.plus + '</button>' +
+            '<button type="button" class="vm-icon-btn" data-tool="zoom-out" aria-label="Zoom out to arrange sections" data-tip="Zoom out to arrange sections" data-tip-side="left">' + ICONS.minus + '</button>' +
+          '</div>' +
         '</div>' +
       '</section>' +
     '</div>' +
     '<div class="vm-bottombar"><button type="button" class="vm-btn vm-btn-primary" data-action="finish">Finished</button><p>Click Finished when you’ve done everything you were asked to.</p></div>' +
     '<div class="vm-live" aria-live="polite" role="status"></div>';
+  const adminbar = app.querySelector('.vm-adminbar');
+  const rail = app.querySelector('.vm-rail');
+  const sidebar = app.querySelector('.vm-sidebar');
   const toolbar = app.querySelector('.vm-toolbar');
   const viewport = app.querySelector('.vm-viewport');
   const site = app.querySelector('.vm-site');
   const layer = app.querySelector('.vm-layer');
+  const zoom = app.querySelector('.vm-zoom');
   const live = app.querySelector('.vm-live');
 
   function announce(text) {
@@ -410,8 +483,220 @@
   function hasUnsaved() { return Object.keys(S.draft).some((k) => S.draft[k] !== S.saved[k]); }
   function unsavedCount() { return Object.keys(S.draft).filter((k) => S.draft[k] !== S.saved[k]).length; }
 
-  let savedFlash = false;
+  // What a bit of text belongs to, as Create not Learn's Review changes
+  // lists it: the header or footer (site parts, on every page), or a page.
+  const ENTITIES = {
+    header: { label: 'Header', detail: 'Site part', siteWide: true },
+    footer: { label: 'Footer', detail: 'Site part', siteWide: true },
+    home: { label: 'Home', detail: 'Page' },
+    events: { label: 'Events', detail: 'Page' },
+    contact: { label: 'Contact', detail: 'Page' }
+  };
+  const entityOf = (key) => (/^(site-|nav-|bookclub)/.test(key) ? 'header' : /^(footer-|news-|lbl-news)/.test(key) ? 'footer'
+    : /^(home-|pick|cafe-)/.test(key) ? 'home' : /^ev/.test(key) ? 'events' : 'contact');
+  // The changes waiting to be saved, one per header, footer or page.
+  function changes() {
+    const out = [];
+    for (const k of Object.keys(S.draft)) {
+      if (S.draft[k] === S.saved[k]) continue;
+      const id = entityOf(k);
+      if (!out.includes(id)) out.push(id);
+    }
+    return Object.keys(ENTITIES).filter((id) => out.includes(id));
+  }
+  const plural = (n, one, many) => n + ' ' + (n === 1 ? one : many);
+  const SAVE_KEYS = isMacPlatform() ? '⌘S' : 'Ctrl+S';
+  function isMacPlatform() { return /Mac|iPhone|iPad/.test(navigator.platform || ''); }
+
+  // ---------- The strip of icons ----------
+
+  // Create not Learn's menu items (`includes/editor-registry.php`), as the
+  // folded sidebar shows them: Home; Pages and Posts; Site overview, Menus,
+  // Name & logo and Media; Colors and Fonts; and at the foot Advanced, then
+  // Expand sidebar and the workspace switcher.
+  const RAIL = [
+    { id: 'home', label: 'Home', icon: 'home', go: 'home' }, null,
+    { id: 'pages', label: 'Pages', icon: 'pages', go: 'pages' },
+    { id: 'posts', label: 'Posts', icon: 'postList', go: 'posts' }, null,
+    { id: 'overview', label: 'Site overview', icon: 'networking', go: 'overview' },
+    { id: 'menus', label: 'Menus', icon: 'navigation', go: 'menus' },
+    { id: 'identity', label: 'Name & logo', icon: 'siteLogo', go: 'identity' },
+    { id: 'media', label: 'Media', icon: 'media', go: 'media' }, null,
+    { id: 'colors', label: 'Colors', icon: 'color', go: 'colors' },
+    { id: 'fonts', label: 'Fonts', icon: 'typography', go: 'fonts' }
+  ];
+  const RAIL_FOOT = [
+    { label: 'Advanced', icon: 'code' }, null,
+    { label: 'Expand sidebar', icon: 'drawerLeft' },
+    { label: 'Workspace: Default', icon: 'category' }
+  ];
+  function renderRail() {
+    const btn = (it) => it ? '<button type="button" class="vm-rail-btn' + (it.go && S.ui.screen === it.go ? ' is-current' : '') + '" data-chrome="' + it.label + '"' +
+      (it.go ? ' data-go="' + it.go + '"' : '') + ' aria-label="' + it.label + '" data-tip="' + it.label + '" data-tip-side="right"' +
+      (it.go && S.ui.screen === it.go ? ' aria-current="page"' : '') + '>' + ICONS[it.icon] + '</button>' : '<span class="vm-rail-sep" aria-hidden="true"></span>';
+    rail.innerHTML = '<div class="vm-rail-top">' + RAIL.map(btn).join('') + '</div><div class="vm-rail-foot">' + RAIL_FOOT.map(btn).join('') + '</div>';
+  }
+
+  // ---------- The sidebar's screens ----------
+
+  // Home's places to start, in the Default workspace's order
+  // (`src/start-places.js`, `src/workspaces/presets.js`).
+  const PLACES = [
+    { id: 'homepage', icon: 'home', title: 'Your homepage', desc: 'Make the first page visitors see your own.' },
+    { id: 'pages', icon: 'pages', title: 'Pages', desc: 'Add pages like About and Contact, and pick your menu.' },
+    { id: 'identity', icon: 'siteLogo', title: 'Name & logo', desc: 'Name your site and add a logo.' },
+    { id: 'design', icon: 'brush', title: 'Design', desc: 'Pick the colors and fonts of your whole site.' },
+    { id: 'siteParts', icon: 'siteParts', title: 'Header & footer', desc: 'Choose the top and bottom of every page.' }
+  ];
+  const TITLES = { home: 'Home', pages: 'Pages', posts: 'Posts', overview: 'Site overview', menus: 'Menus', identity: 'Name & logo', media: 'Media', design: 'Design', colors: 'Colors', fonts: 'Fonts', siteParts: 'Header & footer' };
+
+  const row = (o) => '<button type="button" class="vm-link-row" data-chrome="' + o.title + '"' + (o.go ? ' data-go="' + o.go + '"' : '') + (o.homepage ? ' data-homepage' : '') + '>' +
+    '<span class="vm-link-icon">' + ICONS[o.icon] + '</span><span class="vm-link-text"><strong>' + o.title + '</strong>' + (o.desc ? '<span>' + o.desc + '</span>' : '') + '</span>' +
+    '<span class="vm-link-chevron">' + ICONS.chevronRight + '</span></button>';
+  const head = (title, extra) => '<div class="vm-screen-head"><button type="button" class="vm-icon-btn vm-back" data-chrome="Back" data-go="' + (S.ui.parent || 'home') + '" aria-label="Back" data-tip="Back">' + ICONS.chevronLeft + '</button>' +
+    '<h2>' + title + '</h2>' + (extra || '') + '</div>';
+  const desc = (t) => '<p class="vm-screen-desc">' + t + '</p>';
+  const field = (label, value, ph) => '<label class="vm-field"><span>' + label + '</span><input type="text" readonly value="' + esc(value || '') + '" placeholder="' + esc(ph || '') + '" data-chrome="the ' + label + ' box"></label>';
+
+  function screenHTML(id) {
+    if (id === 'home') {
+      return '<div class="vm-sitecard"><span class="vm-site-mark" aria-hidden="true">C</span><div><h2>Cobble Lane Books</h2>' +
+        '<button type="button" class="vm-site-address" data-chrome="' + ADDRESS + ' (opens the live site in a new tab)">' + ADDRESS + ' ↗</button></div></div>' +
+        '<div class="vm-places" role="group" aria-label="Start working on your site">' +
+          PLACES.map((p) => row({ title: p.title, desc: p.desc, icon: p.icon, go: p.id === 'homepage' ? null : p.id, homepage: p.id === 'homepage' })).join('') +
+        '</div>' +
+        '<p class="vm-hint">Tip: follow links to look around your site, and press Edit to change the page you’re on.</p>';
+    }
+    if (id === 'pages') {
+      const pageRow = (pid) => '<div class="vm-page-row' + (pid === page() ? ' is-shown' : '') + '">' +
+        '<button type="button" class="vm-page-pick" data-chrome="' + (pid === 'home' ? 'Homepage' : PAGES[pid]) + ' in the list of pages" data-show-page="' + pid + '">' +
+          (pid === 'home' ? ICONS.home : ICONS.page) + '<span>' + (pid === 'home' ? 'Homepage' : PAGES[pid]) + '</span></button>' +
+        '<button type="button" class="vm-icon-btn vm-row-more" data-chrome="Page options for ' + PAGES[pid] + '" aria-label="Page options">' + ICONS.moreVertical + '</button>' +
+        '<button type="button" class="vm-toggle" role="switch" aria-checked="true" data-chrome="the menu switch for ' + PAGES[pid] + '" aria-label="Show ' + PAGES[pid] + ' in your menu"><span></span></button>' +
+      '</div>';
+      return head('Pages', '<button type="button" class="vm-btn vm-btn-primary" data-chrome="Add page">Add page</button><button type="button" class="vm-icon-btn" data-chrome="Page options" aria-label="Page options" data-tip="Page options">' + ICONS.moreVertical + '</button>') +
+        desc('Every page on your site. Pick one to see it, and switch it on to show it in your menu.') +
+        '<div class="vm-page-list">' + PAGE_IDS.map(pageRow).join('') +
+          '<button type="button" class="vm-add-square" data-chrome="Add (the + under the pages)" aria-label="Add">' + ICONS.plus + '</button></div>' +
+        '<div class="vm-more-links" role="group" aria-label="More options">' +
+          row({ title: 'System pages', desc: 'Change pages your site makes for itself, like the 404 page.', icon: 'pages' }) +
+          row({ title: 'Manage all menus', desc: 'Add a menu for your footer, or anywhere else.', icon: 'navigation' }) +
+        '</div>';
+    }
+    if (id === 'posts') {
+      return head('Posts', '<button type="button" class="vm-btn vm-btn-primary" data-chrome="Add post">Add post</button>') + desc('Your blog posts, newest first.') +
+        '<div class="vm-empty">' + ICONS.postList + '<strong>No posts yet</strong><span>Create your first post to start adding content here.</span>' +
+        '<button type="button" class="vm-btn vm-btn-primary" data-chrome="Add post (empty list)">Add post</button></div>';
+    }
+    if (id === 'overview') {
+      return head('Site overview') + desc('Every page on your site, at a glance · 3 pages') +
+        '<div class="vm-overview" data-chrome="the site overview map">' + PAGE_IDS.map((pid) => '<span class="vm-ov-node' + (pid === 'home' ? ' is-root' : '') + '">' + PAGES[pid] + '</span>').join('') + '</div>';
+    }
+    if (id === 'menus') {
+      return head('Menus', '<button type="button" class="vm-btn vm-btn-primary" data-chrome="Add a menu">Add a menu</button>') +
+        desc('The links visitors use to get around your site. Your main menu, the one in your header, lists your pages by itself. Choose which on the Pages screen.') +
+        '<div class="vm-more-links">' + row({ title: 'Main menu', desc: 'In your header · Home, Events, Contact', icon: 'navigation' }) + '</div>';
+    }
+    if (id === 'identity') {
+      return head('Name & logo') + desc('Your site’s name, tagline, and logo. Shown in your header, browser tabs, and search results.') +
+        '<div class="vm-form">' + field('Site name', S.saved['site-name']) + field('Tagline', '', 'Add a tagline') +
+        '<div class="vm-field"><span>Logo</span><button type="button" class="vm-dropzone" data-chrome="Add a logo">' + ICONS.plus + 'Add a logo</button></div></div>';
+    }
+    if (id === 'media') {
+      return head('Media', '<button type="button" class="vm-btn vm-btn-primary" data-chrome="Upload">Upload</button>') +
+        desc('The photos, videos, and files on your site. Upload new ones here, or open one to crop it or change its details.') +
+        '<div class="vm-media-grid">' + ['#C8643B', '#2F5B4A', '#E8B04B', '#5E7F9A', '#DDE6DA', '#8A3F2A'].map((c, i) => '<button type="button" class="vm-media-tile" style="background:' + c + '" data-chrome="picture ' + (i + 1) + ' in Media" aria-label="Picture ' + (i + 1) + '"></button>').join('') + '</div>';
+    }
+    if (id === 'design') {
+      const looks = [['Cobble Lane', '#24473A', '#FBF7F0', '#C8643B'], ['Evening', '#1D2F27', '#E9E2D3', '#E8B04B'], ['Paper', '#22302A', '#FFFFFF', '#5E7F9A'], ['Clay', '#8A3F2A', '#F3E9D8', '#2F5B4A']];
+      return head('Design') + desc('How your whole site looks.') +
+        '<div class="vm-looks">' + looks.map((l, i) => '<button type="button" class="vm-look' + (i === 0 ? ' is-current' : '') + '" data-chrome="the look ' + l[0] + '"><span class="vm-look-art" style="background:' + l[2] + '"><b style="color:' + l[1] + '">Aa</b><i style="background:' + l[3] + '"></i></span><span>' + l[0] + '</span></button>').join('') + '</div>' +
+        '<div class="vm-more-links" role="group" aria-label="More design options">' +
+          row({ title: 'Colors', desc: 'Pick the colors your whole site uses.', icon: 'color', go: 'colors' }) +
+          row({ title: 'Fonts', desc: 'Pick the fonts your whole site uses.', icon: 'typography', go: 'fonts' }) +
+          row({ title: 'Name & logo', desc: 'Name your site and add a logo.', icon: 'siteLogo', go: 'identity' }) +
+        '</div>';
+    }
+    if (id === 'colors') {
+      const sets = [['#24473A', '#FBF7F0', '#C8643B', '#E8B04B'], ['#1D2F27', '#E9E2D3', '#5E7F9A', '#DDE6DA'], ['#8A3F2A', '#F3E9D8', '#2F5B4A', '#E8B04B']];
+      return head('Colors') + desc('The colors your whole site uses. Your theme provides these palettes.') +
+        '<div class="vm-palettes">' + sets.map((p, i) => '<button type="button" class="vm-palette' + (i === 0 ? ' is-current' : '') + '" data-chrome="palette ' + (i + 1) + '">' + p.map((c) => '<i style="background:' + c + '"></i>').join('') + '</button>').join('') + '</div>';
+    }
+    if (id === 'fonts') {
+      const pairs = [['Serif and sans', 'Georgia, serif'], ['All sans', 'system-ui, sans-serif'], ['Typewriter', 'ui-monospace, monospace']];
+      return head('Fonts') + desc('The fonts your whole site uses. Your theme provides these pairings.') +
+        '<div class="vm-palettes">' + pairs.map((p, i) => '<button type="button" class="vm-fontpair' + (i === 0 ? ' is-current' : '') + '" data-chrome="the fonts ' + p[0] + '"><b style="font-family:' + p[1] + '">Aa</b><span>' + p[0] + '</span></button>').join('') + '</div>';
+    }
+    if (id === 'siteParts') {
+      return head('Header & footer') +
+        '<div class="vm-more-links vm-first">' +
+          row({ title: 'Header', desc: 'Choose how the top of every page looks.', icon: 'header' }) +
+          row({ title: 'Footer', desc: 'Choose how the bottom of every page looks.', icon: 'footer' }) +
+        '</div>';
+    }
+    return '';
+  }
+  function renderSidebar() {
+    sidebar.innerHTML = '<div class="vm-screen" data-screen="' + S.ui.screen + '">' + screenHTML(S.ui.screen) + '</div>';
+    renderRail();
+  }
+  function openScreen(id, how) {
+    const from = S.ui.screen;
+    // Colors, Fonts and Name & logo reached from Design go back to it.
+    S.ui.parent = (from === 'design' && ['colors', 'fonts', 'identity'].includes(id)) ? 'design' : 'home';
+    S.ui.screen = id;
+    renderSidebar();
+    persist();
+    // From the keyboard, focus goes into the screen opened.
+    if (keyboardLast) { const f = sidebar.querySelector('.vm-back, button'); if (f) f.focus(); }
+    if (id !== from) note('chrome', how + ': opened the ' + TITLES[id] + ' screen');
+  }
+
+  // A click on the admin bar, the strip or the sidebar: counted, logged, and
+  // done if it's one of the few that do something.
+  function chromeClick(e, where) {
+    const el = e.target.closest('[data-chrome]');
+    if (!el && e.target.closest('input, label')) return; // a click on a field's label repeats on its box
+    if (!S.stats.first) S.stats.gBefore++;
+    S.stats.gTotal++;
+    if (!el) { note('chrome', 'Clicked an empty part of the ' + where); return; }
+    const label = el.dataset.chrome;
+    const whereName = { 'admin bar': 'the admin bar', rail: 'the strip of icons', sidebar: 'the sidebar' }[where];
+    if (el.dataset.go) { openScreen(el.dataset.go, (where === 'rail' ? 'Strip of icons' : 'Sidebar') + ', ' + label); return; }
+    if (el.dataset.homepage != null) {
+      openScreen('pages', 'Sidebar, Your homepage');
+      if (page() !== 'home') go('home', 'the sidebar’s Your homepage');
+      renderSidebar();
+      return;
+    }
+    if (el.dataset.showPage) {
+      const to = el.dataset.showPage;
+      if (to !== page()) go(to, 'the Pages screen');
+      else note('chrome', 'Sidebar, ' + label + ' (already on show)');
+      renderSidebar();
+      const again = sidebar.querySelector('[data-show-page="' + to + '"]');
+      if (again && keyboardLast) again.focus();
+      return;
+    }
+    note('tried', 'Tried ' + whereName + ': ' + label);
+    S.stats.tried++;
+    persist();
+    renderNotes();
+  }
+  adminbar.addEventListener('click', (e) => chromeClick(e, 'admin bar'));
+  rail.addEventListener('click', (e) => chromeClick(e, 'rail'));
+  sidebar.addEventListener('click', (e) => chromeClick(e, 'sidebar'));
+
+  // ---------- The canvas toolbar ----------
+
+  const tip = (t) => ' data-tip="' + t + '"';
+  function saveTip() {
+    const n = changes().length;
+    return (n ? plural(n, 'unsaved change', 'unsaved changes') : S.ui.allSaved ? 'All changes saved' : '') + (n || S.ui.allSaved ? ' · ' : '') + SAVE_KEYS;
+  }
   let toolbarDrawn = '';
+  let saveBusy = false;
+  let lastChangeCount = 0;
   // Redraws the toolbar when the mode or page changes; otherwise updates the
   // buttons in place, so a click that blurs the text (and so updates Save)
   // still lands on the button it started on.
@@ -422,9 +707,7 @@
       if (edit) {
         set('undo', !S.undo.length);
         set('redo', !S.redo.length);
-        const unsaved = hasUnsaved();
-        const sv = toolbar.querySelector('[data-action="save"]');
-        if (sv) { sv.disabled = !unsaved; sv.textContent = savedFlash && !unsaved ? 'Saved' : 'Save'; }
+        updateSave();
       } else {
         set('back', S.hist.i <= 0);
         set('forward', S.hist.i >= S.hist.stack.length - 1);
@@ -432,25 +715,49 @@
       return;
     }
     toolbarDrawn = S.mode + ':' + page();
-    const addr = '<div class="vm-address"><button type="button" class="vm-address-btn" data-action="pages" aria-haspopup="true" aria-expanded="false" aria-label="Page: ' + PAGES[page()] + '. Choose a page">' + ICONS.search + '<span>' + PAGES[page()] + '</span></button></div>';
+    const center = '<div class="vm-switcher"><button type="button" class="vm-address-btn" data-action="pages" aria-haspopup="true" aria-expanded="false" aria-label="' + PAGES[page()] + ', Published. Go to another page"' + tip(ADDRESS + PAGE_PATH[page()]) + '>' +
+        ICONS.search + '<span class="vm-address-title">' + PAGES[page()] + '</span></button>' +
+        '<span class="vm-address-status" data-action="pages-status" aria-hidden="true"' + tip('Published') + '>' + ICONS.published + '</span></div>' +
+      (page() === 'home' ? '<button type="button" class="vm-icon-btn vm-small-btn" data-action="page-options" aria-label="Page options" aria-haspopup="true"' + tip('Page options') + '>' + ICONS.moreHorizontal + '</button>' : '');
+    const view = '<button type="button" class="vm-icon-btn" data-action="view" aria-label="View" aria-haspopup="true"' + tip('View') + '>' + ICONS.desktop + '</button>';
     let left, right;
     if (edit) {
-      left = '<button type="button" class="vm-icon-btn" data-action="undo" aria-label="Undo"' + (S.undo.length ? '' : ' aria-disabled="true"') + ' data-tip="Undo">' + ICONS.undo + '</button>' +
-        '<button type="button" class="vm-icon-btn" data-action="redo" aria-label="Redo"' + (S.redo.length ? '' : ' aria-disabled="true"') + ' data-tip="Redo">' + ICONS.redo + '</button>';
-      const unsaved = hasUnsaved();
-      right = '<button type="button" class="vm-btn vm-btn-secondary" data-action="exit">Exit</button>' +
-        '<button type="button" class="vm-btn vm-btn-primary" data-action="save"' + (unsaved ? '' : ' disabled') + '>' + (savedFlash && !unsaved ? 'Saved' : 'Save') + '</button>';
+      left = '<button type="button" class="vm-icon-btn" data-action="undo" aria-label="Undo"' + (S.undo.length ? '' : ' aria-disabled="true"') + tip('Undo ' + (isMacPlatform() ? '⌘Z' : 'Ctrl+Z')) + '>' + ICONS.undo + '</button>' +
+        '<button type="button" class="vm-icon-btn" data-action="redo" aria-label="Redo"' + (S.redo.length ? '' : ' aria-disabled="true"') + tip('Redo ' + (isMacPlatform() ? '⇧⌘Z' : 'Ctrl+Shift+Z')) + '>' + ICONS.redo + '</button>' +
+        '<button type="button" class="vm-icon-btn" data-action="overview" aria-label="Document Overview"' + tip('Document Overview') + '>' + ICONS.listView + '</button>';
+      right = view + '<button type="button" class="vm-icon-btn" data-action="zoom-out" aria-label="Zoom out"' + tip('Zoom out') + '>' + ICONS.square + '</button>' +
+        '<button type="button" class="vm-btn vm-btn-secondary vm-exit-btn" data-action="exit" aria-describedby="vm-exit-desc">Exit</button><span id="vm-exit-desc" hidden>Stop editing</span>' +
+        '<button type="button" class="vm-btn vm-btn-primary vm-save" data-action="save" aria-keyshortcuts="' + (isMacPlatform() ? 'Meta+S' : 'Control+S') + '">Save</button>';
     } else {
-      left = '<button type="button" class="vm-icon-btn" data-action="back" aria-label="Back"' + (S.hist.i > 0 ? '' : ' aria-disabled="true"') + ' data-tip="Back">' + ICONS.back + '</button>' +
-        '<button type="button" class="vm-icon-btn" data-action="forward" aria-label="Forward"' + (S.hist.i < S.hist.stack.length - 1 ? '' : ' aria-disabled="true"') + ' data-tip="Forward">' + ICONS.forward + '</button>';
-      right = '<button type="button" class="vm-icon-btn" aria-label="Desktop view" aria-disabled="true" data-tip="Desktop view">' + ICONS.desktop + '</button>' +
-        '<button type="button" class="vm-btn vm-btn-primary vm-edit-btn" data-action="edit" aria-describedby="vm-edit-desc" data-tip="Change this page">' + ICONS.pencil + '<span>Edit</span></button>' +
+      left = '<button type="button" class="vm-icon-btn" data-action="back" aria-label="Back in preview"' + (S.hist.i > 0 ? '' : ' aria-disabled="true"') + tip('Back in preview') + '>' + ICONS.back + '</button>' +
+        '<button type="button" class="vm-icon-btn" data-action="forward" aria-label="Forward in preview"' + (S.hist.i < S.hist.stack.length - 1 ? '' : ' aria-disabled="true"') + tip('Forward in preview') + '>' + ICONS.forward + '</button>';
+      right = view + '<button type="button" class="vm-btn vm-btn-primary vm-edit-btn" data-action="edit" aria-describedby="vm-edit-desc">' + ICONS.pencil + '<span>Edit</span></button>' +
         '<span id="vm-edit-desc" hidden>Change this page</span>';
     }
     const focused = document.activeElement && toolbar.contains(document.activeElement) ? document.activeElement.dataset.action : null;
-    toolbar.innerHTML = '<div class="vm-tb-left">' + left + '</div>' + addr + '<div class="vm-tb-right">' + right + '</div>';
+    toolbar.innerHTML = '<div class="vm-tb-left">' + left + '</div><div class="vm-tb-center">' + center + '</div><div class="vm-tb-right">' + right + '</div>';
+    if (edit) { lastChangeCount = changes().length; updateSave(); }
     if (focused) { const el = toolbar.querySelector('[data-action="' + focused + '"]'); if (el) el.focus(); }
   }
+  // Save: greyed (but still focusable and clickable, as Create not Learn's)
+  // while there's nothing to save, "Saving…" while saving, and a pulse each
+  // time a new change joins the list. How many changes are waiting is in its
+  // tooltip, as there.
+  function updateSave() {
+    const sv = toolbar.querySelector('[data-action="save"]');
+    if (!sv) return;
+    const n = changes().length;
+    if (n) sv.removeAttribute('aria-disabled'); else sv.setAttribute('aria-disabled', 'true');
+    sv.textContent = saveBusy ? 'Saving…' : 'Save';
+    sv.dataset.tip = saveTip();
+    sv.setAttribute('aria-description', saveTip());
+    if (n > lastChangeCount) {
+      sv.classList.remove('is-pulsing');
+      requestAnimationFrame(() => sv.classList.add('is-pulsing'));
+    }
+    lastChangeCount = n;
+  }
+  toolbar.addEventListener('animationend', (e) => { if (e.target.classList) e.target.classList.remove('is-pulsing'); });
 
   // ---------- Drawing the site ----------
 
@@ -474,7 +781,7 @@
 
     const nav = (key, to) => '<li>' + link(key, to, 'menu link', 'cl-nav-link' + (pg === to ? ' is-current' : '')) + '</li>';
     const header =
-      '<header class="cl-header" data-section="header" data-label="Header">' +
+      '<header class="cl-header" data-section="header" data-name="Header" data-label="Header">' +
         '<div class="cl-wrap cl-header-in">' +
           '<div class="cl-brand">' + PICTURES.logo + link('site-name', 'home', 'site name', 'cl-brand-name') + '</div>' +
           '<nav class="cl-nav" aria-label="Menu"><ul>' + nav('nav-home', 'home') + nav('nav-events', 'events') + nav('nav-contact', 'contact') + '</ul></nav>' +
@@ -486,30 +793,30 @@
     let main = '';
     if (pg === 'home') {
       main =
-        '<section class="cl-hero" data-section="home-hero" data-label="Top of the Home page"><div class="cl-wrap cl-hero-in">' +
+        '<section class="cl-hero" data-section="home-hero" data-name="Hero" data-label="Top of the Home page"><div class="cl-wrap cl-hero-in">' +
           '<div class="cl-hero-text">' + tx('home-kicker', 'p', 'cl-kicker') + tx('home-heading', 'h1', 'cl-h1') +
             '<p class="cl-lede" data-k-near="home-intro-a">' + tx('home-intro-a') + link('home-intro-link', 'events', 'text link', 'cl-inline-link') + tx('home-intro-b') + '</p>' +
             '<p class="cl-actions">' + link('home-cta', 'events', 'button link', 'cl-btn cl-btn-accent') + '</p>' +
           '</div>' +
           '<figure class="cl-hero-art" data-img="Picture of the shop">' + PICTURES.hero + '</figure>' +
         '</div></section>' +
-        '<section class="cl-picks" data-section="home-picks" data-label="This month’s picks"><div class="cl-wrap">' +
+        '<section class="cl-picks" data-section="home-picks" data-name="Book picks" data-label="This month’s picks"><div class="cl-wrap">' +
           tx('picks-heading', 'h2', 'cl-h2') + tx('picks-intro', 'p', 'cl-sub') +
           '<div class="cl-cards">' + [1, 2, 3].map((n) =>
             '<article class="cl-card"><div class="cl-card-art" data-img="Book cover">' + PICTURES['cover' + n] + '</div>' +
             '<div class="cl-card-body">' + tx('pick' + n + '-title', 'h3', 'cl-h3') + tx('pick' + n + '-text', 'p', 'cl-card-text') + '</div></article>').join('') +
           '</div>' +
         '</div></section>' +
-        '<section class="cl-cafe" data-section="home-cafe" data-label="The café corner"><div class="cl-wrap cl-cafe-in">' +
+        '<section class="cl-cafe" data-section="home-cafe" data-name="Café" data-label="The café corner"><div class="cl-wrap cl-cafe-in">' +
           '<figure class="cl-cafe-art" data-img="Picture of the café">' + PICTURES.cafe + '</figure>' +
           '<div class="cl-cafe-text">' + tx('cafe-heading', 'h2', 'cl-h2') + tx('cafe-text', 'p', 'cl-body') + '</div>' +
         '</div></section>';
     } else if (pg === 'events') {
       main =
-        '<section class="cl-pagehead" data-section="events-head" data-label="Top of the Events page"><div class="cl-wrap cl-narrow">' +
+        '<section class="cl-pagehead" data-section="events-head" data-name="Intro" data-label="Top of the Events page"><div class="cl-wrap cl-narrow">' +
           tx('events-kicker', 'p', 'cl-kicker') + tx('events-heading', 'h1', 'cl-h1') + tx('events-intro', 'p', 'cl-lede') +
         '</div></section>' +
-        '<section class="cl-events" data-section="events-list" data-label="The list of events"><div class="cl-wrap cl-narrow"><ol class="cl-event-list">' +
+        '<section class="cl-events" data-section="events-list" data-name="Events" data-label="The list of events"><div class="cl-wrap cl-narrow"><ol class="cl-event-list">' +
           [1, 2, 3].map((n) => {
             const booked = !E && S.booked['ev' + n];
             return '<li class="cl-event' + (booked ? ' is-booked' : '') + '">' +
@@ -522,11 +829,11 @@
     } else {
       const hoursRow = (n) => '<div class="cl-hours-row">' + tx('hours-' + n + '-day', 'dt') + tx('hours-' + n + '-time', 'dd') + '</div>';
       main =
-        '<section class="cl-pagehead" data-section="contact-head" data-label="Top of the Contact page"><div class="cl-wrap cl-narrow">' +
+        '<section class="cl-pagehead" data-section="contact-head" data-name="Intro" data-label="Top of the Contact page"><div class="cl-wrap cl-narrow">' +
           tx('contact-kicker', 'p', 'cl-kicker') + tx('contact-heading', 'h1', 'cl-h1') + tx('contact-intro', 'p', 'cl-lede') +
           '<p class="cl-actions">' + link('directions', 'contact#find-us', 'directions link', 'cl-inline-link cl-arrow-link') + '</p>' +
         '</div></section>' +
-        '<section class="cl-contact" data-section="contact-main" data-label="Opening hours and the contact form"><div class="cl-wrap cl-contact-in">' +
+        '<section class="cl-contact" data-section="contact-main" data-name="Hours and form" data-label="Opening hours and the contact form"><div class="cl-wrap cl-contact-in">' +
           '<div class="cl-panel cl-hours" data-hours>' + tx('hours-heading', 'h2', 'cl-h2') + '<dl>' + [1, 2, 3, 4].map(hoursRow).join('') + '</dl>' +
             '<div class="cl-contact-lines">' + tx('contact-phone', 'p') + tx('contact-email', 'p') + '</div></div>' +
           '<form class="cl-panel cl-form" data-form="contact" novalidate-off>' + tx('form-heading', 'h2', 'cl-h2') +
@@ -537,14 +844,14 @@
               (!E && S.sent.contact ? '<p class="cl-thanks" tabindex="-1" data-thanks="contact">Thanks, we’ll reply within two days.</p>' : '') + '</div>' +
           '</form>' +
         '</div></section>' +
-        '<section class="cl-findus" id="find-us" data-section="contact-findus" data-label="Finding us"><div class="cl-wrap cl-findus-in">' +
+        '<section class="cl-findus" id="find-us" data-section="contact-findus" data-name="Map" data-label="Finding us"><div class="cl-wrap cl-findus-in">' +
           '<div>' + tx('findus-heading', 'h2', 'cl-h2') + tx('findus-text', 'p', 'cl-body') + '</div>' +
           '<figure class="cl-map-wrap" data-img="Map">' + PICTURES.map + '</figure>' +
         '</div></section>';
     }
 
     const footer =
-      '<footer class="cl-footer" data-section="footer" data-label="Footer"><div class="cl-wrap cl-footer-in">' +
+      '<footer class="cl-footer" data-section="footer" data-name="Footer" data-label="Footer"><div class="cl-wrap cl-footer-in">' +
         '<div class="cl-footer-col">' + tx('footer-name', 'p', 'cl-footer-name') + tx('footer-address', 'p') + tx('footer-phone', 'p') + tx('footer-open', 'p', 'cl-footer-open') +
           '<p>' + link('footer-find', 'contact', 'footer link', 'cl-footer-link') + '</p></div>' +
         '<form class="cl-footer-col cl-news" data-form="news">' + tx('news-heading', 'h2', 'cl-h4') + tx('news-text', 'p') +
@@ -586,7 +893,9 @@
 
   function renderAll() {
     app.classList.toggle('is-edit', S.mode === 'edit');
+    closePicker(false);
     renderToolbar();
+    renderSidebar();
     renderSite();
   }
 
@@ -710,7 +1019,7 @@
     // A double click follows a link or presses a button once, in every arm,
     // as C's box asks once: the second press would land on the new page.
     // Only when the first press of the same double click did act: a first
-    // touch that stood in for hover (B, D) leaves the second free to act.
+    // touch that stood in for hover (B) leaves the second free to act.
     const isLinkOrButton = info.kind === 'link' || info.kind === 'button';
     if (isLinkOrButton && e.detail > 1 && e.timeStamp - lastDefaultActionAt < 800) { e.preventDefault(); return; }
     if (isLinkOrButton) lastDefaultActionAt = e.timeStamp;
@@ -876,49 +1185,158 @@
     switched(from, d < 0 ? 'back arrow' : 'forward arrow');
   }
 
-  // ---------- Page picker ----------
+  // ---------- The page finder and the toolbar's menus ----------
 
+  /*
+   * The page's name in the toolbar turns into Create not Learn's page finder
+   * when clicked: a "Go to page…" field over the bar, with the site's main
+   * pages under it and Add a page and Manage pages at its foot. Typing narrows
+   * the list; the arrow keys and Enter pick; Escape closes it. Only one of the
+   * finder and the menus (Page options, View) is open at a time: `picker`.
+   */
   let picker = null;
-  function openPicker(btn) {
-    closePicker();
-    picker = document.createElement('div');
-    picker.className = 'vm-picker';
-    picker.setAttribute('role', 'menu');
-    picker.setAttribute('aria-label', 'Pages');
-    picker.innerHTML = '<p class="vm-picker-title">Pages</p>' + PAGE_IDS.map((id) =>
-      '<button type="button" role="menuitemradio" aria-checked="' + (id === page()) + '" data-page="' + id + '">' + ICONS.page + '<span>' + PAGES[id] + '</span>' + (id === page() ? ICONS.check : '') + '</button>').join('');
-    document.body.append(picker);
-    const r = btn.getBoundingClientRect();
-    picker.style.left = Math.round(r.left + r.width / 2 - 130) + 'px';
-    picker.style.top = Math.round(r.bottom + 6) + 'px';
-    btn.setAttribute('aria-expanded', 'true');
-    picker.querySelector('[aria-checked="true"]').focus();
-    picker.addEventListener('click', (e) => {
-      const b = e.target.closest('[data-page]');
-      if (!b) return;
-      const to = b.dataset.page;
-      closePicker(true);
-      if (to !== page()) go(to, 'address bar');
-    });
-    picker.addEventListener('keydown', (e) => {
-      const items = [...picker.querySelectorAll('[data-page]')];
-      const i = items.indexOf(document.activeElement);
-      if (e.key === 'ArrowDown') { e.preventDefault(); items[(i + 1) % items.length].focus(); }
-      if (e.key === 'ArrowUp') { e.preventDefault(); items[(i + items.length - 1) % items.length].focus(); }
-      if (e.key === 'Escape') { e.preventDefault(); closePicker(true); }
-      if (e.key === 'Tab') closePicker(false);
-    });
-  }
   function closePicker(refocus) {
     if (!picker) return;
-    picker.remove();
+    const p = picker;
     picker = null;
-    const btn = toolbar.querySelector('[data-action="pages"]');
-    if (btn) { btn.setAttribute('aria-expanded', 'false'); if (refocus) btn.focus(); }
+    p.el.remove();
+    if (p.btn) p.btn.setAttribute('aria-expanded', 'false');
+    if (refocus) {
+      const b = toolbar.querySelector('[data-action="' + p.action + '"]');
+      if (b) b.focus();
+    }
   }
   document.addEventListener('pointerdown', (e) => {
-    if (picker && !picker.contains(e.target) && !e.target.closest('[data-action="pages"]')) closePicker(false);
+    if (picker && !picker.el.contains(e.target) && !(e.target.closest && e.target.closest('[data-action="' + picker.action + '"]'))) closePicker(false);
   }, true);
+
+  function openFinder(btn) {
+    closePicker(false);
+    const el = document.createElement('div');
+    el.className = 'vm-finder';
+    el.innerHTML = '<div class="vm-finder-field">' + ICONS.search + '<input type="text" role="combobox" aria-expanded="true" aria-controls="vm-finder-list" aria-label="Find or go to any page" placeholder="Go to page…" autocomplete="off"></div>' +
+      '<p class="vm-finder-heading" id="vm-finder-heading">Main pages</p><ul class="vm-finder-list" id="vm-finder-list" role="listbox" aria-labelledby="vm-finder-heading"></ul>' +
+      '<div class="vm-finder-foot"><button type="button" data-finder="add">Add a page' + ICONS.plus + '</button><button type="button" data-finder="manage">Manage pages' + ICONS.pages + '</button></div>';
+    document.body.append(el);
+    const bar = btn.closest('.vm-switcher') || btn;
+    const r = bar.getBoundingClientRect();
+    const w = Math.max(r.width, 320);
+    el.style.left = Math.round(Math.min(r.left, window.innerWidth - w - 8)) + 'px';
+    el.style.top = Math.round(r.top) + 'px';
+    el.style.width = Math.round(w) + 'px';
+    picker = { el, btn, action: 'pages' };
+    btn.setAttribute('aria-expanded', 'true');
+    const input = el.querySelector('input');
+    const list = el.querySelector('ul');
+    let active = 0;
+    let shown = PAGE_IDS.slice();
+    const draw = () => {
+      const q = input.value.trim().toLowerCase();
+      shown = PAGE_IDS.filter((id) => !q || PAGES[id].toLowerCase().includes(q) || (id === 'home' && 'homepage'.includes(q)));
+      active = Math.min(active, Math.max(0, shown.length - 1));
+      list.innerHTML = shown.length ? shown.map((id, i) => '<li role="option" id="vm-finder-' + id + '" data-page="' + id + '" aria-selected="' + (i === active) + '" class="' + (i === active ? 'is-active' : '') + (id === page() ? ' is-current' : '') + '">' +
+        '<span>' + PAGES[id] + '</span>' + (id === 'home' ? '<span class="vm-finder-role">(Homepage)</span>' : '') + '</li>').join('') : '<li class="vm-finder-empty">No pages found.</li>';
+      input.setAttribute('aria-activedescendant', shown.length ? 'vm-finder-' + shown[active] : '');
+    };
+    const pick = (id) => {
+      closePicker(true);
+      if (id !== page()) go(id, 'the page finder');
+      else note('page', 'Picked ' + PAGES[id] + ' in the page finder (already on show)');
+    };
+    draw();
+    input.focus();
+    input.addEventListener('input', () => { active = 0; draw(); });
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowDown') { e.preventDefault(); active = (active + 1) % Math.max(1, shown.length); draw(); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); active = (active + Math.max(1, shown.length) - 1) % Math.max(1, shown.length); draw(); }
+      else if (e.key === 'Enter') { e.preventDefault(); if (shown[active]) pick(shown[active]); }
+      else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); closePicker(true); }
+    });
+    el.addEventListener('mousemove', (e) => {
+      const li = e.target.closest('[data-page]');
+      if (li) { const i = shown.indexOf(li.dataset.page); if (i !== active) { active = i; draw(); } }
+    });
+    el.addEventListener('click', (e) => {
+      const li = e.target.closest('[data-page]');
+      if (li) { pick(li.dataset.page); return; }
+      const f = e.target.closest('[data-finder]');
+      if (!f) return;
+      if (f.dataset.finder === 'manage' && S.mode === 'browse') {
+        closePicker(false);
+        openScreen('pages', 'Page finder, Manage pages');
+        return;
+      }
+      closePicker(true);
+      tried(f.dataset.finder === 'add' ? 'the page finder’s Add a page' : 'the page finder’s Manage pages (while editing)');
+    });
+    // Presses in the list keep focus in the field, so the list stays put.
+    el.addEventListener('mousedown', (e) => { if (e.target !== input) e.preventDefault(); });
+    el.addEventListener('focusout', (e) => { if (picker && picker.el === el && !el.contains(e.relatedTarget)) closePicker(false); });
+  }
+
+  // A small menu under a toolbar button. items: { label, desc, icon,
+  // checked, pick } or null for a line between groups.
+  function openMenu(btn, action, items, label) {
+    closePicker(false);
+    const el = document.createElement('div');
+    el.className = 'vm-menu';
+    el.setAttribute('role', 'menu');
+    el.setAttribute('aria-label', label);
+    el.innerHTML = items.map((it, i) => it ? '<button type="button" role="' + (it.checked != null ? 'menuitemradio' : 'menuitem') + '"' + (it.checked != null ? ' aria-checked="' + it.checked + '"' : '') + ' data-i="' + i + '">' +
+      (it.icon ? ICONS[it.icon] : '') + '<span class="vm-menu-text"><span>' + it.label + '</span>' + (it.desc ? '<small>' + it.desc + '</small>' : '') + '</span>' + (it.checked ? '<span class="vm-menu-check">' + ICONS.check + '</span>' : '') + '</button>'
+      : '<hr>').join('');
+    document.body.append(el);
+    const r = btn.getBoundingClientRect();
+    const w = el.offsetWidth;
+    el.style.top = Math.round(r.bottom + 4) + 'px';
+    el.style.left = Math.round(Math.max(8, Math.min(r.right - w, window.innerWidth - w - 8))) + 'px';
+    picker = { el, btn, action };
+    btn.setAttribute('aria-expanded', 'true');
+    const buttons = [...el.querySelectorAll('button')];
+    buttons[0].focus();
+    el.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-i]');
+      if (!b) return;
+      const it = items[Number(b.dataset.i)];
+      closePicker(true);
+      it.pick();
+    });
+    el.addEventListener('keydown', (e) => {
+      const i = buttons.indexOf(document.activeElement);
+      if (e.key === 'ArrowDown') { e.preventDefault(); buttons[(i + 1) % buttons.length].focus(); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); buttons[(i + buttons.length - 1) % buttons.length].focus(); }
+      else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); closePicker(true); }
+      else if (e.key === 'Tab') closePicker(false);
+    });
+  }
+
+  // Drawn but not built: logged, and counted in the notes.
+  function tried(what) {
+    S.stats.tried++;
+    note('tried', 'Tried ' + what);
+  }
+
+  function pageOptions(btn) {
+    openMenu(btn, 'page-options', [{
+      label: 'Manage homepage', icon: 'settings',
+      pick: () => {
+        if (S.mode === 'browse') openScreen('pages', 'Toolbar, Page options, Manage homepage');
+        else tried('Page options, Manage homepage (while editing)');
+      }
+    }], 'Page options');
+  }
+  function viewMenu(btn) {
+    const dev = (label, desc) => ({ label, desc, checked: label === 'Desktop', pick: () => (label === 'Desktop' ? note('tried', 'View: Desktop (already)') : tried('View, ' + label)) });
+    openMenu(btn, 'view', [dev('Desktop', 'How it looks on a computer.'), dev('Tablet', 'How it looks on a tablet.'), dev('Mobile', 'How it looks on a phone.'), null,
+      { label: 'Open in a new tab', pick: () => tried('View, Open in a new tab') },
+      { label: 'Open in advanced editor', pick: () => tried('View, Open in advanced editor') }], 'View');
+  }
+
+  zoom.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-tool]');
+    if (!b) return;
+    tried(b.dataset.tool === 'zoom-in' ? 'Zoom in (greyed out)' : 'Zoom out to arrange sections (bottom right)');
+  });
 
   // ---------- Edit mode: changing text ----------
 
@@ -929,6 +1347,7 @@
   function clearSelected() {
     for (const el of site.querySelectorAll('.is-selected')) el.classList.remove('is-selected');
     selectedBox = null;
+    markSection();
   }
   function selectBox(el) {
     commitEditing();
@@ -936,6 +1355,16 @@
     if (!el) return;
     el.classList.add('is-selected');
     selectedBox = el;
+    markSection();
+  }
+  // Create not Learn's look for what's being worked on: the section around
+  // it outlined, with its name in a tab (data-name). Nothing in it can be
+  // clicked; Create not Learn's section toolbar isn't drawn.
+  function markSection() {
+    const cur = (editing && editing.el) || site.querySelector('.is-selected');
+    const sec = cur ? cur.closest('[data-section]') : null;
+    for (const el of site.querySelectorAll('.vm-section-focus')) if (el !== sec) el.classList.remove('vm-section-focus');
+    if (sec) sec.classList.add('vm-section-focus');
   }
 
   function beginEditing(el) {
@@ -948,6 +1377,7 @@
     el.spellcheck = false;
     el.classList.add('is-selected', 'is-editing');
     editing = { el, key: el.dataset.k, before: S.draft[el.dataset.k], sid: ++S.sid };
+    markSection();
     // Kept so a reload in the middle of typing can still log the edit.
     S.pending = { key: editing.key, before: editing.before };
     persist();
@@ -973,6 +1403,7 @@
     el.classList.remove('is-editing');
     if (!(opts && opts.keepSelected)) el.classList.remove('is-selected');
     else selectedBox = el;
+    markSection();
     if (S.draft[key] !== before) {
       S.stats.edits++;
       if (S.visit) S.visit.changed = true;
@@ -989,6 +1420,10 @@
     if (top && top.sid === editing.sid && top.key === key) top.after = value;
     else S.undo.push({ key, before: prev, after: value, sid: editing.sid });
     S.redo = [];
+    if (value !== S.saved[key]) {
+      S.ui.allSaved = false;
+      if (S.stats.firstUnsavedT == null) S.stats.firstUnsavedT = Math.round(now() * 10) / 10;
+    }
     S.draft[key] = value;
     persist();
   }
@@ -1145,7 +1580,7 @@
     const key = e.key.toLowerCase();
     if (mod && key === 'z') { e.preventDefault(); if (e.shiftKey) redo(); else undo(); }
     else if (mod && key === 'y') { e.preventDefault(); redo(); }
-    else if (mod && key === 's') { e.preventDefault(); save(); }
+    else if (mod && key === 's') { e.preventDefault(); commitEditing({ keepSelected: !!editing }); if (!save('k')) { S.stats.saveGrey++; note('save', 'Pressed ' + SAVE_KEYS + ' with nothing to save'); } }
     else if (e.key === 'Escape' && !editing && selectedBox) { clearSelected(); }
   });
 
@@ -1237,27 +1672,139 @@
     checkTasks();
   }
 
-  let savedTimer = null;
-  function save() {
-    if (S.mode !== 'edit') return;
-    commitEditing({ keepSelected: !!(editing) });
-    if (!hasUnsaved()) return;
-    const n = unsavedCount();
+  // ---------- Saving: Save, Review changes, Ctrl+S, the Exit dialog ----------
+
+  /*
+   * As Create not Learn: Save opens "Review changes", which lists what's
+   * waiting (site-wide changes first, then page changes), each with Discard,
+   * and saves them with "Save 1 change". Ctrl/Cmd+S saves straight away, as
+   * the editor's own shortcut does. The Exit dialog's Save saves too. Each
+   * save records how it was made: t (the toolbar's Save), k (the keyboard),
+   * d (the Exit dialog).
+   */
+  function save(how) {
+    if (S.mode !== 'edit') return false;
+    if (!hasUnsaved()) return false;
+    const list = changes();
     S.saved = deepCopy(S.draft);
     S.stats.saves++;
+    if (how === 'd') S.stats.savesDialog++;
+    if (!S.stats.firstSave) S.stats.firstSave = { t: Math.round(now() * 10) / 10, how };
     if (S.visit) S.visit.saved = true;
-    note('save', 'Saved (' + n + ' change' + (n === 1 ? '' : 's') + ')');
-    savedFlash = true;
-    clearTimeout(savedTimer);
-    savedTimer = setTimeout(() => { savedFlash = false; if (S.mode === 'edit') renderToolbar(); }, 1600);
+    S.ui.allSaved = true;
+    note('save', 'Saved ' + plural(list.length, 'change', 'changes') + ' (' + list.map((id) => ENTITIES[id].label).join(', ') + ') by ' + { t: 'the toolbar’s Save, in Review changes', k: SAVE_KEYS, d: 'Save in the Exit dialog' }[how]);
     persist();
+    saveBusy = true;
     renderToolbar();
-    if (document.activeElement === document.body || !document.activeElement) { const b = toolbar.querySelector('[data-action="exit"]'); if (b) b.focus(); }
-    announce('Saved. Your website now shows your changes.');
+    setTimeout(() => { saveBusy = false; if (S.mode === 'edit') renderToolbar(); }, 400);
+    announce('All changes saved');
     checkTasks();
+    return true;
   }
 
-  // The Exit dialog, when there are unsaved changes.
+  function discardEntity(id) {
+    for (const k of Object.keys(S.draft)) if (entityOf(k) === id) S.draft[k] = S.saved[k];
+    S.undo = S.undo.filter((u) => entityOf(u.key) !== id);
+    S.redo = S.redo.filter((u) => entityOf(u.key) !== id);
+  }
+  function redrawKeepingScroll() {
+    const top = viewport.scrollTop;
+    renderSite();
+    viewport.scrollTop = top;
+    renderToolbar();
+  }
+
+  let reviewDialog = null;
+  function openReview() {
+    commitEditing();
+    if (!hasUnsaved()) {
+      S.stats.saveGrey++;
+      note('save', 'Clicked Save while it was greyed out (nothing to save)');
+      return;
+    }
+    S.stats.reviews++;
+    note('save', 'Clicked Save: Review changes opened (' + changes().map((id) => ENTITIES[id].label).join(', ') + ')');
+    if (!reviewDialog) {
+      reviewDialog = document.createElement('dialog');
+      reviewDialog.className = 'vm-dialog vm-review';
+      reviewDialog.setAttribute('aria-labelledby', 'vm-review-title');
+      document.body.append(reviewDialog);
+      reviewDialog.addEventListener('cancel', (e) => { e.preventDefault(); closeReview('Escape'); });
+      reviewDialog.addEventListener('click', (e) => {
+        if (e.target === reviewDialog) { closeReview('a click outside'); return; }
+        const b = e.target.closest('[data-review]');
+        if (!b) return;
+        const what = b.dataset.review;
+        if (what === 'cancel' || what === 'close') closeReview(what === 'cancel' ? 'Cancel' : '×');
+        else if (what === 'save') { reviewDialog.close(); save('t'); restoreFocusToToolbar(); }
+        else if (what === 'discard') {
+          const id = b.dataset.entity;
+          discardEntity(id);
+          note('save', 'Review changes: discarded the change to ' + ENTITIES[id].label);
+          S.stats.discards++;
+          persist();
+          redrawKeepingScroll();
+          if (!hasUnsaved()) { reviewDialog.close(); restoreFocusToToolbar(); } else drawReview();
+        } else if (what === 'discard-all') drawReview(true);
+        else if (what === 'keep') drawReview();
+        else if (what === 'discard-all-sure') {
+          const n = changes().length;
+          S.draft = deepCopy(S.saved);
+          S.undo = []; S.redo = [];
+          S.stats.discards += n;
+          note('save', 'Review changes: Discard all (' + plural(n, 'change', 'changes') + ' thrown away)');
+          persist();
+          reviewDialog.close();
+          redrawKeepingScroll();
+          restoreFocusToToolbar();
+        }
+      });
+    }
+    drawReview();
+    reviewDialog.showModal();
+  }
+  function restoreFocusToToolbar() {
+    const b = toolbar.querySelector('[data-action="save"]');
+    if (b) b.focus();
+  }
+  function closeReview(how) {
+    S.stats.reviewsCancelled++;
+    note('save', 'Review changes closed without saving (' + how + ')');
+    reviewDialog.close();
+    restoreFocusToToolbar();
+  }
+  function drawReview(confirming) {
+    const list = changes();
+    const n = list.length;
+    const close = '<button type="button" class="vm-dialog-close" data-review="close" aria-label="Close">' + ICONS.close + '</button>';
+    if (confirming) {
+      reviewDialog.innerHTML = close + '<h2 id="vm-review-title">Discard changes?</h2><p>' +
+        (n === 1 ? 'Your 1 unsaved change will be lost, and your site goes back to how visitors see it now. This can’t be undone.'
+          : 'All ' + n + ' unsaved changes will be lost, and your site goes back to how visitors see it now. This can’t be undone.') + '</p>' +
+        '<div class="vm-dialog-actions"><button type="button" class="vm-btn vm-btn-tertiary" data-review="keep">Keep changes</button><button type="button" class="vm-btn vm-btn-destructive" data-review="discard-all-sure">Discard changes</button></div>';
+      reviewDialog.querySelector('[data-review="keep"]').focus();
+      return;
+    }
+    const group = (siteWide) => {
+      const items = list.filter((id) => !!ENTITIES[id].siteWide === siteWide);
+      if (!items.length) return '';
+      return '<section class="vm-review-group' + (siteWide ? ' is-site-wide' : '') + '"><div class="vm-review-group-head">' + (siteWide ? ICONS.globe : ICONS.page) +
+        '<div><h3>' + (siteWide ? 'Site-wide changes' : 'Page changes') + '<span class="vm-review-count">' + items.length + '</span></h3>' +
+        '<p>' + (siteWide ? 'These change every page of your site.' : 'These change only the page or post they were made on.') + '</p></div></div>' +
+        '<ul>' + items.map((id) => '<li><div><strong>' + ENTITIES[id].label + '</strong><span>' + ENTITIES[id].detail + '</span></div>' +
+          '<button type="button" class="vm-btn vm-btn-tertiary vm-btn-small' + (siteWide ? ' is-site-wide' : '') + '" data-review="discard" data-entity="' + id + '" aria-label="Discard change to ' + ENTITIES[id].label + '">Discard</button></li>').join('') + '</ul></section>';
+    };
+    reviewDialog.innerHTML = close + '<h2 id="vm-review-title">Review changes</h2>' +
+      '<p>Visitors see these once you save them. Discard any you don’t want to keep.</p>' +
+      '<div class="vm-review-groups">' + group(true) + group(false) + '</div>' +
+      '<div class="vm-dialog-actions vm-review-foot"><button type="button" class="vm-btn vm-btn-tertiary vm-btn-danger" data-review="discard-all">Discard all</button><span></span>' +
+        '<button type="button" class="vm-btn vm-btn-tertiary" data-review="cancel">Cancel</button><button type="button" class="vm-btn vm-btn-primary" data-review="save">Save ' + plural(n, 'change', 'changes') + '</button></div>';
+    reviewDialog.querySelector('[data-review="save"]').focus();
+  }
+
+  // The Exit dialog, when there are unsaved changes. Create not Learn's Exit
+  // discards them without asking; this asks, with Create not Learn's own
+  // dialog for leaving editing another way, plus Keep editing.
   let exitDialog = null;
   function exit() {
     commitEditing();
@@ -1277,7 +1824,7 @@
       });
       exitDialog.addEventListener('cancel', (e) => { e.preventDefault(); exitChoice('keep'); });
     }
-    note('mode', 'Pressed Exit with ' + unsavedCount() + ' unsaved change' + (unsavedCount() === 1 ? '' : 's') + ': asked “Save your changes?”');
+    note('mode', 'Pressed Exit with ' + plural(changes().length, 'unsaved change', 'unsaved changes') + ': asked “Save your changes?”');
     exitDialog.showModal();
     exitDialog.querySelector('[data-choice="save"]').focus();
   }
@@ -1289,11 +1836,11 @@
       if (b) b.focus();
       return;
     }
-    if (choice === 'save') { save(); leaveEdit('Save', 'yes'); return; }
-    const n = unsavedCount();
+    if (choice === 'save') { save('d'); leaveEdit('Save', 'yes'); return; }
+    const n = changes().length;
     const saved = S.visit && S.visit.saved ? 'some, the rest discarded' : 'no';
     S.draft = deepCopy(S.saved);
-    note('mode', 'Exit dialog: Discard (' + n + ' unsaved change' + (n === 1 ? '' : 's') + ' thrown away)');
+    note('mode', 'Exit dialog: Discard (' + plural(n, 'unsaved change', 'unsaved changes') + ' thrown away)');
     leaveEdit('Discard', saved);
   }
 
@@ -1301,15 +1848,20 @@
 
   toolbar.addEventListener('click', (e) => {
     const b = e.target.closest('[data-action]');
-    if (!b || b.getAttribute('aria-disabled') === 'true') return;
+    if (!b) return;
     const a = b.dataset.action;
+    if (a === 'save') { openReview(); return; }
+    if (b.getAttribute('aria-disabled') === 'true') return;
     if (a === 'edit') enterEdit(e.detail === 0 ? 'edit-button-keyboard' : 'edit-button');
     else if (a === 'back') historyStep(-1);
     else if (a === 'forward') historyStep(1);
-    else if (a === 'pages') { if (picker) closePicker(true); else openPicker(b); }
+    else if (a === 'pages' || a === 'pages-status') { if (picker && picker.action === 'pages') closePicker(true); else openFinder(toolbar.querySelector('.vm-address-btn')); }
+    else if (a === 'page-options') { if (picker && picker.action === a) closePicker(true); else pageOptions(b); }
+    else if (a === 'view') { if (picker && picker.action === a) closePicker(true); else viewMenu(b); }
+    else if (a === 'overview') tried('Document Overview');
+    else if (a === 'zoom-out') tried('Zoom out (toolbar)');
     else if (a === 'undo') undo();
     else if (a === 'redo') redo();
-    else if (a === 'save') save();
     else if (a === 'exit') exit();
   });
   // Keep focus in the text when Undo or Redo is pressed with the pointer.
@@ -1327,20 +1879,28 @@
 
   // ---------- Tasks ----------
 
+  // The six tasks. Tasks 2, 4 and 6 count from the saved site; the code
+  // adds what the screen showed after a dot when that differs. Task 1 is
+  // what's on screen, saved or not; task 2 is saving it.
   const TASKS = [
-    { n: 1, text: 'Change the main heading on the Home page', hint: 'Ticked when the saved Home heading is different.' },
-    { n: 2, text: 'Find the opening hours on the Contact page', hint: 'Ticked when the hours were at least half in view on Contact, while browsing.' },
-    { n: 3, text: 'Fix the typo in the footer (“exept”)', hint: 'Ticked when the saved footer says “except” and not “exept”.' },
-    { n: 4, text: 'Check that the menu links work', hint: 'Ticked when each menu link has been followed while browsing.' },
-    { n: 5, text: 'Change the text on the “See what’s on” button', hint: 'Ticked when the saved button text is different.' }
+    { n: 1, text: 'Change the main heading on the Home page', hint: 'Ticked when the heading on screen, saved or not, is different.' },
+    { n: 2, text: 'Make sure visitors can see the new heading (save)', hint: 'Ticked when the saved Home heading is different.', saved: true },
+    { n: 3, text: 'Find the opening hours on the Contact page', hint: 'Ticked when the hours were at least half in view on Contact, while browsing.' },
+    { n: 4, text: 'Fix the typo in the footer (“exept”)', hint: 'Ticked when the saved footer says “except” and not “exept”.', saved: true },
+    { n: 5, text: 'Check that the menu links work', hint: 'Ticked when each menu link has been followed while browsing.' },
+    { n: 6, text: 'Change the text on the “See what’s on” button', hint: 'Ticked when the saved button text is different.', saved: true }
   ];
   const menuDone = () => PAGE_IDS.filter((p) => S.menuFollowed[p] != null).length;
-  function taskState(n) {
-    if (n === 1) return S.saved['home-heading'] !== ORIGINAL['home-heading'];
-    if (n === 2) return !!S.hoursSeen;
-    if (n === 3) return /except/i.test(S.saved['footer-open']) && !/exept/i.test(S.saved['footer-open']);
-    if (n === 4) return menuDone() === 3;
-    if (n === 5) return S.saved['home-cta'] !== ORIGINAL['home-cta'];
+  // onScreen: read tasks 2, 4 and 6 from what the screen shows (the draft)
+  // rather than from the saved site.
+  function taskState(n, onScreen) {
+    const src = onScreen ? S.draft : S.saved;
+    if (n === 1) return S.draft['home-heading'] !== ORIGINAL['home-heading'];
+    if (n === 2) return src['home-heading'] !== ORIGINAL['home-heading'];
+    if (n === 3) return !!S.hoursSeen;
+    if (n === 4) return /except/i.test(src['footer-open']) && !/exept/i.test(src['footer-open']);
+    if (n === 5) return menuDone() === 3;
+    if (n === 6) return src['home-cta'] !== ORIGINAL['home-cta'];
     return false;
   }
   function checkTasks() {
@@ -1394,19 +1954,35 @@
   // ---------- Completion code ----------
 
   /*
-   * VA1-10111-f12.4a-n3-p4.1.2.1-l5.2-x1-b2-s245
-   *   arm code · tasks 1–5 · f: seconds to first entry into edit mode and
-   *   the route (e Edit button, a the arm's own; fx never) · n: non-functional
-   *   clicks before then · p: prompts shown, accepted, dismissed (including
-   *   C's "followed"), ignored · l: link follows, button uses · x: accidental
-   *   entries · b: Exits · s: seconds from first open to Finished.
+   * VA1-110111.111111-f12.4a-n3-g2-p4.1.2.1-l5.2-x1-b2-v34t.3.1-w1-s245
+   *   arm code · tasks 1–6 from the saved site, then after a dot what the
+   *   screen showed, if that differs · f: seconds to first entry into edit
+   *   mode and the route (e Edit button, a the arm's own; fx never) · n:
+   *   non-functional clicks before then · g: clicks on the admin bar, the
+   *   strip of icons and the sidebar before then · p: prompts shown,
+   *   accepted, dismissed (including C's "followed"), ignored · l: link
+   *   follows, button uses · x: accidental entries · b: Exits · v: seconds
+   *   from the first unsaved change to the first save, how that save was
+   *   made (t toolbar, k keyboard, d Exit dialog), saves, saves through the
+   *   Exit dialog (vx never saved) · w: unsaved changes at Finished · s:
+   *   seconds from first open to Finished.
    */
+  function taskDigits() {
+    const saved = TASKS.map((t) => (taskState(t.n) ? '1' : '0')).join('');
+    const screen = TASKS.map((t) => (taskState(t.n, true) ? '1' : '0')).join('');
+    return saved === screen ? saved : saved + '.' + screen;
+  }
+  function savePart() {
+    const st = S.stats;
+    if (!st.firstSave) return 'vx';
+    const secs = Math.max(0, Math.round(st.firstSave.t - (st.firstUnsavedT != null ? st.firstUnsavedT : st.firstSave.t)));
+    return 'v' + secs + st.firstSave.how + '.' + st.saves + '.' + st.savesDialog;
+  }
   function completionCode() {
     const st = S.stats;
-    const tasks = TASKS.map((t) => (taskState(t.n) ? '1' : '0')).join('');
     const f = st.first ? 'f' + st.first.t.toFixed(1) + (st.first.core ? 'e' : 'a') : 'fx';
     const p = 'p' + [st.prompts.shown, st.prompts.accepted, st.prompts.dismissed + st.prompts.followed, st.prompts.ignored].join('.');
-    return [ARM.code, tasks, f, 'n' + st.nfBefore, p, 'l' + st.follows + '.' + st.uses, 'x' + st.accidental, 'b' + st.exits, 's' + Math.round(now())].join('-');
+    return [ARM.code, taskDigits(), f, 'n' + st.nfBefore, 'g' + st.gBefore, p, 'l' + st.follows + '.' + st.uses, 'x' + st.accidental, 'b' + st.exits, savePart(), 'w' + changes().length, 's' + Math.round(now())].join('-');
   }
 
   let finishDialog = null;
@@ -1491,18 +2067,23 @@
       '<p>Now: <strong data-now-mode>' + (S.mode === 'edit' ? 'editing' : 'browsing') + '</strong> ' + PAGES[page()] + (S.mode === 'browse' ? ', browse spell ' + S.spell.id : '') + '.</p>' +
       '<h3>Tasks</h3><ol class="vm-tasks">' + TASKS.map((t) => {
         const done = taskState(t.n);
+        const screenOnly = !done && t.saved && taskState(t.n, true);
         const tt = S.tasks[t.n] && S.tasks[t.n].done ? S.tasks[t.n].t : null;
-        return '<li data-task-row="' + t.n + '" class="' + (done ? 'is-done' : '') + '">' +
+        return '<li data-task-row="' + t.n + '" class="' + (done ? 'is-done' : screenOnly ? 'is-unsaved' : '') + '">' +
           '<label><input type="checkbox" data-manual="' + t.n + '"' + (S.manual[t.n] ? ' checked' : '') + ' aria-label="Your tick for task ' + t.n + '"> ' + esc(t.text) + '</label>' +
           (done ? ' <span class="vm-done">✓ ' + (tt != null ? fmtTime(tt) : '') + '</span>' : '') +
-          (t.n === 4 ? ' <span data-menu-progress>' + menuDone() + '/3</span>' : '') +
-          '<small>' + esc(t.hint) + (t.n === 2 && S.hoursSeen ? ' Reached by ' + esc(S.hoursSeen.route) + '.' : '') + '</small></li>';
+          (screenOnly ? ' <span class="vm-unsaved">On screen, not saved</span>' : '') +
+          (t.n === 5 ? ' <span data-menu-progress>' + menuDone() + '/3</span>' : '') +
+          '<small>' + esc(t.hint) + (t.n === 3 && S.hoursSeen ? ' Reached by ' + esc(S.hoursSeen.route) + '.' : '') + '</small></li>';
       }).join('') + '</ol>' +
       '<p class="vm-small">Ticks with a time are automatic and go into the code. The boxes are yours, for your notes only.</p>' +
       '<h3>Counts</h3><dl>' +
         row('first-entry', 'First into edit mode', st.first ? st.first.t.toFixed(1) + ' s, by ' + esc(ROUTES[st.first.route] ? ROUTES[st.first.route].label : st.first.route) : 'not yet', true) +
         row('nf-before', 'Non-functional clicks before then', st.nfBefore) +
         row('nf-total', 'Non-functional clicks in all (browse)', st.nfTotal) +
+        row('g-before', 'Clicks on the admin bar, strip and sidebar before then', st.gBefore) +
+        row('g-total', 'Clicks on the admin bar, strip and sidebar in all', st.gTotal) +
+        row('tried', 'Things tried that are only drawn', st.tried) +
         row('entries', 'Entries into edit mode', st.entries) + routes +
         row('exits', 'Exits back to browse', st.exits) +
         row('accidental', 'Accidental entries (Exit with no change)', st.accidental) +
@@ -1515,7 +2096,11 @@
         row('uses', 'Buttons used (browse)', st.uses + (st.usesVia ? ' (' + st.usesVia + ' via popup)' : '')) +
         row('menu', 'Menu links followed', menuDone() + '/3') +
         row('pages', 'Page switches', st.pages) +
-        row('saves', 'Saves', st.saves) +
+        row('saves', 'Saves (through the Exit dialog)', st.saves + ' (' + st.savesDialog + ')') +
+        row('first-save', 'First save', st.firstSave ? st.firstSave.t.toFixed(1) + ' s, by ' + { t: 'the toolbar’s Save', k: SAVE_KEYS, d: 'the Exit dialog' }[st.firstSave.how] + (st.firstUnsavedT != null ? ', ' + Math.round(st.firstSave.t - st.firstUnsavedT) + ' s after the first unsaved change' : '') : 'not yet', true) +
+        row('reviews', 'Review changes opened / closed without saving', st.reviews + ' / ' + st.reviewsCancelled) +
+        row('save-grey', 'Save clicked while greyed out', st.saveGrey) +
+        row('unsaved', 'Unsaved changes now', changes().length) +
         row('edits', 'Edits', st.edits) +
         row('undos', 'Undos / redos', st.undos + ' / ' + st.redos) +
         row('escapes', 'Escapes in text', st.escapes) + arm +
@@ -1531,7 +2116,6 @@
 
   let registered = null;
   const api = {
-    HOVER_REST_MS,
     variant: VARIANT,
     code: ARM.code,
     mode: () => S.mode,

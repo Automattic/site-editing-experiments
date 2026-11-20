@@ -4,7 +4,7 @@
  * The Layers button shows on hover and while something in its section is
  * selected, stays clear of the block toolbar, and opens the section's tree.
  * Rows highlight on hover and select on click (route `layers` for
- * containers, no caret for text). Tasks 2, 3 and 4 are done through it;
+ * containers, no caret for text). Tasks 2 to 5 are done through it;
  * Escape and an outside click close it; the arm's counters show in the notes.
  */
 export default async function ({ page, baseUrl, assert, helpers: h }) {
@@ -157,33 +157,45 @@ export default async function ({ page, baseUrl, assert, helpers: h }) {
   assert.equal(await page.evaluate(() => !!document.activeElement.closest('.ut-rich')), false, 'no caret in the text');
   assert.equal(await h.count(page, 'route-layers'), '0', 'a text block isn’t a container selection');
 
-  step('task 2: Layers → Group row selects the Classes Group (route layers), then Move up');
+  step('task 2: Classes Layers → Columns row (route layers), then Block spacing two steps right');
   await openLayers('classes');
-  await row('classes').click();
-  assert.equal(await h.selectedId(page), 'classes');
+  await row('classes-columns').click();
+  assert.equal(await h.selectedId(page), 'classes-columns');
   assert.equal(await h.count(page, 'route-layers'), '1');
-  await page.locator('.ut-toolbar [data-action="move-up"]').click();
-  assert.equal((await h.topLevelIds(page)).join(','), 'hero,classes,about,hours,contact');
+  await h.stepSpacing(page, 2);
   assert.equal(await h.taskDone(page, 2), true, 'task 2 ticked');
 
-  step('task 3: Opening hours Layers → Group row → a swatch');
-  await openLayers('hours');
-  assert.deepEqual(await rowIds(), ['hours', 'hours-heading', 'hours-text']);
-  await row('hours').click();
-  assert.equal(await h.selectedId(page), 'hours');
-  await page.locator('.ut-inspector [data-color="sky"]').click();
+  step('task 3: About Layers → Columns row → Change vertical alignment → Align middle');
+  await openLayers('about');
+  assert.deepEqual(await rowIds(), ['about', 'about-columns', 'about-col-picture', 'about-image', 'about-col-text', 'about-heading', 'about-text']);
+  await row('about-columns').click();
+  assert.equal(await h.selectedId(page), 'about-columns');
+  await h.pickDropdown(page, 'Change vertical alignment', 'Align middle');
   assert.equal(await h.taskDone(page, 3), true, 'task 3 ticked');
   assert.equal(await h.count(page, 'route-layers'), '2');
 
-  step('task 4: Classes Layers → Saturday’s Column row → ⋮ Delete');
+  step('a click in the gap left of the Saturday class selects its Column, by the padding route');
+  await h.clickGapLeftOf(page, 'saturday');
+  assert.equal(await h.selectedId(page), 'saturday');
+  assert.equal(await h.count(page, 'route-padding'), '1');
+
+  step('task 4: Classes Layers → Wednesday’s Column row → a swatch');
+  await openLayers('classes');
+  await row('wednesday').click();
+  assert.equal(await h.selectedId(page), 'wednesday');
+  await h.swatch(page, 'sky');
+  assert.equal(await h.taskDone(page, 4), true, 'task 4 ticked');
+  assert.equal(await h.count(page, 'route-layers'), '3');
+
+  step('task 5: Classes Layers → Saturday’s Column row → ⋮ Delete');
   await openLayers('classes');
   await row('saturday').click();
   assert.equal(await h.selectedId(page), 'saturday');
   await page.locator('.ut-toolbar [data-action="options"]').click();
   await page.locator('.ut-menu').getByRole('menuitem', { name: 'Delete' }).click();
   assert.equal(await h.block(page, 'saturday').count(), 0);
-  assert.equal(await h.taskDone(page, 4), true, 'task 4 ticked');
-  assert.equal(await h.count(page, 'route-layers'), '3');
+  assert.equal(await h.taskDone(page, 5), true, 'task 5 ticked');
+  assert.equal(await h.count(page, 'route-layers'), '4');
   assert.equal(await h.count(page, 'wrong'), '0');
 
   step('one popover at a time; the tree follows the page');
@@ -197,15 +209,15 @@ export default async function ({ page, baseUrl, assert, helpers: h }) {
   assert.equal(await popOpen(), false);
 
   step('counters in the notes panel, and the code');
-  assert.equal(await h.count(page, 'arm-layersOpened'), '8');
-  assert.equal(await h.count(page, 'arm-layersPicked'), '4');
+  assert.equal(await h.count(page, 'arm-layersOpened'), '9');
+  assert.equal(await h.count(page, 'arm-layersPicked'), '5');
   const notes = await page.locator('.ut-notes').innerText();
   assert.match(notes, /Layers opened/);
   assert.match(notes, /Layers rows picked/);
   assert.match(notes, /Opened Layers on Group \(“Classes this week”\)/);
   assert.match(notes, /Picked Column 3 of 3 \(“Saturday breath”\)/);
   const code = await h.finishCode(page);
-  h.checkCode(code, { arm: 'UD', tasks: '0111', routes: '0.0.0.0.0.3', x: 0, u: 0 });
+  h.checkCode(code, { arm: 'UD', tasks: '01111', routes: '0.0.0.0.1.4', x: 0, u: 0 });
 
   step('Reset zeroes the counters, popover closed');
   await h.reset(page);

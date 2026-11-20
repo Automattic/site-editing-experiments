@@ -78,6 +78,12 @@ svg { display: block; fill: currentColor; }
 }
 .ut-overlay { position: absolute; inset: 0; pointer-events: none; z-index: 20; }
 .ut-overlay > * { pointer-events: none; }
+/* Core's insertion point between two columns: a blue line down the gap,
+   with a "+" in its middle. */
+.ut-overlay > .ut-gap-inserter { position: absolute; width: 4px; border-radius: 2px; background: var(--admin); pointer-events: auto; cursor: default; z-index: 25; }
+.ut-gap-plus { position: absolute; left: 50%; top: 50%; width: 24px; height: 24px; margin: -12px 0 0 -12px; padding: 0; display: flex; align-items: center; justify-content: center; border: 0; border-radius: 2px; background: var(--admin); color: var(--white); cursor: pointer; }
+.ut-gap-plus:hover { background: var(--admin-dark); }
+.ut-gap-plus svg { width: 20px; height: 20px; }
 
 .ut-breadcrumb { flex: none; min-height: 32px; display: flex; align-items: center; padding: 0 12px; background: var(--white); border-top: 1px solid var(--line); }
 .ut-breadcrumb ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; align-items: center; }
@@ -98,9 +104,11 @@ svg { display: block; fill: currentColor; }
 .ut-block.is-dark .ut-rich, .ut-block.is-dark .ut-block:not(.has-background) .ut-rich { color: inherit; }
 
 /* Space between blocks is the parent's margin, not part of either block, so
-   a click in it lands on the container, as in the editor. */
-.wp-block-group > * + *, .wp-block-column > * + *, .wp-block-cover__inner-container > * + * { margin-top: 16px; }
-.wp-block-group > .wp-block-heading + .wp-block-columns { margin-top: 28px; }
+   a click in it lands on the container, as in the editor. A Group's is its
+   Block spacing: the theme's 1.5rem until it's set. */
+.wp-block-column > * + *, .wp-block-cover__inner-container > * + * { margin-top: 16px; }
+.wp-block-group > * + * { margin-top: 1.5rem; }
+.wp-block-group.has-block-gap > * + * { margin-top: var(--ut-gap); }
 .wp-block-column > .wp-block-image + .wp-block-heading { margin-top: 20px; }
 .wp-block-column > .wp-block-heading + .wp-block-paragraph { margin-top: 8px; }
 
@@ -123,8 +131,22 @@ svg { display: block; fill: currentColor; }
 .wp-block-cover .wp-block-paragraph .ut-rich { font-size: 20px; }
 .wp-block-cover .wp-block-buttons { margin-top: 28px; }
 
-.wp-block-columns { display: flex; gap: 32px; align-items: stretch; }
+/* Core's Columns: Block spacing 2em by default, padding once it has a
+   background, and vertical alignment for all its columns or for one. */
+.wp-block-columns { display: flex; gap: 2em; align-items: stretch; }
+.wp-block-columns.has-block-gap { gap: var(--ut-gap); }
+.wp-block-columns.has-background { padding: 1.25em 2.375em; }
+.wp-block-columns.are-vertically-aligned-top { align-items: flex-start; }
+.wp-block-columns.are-vertically-aligned-center { align-items: center; }
+.wp-block-columns.are-vertically-aligned-bottom { align-items: flex-end; }
 .wp-block-column { flex: 1 1 0; min-width: 0; }
+.wp-block-column.is-vertically-aligned-top { align-self: flex-start; }
+.wp-block-column.is-vertically-aligned-center { align-self: center; }
+.wp-block-column.is-vertically-aligned-bottom { align-self: flex-end; }
+.wp-block-column.is-vertically-aligned-stretch { align-self: stretch; }
+.has-text-align-left .ut-rich { text-align: left; }
+.has-text-align-center .ut-rich { text-align: center; }
+.has-text-align-right .ut-rich { text-align: right; }
 .wp-block-column.is-empty { min-height: 160px; }
 /* An empty column shows where its blocks would go, as the editor's appender does. */
 .wp-block-column.is-empty::after { content: ""; position: absolute; inset: 0; border: 1px dashed #b4b9be; border-radius: 2px; pointer-events: none; }
@@ -176,13 +198,20 @@ svg { display: block; fill: currentColor; }
 .ut-tb-movers .ut-tb-mover svg { width: 24px; height: 24px; }
 .ut-tb-movers.is-horizontal { flex-direction: row; }
 .ut-tb-movers.is-horizontal .ut-tb-mover { width: 24px; height: 36px; }
-.ut-tb-options[aria-expanded="true"] { color: var(--admin); }
+.ut-tb-options[aria-expanded="true"],
+.ut-tb-dropdown[aria-expanded="true"] { color: var(--admin); }
 
 .ut-menu { position: absolute; z-index: 40; min-width: 220px; padding: 8px; background: var(--white); border: 1px solid #cccccc; border-radius: 2px; box-shadow: 0 2px 6px rgba(0,0,0,.05), 0 8px 24px rgba(0,0,0,.08); }
 .ut-menu-group + .ut-menu-group { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line); }
 .ut-menu-item { display: flex; width: 100%; min-height: 36px; align-items: center; padding: 6px 8px; border: 0; border-radius: 2px; background: none; text-align: left; font-size: 13px; }
 .ut-menu-item:hover, .ut-menu-item:focus-visible { color: var(--admin); background: none; }
 .ut-menu-item:focus-visible { outline: 2px solid var(--admin); outline-offset: -2px; }
+/* A toolbar dropdown's items (core's DropdownMenu): icon, then label; the
+   current one's icon on black. */
+.ut-menu.is-dropdown { min-width: 180px; }
+.ut-menu-radio { gap: 8px; padding-left: 4px; }
+.ut-menu-radio svg { flex: none; width: 24px; height: 24px; border-radius: 2px; }
+.ut-menu-radio.is-active svg { background: var(--ink); color: var(--white); box-shadow: 0 0 0 1px var(--ink); }
 
 /* ---------- Document Overview (List View) ---------- */
 
@@ -206,6 +235,26 @@ svg { display: block; fill: currentColor; }
 .ut-block-card p { margin: 0; color: var(--ink-2); font-size: 13px; }
 .ut-panel { padding: 16px; border-bottom: 1px solid var(--line); }
 .ut-panel-title { margin: 0 0 12px; font-size: 13px; font-weight: 600; }
+/* A panel's title with core's ⋮ (View options) beside it. */
+.ut-panel-head { display: flex; align-items: center; justify-content: space-between; margin: -6px -8px 6px 0; }
+.ut-panel-head .ut-panel-title { margin: 0; }
+/* Core's inspector tabs, Settings (cog) and Styles (half moon), under the block card. */
+.ut-block-card.has-tabs { border-bottom: 0; }
+.ut-inspector-tabs { display: flex; border-bottom: 1px solid var(--line); }
+.ut-inspector-tab { flex: 1; height: 48px; display: flex; align-items: center; justify-content: center; border: 0; background: none; color: var(--ink); box-shadow: inset 0 0 0 transparent; }
+.ut-inspector-tab:hover { color: var(--admin); }
+.ut-inspector-tab[aria-selected="true"] { box-shadow: inset 0 -1.5px 0 var(--ink); }
+.ut-inspector-tab svg { width: 24px; height: 24px; }
+/* Dimensions: a group per kind (Padding, Margin, Block spacing), a row per side. */
+.ut-dim-group + .ut-dim-group { margin-top: 16px; }
+.ut-dim-head { display: flex; align-items: center; justify-content: space-between; min-height: 32px; margin-right: -8px; }
+.ut-dim-row { display: flex; align-items: center; gap: 4px; margin-right: -8px; }
+.ut-dim-icon { flex: none; display: flex; color: var(--ink); }
+.ut-dim-icon svg { width: 24px; height: 24px; }
+.ut-dim-row .ut-range { flex: 1; min-width: 0; }
+.ut-unit { display: flex; align-items: center; gap: 4px; }
+.ut-unit input { width: 88px; height: 32px; padding: 0 8px; border: 1px solid #949494; border-radius: 2px; font: inherit; }
+.ut-unit span { color: var(--admin); }
 .ut-muted { margin: 0; color: var(--ink-3); }
 .ut-control { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
 .ut-label { font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: .02em; color: var(--ink); }
@@ -216,6 +265,21 @@ svg { display: block; fill: currentColor; }
 .ut-swatch[aria-pressed="true"] { box-shadow: inset 0 0 0 1px rgba(0,0,0,.2), 0 0 0 2px var(--white), 0 0 0 4px var(--ink); }
 .ut-swatch svg { width: 20px; height: 20px; }
 @media (prefers-reduced-motion: reduce) { .ut-swatch { transition: none; } }
+/* Core's RangeControl as the spacing presets show it: a thin track filled
+   in blue to the thumb, a mark at each step between the ends. */
+.ut-control-wide { align-items: stretch; }
+.ut-range { position: relative; height: 32px; display: flex; align-items: center; }
+.ut-range-input { -webkit-appearance: none; appearance: none; width: 100%; height: 32px; margin: 0; background: transparent; cursor: pointer; position: relative; z-index: 1; }
+.ut-range-input::-webkit-slider-runnable-track { height: 4px; border-radius: 2px; background: linear-gradient(to right, var(--admin) calc(6px + (100% - 12px) * var(--ut-range-f)), #dddddd calc(6px + (100% - 12px) * var(--ut-range-f))); }
+.ut-range-input::-moz-range-track { height: 4px; border-radius: 2px; background: #dddddd; }
+.ut-range-input::-moz-range-progress { height: 4px; border-radius: 2px; background: var(--admin); }
+.ut-range-input::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; margin-top: -4px; border-radius: 50%; background: var(--admin); border: 0; }
+.ut-range-input::-moz-range-thumb { width: 12px; height: 12px; border-radius: 50%; background: var(--admin); border: 0; }
+.ut-range-input:focus-visible { outline: none; }
+.ut-range-input:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 2px var(--white), 0 0 0 4px var(--admin); }
+.ut-range-marks { position: absolute; left: 6px; right: 6px; top: 50%; height: 0; pointer-events: none; z-index: 2; }
+.ut-range-mark { position: absolute; top: -2px; width: 3px; height: 4px; margin-left: -1.5px; background: var(--white); }
+.ut-range-mark.is-filled { background: var(--admin); }
 .ut-number { display: flex; align-items: center; gap: 4px; border: 1px solid #949494; border-radius: 2px; }
 .ut-number-value { min-width: 40px; text-align: center; font-size: 13px; font-weight: 500; }
 .ut-textarea { width: 100%; padding: 6px 8px; border: 1px solid #949494; border-radius: 2px; font: inherit; resize: vertical; }
@@ -265,6 +329,7 @@ svg { display: block; fill: currentColor; }
 .ut-log .is-container { color: #6b2fa0; font-weight: 600; }
 .ut-log .is-select { color: var(--ink-2); }
 .ut-log .is-wrong { color: #b32d2e; font-weight: 600; }
+.ut-log .is-wrong-again { color: #b32d2e; }
 .ut-log .is-undo { color: #b32d2e; }
 .ut-log .is-task, .ut-log .is-caret { color: var(--green); font-weight: 600; }
 .ut-log .is-finish { color: #7a4a00; font-weight: 600; }

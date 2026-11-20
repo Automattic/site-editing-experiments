@@ -449,9 +449,11 @@
     const m = state.menu;
     if (!isAutomatic()) return;
     const published = (p) => p && p.status === 'publish';
-    // Published pages only: a draft isn't in Q's pages menu, and the advanced menu adds it when
-    // it's published, while Add new pages automatically is on.
-    const taken = (p) => published(p);
+    // Published pages, which Q's pages menu shows (switched off ones become hidden links). A
+    // draft isn't in Q's menu: the advanced menu adds it when it's published, while Add new pages
+    // automatically is on. In S, every page under Other pages, drafts included, becomes a hidden
+    // link, so it stays out when it's published, as S's new pages do.
+    const taken = (p) => published(p) || (SECTIONS && !!p && isExcluded(p.id));
     m.items = pageTreeRows().filter((r) => taken(r.p)).map((r) => ({
       id: newItemId('link-'),
       pageId: r.p.id,
@@ -1969,15 +1971,17 @@
     'nav-ask-advanced'() {
       if (!PAGES_MENU || !isAutomatic()) return;
       convertedClickAt = Date.now();
-      const offDrafts = CANVAS_DRAFTS ? state.pages.filter((p) => p.status !== 'publish' && isExcluded(p.id)).map((p) => q(p.title)) : [];
       edit(() => {
         convertToLinks('advanced');
         ui.navSel = null;
         const firstLink = state.menu.items.find((it) => !isPageList(it));
         if (firstLink) ui.focus = 'nav-row:' + firstLink.id;
       }, 'converted to a menu');
+      // What the conversion did with drafts, read from its result.
+      const offDrafts = state.menu.items.filter((it) => it.hidden && page(it.pageId) && page(it.pageId).status !== 'publish').map((it) => q(page(it.pageId).title));
+      const was = SECTIONS ? 'under Other pages' : 'switched off';
       log('menu', 'Converted to a menu (Convert to menu): an advanced menu of links, new pages still added' +
-        (offDrafts.length ? '; ' + (offDrafts.length === 1 ? 'the draft ' + offDrafts[0] + ', which was switched off, becomes a hidden link' : 'the drafts ' + offDrafts.join(', ') + ', which were switched off, become hidden links') + ', so it stays out of the menu when published' : ''));
+        (offDrafts.length ? '; ' + (offDrafts.length === 1 ? 'the draft ' + offDrafts[0] + ', which was ' + was + ', becomes a hidden link' : 'the drafts ' + offDrafts.join(', ') + ', which were ' + was + ', become hidden links') + ', so it stays out of the menu when published' : ''));
     },
     // S: − in "In your menu", + in "Other pages". Unsaved menu changes, as Q's toggles are.
     'sec-remove'(d) {

@@ -24,14 +24,6 @@
 <main>
   <h1>This page or every page?</h1>
   <p class="lede">A site's header and footer are shared by every page, but nothing in the editor says so, so people can't tell whether a change affects the page they're on or the whole site. These five prototypes are the same small site in the same simple editor, and differ only in how the header and footer are treated, so a test can tell whether marking shared parts before someone edits them helps, which way of marking works better, and whether saying what happened afterwards is enough.</p>
-  <h2>Round 2</h2>
-  <p>Four versions, each one change from its control. All four have the WordPress editor's own Save button and save panel.</p>
-  <ul>
-    <li><a class="card" href="round-2/control.html"><strong>A2 · Control</strong><em>As the WordPress editor is today</em><span>The header and footer are locked on a page, with the purple outline on hover. Selecting one shows "Edit original", which opens it on its own with a Back button. At Save, the editor's own panel: "Are you ready to save?", with what changed listed under Template Parts and Pages.</span></a></li>
-    <li><a class="card" href="round-2/site-button.html"><strong>B2 · Edit site header</strong><em>The scope is in the button's name</em><span>The header and footer are locked. Pointing at one shows a button, "Edit site header" or "Edit site footer", and one click unlocks it.</span></a></li>
-    <li><a class="card" href="round-2/purple-label.html"><strong>L2 · Purple label</strong><em>Words on the purple outline</em><span>The control, with a small "On every page" label and a globe icon on the purple outline whenever the outline shows.</span></a></li>
-    <li><a class="card" href="round-2/save-panel.html"><strong>S2 · Clearer save panel</strong><em>The save panel says where changes will show</em><span>The control, with the save panel's headings changed to "On every page" and "Only on one page", and a line under each.</span></a></li>
-  </ul>
   <h2>Round 1</h2>
   <ul>
     <li><a class="card" href="plain.html"><strong>0 · Control</strong><em>As the WordPress editor is today</em><span>The header and footer are edited like the rest of the page. A purple outline, on hover and while editing, is the only sign that they are different. The baseline for the others.</span></a></li>
@@ -39,6 +31,14 @@
     <li><a class="card" href="site.html"><strong>C · Always labelled</strong><em>Site header, Site footer and the page's name</em><span>No lock and no question. The header, the footer and the page's own content each carry a label, and the top bar lists the whole site's parts beside its pages.</span></a></li>
     <li><a class="card" href="told.html"><strong>D · Told after the change</strong><em>The control, then a message with Undo</em><span>Looks like the control. Each change to the header or footer is followed by "Updated on all 3 pages" and an Undo button. It asks nothing and blocks nothing.</span></a></li>
     <li><a class="card" href="summary.html"><strong>E · Summary at save</strong><em>The control, then a list at Save</em><span>Looks like the control. Save lists what changed on every page and what changed only on one page, before saving.</span></a></li>
+  </ul>
+  <h2>Round 2</h2>
+  <p>Four versions, each one change from its control. All four have the WordPress editor's own Save button and save panel.</p>
+  <ul>
+    <li><a class="card" href="round-2/control.html"><strong>A2 · Control</strong><em>As the WordPress editor is today</em><span>The header and footer are locked on a page, with the purple outline on hover. Selecting one shows "Edit original", which opens it on its own with a Back button. At Save, the editor's own panel: "Are you ready to save?", with what changed listed under Template Parts and Pages.</span></a></li>
+    <li><a class="card" href="round-2/site-button.html"><strong>B2 · Edit site header</strong><em>The scope is in the button's name</em><span>The header and footer are locked. Pointing at one shows a button, "Edit site header" or "Edit site footer", and one click unlocks it.</span></a></li>
+    <li><a class="card" href="round-2/purple-label.html"><strong>L2 · Purple label</strong><em>Words on the purple outline</em><span>The control, with a small "On every page" label and a globe icon on the purple outline whenever the outline shows.</span></a></li>
+    <li><a class="card" href="round-2/save-panel.html"><strong>S2 · Clearer save panel</strong><em>The save panel says where changes will show</em><span>The control, with the save panel's headings changed to "On every page" and "Only on one page", and a line under each.</span></a></li>
   </ul>
   <p>Add <code>?notes</code> (or <code>#notes</code>) to any of them for the facilitator panel, or open <a href="plain.html?notes">the control</a>, <a href="marked.html?notes">A</a>, <a href="site.html?notes">C</a>, <a href="told.html?notes">D</a> or <a href="summary.html?notes">E</a> with it: it lists the tasks and logs every edit, which part it was in, and whether the person looked at another page afterwards. Finished, in the bar at the bottom, gives a code to paste into a testing tool. Reload a page to start again. The test script is in the <a href="https://github.com/Automattic/site-editing-experiments/tree/trunk/riley">README</a>. The bike repair shop and its pages are placeholders.</p>
 </main>

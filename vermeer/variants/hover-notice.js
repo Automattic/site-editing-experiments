@@ -1,16 +1,20 @@
 /*
  * Vermeer · B · Hover notice
  *
- * When the pointer rests on the site for HOVER_REST_MS, a notice floats over
+ * As soon as the pointer moves over the site, a notice floats over
  * the bottom of the site area, centred: “Trying to change something on this
  * page?” with Start editing and ×. It lays over the site without moving it
  * and stays put while the site scrolls. Route: b-notice (b-notice-keyboard
  * when Start editing is pressed from the keyboard). Prompt kind: notice.
  *
- *   - Shown when the pointer (mouse or pen) has moved on the site and then
- *     rested for HOVER_REST_MS. A pointer that was already resting on the site
- *     when the page loaded doesn't count until it moves. Scrolling restarts
- *     the wait: scrolling isn't resting.
+ *   - Shown on the first movement of the pointer (mouse or pen) over the
+ *     site area, with no wait. A pointer that was already over the site when
+ *     the page loaded doesn't count until it moves. Not while a button is
+ *     held down (a drag to select text).
+ *   - A notice is counted as seen (`b-seen`, in the notes) once the pointer
+ *     or keyboard focus has stayed in the site area for 1 s without a break
+ *     while it's up (the leave grace doesn't count): with no wait, shown and
+ *     ignored mostly follow the pointer's path.
  *   - Stays while the pointer, or keyboard focus, is anywhere in the site area
  *     (the notice included). Goes 1 s after both have left: ignored. Coming
  *     back within that second keeps it. Going to another page keeps it.
@@ -49,8 +53,9 @@
 
       let notice = null;      // the element while shown
       let promptId = null;    // its prompt id (memory only: see the note above)
-      let restTimer = null;
       let leaveTimer = null;
+      let seenTimer = null;
+      let seenCounted = false; // for the notice that's up now
       let pointerInside = false;
       let moved = false;      // a real pointer movement on the site since load
       let kbAnchor = null;    // the site element keyboard focus went to when it opened
@@ -70,7 +75,6 @@
 
       function show(how) {
         if (!eligible()) return;
-        clearTimeout(restTimer);
         promptId = api.promptShown('notice', how);
         api.spell.set('shown', true);
         notice = document.createElement('div');
@@ -83,6 +87,8 @@
           '<button type="button" class="vb-notice-close" data-vb="close" aria-label="Close">' + cross + '</button>';
         api.layer.append(notice);
         api.viewport.classList.add('vb-room');
+        seenCounted = false;
+        armSeen();
         requestAnimationFrame(() => { if (notice) notice.classList.add('is-in'); });
         api.announce('Trying to change something on this page? ' + (how === 'keyboard focus' ? 'Press Tab for Start editing.' : 'Start editing button.'));
       }
@@ -90,6 +96,7 @@
       function hide(outcome, detail) {
         if (!notice) return;
         clearTimeout(leaveTimer);
+        clearTimeout(seenTimer);
         const hadFocus = notice.contains(document.activeElement);
         if (promptId != null) api.promptOutcome(promptId, outcome, detail);
         promptId = null;
@@ -101,8 +108,21 @@
         if (hadFocus && api.mode() === 'browse') focusQuietly(anchor && anchor.isConnected ? anchor : api.viewport);
       }
 
+      // Seen: the pointer or focus stayed in the site area for a second while
+      // the notice was up. Leaving stops the clock; coming back starts it again.
+      function armSeen() {
+        clearTimeout(seenTimer);
+        if (!notice || seenCounted) return;
+        seenTimer = setTimeout(() => {
+          if (!notice || seenCounted || !(pointerInside || focusInside())) return;
+          seenCounted = true;
+          api.count('b-seen', 'Notices seen (pointer or focus in the site for 1 s while up)');
+        }, 1000);
+      }
+
       function scheduleLeave() {
         clearTimeout(leaveTimer);
+        if (!focusInside()) clearTimeout(seenTimer); // focus still in keeps the clock going
         if (!notice) return;
         leaveTimer = setTimeout(() => {
           if (!notice || pointerInside || focusInside()) return;
@@ -110,12 +130,9 @@
         }, LEAVE_MS);
       }
 
+      // No wait: the first movement over the site shows it.
       function restart() {
-        clearTimeout(restTimer);
-        if (!pointerInside || !moved || !eligible()) return;
-        restTimer = setTimeout(() => {
-          if (pointerInside && eligible()) show('pointer rested');
-        }, api.HOVER_REST_MS);
+        if (pointerInside && moved && eligible()) show('pointer moved over the site');
       }
 
       // Hover: where the pointer is, by what's under it, so the notice (in the
@@ -126,22 +143,19 @@
         const inside = stage.contains(e.target);
         if (inside) {
           moved = true;
-          if (!pointerInside) { pointerInside = true; clearTimeout(leaveTimer); }
-          if (e.buttons) { clearTimeout(restTimer); return; } // dragging isn't resting
+          if (!pointerInside) { pointerInside = true; clearTimeout(leaveTimer); armSeen(); }
+          if (e.buttons) return; // not while dragging
           restart();
         } else if (pointerInside) {
           pointerInside = false;
-          clearTimeout(restTimer);
           scheduleLeave();
         }
       }, true);
       document.documentElement.addEventListener('pointerleave', (e) => {
         if (e.pointerType === 'touch' || !pointerInside) return;
         pointerInside = false;
-        clearTimeout(restTimer);
         scheduleLeave();
       });
-      api.on('scroll', () => { if (!notice) restart(); });
 
       // Touch: the first touch stands in for hover.
       document.addEventListener('pointerdown', (e) => {
@@ -166,7 +180,7 @@
       api.site.addEventListener('focusin', (e) => {
         if (programmatic || !keyboardInUse) return;
         if (e.relatedTarget && stage.contains(e.relatedTarget)) return;
-        if (notice) { clearTimeout(leaveTimer); kbAnchor = e.target; return; } // Start editing is next again
+        if (notice) { clearTimeout(leaveTimer); armSeen(); kbAnchor = e.target; return; } // Start editing is next again
         if (!eligible()) return;
         kbAnchor = e.target;
         show('keyboard focus');
@@ -214,7 +228,6 @@
       });
 
       api.on('modechange', ({ mode, route, label }) => {
-        clearTimeout(restTimer);
         if (mode === 'edit') hide('ignored', 'went into editing by ' + (label || api.routeLabel(route) || 'another way'));
       });
     }

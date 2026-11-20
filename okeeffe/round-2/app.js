@@ -210,7 +210,7 @@
   }
 
   function startingUi() {
-    return { pop: null, more: null, dialog: null, current: 'home', flash: null, focus: null, sidebar: false, navSel: null, navAdd: null, linkEdit: null, collapsed: {}, savePanel: null, typing: null,
+    return { pop: null, more: null, dialog: null, current: 'home', flash: null, focus: null, sidebar: false, navSel: null, navAdd: null, pageAdd: null, linkEdit: null, collapsed: {}, savePanel: null, typing: null,
       // The sidebar arms' site editor: the screen in its navigation column, and the Pages screen's
       // selected row, status filter and search.
       screen: 'site', pagesSel: null, pagesFilter: 'all', pagesSearch: '' };
@@ -246,7 +246,9 @@
         // What was open, so that a reload can say what it closed.
         dialog: ui.dialog ? dialogLabel(ui.dialog) : null, finish: finishStep, panel: !!ui.savePanel,
         // An Add link that was open, and a Text being typed, so a reload can finish them.
-        adding: ui.navAdd ? placeWords(ui.navAdd) : null, addingText: ui.navAdd ? (ui.navAdd.q || '').trim() : '', typing: ui.typing
+        adding: ui.navAdd ? placeWords(ui.navAdd) : null, addingText: ui.navAdd ? (ui.navAdd.q || '').trim() : '', typing: ui.typing,
+        // Q's and S's Create page form, open, with what was typed as its title.
+        pageAdd: ui.pageAdd ? { title: (ui.pageAdd.title || '').trim() } : null
       }));
     } catch (e) { /* in memory only */ }
   }
@@ -275,6 +277,7 @@
       events.push({ at: elapsed(), kind: 'reload', text: 'Page reloaded' + (unsaved ? ', with ' + unsaved + ' unsaved menu ' + (unsaved === 1 ? 'change' : 'changes') + ', which ' + (unsaved === 1 ? 'is' : 'are') + ' kept' : '') });
       if (saved.panel) events.push({ at: elapsed(), kind: 'save', text: 'The save panel was open and was closed by the reload (not counted as cancelled)' });
       if (saved.adding) events.push({ at: elapsed(), kind: 'sidebar', text: 'Add link closed without adding anything (the page was reloaded' + (saved.addingText ? ', with ' + q(saved.addingText) + ' typed in Search or type URL' : '') + '): the “Page link” row ' + saved.adding + ' goes' });
+      if (saved.pageAdd) events.push({ at: elapsed(), kind: 'sidebar', text: 'Create page closed without making a page (the page was reloaded' + (saved.pageAdd.title ? ', with ' + q(saved.pageAdd.title) + ' typed as its title' : '') + ')' });
       // Typing in a link's Text when the page was reloaded: what it came to is logged next.
       typingAtReload = IN_SIDEBAR && saved.typing ? saved.typing : null;
       if (saved.dialog) events.push({ at: elapsed(), kind: 'dialog', text: saved.dialog + ' dialog closed by reload' });
@@ -1294,7 +1297,8 @@
   //   Adding a link    puts a "Page link" row where it will go and opens "Search or type
   //                    URL" under it: the site's pages, a typed address, or Create page.
   //   Q's pages menu   lists the published pages themselves, each with a show/hide toggle
-  //                    and a ⋮ (Move up, Move down), with Switch to advanced menu below.
+  //                    and a ⋮ (Move up, Move down), with Create menu below (Quinn's Switch to
+  //                    advanced menu, renamed).
   //   Q's advanced menu and the auto-add arm are the list of links, plus Hide and Show (Q)
   //                    and a switch below the list that keeps adding new pages.
   // View state: ui.sidebar (open), ui.navSel (the selected item's id), ui.navAdd ({ place:
@@ -1316,6 +1320,7 @@
     if (!ui.sidebar) return;
     endTyping();
     dropAdd('closed the sidebar');
+    closePageAdd('closed the sidebar', true);
     ui.sidebar = false;
     ui.navSel = null;
     ui.collapsed = {};
@@ -1325,6 +1330,10 @@
   }
 
   const navKey = (id) => 'nav:' + id;
+
+  // The heading of the menu's sidebar and of the Navigation screen: the menu's title, which in
+  // Q and S reads "Pages" while the menu is still its pages (before Create menu).
+  const menuTitle = () => (PAGES_MENU && isAutomatic() ? 'Pages' : 'Navigation');
   const published = (p) => !!p && p.status === 'publish';
 
   // The rows of the sidebar's list. kind: 'page' (Q's pages menu), 'item' (a link),
@@ -1456,6 +1465,33 @@
     </div>`;
   }
 
+  // Q's and S's pages menus: Add page (+) below Q's list, + New page in menu at the foot of S's
+  // In your menu (round 1's D). Each opens the same Create page form as Add link's, without
+  // its Back (there's no Search to go back to). The page is made at once, as Create page makes
+  // one elsewhere: the pages menu follows the pages, so there's nothing to save or undo.
+  function pageAddHtml() {
+    const a = ui.pageAdd;
+    const form = a ? `<div class="nav-picker pm-create" role="dialog" aria-label="Create page">
+        <div class="field"><label for="nav-create-title">Title</label><input type="text" id="nav-create-title" placeholder="No title" value="${esc(a.title || '')}" autocomplete="off" data-focus="nav-create-title"></div>
+        <button type="button" class="switch nav-publish" aria-pressed="${a.publish !== false}" data-action="pm-create-publish" data-focus="nav-create-publish"><span class="switch-track"></span><span>Publish</span></button>
+        <p class="nav-help">Turn off to save as a draft. Drafts won't appear on your site until published.</p>
+        <div class="nav-picker-actions"><button type="button" class="btn btn-small" data-action="pm-create-cancel" data-focus="nav-create-cancel">Cancel</button><button type="button" class="btn btn-small btn-primary" data-action="pm-create" data-focus="nav-create">Create page</button></div>
+      </div>` : '';
+    const open = a ? 'true' : 'false';
+    if (SECTIONS) return `${form}<div class="group-foot"><button type="button" class="add-btn" data-action="pm-ask-create" data-focus="pm-add" aria-expanded="${open}">+ New page in menu</button></div>`;
+    return `${form}<button type="button" class="nav-append" data-action="pm-ask-create" data-focus="pm-add" aria-label="Add page" aria-expanded="${open}">${ICON.plus}</button>`;
+  }
+
+  function closePageAdd(how, keepFocus) {
+    if (!ui.pageAdd) return false;
+    const typed = (ui.pageAdd.title || '').trim();
+    ui.pageAdd = null;
+    if (!keepFocus) ui.focus = 'pm-add';
+    log('sidebar', 'Create page closed without making a page (' + how + (typed ? ', with ' + q(typed) + ' typed as its title' : '') + ')');
+    save();
+    return true;
+  }
+
   // The ↵ inside a link field, as core's Apply: off until something is typed.
   function applyButton(action, text) {
     return `<button type="button" class="nav-apply" data-action="${action}" data-focus="${action}" aria-label="Apply" aria-disabled="${String(text || '').trim() ? 'false' : 'true'}">${ICON.enter}</button>`;
@@ -1499,7 +1535,7 @@
     // the menu, switched on, as a newly published page does). A click on it is logged.
     const toggle = row.kind !== 'page' ? ''
       : SECTIONS
-        ? `${row.depth ? '<span class="sec-meta">In a dropdown</span>' : ''}<button type="button" class="icon-btn sec-btn" data-action="sec-remove" data-page="${esc(row.id)}" data-focus="sec-rm:${esc(row.id)}" aria-label="Remove ${esc(row.title)} from your menu">${ICON.minus}</button>`
+        ? `<button type="button" class="icon-btn sec-btn" data-action="sec-remove" data-page="${esc(row.id)}" data-focus="sec-rm:${esc(row.id)}" aria-label="Remove ${esc(row.title)} from your menu">${ICON.minus}</button>`
       : row.draft
         ? `<button type="button" class="switch nav-switch" aria-pressed="false" aria-disabled="true" data-action="nav-toggle-draft" data-page="${esc(row.id)}" data-focus="nav-sw:${esc(row.id)}" aria-label="Show ${esc(row.title)} in the menu" aria-describedby="nav-sw-why-${esc(row.id)}"><span class="switch-track"></span><span class="sr-only" id="nav-sw-why-${esc(row.id)}">Publish this page to add it to the menu</span></button>`
         : `<button type="button" class="switch nav-switch" aria-pressed="${!off}" data-action="nav-toggle" data-page="${esc(row.id)}" data-focus="nav-sw:${esc(row.id)}" aria-label="Show ${esc(row.title)} in the menu"><span class="switch-track"></span></button>`;
@@ -1507,7 +1543,7 @@
       <div class="row-main">
         <span class="indent" style="width:${row.depth * 16}px"></span>
         ${expanderHtml(row, x)}
-        ${label}
+        ${SECTIONS && row.kind === 'page' && row.depth ? `<span class="sec-text">${label}<span class="sec-meta">In a dropdown</span></span>` : label}
         ${row.draft ? '<span class="badge draft nav-draft">Draft</span>' : ''}
         ${row.hidden ? `<span class="nav-hidden" role="img" aria-label="Hidden">${ICON.unseen}</span>` : ''}
         ${toggle}
@@ -1591,6 +1627,7 @@
     return `<section class="group menu sec-group" aria-label="In your menu">
         <div class="group-head"><h3 class="group-title">In your menu</h3><span class="tag blue">Header</span></div>
         ${list.indexOf('nav-empty') >= 0 ? '<div class="empty">Nothing in this menu yet.</div>' : list}
+        ${pageAddHtml()}
       </section>
       <section class="group sec-group" aria-label="Other pages">
         <div class="group-head"><h3 class="group-title">Other pages</h3></div>
@@ -1605,13 +1642,15 @@
     const m = state.menu;
     const sel = ui.navSel ? itemById(ui.navSel) : null;
     if (sel) return navInspectorHtml(sel);
-    const intro = screen
+    const intro = menuTitle() === 'Pages'
+      ? '<p class="nav-desc">The pages on your site.</p>'
+      : screen
       ? '<p class="nav-desc">Navigation Menus are a curated collection of blocks that allow visitors to get around your site.</p>'
       : '<p class="nav-desc">A collection of blocks that allow visitors to get around your site.</p>';
     const list = navListHtml(navRows());
-    if (isAutomatic() && SECTIONS) return `${intro}${sectionsHtml(list)}<button type="button" class="btn nav-wide" data-action="nav-ask-advanced" data-focus="nav-ask-advanced">Switch to advanced menu</button>`;
+    if (isAutomatic() && SECTIONS) return `${intro}${sectionsHtml(list)}<button type="button" class="btn nav-wide" data-action="nav-ask-advanced" data-focus="nav-ask-advanced">Create menu</button>`;
     if (isAutomatic()) {
-      return `${intro}${list}<button type="button" class="btn nav-wide" data-action="nav-ask-advanced" data-focus="nav-ask-advanced">Switch to advanced menu</button>`;
+      return `${intro}${list}${pageAddHtml()}<button type="button" class="btn nav-wide" data-action="nav-ask-advanced" data-focus="nav-ask-advanced">Create menu</button>`;
     }
     const adding = !!ui.navAdd && ui.navAdd.place === 'end';
     return `${intro}${list}
@@ -1641,6 +1680,7 @@
   function tidyNav() {
     if (ui.navSel && !itemById(ui.navSel)) ui.navSel = null;
     if (ui.navAdd && (isAutomatic() || (ui.navAdd.ref && !itemById(ui.navAdd.ref)))) dropAdd('what it was beside has gone');
+    if (ui.pageAdd && !isAutomatic()) closePageAdd('the menu is no longer a pages menu', true);
   }
 
   function sidebarHtml() {
@@ -1650,11 +1690,12 @@
     if (!ui.sidebar) return '';
     tidyNav();
     const sel = ui.navSel ? itemById(ui.navSel) : null;
+    const title = menuTitle();
     const head = sel
       ? `<button type="button" class="icon-btn nav-back-btn" data-action="nav-back" data-focus="nav-back" aria-label="Go to &quot;Navigation&quot; block">${ICON.back}</button><h2>${navSelName(sel)}</h2>`
-      : '<h2>Navigation</h2>';
-    return `<aside class="navside" aria-label="Navigation">
-      <div class="navside-head${sel ? ' has-back' : ''}">${head}<button type="button" class="icon-btn" data-action="close-sidebar" data-focus="close-sidebar" aria-label="Close Navigation">${ICON.close}</button></div>
+      : `<h2>${title}</h2>`;
+    return `<aside class="navside" aria-label="${title}">
+      <div class="navside-head${sel ? ' has-back' : ''}">${head}<button type="button" class="icon-btn" data-action="close-sidebar" data-focus="close-sidebar" aria-label="Close ${title}">${ICON.close}</button></div>
       <div class="navside-body">${sidebarBodyHtml()}</div>
     </aside>`;
   }
@@ -1920,7 +1961,7 @@
     },
     'nav-dead'(d) { if (!justDragged) log('tried', 'Tried to ' + d.what); },
     'nav-ask-detach'(d) { askConvert({ trigger: 'the Detach Page List button', itemId: d.item }); },
-    'nav-ask-advanced'() { askConvert({ trigger: 'the Switch to advanced menu button' }); },
+    'nav-ask-advanced'() { askConvert({ trigger: 'the Create menu button' }); },
     // S: − in "In your menu", + in "Other pages". Unsaved menu changes, as Q's toggles are.
     'sec-remove'(d) {
       const p = page(d.page);
@@ -1942,6 +1983,46 @@
     'sec-add-draft'(d) {
       const p = page(d.page);
       if (p) log('tried', 'Tried to add ' + q(p.title) + ', a draft, to the menu (+ under Other pages): it can’t be added until the page is published');
+    },
+    'pm-ask-create'() {
+      if (ui.pageAdd) { closePageAdd('the same control again'); render(); return; }
+      ui.pageAdd = { title: '', publish: true };
+      ui.more = null;
+      ui.focus = 'nav-create-title';
+      log('sidebar', (SECTIONS ? '+ New page in menu clicked, under In your menu' : 'Add page (+) clicked, below the pages menu') + ': the Create page form opens');
+      save();
+      render();
+      const form = root.querySelector('.pm-create');
+      if (form) form.scrollIntoView({ block: 'nearest' });
+    },
+    'pm-create-cancel'() { closePageAdd('Cancel'); render(); },
+    'pm-create-publish'() {
+      if (!ui.pageAdd) return;
+      ui.pageAdd.publish = ui.pageAdd.publish === false;
+      ui.focus = 'nav-create-publish';
+      render();
+    },
+    'pm-create'() {
+      const a = ui.pageAdd;
+      if (!a) return;
+      const field = document.getElementById('nav-create-title');
+      const title = (field ? field.value : a.title || '').trim();
+      if (!title) { if (field) { field.focus(); field.setAttribute('aria-invalid', 'true'); } return; }
+      const status = a.publish === false ? 'draft' : 'publish';
+      const sig = menuSignature();
+      endTyping();
+      ui.pageAdd = null;
+      const id = createPage(title, status);
+      ui.flash = SECTIONS && status === 'draft' ? 'sec:' + id : null;
+      ui.focus = 'pm-add';
+      if (!stats.firstMenuChange && menuSignature() !== sig) stats.firstMenuChange = Math.max(1, seconds());
+      checkTasks();
+      save();
+      render();
+      log('page', 'Added ' + q(title) + ' from the menu’s sidebar, ' + (status === 'draft' ? 'as a draft' : 'published') + ' (' + (SECTIONS ? '+ New page in menu, under In your menu' : 'Add page (+), below the pages menu') + '); ' +
+        (status === 'draft'
+          ? (SECTIONS ? 'it is listed under Other pages, and joins the menu once it’s published' : 'it is listed in the pages menu with its toggle off, and joins the menu, switched on, once it’s published')
+          : (SECTIONS ? 'it is in In your menu, last in page order' : 'it is in the pages menu, switched on, last in page order') + '; there is nothing to save'));
     },
     'nav-toggle-draft'(d) {
       const p = page(d.page);
@@ -2206,9 +2287,10 @@
     }
     if (PAGES_MENU && !detachesList(d)) {
       return {
-        title: 'Switch to advanced menu',
-        body: '<p>The pages will become links you can edit. New pages will still be added automatically.</p>',
-        confirm: 'Switch'
+        // Quinn's "Switch to advanced menu", renamed for this round.
+        title: 'Create menu',
+        body: '<p>Your pages will become a menu of links that you can add to and change. New pages will still be added to it automatically.</p>',
+        confirm: 'Create menu'
       };
     }
     // WordPress's own words: the Page List block's Detach dialog in @wordpress/block-library
@@ -2222,7 +2304,7 @@
 
   // A Page List added with Add block in A or Q's advanced menu is detached as the control's is.
   const detachesList = (d) => !!d && !!d.itemId && isPageList(itemById(d.itemId));
-  const dialogName = (d) => (ARM === 'control' || detachesList(d) ? 'Detach Page List (convert to links)' : PAGES_MENU ? 'Switch to advanced menu' : 'Convert to links');
+  const dialogName = (d) => (ARM === 'control' || detachesList(d) ? 'Detach Page List (convert to links)' : PAGES_MENU ? 'Create menu' : 'Convert to links');
 
   // Show the confirm. d: { trigger: what the person did, pageId?: the page it was about,
   // then?: 'remove' | 'rename', what to do with that page once the menu is links }.
@@ -2278,7 +2360,7 @@
     render();
   }
 
-  // The convert dialog of the sidebar arms (the control's Detach Page List, Q's Switch to
+  // The convert dialog of the sidebar arms (the control's Detach Page List, Q and S's Create menu, Quinn's Switch to
   // advanced menu) behaves as WordPress's ConfirmDialog.
   const isConfirm = (d) => !!d && d.type === 'convert' && IN_SIDEBAR;
 
@@ -2510,8 +2592,8 @@
       const sel = ui.navSel ? itemById(ui.navSel) : null;
       head = sel
         ? `${snBack('Go to "Navigation" block', 'nav-back', {}, 'nav-back')}<h2>${navSelName(sel)}</h2>`
-        : `${snBack('Back', 'sn-screen', { screen: 'site', how: 'the Navigation screen’s back arrow' })}<h2>Navigation</h2>`;
-      body = `<div class="navside navscreen" aria-label="Navigation"><div class="navside-body">${sidebarBodyHtml(true)}</div></div>`;
+        : `${snBack('Back', 'sn-screen', { screen: 'site', how: 'the Navigation screen’s back arrow' })}<h2>${menuTitle()}</h2>`;
+      body = `<div class="navside navscreen" aria-label="${menuTitle()}"><div class="navside-body">${sidebarBodyHtml(true)}</div></div>`;
     } else {
       head = `${snBack('Back', 'sn-screen', { screen: 'site', how: 'the ' + SCREENS[s] + ' screen’s back arrow' })}<h2>${SCREENS[s]}</h2>`;
       body = `<p class="sn-desc">${SCREENS[s]} isn’t part of this prototype.</p>`;
@@ -2751,7 +2833,7 @@
         Object.assign(t.style, { left: left + 'px', right: 'auto', transform: 'none', maxWidth: Math.max(160, app.getBoundingClientRect().right - left - 16) + 'px' });
       } else if (side && app) {
         // With the menu's sidebar open, the message is centred over the preview, clear of the
-        // sidebar's lower rows and Switch to advanced menu (at 1024 with the notes panel too).
+        // sidebar's lower rows and Create menu (at 1024 with the notes panel too).
         const prev = side.previousElementSibling;
         const from = (prev || app).getBoundingClientRect().left;
         const to = side.getBoundingClientRect().left;
@@ -2897,8 +2979,8 @@
           ui.navSel = null;
           const firstLink = state.menu.items.find((it) => !isPageList(it));
           if (firstLink) ui.focus = 'nav-row:' + firstLink.id;
-        }, detaching ? 'the Page List detached' : 'switched to an advanced menu');
-        log('menu', (detaching ? 'Page List detached: its pages are now links' : mode === 'advanced' ? 'Menu switched to an advanced menu (links, new pages still added)' : 'Page List detached: its pages are now links') +
+        }, detaching ? 'the Page List detached' : 'menu created from the pages');
+        log('menu', (detaching ? 'Page List detached: its pages are now links' : mode === 'advanced' ? 'Menu created from the pages (Create menu): an advanced menu of links, new pages still added' : 'Page List detached: its pages are now links') +
           (offDrafts.length ? '; ' + (offDrafts.length === 1 ? 'the draft ' + offDrafts[0] + ', which was switched off, becomes a hidden link' : 'the drafts ' + offDrafts.join(', ') + ', which were switched off, become hidden links') + ', so it stays out of the menu when published' : ''));
         return;
       }
@@ -2916,9 +2998,9 @@
         if (p) ui.focus = 'pop:' + keyRow(p.id);
         else if (IN_SIDEBAR && state.menu.items.length) ui.focus = 'nav-row:' + state.menu.items[0].id;
       },
-        mode === 'advanced' ? 'Switched to an advanced menu' : ARM === 'explained' ? 'You now choose your menu\'s pages' : 'The menu\'s pages are now links',
+        mode === 'advanced' ? 'Menu created' : ARM === 'explained' ? 'You now choose your menu\'s pages' : 'The menu\'s pages are now links',
         { quiet: renaming });
-      log('menu', mode === 'advanced' ? 'Menu switched to an advanced menu (links, new pages still added)' : 'Menu converted to links');
+      log('menu', mode === 'advanced' ? 'Menu created from the pages (Create menu): an advanced menu of links, new pages still added' : 'Menu converted to links');
       if (renaming) {
         const link = linkFor(p.id);
         if (link) { ui.focus = 'pop:' + keyRow(p.id); openDialog({ type: 'label', itemId: link.id, afterConvert: true }, 'after the conversion'); ui.dialog.from = 'pop:' + keyRow(p.id); }
@@ -3197,6 +3279,12 @@
       // A click outside the Add link popover closes it, as in the editor.
       // The top bar's Undo, with Add link open, only takes the "Page link" row away, as in the
       // editor: nothing else is undone, and it isn't counted as an Undo.
+      // The same for the pages menu's Create page form.
+      if (ui.pageAdd && ev.target.closest('[data-action="ed-undo"]')) { closePageAdd('Undo'); render(); return; }
+      if (ui.pageAdd && !ev.target.closest('.pm-create, [data-action="pm-ask-create"]')) {
+        const where = ev.target.closest('.stage') ? 'clicked the preview' : ev.target.closest('.navside') ? 'clicked elsewhere in the sidebar' : ev.target.closest('.topbar') ? 'clicked the top bar' : ev.target.closest('.sitenav') ? 'clicked the site editor’s navigation' : 'clicked elsewhere';
+        if (closePageAdd(where, true)) render();
+      }
       if (ui.navAdd && ev.target.closest('[data-action="ed-undo"]')) {
         const a = ui.navAdd;
         dropAdd('Undo');
@@ -3243,6 +3331,7 @@
       // Ctrl+Z takes that back. Otherwise, in the sidebar arms, it's the editor's Undo and
       // Redo; in B and F there is only the one Undo.
       // With Add link open, Undo only takes the "Page link" row away (see the top bar's Undo).
+      if (IN_SIDEBAR && !redo && ui.pageAdd) { ev.preventDefault(); closePageAdd('Undo'); render(); return; }
       if (IN_SIDEBAR && !redo && ui.navAdd) { ev.preventDefault(); const a = ui.navAdd; dropAdd('Undo'); ui.focus = a.place === 'end' || !a.ref ? 'nav-append' : 'more:' + navKey(a.ref); render(); return; }
       if (!redo && undo) { ev.preventDefault(); actions.undo({ how: 'keyboard' }); return; }
       if (!IN_SIDEBAR) return;
@@ -3269,6 +3358,7 @@
       if (ui.pop) { const k = ui.pop; ui.pop = null; ui.focus = 'pop:' + k; render(); return; }
       if (ui.savePanel) { closeSavePanel('Escape'); return; }
       if (ui.navAdd) { closeAdd('Escape'); return; }
+      if (ui.pageAdd) { closePageAdd('Escape'); render(); return; }
       if (ui.linkEdit && ui.navSel === ui.linkEdit.id) { closeLinkTo('Escape'); return; }
       if (ui.navSel) { navActions['nav-back'](); return; }
       if (ui.sidebar) closeSidebar('Escape');
@@ -3300,7 +3390,7 @@
       if (i < 0) document.getElementById('nav-search').focus(); else if (items[i]) items[i].focus();
       return;
     }
-    if (ev.key === 'Enter' && ev.target.id === 'nav-create-title') { ev.preventDefault(); navActions['nav-create'](); return; }
+    if (ev.key === 'Enter' && ev.target.id === 'nav-create-title') { ev.preventDefault(); navActions[ui.pageAdd ? 'pm-create' : 'nav-create'](); return; }
     // ConfirmDialog: Enter anywhere in it but on its buttons confirms (a button does its own thing).
     if (ev.key === 'Enter' && isConfirm(ui.dialog) && ev.target.closest && ev.target.closest('.dialog') && !ev.target.closest('button')) {
       ev.preventDefault();
@@ -3555,6 +3645,7 @@
     const t = ev.target;
     if (t.id === 'nav-text') { typeLabel(t.dataset.item, t.value); return; }
     if (t.id === 'nav-create-title' && ui.navAdd) { ui.navAdd.title = t.value; t.removeAttribute('aria-invalid'); return; }
+    if (t.id === 'nav-create-title' && ui.pageAdd) { ui.pageAdd.title = t.value; t.removeAttribute('aria-invalid'); save(); return; }
     // Search or type URL narrows the suggestions as you type, without redrawing.
     if (t.id === 'nav-linkto-input' && ui.linkEdit) { ui.linkEdit.text = t.value; t.parentElement.querySelector('.nav-apply').setAttribute('aria-disabled', t.value.trim() ? 'false' : 'true'); return; }
     // The Pages screen's Search narrows the list as you type.

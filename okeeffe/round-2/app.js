@@ -2745,9 +2745,17 @@
     if (IN_SIDEBAR) {
       const ps = root.querySelector('.pagescreen');
       const app = root.querySelector('.app');
+      const side = root.querySelector('.navside:not(.navscreen)');
       if (ps && app) {
         const left = ps.getBoundingClientRect().right + 16;
         Object.assign(t.style, { left: left + 'px', right: 'auto', transform: 'none', maxWidth: Math.max(160, app.getBoundingClientRect().right - left - 16) + 'px' });
+      } else if (side && app) {
+        // With the menu's sidebar open, the message is centred over the preview, clear of the
+        // sidebar's lower rows and Switch to advanced menu (at 1024 with the notes panel too).
+        const prev = side.previousElementSibling;
+        const from = (prev || app).getBoundingClientRect().left;
+        const to = side.getBoundingClientRect().left;
+        Object.assign(t.style, { left: (from + to) / 2 + 'px', right: 'auto', transform: 'translateX(-50%)', maxWidth: Math.max(160, to - from - 32) + 'px' });
       } else Object.assign(t.style, { left: '', right: '', transform: '', maxWidth: '' });
     }
     const paused = covered || toast.hover || toast.focus;

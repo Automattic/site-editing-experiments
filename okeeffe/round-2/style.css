@@ -586,3 +586,5 @@ div.prow-main { cursor: default; }
 .ed-saved { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; color: var(--ink-3); margin-right: 8px; }
 .ed-saved svg { width: 18px; height: 18px; }
 .dialog input[type="number"] { height: 44px; border: 1px solid #949494; border-radius: 4px; padding: 0 12px; font-size: 14px; }
+/* Q: a draft's toggle, off and unavailable until the page is published. */
+.nav-switch[aria-disabled="true"] { cursor: default; opacity: 0.4; }

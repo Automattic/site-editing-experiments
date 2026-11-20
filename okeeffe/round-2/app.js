@@ -46,8 +46,8 @@
  *   shownMenu()     what visitors see, as a tree [{ pageId, itemId, label, sub: [] }]:
  *                   no drafts, no hidden links. The tasks and the code read this.
  *   shownMenu(true) the menu as the preview draws it, standing in for the editor's canvas:
- *                   the same, except that Q's pages menu also shows its drafts that are
- *                   switched on, marked draft (CANVAS_DRAFTS). The preview reads this.
+ *                   the same, except that a link to a draft page (made with Create page,
+ *                   Publish off) is drawn, marked draft (DRAFT_LINKS). The preview reads this.
  *   entryLabel(e)   a link's own label, or the page's title while the menu is automatic.
  *   isExcluded(id), inMenu(pageId), linkFor(pageId), itemById(id).
  *
@@ -78,8 +78,8 @@
  *   createPage(title, status), publishPage(id), renamePage(id, title), trashPage(id)
  * createPage and publishPage already do the right thing for every mode: an automatic menu
  * or a Page List shows the page; a links menu doesn't; an advanced menu with autoAdd adds a
- * link at the end (or at the end of its parent's submenu when the parent is in the menu), in A
- * and Q as soon as a draft is made too (DRAFT_LINKS), and only once per page.
+ * link at the end (or at the end of its parent's submenu when the parent is in the menu) when
+ * a page is published, never for a draft.
  *
  * Changing the menu in the sidebar arms. Wrap the change in edit(fn, what): it adds a step
  * to the history (what is how Undo and Redo name it in the log), shows no message, and
@@ -136,17 +136,13 @@
   // The auto-add arm has no Page List: its menu is links from the start, with a switch that
   // keeps new pages arriving.
   const STARTS_AS_LINKS = ARM === 'auto-add';
-  // Q's pages menu lists draft pages among the pages, each with its toggle, and the preview,
-  // which stands in for the editor's canvas, draws the drafts that are on as the canvas draws
-  // a link to a draft: "Holiday orders (Draft)", underlined with a wavy line. Core's Page List
-  // shows no drafts, so the control's doesn't; links to drafts stay out of the preview in
-  // every arm, as before.
+  // Q's pages menu lists draft pages in its sidebar (with a Draft badge and a toggle that can't
+  // be switched until the page is published); they're never in the menu on the site.
   const CANVAS_DRAFTS = ARM === 'menu-switches';
-  // The two menus that add new pages by themselves (A's, with Auto add pages; Q's advanced menu,
-  // with Add new pages automatically) add drafts too, the moment they're made, and the preview
-  // draws a link to a draft as the canvas does, "Holiday orders (Draft)". Visitors don't see it
-  // until the page is published. The control's links don't change.
-  const DRAFT_LINKS = ARM === 'auto-add' || ARM === 'menu-switches';
+  // A link to a draft page, which only Create page (Publish off) in Add link makes, is drawn on
+  // the site as the editor's canvas draws it, "Gift cards (Draft)" with a wavy underline, in the
+  // control, A and Q's advanced menu. Visitors don't see it until the page is published.
+  const DRAFT_LINKS = IN_SIDEBAR;
   const IS_MAC = /Mac|iPhone|iPad/.test((navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || '');
   const SITE = 'rosasbakery.example';
   const NOTES = new URLSearchParams(location.search).has('notes') || location.hash === '#notes';
@@ -178,6 +174,9 @@
       trashed: [],
       seq: 1
     };
+    // The three arms in the test start with the six published pages only: Holiday orders, a draft,
+    // was there for a task that's gone. B and F, which aren't in the test, keep it.
+    if (IN_SIDEBAR) start.pages = start.pages.filter((p) => p.id !== 'holiday-orders');
     if (ARM === 'control') {
       // WordPress today: a menu whose one item is a Page List. Links can sit beside it.
       start.menu.mode = 'links';
@@ -185,10 +184,7 @@
     }
     if (STARTS_AS_LINKS) {
       // The same links, with the same ids, as the control's menu straight after detaching.
-      // The control's links straight after detaching (same ids), and Holiday orders, the draft,
-      // which Auto add pages added when it was made: A and Q start with the same menu on screen.
-      start.menu.items = start.pages.map((p) => ({ id: 'link-' + start.seq++, pageId: p.id, label: p.title, depth: p.parent ? 1 : 0, hidden: false }));
-      start.pages.forEach((p) => { if (p.status !== 'publish') p.autoAdded = true; });
+      start.menu.items = start.pages.filter((p) => p.status === 'publish').map((p) => ({ id: 'link-' + start.seq++, pageId: p.id, label: p.title, depth: p.parent ? 1 : 0, hidden: false }));
       start.menu.mode = 'advanced';
       start.menu.autoAdd = true;
     }
@@ -214,7 +210,7 @@
   }
 
   function startingStats() {
-    return { dialogsShown: 0, dialogsConfirmed: 0, firstMenuChange: 0, dragReorders: 0, moveReorders: 0, undos: 0, redos: 0, saves: 0, panelCancels: 0, own: 0, finishBack: 0, firstPages: 0, firstNavScreen: 0, orderUses: 0 };
+    return { dialogsShown: 0, dialogsConfirmed: 0, firstMenuChange: 0, dragReorders: 0, moveReorders: 0, undos: 0, redos: 0, saves: 0, panelCancels: 0, own: 0, finishBack: 0, firstPages: 0, firstNavScreen: 0, orderUses: 0, catOutSaved: false, catOutScreen: false };
   }
 
   let state = startingState();
@@ -385,8 +381,8 @@
     const tree = [];
     let parentShown = false;
     let parentHidden = false;
-    const draftLinks = !!canvas && DRAFT_LINKS && state.menu.mode === 'advanced';
-    menuEntries(!!canvas && CANVAS_DRAFTS).forEach((e) => {
+    const draftLinks = !!canvas && DRAFT_LINKS && state.menu.mode !== 'automatic';
+    menuEntries(false).forEach((e) => {
       const p = page(e.pageId);
       const linkToDraft = draftLinks && !!p && !e.list && p.status !== 'publish';
       // A link to a typed address, or another block, has no page: it shows unless it's hidden.
@@ -443,14 +439,9 @@
     const m = state.menu;
     if (!isAutomatic()) return;
     const published = (p) => p && p.status === 'publish';
-    // Q: a draft that was switched off becomes a hidden link, as a published page that was off
-    // does, so it stays out of the menu when it's published (auto-add skips a page that has a
-    // link). A draft that was on isn't a link yet; auto-add adds it when it's published.
-    // Q: drafts become links too, as they're in the pages menu (shown as drafts until they're
-    // published); one that was switched off becomes a hidden link, as a published page that was
-    // off does, so it stays out when it's published.
-    const taken = (p) => published(p) || (CANVAS_DRAFTS && !!p);
-    if (CANVAS_DRAFTS && mode === 'advanced') pageTreeRows().forEach((r) => { if (!published(r.p)) r.p.autoAdded = true; });
+    // Published pages only: a draft isn't in Q's pages menu, and the advanced menu adds it when
+    // it's published, while Add new pages automatically is on.
+    const taken = (p) => published(p);
     m.items = pageTreeRows().filter((r) => taken(r.p)).map((r) => ({
       id: newItemId('link-'),
       pageId: r.p.id,
@@ -649,7 +640,6 @@
     state.pages.push({ id, title, status, parent: null, order: state.pages.reduce((m, p) => Math.max(m, orderOf(p)), -1) + 1 });
     if (state.made) state.made.push(id);
     if (status === 'publish' && !quietly) pageWentLive(id);
-    if (status !== 'publish' && !quietly && IN_SIDEBAR) addOnPublish(id, true);
     flagIfNeeded(id);
     return id;
   }
@@ -747,16 +737,10 @@
   // A page has just been published. The Page List and Q's pages menu show it without being
   // told. A menu of links gets a link only if the SAVED menu has its auto-add setting on,
   // since that's the menu the site acts on; the link is then in every copy.
-  // A draft just made, in A and Q's advanced menu: added in the same way (addOnPublish(id, true)).
-  // A page is only ever added once: a draft whose link was added, then removed, stays out when
-  // it's published, as a removed link does.
-  function addOnPublish(pageId, asDraft) {
+  function addOnPublish(pageId) {
     const sm = state.saved.menu;
     if (!(sm.mode === 'advanced' && sm.autoAdd)) return;
-    if (asDraft && !DRAFT_LINKS) return;
     const p = page(pageId);
-    if (p.autoAdded) return;
-    p.autoAdded = true;
     const id = newItemId('link-');
     everyMenu(() => {
       const m = state.menu;
@@ -803,18 +787,8 @@
 
   // Q: a draft's toggle in the pages menu, for the log line of its publishing. On screen and
   // as saved, when they differ. Nothing once neither menu is a pages menu.
-  function draftToggleWords(pageId) {
-    const p = page(pageId);
-    if (!CANVAS_DRAFTS || !p || p.status === 'publish') return '';
-    const sw = () => (isAutomatic() ? (isExcluded(pageId) ? 'off' : 'on') : null);
-    const screen = sw();
-    const saved = onSaved(sw);
-    if (!screen && !saved) return '';
-    if (screen === saved) return ', with its toggle in the pages menu ' + screen;
-    if (!saved) return ', with its toggle ' + screen + ' in the pages menu on screen, which isn’t saved (the saved menu is an advanced menu)';
-    if (!screen) return ', with its toggle ' + saved + ' in the saved pages menu (the advanced menu on screen isn’t saved)';
-    return ', with its toggle ' + screen + ' on screen but ' + saved + ' in the saved menu (the change isn’t saved)';
-  }
+  // (Q's draft toggles can't be switched, so a draft's publishing has no toggle to report.)
+  function draftToggleWords() { return ''; }
 
   // The pages whose place or parent on screen isn't what's saved (Q's pages menu moves
   // pages), narrowed to the ones the person moved since the last save.
@@ -1505,9 +1479,12 @@
     const label = row.kind === 'page'
       ? `<span class="nav-label nav-grip" data-action="nav-dead" data-what="select ${esc(q(row.title))} in the Navigation sidebar (a page in a pages menu has nothing to show)">${esc(row.title)}</span>`
       : `<button type="button" class="nav-label nav-grip" data-action="nav-select" data-id="${esc(row.id)}" data-focus="nav-row:${esc(row.id)}"${expandedAttr(x)}>${esc(row.title)}</button>`;
-    const toggle = row.kind === 'page'
-      ? `<button type="button" class="switch nav-switch" aria-pressed="${!off}" data-action="nav-toggle" data-page="${esc(row.id)}" data-focus="nav-sw:${esc(row.id)}" aria-label="Show ${esc(row.title)} in the menu"><span class="switch-track"></span></button>`
-      : '';
+    // A draft's toggle is off and can't be switched until the page is published (it then joins
+    // the menu, switched on, as a newly published page does). A click on it is logged.
+    const toggle = row.kind !== 'page' ? ''
+      : row.draft
+        ? `<button type="button" class="switch nav-switch" aria-pressed="false" aria-disabled="true" data-action="nav-toggle-draft" data-page="${esc(row.id)}" data-focus="nav-sw:${esc(row.id)}" aria-label="Show ${esc(row.title)} in the menu" aria-describedby="nav-sw-why-${esc(row.id)}"><span class="switch-track"></span><span class="sr-only" id="nav-sw-why-${esc(row.id)}">Publish this page to add it to the menu</span></button>`
+        : `<button type="button" class="switch nav-switch" aria-pressed="${!off}" data-action="nav-toggle" data-page="${esc(row.id)}" data-focus="nav-sw:${esc(row.id)}" aria-label="Show ${esc(row.title)} in the menu"><span class="switch-track"></span></button>`;
     return `<li class="row nav-row${off || row.hidden ? ' dim' : ''}" data-row="${esc(key)}" data-kind="${row.kind === 'page' ? 'page' : 'item'}" data-drag-id="${esc(row.id)}" data-drag-group="${esc(row.group)}" data-depth="${row.depth}"${row.kind === 'pagelist' ? ' data-pagelist="1"' : ''}${hid}>
       <div class="row-main">
         <span class="indent" style="width:${row.depth * 16}px"></span>
@@ -1896,6 +1873,10 @@
     'nav-dead'(d) { if (!justDragged) log('tried', 'Tried to ' + d.what); },
     'nav-ask-detach'(d) { askConvert({ trigger: 'the Detach Page List button', itemId: d.item }); },
     'nav-ask-advanced'() { askConvert({ trigger: 'the Switch to advanced menu button' }); },
+    'nav-toggle-draft'(d) {
+      const p = page(d.page);
+      if (p) log('tried', 'Tried the toggle of ' + q(p.title) + ', a draft, in the pages menu: it can’t be switched until the page is published');
+    },
     'nav-toggle'(d) {
       const p = page(d.page);
       const on = !isExcluded(d.page);
@@ -2054,7 +2035,7 @@
       // this one as it adds any page that's published, wherever it was made: one link, at the
       // end, in the saved menu too. Nothing is left to save.
       const sm = state.saved.menu;
-      if ((status === 'publish' || DRAFT_LINKS) && sm.mode === 'advanced' && sm.autoAdd) {
+      if (status === 'publish' && sm.mode === 'advanced' && sm.autoAdd) {
         const sig = menuSignature();
         endTyping();
         ui.navAdd = null;
@@ -2942,10 +2923,8 @@
       // The keyboard stays on the row: its marker (B's popover) or its ⋮ button.
       const focus = d.how && d.how.indexOf('top bar') >= 0 ? 'ed-save' : (d.how === 'its marker' ? 'pop:' : 'more:') + keyRow(d.page);
       const toggle = draftToggleWords(d.page);
-      // A and Q's advanced menu: the link Auto add pages added while it was a draft, or not.
-      const draftLink = DRAFT_LINKS && !isAutomatic() && p.status !== 'publish' && p.autoAdded ? (linkFor(d.page) ? ' (the link added to the menu while it was a draft is kept: no second link)' : ' (its link, added while it was a draft, was removed, so it isn’t added again)') : '';
       commit(() => { publishPage(d.page); ui.pop = null; ui.flash = keyRow(d.page); ui.focus = focus; }, `"${p.title}" is published`);
-      log('page', 'Published ' + q(p.title) + ' (from ' + (d.how || 'the Pages panel') + ')' + toggle + draftLink + (IN_SIDEBAR && ui.screen !== 'site' ? whereWords() : '') + '; ' + (IN_SIDEBAR ? menuWords(d.page) : isShown(d.page) && !was ? 'it is now in the menu' : 'it is not in the menu'));
+      log('page', 'Published ' + q(p.title) + ' (from ' + (d.how || 'the Pages panel') + ')' + toggle + (IN_SIDEBAR && ui.screen !== 'site' ? whereWords() : '') + '; ' + (IN_SIDEBAR ? menuWords(d.page) : isShown(d.page) && !was ? 'it is now in the menu' : 'it is not in the menu'));
     },
     'ask-add'() { openDialog({ type: 'add' }); },
     create(d) {
@@ -2965,8 +2944,7 @@
         // Core opens a new draft in the editor: here, the site, showing it, with Publish in the top bar.
         if (IN_SIDEBAR) { ui.screen = 'site'; ui.pagesSel = id; ui.focus = 'ed-save'; }
       }, `"${title}" ${d.status === 'draft' ? 'saved as a draft' : 'published'}`);
-      log('page', 'Added ' + q(title) + ', ' + (d.status === 'draft' ? 'saved as a draft' + (CANVAS_DRAFTS && isAutomatic() ? '; it is in the pages menu, switched on, so it will be in the menu once it’s published' : '') : 'published; ' + (IN_SIDEBAR ? menuWords(id) : isShown(id) ? 'it is now in the menu' : 'it is not in the menu')) + (IN_SIDEBAR ? ' (Add Page, Create draft, on the Pages screen)' : ''));
-      if (d.status === 'draft' && DRAFT_LINKS && linkFor(id) && !isAutomatic()) log('menu', 'The saved menu’s “' + AUTO_ADD_LABEL + '” added a link to the draft ' + q(title) + ' at the end of the menu (shown as a draft until it’s published); there is nothing to save');
+      log('page', 'Added ' + q(title) + ', ' + (d.status === 'draft' ? 'saved as a draft' + (CANVAS_DRAFTS && isAutomatic() ? '; it is listed in the pages menu with its toggle off, and joins the menu, switched on, once it’s published' : '') : 'published; ' + (IN_SIDEBAR ? menuWords(id) : isShown(id) ? 'it is now in the menu' : 'it is not in the menu')) + (IN_SIDEBAR ? ' (Add Page, Create draft, on the Pages screen)' : ''));
       if (IN_SIDEBAR) log('screen', 'Left the Pages screen (Create draft opens the new page on the site; the top bar shows ' + (showsPublish() ? 'Publish' : 'Save, since the menu has unsaved changes') + ')');
       log('visit', 'The preview shows the new page, ' + q(title));
       if (ARM === 'explained') log('menu', 'Marker popover opened on its own after Add page: ' + q(title) + ' (not counted)');
@@ -3528,25 +3506,38 @@
   // end, or a query or fragment after it; not another account that starts the same.
   const INSTAGRAM = /(^|\/\/|\.)instagram\.com\/rosasbakery\/?($|[?#])/i;
 
-  // The state of tasks 2 to 7 right now. Tasks 2, 3, 5 and 7 are 1 or 0; tasks 4 and 6 are
-  // 0 (not published), 1 (published, not shown in the menu) or 2 (published and shown).
-  function taskValues() {
+  // Tasks 2 and 3 ask for Catering out of the menu, then back in it. Whether it has been out
+  // is kept, apart, for the saved site and for the screen: Catering, published, missing from
+  // the menu visitors see (saved), or from the menu on screen. It's noted after every change,
+  // and on a reload, and stays noted: Undo, Redo, Save and reloading never clear it.
+  function noteCateringOut() {
+    const out = () => { const c = page('catering'); return !!c && c.status === 'publish' && !isShown('catering'); };
+    if (!stats.catOutScreen && out()) stats.catOutScreen = true;
+    if (!stats.catOutSaved && onSaved(out)) stats.catOutSaved = true;
+  }
+
+  // The five tasks right now, on screen (or, with saved, for the saved site): 1 is 0 (no
+  // published page with "gift" in its title), 1 (published, not in the menu) or 2 (in it); the
+  // rest are 1 or 0.
+  function taskValues(saved) {
     const tree = shownMenu();
     const flat = shownFlat();
     const shown = (id) => flat.some((n) => n.pageId === id);
-    const thanks = page('thank-you');
     const home = tree.findIndex((n) => n.pageId === 'home');
     // Any published page with "gift" in its title: Gift cards, Giftcards, Gift vouchers.
     const gift = state.pages.filter((p) => p.status === 'publish' && /gift/i.test(p.title));
-    const holiday = page('holiday-orders');
+    const catering = page('catering');
+    const wasOut = saved ? stats.catOutSaved : stats.catOutScreen;
+    const live = !!catering && catering.status === 'publish';
     return {
-      2: thanks && thanks.status === 'publish' && !shown('thank-you') ? 1 : 0,
-      3: home >= 0 && tree[home + 1] && tree[home + 1].pageId === 'catering' ? 1 : 0,
-      4: !gift.length ? 0 : gift.some((p) => shown(p.id)) ? 2 : 1,
-      5: flat.some((n) => n.pageId === 'visit-us' && hasText(n.label, 'find us')) ? 1 : 0,
-      6: !holiday || holiday.status !== 'publish' ? 0 : shown('holiday-orders') ? 2 : 1,
+      1: !gift.length ? 0 : gift.some((p) => shown(p.id)) ? 2 : 1,
+      // Catering has been out of the menu (see noteCateringOut) and is still published.
+      2: wasOut && live ? 1 : 0,
+      // ... and is back in it now.
+      3: wasOut && live && shown('catering') ? 1 : 0,
       // Any label counts. B and F can't hold a link to another site, so it's always 0 there.
-      7: flat.some((n) => n.url && INSTAGRAM.test(n.url)) ? 1 : 0
+      4: flat.some((n) => n.url && INSTAGRAM.test(n.url)) ? 1 : 0,
+      5: home >= 0 && tree[home + 1] && tree[home + 1].pageId === 'visit-us' ? 1 : 0
     };
   }
 
@@ -3560,26 +3551,25 @@
 
   const THREE = ['not published', 'published, not in the menu', 'published and in the menu'];
   const TASKS = [
-    { text: 'Look only: find where you would change the menu at the top of the site.', hint: 'Never ticked automatically.' },
-    { n: 2, text: 'Take “Thank you for your order” out of the menu without deleting it.', hint: 'Ticks when the page isn’t in the header menu and is still published.', state: (v) => (v ? 'out of the menu, still published' : page('thank-you') ? 'still in the menu' : 'the page is in the trash') },
-    { n: 3, text: 'Move Catering to straight after Home.', hint: 'Ticks when Catering is the top-level item right after Home in the header.', state: (v) => (v ? 'right after Home' : 'not right after Home') },
-    { n: 4, text: 'Make and publish a Gift cards page and get it into the menu.', hint: 'Ticks when a published page with “gift” in its title is in the header menu.', full: 2, state: (v) => THREE[v] },
-    { n: 5, text: 'Make “Visit us” say “Find us” in the menu.', hint: 'Ticks when the menu item for the Visit us page reads Find us.', state: (v) => (v ? 'the menu says Find us' : 'the menu doesn’t say Find us') + '; ' + { p: 'the page is called Find us', l: 'only the link’s label was changed', 0: 'the page is called ' + q((page('visit-us') || {}).title || 'nothing: it’s in the trash') }[renameHow()] },
-    { n: 6, text: 'Publish Holiday orders.', hint: 'Ticks when it’s published. Ask the prediction first: will a page Rosa publishes next month appear in the menu by itself?', full: 1, state: (v) => THREE[v] },
-    { n: 7, text: 'Add Rosa’s Instagram page (instagram.com/rosasbakery) to the menu.', hint: IN_SIDEBAR ? 'Ticks when the header menu has a link to instagram.com/rosasbakery (with or without www., a slash at the end or a query), whatever its label.' : 'Doesn’t apply here: this prototype has no way to add a link to another site, so it is always 0.', state: (v) => (v ? 'the menu has a link to it' : 'the menu has no link to it') }
+    { n: 1, text: 'Make and publish a Gift cards page, and get it into the menu.', hint: 'Ticks when a published page with “gift” in its title is in the header menu. Ask first: will a new page show in the menu by itself?', full: 2, state: (v) => THREE[v] },
+    { n: 2, text: 'Take Catering out of the menu, but keep the page.', hint: 'Ticks when Catering has been out of the header menu while published, and is still published (it stays ticked when task 3 puts it back).', state: (v) => (v ? 'it has been out of the menu, and is published' : page('catering') && page('catering').status === 'publish' ? 'it hasn’t been out of the menu' : 'the page is in the trash') },
+    { n: 3, text: 'Put Catering back in the menu.', hint: 'Ticks when Catering, after being out of the header menu, is in it again.', state: (v) => (v ? 'back in the menu' : 'not back in the menu') },
+    { n: 4, text: 'Add Rosa’s Instagram page (instagram.com/rosasbakery) to the menu.', hint: IN_SIDEBAR ? 'Ticks when the header menu has a link to instagram.com/rosasbakery (with or without www., a slash at the end or a query), whatever its label.' : 'Doesn’t apply here: this prototype has no way to add a link to another site, so it is always 0.', state: (v) => (v ? 'the menu has a link to it' : 'the menu has no link to it') },
+    { n: 5, text: 'Move Visit us to straight after Home.', hint: 'Ticks when Visit us is the top-level item right after Home in the header.', state: (v) => (v ? 'right after Home' : 'not right after Home') }
   ];
 
   // In the three sidebar arms the tasks are read from the saved site: a change to the menu
   // counts once it has been saved.
-  const savedTaskValues = () => onSaved(taskValues);
+  const savedTaskValues = () => onSaved(() => taskValues(true));
 
   function checkTasks() {
+    noteCateringOut();
     const values = savedTaskValues();
     TASKS.forEach((t, i) => {
       if (!t.n) return;
       const v = values[t.n];
       const mark = firstDone[i] || (firstDone[i] = {});
-      // Tasks 4 and 6: note the first time the page is published, and what the menu did.
+      // Task 1: note the first time the page is published, and what the menu did.
       if (t.full && v > 0 && !mark.published) {
         mark.published = elapsed();
         pendingTaskLines.push({ at: elapsed(), kind: 'task', text: 'Task ' + t.n + ': ' + THREE[v] });
@@ -3598,21 +3588,21 @@
 
   /*
    * For pasting into an unmoderated testing tool. For example:
-   *   OC-112121-mp140-d0.0-f35-r1.2-nl-x0-u2.1-k3-g40-e0-w0-v2.1-s412
-   * OC, OA, OB, OF, OQ: the arm · tasks 2 to 7 when Finished was clicked ·
+   *   OC-21111-mp140-d0.0-f35-r1.2-o0-n0-x0-u2.1-k3-g40-y30-e0-w0-v2.1-s412
+   * OC, OA, OB, OF, OQ: the arm · the five tasks when Finished was clicked ·
    * m: the menu at the end (ma automatic, ml links, mv advanced and still adding pages,
    *    mx advanced with adding turned off; each with the seconds when it was converted.
    *    In OA nothing is converted: mv, with no seconds, while Auto add pages is on, and mx
    *    with the seconds when it was last turned off) ·
    * d: convert dialogs shown, confirmed · f: seconds until the first change to what the
-   * menu shows (0 never) · r: reorders by drag, by Move up/down · n: how task 5 was done
+   * menu shows (0 never) · r: reorders by drag, by Move up/down · n: whether Visit us was made to say Find us, no longer a task
    * (np page renamed, nl only a link's label, n0 neither) · x: pages in the trash ·
    * u: uses of Undo, of Redo · k: the arm's own count · g: seconds until the Pages screen was
    * first opened (sidebar arms; 0 never, always 0 in B and F) · e: times turned back at "Have you
    * done every task?" · w: unsaved menu changes at Finished · v: saves, save panels closed
    * without saving · s: seconds until Finished.
    * In the sidebar arms the tasks, m and n are read from the saved site; if the screen showed
-   * different task digits they follow after a dot (102000.112121). The control's m: ma the Page
+   * different task digits they follow after a dot (21000.21111). The control's m: ma the Page
    * List alone, mp it has links (or a second Page List) beside it, ml detached, mr removed
    * without detaching.
    */
@@ -3634,7 +3624,8 @@
   }
 
   function completionCode() {
-    const digits = (v) => [2, 3, 4, 5, 6, 7].map((n) => v[n]).join('');
+    noteCateringOut();
+    const digits = (v) => [1, 2, 3, 4, 5].map((n) => v[n]).join('');
     const saved = digits(savedTaskValues());
     const screen = digits(taskValues());
     return [
@@ -3770,6 +3761,7 @@
     const scroll = notesEl.scrollTop;
     const suffix = location.hash === '#notes' ? '#notes' : '?notes';
     const links = Object.keys(ARMS).map((a) => `<a href="${ARMS[a].file}${suffix}" title="${esc(ARMS[a].name)}"${a === ARM ? ' aria-current="page"' : ''}>${ARMS[a].letter}</a>`).join('');
+    noteCateringOut();
     const values = savedTaskValues();
     const screen = taskValues();
     const tasks = TASKS.map((t, i) => {

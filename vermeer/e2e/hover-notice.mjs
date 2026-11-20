@@ -121,6 +121,20 @@ export default async function ({ page, baseUrl, assert, helpers: h }) {
   await notice.waitFor();
   await expectPrompts({ shown: 4, accepted: 1, dismissed: 1, ignored: 1 }, 'shown in the new spell');
 
+  h.step('seen needs a second of the pointer in the site while it shows, not just a second up');
+  {
+    const seenBefore = (await h.state(page)).stats.arm['b-seen'] || 0;
+    // restOnSite above had the pointer in for about 0.65 s: leave straight away.
+    await page.mouse.move(10, 10); // the admin bar, outside the site
+    await page.waitForTimeout(600); // inside the leave grace: still shown
+    assert.equal(await notice.count(), 1, 'still up within the grace');
+    { const p = await spot(); await page.mouse.move(p.x, p.y, { steps: 2 }); }
+    await page.waitForTimeout(600);
+    assert.equal((await h.state(page)).stats.arm['b-seen'] || 0, seenBefore, 'up about 2 s but never a full second with the pointer in: not seen');
+    await page.waitForTimeout(600);
+    assert.equal((await h.state(page)).stats.arm['b-seen'] || 0, seenBefore + 1, 'a full second in: seen');
+  }
+
   h.step('a reload with it open records it as ignored, once');
   await page.reload();
   await expectPrompts({ shown: 4, accepted: 1, dismissed: 1, ignored: 2 }, 'ignored by the reload');

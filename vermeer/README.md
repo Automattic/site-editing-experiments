@@ -60,7 +60,7 @@ Unlike earlier experiments here, **a reload doesn't start again**. Everything is
   - Exit's description, read by screen readers, is "Stop editing"; Create not Learn's is "Stop editing without saving", which isn't true here as Exit asks.
   - The icons are drawn after `@wordpress/icons` and the admin bar's dashicons, by hand.
   - The Design, Colors, Fonts, Media, Name & logo, Menus, Site overview and Posts screens have Create not Learn's headings and lines, with simple stand-ins for their contents.
-- **The keyboard way to Edit is Create not Learn's.** From the top of the page, Edit is the 31st Tab: through the admin bar, the strip of icons, the sidebar and the toolbar, as in Create not Learn. B's notice and the arms' boxes don't change that.
+- **The keyboard way to Edit goes through all of the chrome.** From the top of the page, Edit is the 31st Tab: through the admin bar, the strip of icons, the sidebar and the toolbar, in the same order as Create not Learn's (the count itself wasn't checked against Create not Learn). B's notice and the arms' boxes don't change that.
 - **Smaller things.** A double click on a link or button follows or presses it once, in every arm. Every bit of text is one line: Enter finishes it, in paragraphs too. B doesn't show while the page finder, a menu or a dialog is open.
 
 ## Facilitator notes
@@ -93,7 +93,7 @@ The **Finished** button gives a code to copy into the next question of an unmode
 | `f12.4a` | Seconds from first opening to the first time in editing, then how: `e` the Edit button (by pointer or keyboard), `a` the prototype's own way (A1's click, A2's Edit, B's Start editing, C's Edit this). `fx` if they never went in. |
 | `n3` | Clicks that did nothing (in the control's terms: not on a link, button or box) before the first time in editing. In A1, A2 and C this includes the click that opened their route. |
 | `g2` | Clicks on the admin bar, the strip of icons and the sidebar before the first time in editing. |
-| `p4.1.2.1` | Prompts shown, accepted, dismissed (with C's followed), ignored. Always `p0.0.0.0` in the control and A1, which have none; the part is kept so codes line up. In B only accepted and dismissed mean much: the notice shows on any movement over the site and goes a second after the pointer leaves, so shown and ignored mostly follow the pointer's path. The notes panel also counts B's notices that stayed up for at least a second ("seen"). |
+| `p4.1.2.1` | Prompts shown, accepted, dismissed (with C's followed), ignored. Always `p0.0.0.0` in the control and A1, which have none; the part is kept so codes line up. In B only accepted and dismissed mean much: the notice shows on any movement over the site and goes a second after the pointer leaves, so shown and ignored mostly follow the pointer's path. The notes panel also counts B's notices "seen": the pointer or keyboard focus stayed in the site for a second without a break while the notice was up, so a pointer just passing over doesn't count. |
 | `l5.2` | Links followed and buttons used while looking at the site. |
 | `x1` | Accidental entries: times into editing that ended with Exit and no change. |
 | `b2` | Exits back to looking at the site. |

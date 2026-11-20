@@ -11,8 +11,10 @@
  *     site area, with no wait. A pointer that was already over the site when
  *     the page loaded doesn't count until it moves. Not while a button is
  *     held down (a drag to select text).
- *   - A notice that stays up for 1 s is counted as seen (`b-seen`, in the
- *     notes): with no wait, shown and ignored mostly follow the pointer's path.
+ *   - A notice is counted as seen (`b-seen`, in the notes) once the pointer
+ *     or keyboard focus has stayed in the site area for 1 s without a break
+ *     while it's up (the leave grace doesn't count): with no wait, shown and
+ *     ignored mostly follow the pointer's path.
  *   - Stays while the pointer, or keyboard focus, is anywhere in the site area
  *     (the notice included). Goes 1 s after both have left: ignored. Coming
  *     back within that second keeps it. Going to another page keeps it.
@@ -53,6 +55,7 @@
       let promptId = null;    // its prompt id (memory only: see the note above)
       let leaveTimer = null;
       let seenTimer = null;
+      let seenCounted = false; // for the notice that's up now
       let pointerInside = false;
       let moved = false;      // a real pointer movement on the site since load
       let kbAnchor = null;    // the site element keyboard focus went to when it opened
@@ -84,9 +87,8 @@
           '<button type="button" class="vb-notice-close" data-vb="close" aria-label="Close">' + cross + '</button>';
         api.layer.append(notice);
         api.viewport.classList.add('vb-room');
-        // Counted as seen once it has stayed up for a second.
-        clearTimeout(seenTimer);
-        seenTimer = setTimeout(() => { if (notice) api.count('b-seen', 'Notices up for at least 1 s (seen)'); }, 1000);
+        seenCounted = false;
+        armSeen();
         requestAnimationFrame(() => { if (notice) notice.classList.add('is-in'); });
         api.announce('Trying to change something on this page? ' + (how === 'keyboard focus' ? 'Press Tab for Start editing.' : 'Start editing button.'));
       }
@@ -106,8 +108,21 @@
         if (hadFocus && api.mode() === 'browse') focusQuietly(anchor && anchor.isConnected ? anchor : api.viewport);
       }
 
+      // Seen: the pointer or focus stayed in the site area for a second while
+      // the notice was up. Leaving stops the clock; coming back starts it again.
+      function armSeen() {
+        clearTimeout(seenTimer);
+        if (!notice || seenCounted) return;
+        seenTimer = setTimeout(() => {
+          if (!notice || seenCounted || !(pointerInside || focusInside())) return;
+          seenCounted = true;
+          api.count('b-seen', 'Notices seen (pointer or focus in the site for 1 s while up)');
+        }, 1000);
+      }
+
       function scheduleLeave() {
         clearTimeout(leaveTimer);
+        clearTimeout(seenTimer);
         if (!notice) return;
         leaveTimer = setTimeout(() => {
           if (!notice || pointerInside || focusInside()) return;
@@ -128,7 +143,7 @@
         const inside = stage.contains(e.target);
         if (inside) {
           moved = true;
-          if (!pointerInside) { pointerInside = true; clearTimeout(leaveTimer); }
+          if (!pointerInside) { pointerInside = true; clearTimeout(leaveTimer); armSeen(); }
           if (e.buttons) return; // not while dragging
           restart();
         } else if (pointerInside) {
@@ -165,7 +180,7 @@
       api.site.addEventListener('focusin', (e) => {
         if (programmatic || !keyboardInUse) return;
         if (e.relatedTarget && stage.contains(e.relatedTarget)) return;
-        if (notice) { clearTimeout(leaveTimer); kbAnchor = e.target; return; } // Start editing is next again
+        if (notice) { clearTimeout(leaveTimer); armSeen(); kbAnchor = e.target; return; } // Start editing is next again
         if (!eligible()) return;
         kbAnchor = e.target;
         show('keyboard focus');

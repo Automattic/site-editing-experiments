@@ -4,8 +4,9 @@
  * Hovering a paragraph shows the Group, Columns and Column tabs; clicking a
  * tab selects that container (route `tab`) without the canvas selecting what
  * lies under the tab; the tabs hide while typing, while dragging to select
- * text and when the pointer leaves the canvas. Then tasks 1–4, with tasks
- * 2–4 done by tabs, and the completion code.
+ * text and when the pointer leaves the canvas. Then tasks 1–5, with tasks
+ * 2–5 done by tabs, and the completion code. A click in the gap between two
+ * columns selects the Column to its right, as in the control.
  */
 export default async function ({ page, baseUrl, assert, helpers: h }) {
   const step = (text) => console.log('  · ' + text);
@@ -88,12 +89,18 @@ export default async function ({ page, baseUrl, assert, helpers: h }) {
   assert.equal(await h.count(page, 'route-tab'), '2');
   assert.equal((await page.locator('.ut-toolbar .ut-tb-name').textContent()).trim(), 'Columns', 'the toolbar names the Columns');
 
-  step('task 2: the Group tab, then Move up');
-  await hoverText('wednesday-text');
-  await clickTab('classes');
-  assert.equal(await h.selectedId(page), 'classes');
-  await page.locator('.ut-toolbar [data-action="move-up"]').click();
-  assert.equal((await h.topLevelIds(page)).join(','), 'hero,classes,about,hours,contact');
+  step('the block name and the block controls together: Columns, movers | Change vertical alignment | ⋮');
+  const groups = await page.locator('.ut-toolbar .ut-tb-main > .ut-tb-group').evaluateAll((els) => els.map((g) => g.innerText.trim() || Array.from(g.querySelectorAll('button')).map((b) => b.getAttribute('aria-label')).join('|')));
+  assert.deepEqual(groups, ['Columns', 'Change vertical alignment', 'Options']);
+
+  step('task 2: (from nothing selected) the Columns tab, then Block spacing two steps right');
+  await page.keyboard.press('Escape');
+  assert.equal(await h.selectedId(page), null);
+  await hoverText('monday-text');
+  await clickTab('classes-columns');
+  assert.equal(await h.selectedId(page), 'classes-columns');
+  await h.stepSpacing(page, 2);
+  assert.ok(await h.gapOf(page, 'classes-columns') > 50);
   assert.equal(await h.taskDone(page, 2), true, 'task 2 ticked');
 
   step('tabs follow the page through a scroll and Document Overview opening');
@@ -113,28 +120,56 @@ export default async function ({ page, baseUrl, assert, helpers: h }) {
   assert.ok(await followsBlock('hours'), 'hours tab still on its Group with Document Overview open');
   await page.locator('.ut-topbar [data-action="overview"]').click();
 
-  step('task 3: hover the Opening hours paragraph, its Group tab, then a swatch');
-  await hoverText('hours-text');
-  assert.deepEqual(await shownTabs(), ['hours']);
-  await clickTab('hours');
-  assert.equal(await h.selectedId(page), 'hours');
-  await page.locator('.ut-inspector [data-color="sky"]').click();
+  step('task 3: hover the About paragraph, its Columns tab, then Change vertical alignment → Align middle');
+  await hoverText('about-text');
+  assert.deepEqual(await shownTabs(), ['about', 'about-columns', 'about-col-text']);
+  await clickTab('about-columns');
+  assert.equal(await h.selectedId(page), 'about-columns');
+  await h.pickDropdown(page, 'Change vertical alignment', 'Align middle');
   assert.equal(await h.taskDone(page, 3), true, 'task 3 ticked');
 
-  step('task 4: the Saturday Column’s tab, then ⋮ → Delete');
+  step('a click in the gap left of the Saturday class selects its Column, by the padding route');
+  await h.clickGapLeftOf(page, 'saturday');
+  assert.equal(await h.selectedId(page), 'saturday');
+  assert.equal(await h.count(page, 'route-padding'), '1');
+  await page.keyboard.press('Escape');
+
+  step('resting in the gap: no Columns tab (core outlines nothing there), the Group’s stays; the insertion line shows');
+  await h.hoverGapLeftOf(page, 'wednesday');
+  assert.deepEqual(await shownTabs(), ['classes']);
+  assert.equal(await page.locator('.ut-overlay .uta-outline').count(), 1, 'only the Group is outlined');
+  await page.mouse.move(5, 5);
+
+  step('task 4 at 1440×900: the Wednesday Column’s tab, then a swatch');
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await hoverText('wednesday-text');
+  await clickTab('wednesday');
+  assert.equal(await h.selectedId(page), 'wednesday');
+  await h.swatch(page, 'sky');
+  assert.equal(await h.taskDone(page, 4), true, 'task 4 ticked');
+
+  step('task 5, with Wednesday still selected: the Saturday tab moves out from under Wednesday’s toolbar, and is clickable');
+  assert.equal(await h.selectedId(page), 'wednesday');
   await hoverText('saturday-text');
   assert.deepEqual(await shownTabs(), ['classes', 'classes-columns', 'saturday']);
+  const wtb = await page.locator('.ut-toolbar').boundingBox();
+  const st = await tab('saturday').boundingBox();
+  const satBox = await h.block(page, 'saturday').boundingBox();
+  assert.ok(st.x >= wtb.x + wtb.width || st.y >= wtb.y + wtb.height || st.y + st.height <= wtb.y, 'not under the toolbar: ' + JSON.stringify({ st, wtb }));
+  assert.ok(st.x >= satBox.x - 1 && st.x < satBox.x + satBox.width, 'still at the Saturday Column');
   await clickTab('saturday');
   assert.equal(await h.selectedId(page), 'saturday');
   await page.locator('.ut-toolbar [data-action="options"]').click();
   await page.locator('.ut-menu').getByRole('menuitem', { name: 'Delete' }).click();
   assert.equal(await h.block(page, 'saturday').count(), 0);
-  assert.equal(await h.taskDone(page, 4), true, 'task 4 ticked');
-  assert.equal(await h.count(page, 'route-tab'), '5');
+  assert.equal(await h.taskDone(page, 5), true, 'task 5 ticked');
+  // Group and Columns (above), then Columns, About Columns, Wednesday, Saturday.
+  assert.equal(await h.count(page, 'route-tab'), '6');
   assert.equal(await h.count(page, 'wrong'), '0');
 
   const code = await h.finishCode(page);
-  h.checkCode(code, { arm: 'UA', tasks: '1111', routes: '0.0.0.0.0.5', x: 0, u: 0, k: 0 });
+  h.checkCode(code, { arm: 'UA', tasks: '11111', routes: '0.0.0.0.1.6', x: 0, u: 0, k: 0 });
+  await page.setViewportSize({ width: 1600, height: 1000 });
 
   step('Reset clears the arm’s counts');
   await h.reset(page);

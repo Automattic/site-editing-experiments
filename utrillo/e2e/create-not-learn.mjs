@@ -8,8 +8,9 @@
  * caret and counts as one press. The parent selector: Create not Learn's
  * icon, "···" from two levels deep only, its list above the toolbar (rows,
  * rules, icon, hover, pick, Escape, a click outside, the keyboard and Tab).
- * Then the move, the background and the delete by E's routes, the counts
- * and the completion code, and task 1 again by a double click.
+ * Then tasks 2 to 5 by E's routes (a click in the gap between columns, at
+ * E's levels, reaches the Column to its right, as in core), the counts and
+ * the completion code, and task 1 again by a double click.
  *
  * Separate clicks are made at points more than 5px apart, so none of them is
  * taken for a double click. A press's counts are held for half a second in
@@ -194,21 +195,45 @@ export default async function ({ page, baseUrl, assert, helpers: h }) {
   assert.equal(await h.selectedId(page), 'hours', 'the select-parent button selects the parent');
   assert.equal(await h.count(page, 'route-toolbar'), '1');
 
-  step('task 2: one click on the Classes heading selects the section; Move up');
-  await h.block(page, 'classes-heading').locator('.ut-rich').click();
+  step('task 2: a click on the Classes heading selects the section, one on a class the row (Columns); Block spacing');
+  await clickAt('classes-heading', 20, 12);
   assert.equal(await h.selectedId(page), 'classes');
-  await page.locator('.ut-toolbar [data-action="move-up"]').click();
-  assert.equal((await h.topLevelIds(page)).join(','), 'hero,classes,about,hours,contact');
+  await clickAt('monday-heading', 20, 12);
+  assert.equal(await h.selectedId(page), 'classes-columns');
+  await h.stepSpacing(page, 2);
   assert.equal(await h.taskDone(page, 2), true, 'task 2 ticked');
 
-  step('task 3: one click on the Opening hours heading selects the section; a swatch');
-  await h.block(page, 'hours-heading').locator('.ut-rich').click();
-  assert.equal(await h.selectedId(page), 'hours');
-  await page.locator('.ut-inspector [data-color="sky"]').click();
-  assert.equal(await h.block(page, 'hours').evaluate((el) => el.classList.contains('has-sky-background-color')), true);
+  step('task 3: About’s section, its paragraph, then “···” → Columns; Change vertical alignment → Align middle');
+  await clickAt('about-text', 20, 10);
+  assert.equal(await h.selectedId(page), 'about');
+  await clickAt('about-text', 120, 10);
+  assert.equal(await h.selectedId(page), 'about-text');
+  await more.click();
+  await waitMenu(true);
+  await menu.locator('[data-lineage-id="about-columns"]').click();
+  await waitMenu(false);
+  assert.equal(await h.selectedId(page), 'about-columns');
+  await h.pickDropdown(page, 'Change vertical alignment', 'Align middle');
   assert.equal(await h.taskDone(page, 3), true, 'task 3 ticked');
 
-  step('task 4: click the Saturday heading three times (section, row, heading)');
+  step('task 4: section, row, then a click in the gap left of Wednesday selects its Column (E’s click route); a swatch');
+  await clickAt('wednesday-heading', 20, 12);
+  assert.equal(await h.selectedId(page), 'classes');
+  await clickAt('wednesday-heading', 80, 12);
+  assert.equal(await h.selectedId(page), 'classes-columns');
+  await h.clickGapLeftOf(page, 'wednesday');
+  assert.equal(await h.selectedId(page), 'wednesday', 'the gap goes to the Column on its right');
+  assert.equal(await h.count(page, 'route-padding'), '0', 'by E’s clicks, not the padding route');
+  await h.swatch(page, 'sky');
+  assert.equal(await h.taskDone(page, 4), true, 'task 4 ticked');
+  // Back out to nothing, so the next click starts at the section.
+  await page.keyboard.press('Escape');
+  assert.equal(await h.selectedId(page), 'classes-columns');
+  await page.keyboard.press('Escape');
+  await page.keyboard.press('Escape');
+  assert.equal(await h.selectedId(page), null);
+
+  step('task 5: click the Saturday heading three times (section, row, heading)');
   await clickAt('saturday-heading', 20, 12);
   assert.equal(await h.selectedId(page), 'classes');
   await clickAt('saturday-heading', 80, 12);
@@ -235,7 +260,7 @@ export default async function ({ page, baseUrl, assert, helpers: h }) {
   assert.equal(await page.evaluate(() => document.activeElement.dataset.action), 'select-parent', 'Tab goes on from the “···” button');
   assert.equal(await h.selectedId(page), 'saturday-heading');
 
-  step('task 4: “···” → Column selects the Saturday Column; ⋮ → Delete');
+  step('task 5: “···” → Column selects the Saturday Column; ⋮ → Delete');
   await more.click();
   await waitMenu(true);
   assert.equal(await more.evaluate((el) => getComputedStyle(el).backgroundColor), 'rgb(237, 237, 237)', 'pressed in grey while open');
@@ -244,20 +269,21 @@ export default async function ({ page, baseUrl, assert, helpers: h }) {
   await page.locator('.ut-toolbar [data-action="options"]').click();
   await page.locator('.ut-menu').getByRole('menuitem', { name: 'Delete' }).click();
   assert.equal(await h.block(page, 'saturday').count(), 0);
-  assert.equal(await h.taskDone(page, 4), true, 'task 4 ticked');
+  assert.equal(await h.taskDone(page, 5), true, 'task 5 ticked');
 
-  // classes, row (task 1) + about + hours + classes + hours + classes, row (task 4)
-  await waitCount('route-click', '8');
-  await waitCount('route-lineage', '2');
-  await waitCount('arm-lineageOpened', '5');
-  await waitCount('arm-lineagePicked', '2');
+  // classes, row (task 1) + about + hours + classes, row (task 2) + about
+  // (task 3) + classes, row, Wednesday (task 4) + classes, row (task 5)
+  await waitCount('route-click', '12');
+  await waitCount('route-lineage', '3');
+  await waitCount('arm-lineageOpened', '6');
+  await waitCount('arm-lineagePicked', '3');
   assert.equal(await h.count(page, 'route-padding'), '0', 'no padding route in this arm');
   assert.equal(await h.count(page, 'wrong'), '0');
   assert.equal(await page.locator('.ut-notes dt', { hasText: 'lineage' }).innerText(), 'lineage · the “···” list of blocks further up');
 
   const code = await h.finishCode(page);
-  // The last route number is click + lineage: 8 + 2.
-  h.checkCode(code, { arm: 'UE', tasks: '1111', routes: '1.0.0.0.0.10', x: 0, u: 0, k: 2 });
+  // The last route number is click + lineage: 12 + 3.
+  h.checkCode(code, { arm: 'UE', tasks: '11111', routes: '1.0.0.0.0.15', x: 0, u: 0, k: 2 });
 
   step('task 1 again, by a double click on “beginers” and typing: the word isn’t replaced, k0');
   await h.reset(page);
@@ -280,5 +306,5 @@ export default async function ({ page, baseUrl, assert, helpers: h }) {
   await page.waitForFunction(() => /first of a double click: not counted/.test(document.querySelector('.ut-log').innerText));
   assert.equal(await h.count(page, 'clicks-before-caret'), '0');
   assert.equal(await h.count(page, 'route-click'), '0', 'the double click’s first press isn’t a click');
-  h.checkCode(await h.finishCode(page), { arm: 'UE', tasks: '1000', routes: '0.0.0.0.0.0', k: 0 });
+  h.checkCode(await h.finishCode(page), { arm: 'UE', tasks: '10000', routes: '0.0.0.0.0.0', k: 0 });
 }

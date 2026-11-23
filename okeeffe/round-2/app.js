@@ -677,7 +677,8 @@
   function trashPage(pageId) {
     // The Pages screen's Trash lists what's in the trash, by title.
     const gone = page(pageId);
-    if (gone) (state.bin || (state.bin = [])).push({ id: pageId, title: gone.title });
+    // The page itself is kept, with its place in page order, for the Trash view's Restore.
+    if (gone) (state.bin || (state.bin = [])).push({ id: pageId, title: gone.title, page: clone(gone), at: state.pages.indexOf(gone) });
     // Its links go from the menu: on screen, as saved, and at every step Undo can go back to.
     everyMenu(() => {
       const m = state.menu;
@@ -689,6 +690,24 @@
     state.fresh = state.fresh.filter((x) => x !== pageId);
     state.trashed.push(pageId);
     if (ui.current === pageId) ui.current = 'home';
+  }
+
+  // The Trash view's Restore, as WordPress's: the page comes back as a draft (WordPress 5.6 and
+  // later restore to draft), at its place in page order, under its parent if that's still there.
+  // A draft isn't in any menu: published again, it's shown as any page that's published is (the
+  // Page List and Q's pages menu show it; A and the advanced menus add it while their setting
+  // adds new pages; otherwise it needs adding). In S it goes under Other pages, as every page
+  // that wasn't in the site a moment ago does, and stays there when published, until +.
+  function restorePage(pageId) {
+    const b = (state.bin || []).find((x) => x.id === pageId);
+    if (!b || page(pageId)) return null;
+    const p = Object.assign(clone(b.page), { status: 'draft' });
+    if (p.parent && !page(p.parent)) p.parent = null;
+    state.pages.splice(Math.min(b.at, state.pages.length), 0, p);
+    state.bin = state.bin.filter((x) => x !== b);
+    state.trashed = state.trashed.filter((x) => x !== pageId);
+    if (SECTIONS) everyMenu(() => { if (state.menu.mode === 'automatic') setExcluded(pageId, true); });
+    return p;
   }
 
   // ---------- The editor's saving, Undo and Redo (control, auto-add, menu-switches) ----------
@@ -974,6 +993,8 @@
     const o = opts || {};
     if (IN_SIDEBAR) endTyping();
     const before = { state: clone(state), current: ui.current, message: message || '' };
+    // Task 2's marks as they were, so this change's Undo can take back a mark it set (see undo).
+    const marks = { catOutSaved: stats.catOutSaved, catOutHow: stats.catOutHow };
     const sig = menuSignature();
     fn();
     // A Pages panel change can bring the menu back to what's saved (trashing a page whose link
@@ -983,6 +1004,10 @@
     ui.more = null;
     if (!stats.firstMenuChange && menuSignature() !== sig) stats.firstMenuChange = Math.max(1, seconds());
     checkTasks();
+    // A page action that took Catering out of the saved site (moving it to the trash) set the
+    // saved "has been out" mark; its Undo takes the mark back, as an unsaved menu change undone
+    // never set it. (The mark on screen stays: the screen digits show it as touched.)
+    if (undo === before && (stats.catOutSaved !== marks.catOutSaved || stats.catOutHow !== marks.catOutHow)) before.marks = marks;
     save();
     render();
     if (message && !o.quiet) showToast(message, true); else hideToast();
@@ -2653,7 +2678,15 @@
     let list;
     if (ui.pagesFilter === 'trash') {
       const bin = (state.bin || []).filter((b) => !page(b.id) && (!ui.pagesSearch.trim() || b.title.toLowerCase().includes(ui.pagesSearch.trim().toLowerCase())));
-      list = bin.length ? `<ul class="plist" aria-label="Pages">${bin.map((b) => `<li class="prow is-trash"><div class="prow-main"><span class="prow-thumb"></span><span class="prow-text"><span class="prow-line"><span class="prow-title">${esc(b.title)}</span></span><span class="prow-status">${SN_ICON.trash}Trash</span></span></div></li>`).join('')}</ul>` : '';
+      // As WordPress's Trash view: each row says Trash, with Restore beside its ⋮ (Restore, and
+      // Permanently delete…, which isn't part of this prototype).
+      list = bin.length ? `<ul class="plist" aria-label="Pages">${bin.map((b) => {
+        const key = 'bin:' + b.id;
+        return `<li class="prow is-trash${ui.flash === key ? ' flash' : ''}" data-row="${esc(key)}"><div class="prow-main"><span class="prow-thumb"></span><span class="prow-text"><span class="prow-line"><span class="prow-title">${esc(b.title)}</span></span><span class="prow-status">${SN_ICON.trash}Trash</span></span></div>
+          <button type="button" class="prow-edit prow-restore" data-action="restore" data-page="${esc(b.id)}" data-how="Restore on its row in the Trash" data-focus="restore:${esc(b.id)}" aria-label="Restore ${esc(b.title)}">Restore</button>
+          <button type="button" class="icon-btn" data-action="more" data-key="${esc(key)}" data-focus="more:${esc(key)}" aria-label="Actions for ${esc(b.title)}" aria-expanded="${ui.more === key ? 'true' : 'false'}">${ICON.more}</button>
+          ${ui.more === key ? `<div class="moremenu" role="menu"><button type="button" role="menuitem" data-action="restore" data-page="${esc(b.id)}" data-how="Restore in its ⋮ in the Trash">Restore</button><button type="button" role="menuitem" aria-disabled="true" data-action="pages-dead" data-what="${esc('Permanently delete… on ' + q(b.title))}">Permanently delete…</button></div>` : ''}</li>`;
+      }).join('')}</ul>` : '';
     } else {
       const rows = pagesListPages().map((p) => {
         const key = keyRow(p.id);
@@ -3179,6 +3212,15 @@
       commit(() => { trashPage(d.page); ui.pop = null; if (near) ui.focus = 'more:' + near; if (ui.pagesSel === d.page) ui.pagesSel = null; }, `"${p.title}" moved to trash`);
       log('page', 'Moved ' + q(p.title) + ' to trash' + whereWords());
     },
+    restore(d) {
+      const b = (state.bin || []).find((x) => x.id === d.page);
+      if (!b || page(d.page)) return;
+      const keys = [...root.querySelectorAll('.pagescreen [data-row]')].map((el) => el.dataset.row);
+      const at = keys.indexOf('bin:' + d.page);
+      const near = keys[at + 1] || keys[at - 1];
+      commit(() => { restorePage(d.page); ui.more = null; ui.focus = near ? 'more:' + near : 'pages-search'; }, `"${b.title}" has been restored.`);
+      log('page', 'Restored ' + q(b.title) + ' from the trash (' + (d.how || 'Restore') + '): it is a draft again' + (SECTIONS && isAutomatic() ? ', listed under Other pages' : '') + '; ' + menuWords(d.page));
+    },
     'close-dialog'(d) { closeDialog((d && d.how) || 'Cancel'); },
     // A click outside a dialog closes it only if the pointer went down outside it too, and
     // not in the dialog's first half second: the second click of a double-click on the
@@ -3212,6 +3254,7 @@
       if (drag) endDrag(null, true, 'interrupted');
       state = undo.state;
       ui.current = page(undo.current) ? undo.current : 'home';
+      if (undo.marks) { stats.catOutSaved = undo.marks.catOutSaved; stats.catOutHow = undo.marks.catOutHow; }
       undo = null;
       if (IN_SIDEBAR && sameAsSaved()) state.hist.dirty = 0;
       stats.undos++;
@@ -3696,8 +3739,10 @@
   // the menu visitors see (saved), or from the menu on screen. It's noted after every change,
   // and on a reload, and stays noted: Undo, Redo, Save and reloading never clear it.
   function noteCateringOut() {
-    const out = () => { const c = page('catering'); return !!c && c.status === 'publish' && !isShown('catering'); };
-    if (!stats.catOutScreen && out()) stats.catOutScreen = true;
+    // Out: not in the menu visitors see, however that happened (taken out of the menu, or the page
+    // moved to the trash). How it first happened on screen is kept for the code's t part.
+    const out = () => !isShown('catering');
+    if (!stats.catOutScreen && out()) { stats.catOutScreen = true; stats.catOutHow = page('catering') ? 'm' : 't'; }
     if (!stats.catOutSaved && onSaved(out)) stats.catOutSaved = true;
   }
 
@@ -3716,9 +3761,11 @@
     const live = !!catering && catering.status === 'publish';
     return {
       1: !gift.length ? 0 : gift.some((p) => shown(p.id)) ? 2 : 1,
-      // Catering has been out of the menu (see noteCateringOut) and is still published.
-      2: wasOut && live ? 1 : 0,
-      // ... and is back in it now.
+      // Catering has been out of the menu visitors see at some point (see noteCateringOut),
+      // whether taken out of the menu or moved to the trash.
+      2: wasOut ? 1 : 0,
+      // ... and is back in it now, published (after the trash: Restore, Publish, and in some
+      // menus adding it again).
       3: wasOut && live && shown('catering') ? 1 : 0,
       // Any label counts. B and F can't hold a link to another site, so it's always 0 there.
       4: flat.some((n) => n.url && INSTAGRAM.test(n.url)) ? 1 : 0,
@@ -3736,9 +3783,9 @@
 
   const THREE = ['not published', 'published, not in the menu', 'published and in the menu'];
   const TASKS = [
-    { n: 1, text: 'Make and publish a Gift cards page, and get it into the menu.', hint: 'Ticks when a published page with “gift” in its title is in the header menu. Ask first: will a new page show in the menu by itself?', full: 2, state: (v) => THREE[v] },
-    { n: 2, text: 'Take Catering out of the menu, but keep the page.', hint: 'Ticks when Catering has been out of the header menu while published, and is still published (it stays ticked when task 3 puts it back).', state: (v) => (v ? 'it has been out of the menu, and is published' : page('catering') && page('catering').status === 'publish' ? 'it hasn’t been out of the menu' : 'the page is in the trash') },
-    { n: 3, text: 'Put Catering back in the menu.', hint: 'Ticks when Catering, after being out of the header menu, is in it again.', state: (v) => (v ? 'back in the menu' : 'not back in the menu') },
+    { n: 1, text: 'Make and publish a Gift cards page. Rosa wants to make sure people can get to this page easily. Make sure they can.', hint: 'Ticks when a published page with “gift” in its title is in the header menu. Ask first: will a new page show in the menu automatically?', full: 2, state: (v) => THREE[v] },
+    { n: 2, text: 'Take Catering out of the menu.', hint: 'Ticks when Catering has been out of the header menu at some point, however that happened (taken out of the menu, or the page moved to the trash); it stays ticked when task 3 puts it back. Ask after: is the page still on the site, or deleted? Can a visitor still get to it?', state: (v) => (v ? (stats.catOutHow === 't' ? 'it has been out of the menu (the page was moved to the trash)' : 'it has been out of the menu') : 'it hasn’t been out of the menu') },
+    { n: 3, text: 'Rosa has now started doing catering again. Put it back in the menu.', hint: 'Ticks when Catering, after being out of the header menu, is published and in it again (after the trash: Restore, which makes it a draft, then Publish, and in some menus adding it again).', state: (v) => (v ? 'back in the menu' : page('catering') ? (page('catering').status === 'publish' ? 'not back in the menu' : 'a draft (restored from the trash), not in the menu') : 'the page is in the trash') },
     { n: 4, text: 'Add Rosa’s Instagram page (instagram.com/rosasbakery) to the menu.', hint: IN_SIDEBAR ? 'Ticks when the header menu has a link to instagram.com/rosasbakery (with or without www., a slash at the end or a query), whatever its label.' : 'Doesn’t apply here: this prototype has no way to add a link to another site, so it is always 0.', state: (v) => (v ? 'the menu has a link to it' : 'the menu has no link to it') },
     { n: 5, text: 'Move Visit us to straight after Home.', hint: 'Ticks when Visit us is the top-level item right after Home in the header.', state: (v) => (v ? 'right after Home' : 'not right after Home') }
   ];
@@ -3773,15 +3820,15 @@
 
   /*
    * For pasting into an unmoderated testing tool. For example:
-   *   OC-21111-mp140-d0.0-f35-r1.2-o0-n0-x0-u2.1-k3-g40-y30-e0-w0-v2.1-s412
-   * OC, OA, OB, OF, OQ: the arm · the five tasks when Finished was clicked ·
+   *   OC-21111-mp140-d0.0-f35-r1.2-o0-n0-x0-tm-u2.1-k3-g40-y30-e0-w0-v2.1-s412
+   * OC, OA, OB, OF, OQ, OS: the arm · the five tasks when Finished was clicked ·
    * m: the menu at the end (ma automatic, ms S's sections, which don't add new pages, ml links, mv advanced and still adding pages,
    *    mx advanced with adding turned off; each with the seconds when it was converted.
    *    In OA nothing is converted: mv, with no seconds, while Auto add pages is on, and mx
    *    with the seconds when it was last turned off) ·
    * d: convert dialogs shown, confirmed · f: seconds until the first change to what the
    * menu shows (0 never) · r: reorders by drag, by Move up/down · n: whether Visit us was made to say Find us, no longer a task
-   * (np page renamed, nl only a link's label, n0 neither) · x: pages in the trash ·
+   * (np page renamed, nl only a link's label, n0 neither) · x: pages in the trash · t: how Catering first left the menu (tm out of the menu, tt trashed, t0 never) ·
    * u: uses of Undo, of Redo · k: the arm's own count · g: seconds until the Pages screen was
    * first opened (sidebar arms; 0 never, always 0 in B and F) · e: times turned back at "Have you
    * done every task?" · w: unsaved menu changes at Finished · v: saves, save panels closed
@@ -3826,6 +3873,9 @@
       'o' + (stats.orderUses || 0),
       'n' + onSaved(renameHow),
       'x' + state.trashed.length,
+      // How Catering first left the menu visitors see (task 2), on screen: tm taken out of the
+      // menu, still published; tt moved to the trash; t0 never.
+      't' + (stats.catOutHow || '0'),
       'u' + stats.undos + '.' + stats.redos,
       'k' + stats.own,
       // Seconds until the Pages screen was first opened (sidebar arms); always g0 in B and F.

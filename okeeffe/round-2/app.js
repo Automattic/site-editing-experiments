@@ -993,6 +993,8 @@
     const o = opts || {};
     if (IN_SIDEBAR) endTyping();
     const before = { state: clone(state), current: ui.current, message: message || '' };
+    // Task 2's marks as they were, so this change's Undo can take back a mark it set (see undo).
+    const marks = { catOutSaved: stats.catOutSaved, catOutHow: stats.catOutHow };
     const sig = menuSignature();
     fn();
     // A Pages panel change can bring the menu back to what's saved (trashing a page whose link
@@ -1002,6 +1004,10 @@
     ui.more = null;
     if (!stats.firstMenuChange && menuSignature() !== sig) stats.firstMenuChange = Math.max(1, seconds());
     checkTasks();
+    // A page action that took Catering out of the saved site (moving it to the trash) set the
+    // saved "has been out" mark; its Undo takes the mark back, as an unsaved menu change undone
+    // never set it. (The mark on screen stays: the screen digits show it as touched.)
+    if (undo === before && (stats.catOutSaved !== marks.catOutSaved || stats.catOutHow !== marks.catOutHow)) before.marks = marks;
     save();
     render();
     if (message && !o.quiet) showToast(message, true); else hideToast();
@@ -3248,6 +3254,7 @@
       if (drag) endDrag(null, true, 'interrupted');
       state = undo.state;
       ui.current = page(undo.current) ? undo.current : 'home';
+      if (undo.marks) { stats.catOutSaved = undo.marks.catOutSaved; stats.catOutHow = undo.marks.catOutHow; }
       undo = null;
       if (IN_SIDEBAR && sameAsSaved()) state.hist.dirty = 0;
       stats.undos++;

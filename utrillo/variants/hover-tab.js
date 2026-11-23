@@ -8,8 +8,11 @@
  * selects that container (route `tab`); hovering a tab highlights it.
  *
  * Tabs hide when the pointer leaves the canvas, while typing (until the
- * pointer moves), while dragging to select text, and wherever they would sit
- * under the block toolbar.
+ * pointer moves) and while dragging to select text. A tab that would sit
+ * under the toolbar of another block moves out of its way (inside its
+ * container's top-left corner, or beside the toolbar); one under its own
+ * block's toolbar hides, as the toolbar already names that block. In the gap
+ * between two columns the Columns has no tab, as core outlines nothing there.
  *
  * The block toolbar also shows the selected block's name beside its icon
  * ("Group", "Column"), so it says the same as the tab that was clicked.
@@ -54,9 +57,14 @@
 
       // ---------- Which containers are under the pointer ----------
 
+      // In the gap between two columns core outlines nothing: the gap is its
+      // insertion point's. So the Columns there gets no tab of its own; the
+      // containers around it keep theirs.
       function stackFor(el) {
         const id = api.idFromElement(el);
         if (!id) return [];
+        const gap = api.gapAt(lastX, lastY);
+        if (gap && gap.columnsId === id) return api.getAncestors(id).filter((x) => api.isContainer(x));
         return api.getAncestors(id).concat(id).filter((x) => api.isContainer(x));
       }
 
@@ -183,8 +191,16 @@
             if (!hit) break;
             box = { top: hit.top, bottom: hit.bottom, left: hit.right + TAB_GAP, right: hit.right + TAB_GAP + w };
           }
+          // Never under the block toolbar. Under another block's toolbar, move:
+          // inside the container's top-left corner, or else just right of the
+          // toolbar. Under its own block's, hide: the toolbar names it.
+          if (toolbar && overlaps(box, toolbar) && id !== api.getSelectedId()) {
+            const inside = { top: Math.max(r.top, visibleTop + 2), left: r.left };
+            let moved = { top: inside.top, bottom: inside.top + TAB_H, left: inside.left, right: inside.left + w };
+            if (overlaps(moved, toolbar) || boxes.some((p) => overlaps(moved, p))) moved = { top: box.top, bottom: box.bottom, left: toolbar.right + TAB_GAP, right: toolbar.right + TAB_GAP + w };
+            box = moved;
+          }
           boxes.push(box);
-          // Never under the block toolbar.
           const hidden = !!(toolbar && overlaps(box, toolbar)) || r.bottom - TAB_H < visibleTop;
           pair.tab.hidden = hidden;
           pair.tab.style.top = Math.round(box.top) + 'px';

@@ -3,8 +3,8 @@
  *
  * One simplified site editor, four arms. People click what they can see (a
  * paragraph, a picture) and the editor selects that innermost block. Then they
- * have to find how to select the section around it, the Group, Columns, Column
- * or Cover, to move it, change its background or delete it.
+ * have to find how to select the block around it, the Group, Columns, Column
+ * or Cover, to space out its columns, line them up, colour one or delete one.
  *
  * This file is everything the four arms share: the page, the editor around it
  * (toolbar, inspector, breadcrumb, Document Overview, undo), the tasks, the
@@ -15,8 +15,12 @@
  *   menu        Select parent block in the toolbar's ⋮ menu
  *   breadcrumb  an item in the breadcrumb under the canvas
  *   listview    a row in Document Overview (List View)
- *   padding     a click that lands on a container's own area: its padding,
- *               the gap between columns, a column's empty space
+ *   padding     a click that lands on a container's own area: a Group's or
+ *               Cover's padding, a Column's empty space, the Buttons row's
+ *               empty space. A quick click in the gap between two columns
+ *               selects the Column to the gap's right, as WordPress 7.1.5
+ *               does (see "The gap between columns"), so the Columns block
+ *               itself can't be reached by clicking.
  *
  * The control (control.html) is this file alone. Each other arm adds its own
  * thing in its own file under variants/, using only the API at the end of
@@ -55,7 +59,7 @@
     menu: 'Select parent block in the ⋮ menu',
     breadcrumb: 'the breadcrumb',
     listview: 'Document Overview',
-    padding: 'a click on its own area (padding, gap or empty space)',
+    padding: 'a click on its own area (padding, empty space, or the gap left of a column)',
     tab: 'a hover tab',
     tree: 'the section’s block list, from the block name in the toolbar',
     layers: 'the Layers popover',
@@ -88,7 +92,22 @@
     close: '<svg viewBox="0 0 24 24" style="fill:none" stroke="currentColor" stroke-width="1.5" width="24" height="24" aria-hidden="true" focusable="false"><path d="M5 19L19 5M19 19L5 5"></path></svg>',
     plus: '<svg viewBox="0 0 24 24" style="fill:none" stroke="currentColor" stroke-width="1.5" width="24" height="24" aria-hidden="true" focusable="false"><path d="M12 18V6M18 12H6"></path></svg>',
     minus: '<svg viewBox="0 0 24 24" style="fill:none" stroke="currentColor" stroke-width="1.5" width="24" height="24" aria-hidden="true" focusable="false"><path d="M5 12H19"></path></svg>',
-    check: '<svg viewBox="0 0 24 24" style="fill:none" stroke="currentColor" stroke-width="1.5" width="24" height="24" aria-hidden="true" focusable="false"><path d="M7 12L10 15L17 8"></path></svg>'
+    check: '<svg viewBox="0 0 24 24" style="fill:none" stroke="currentColor" stroke-width="1.5" width="24" height="24" aria-hidden="true" focusable="false"><path d="M7 12L10 15L17 8"></path></svg>',
+    // Change vertical alignment (BlockVerticalAlignmentToolbar) and Align text (AlignmentControl).
+    justifyTop: '<svg viewBox="0 0 24 24" style="fill:none" stroke="currentColor" stroke-width="1.5" width="24" height="24" aria-hidden="true" focusable="false"><rect x="9" y="9" width="6" height="11" fill="currentColor" stroke="none"></rect><path d="M4 4.75H20"></path></svg>',
+    justifyCenterVertical: '<svg viewBox="0 0 24 24" style="fill:none" stroke="currentColor" stroke-width="1.5" width="24" height="24" aria-hidden="true" focusable="false"><path d="M4 12H20"></path><rect x="9" y="4" width="6" height="16" fill="currentColor" stroke="none"></rect></svg>',
+    justifyBottom: '<svg viewBox="0 0 24 24" style="fill:none" stroke="currentColor" stroke-width="1.5" width="24" height="24" aria-hidden="true" focusable="false"><path d="M4 19.25H20"></path><rect x="9" y="4" width="6" height="11" fill="currentColor" stroke="none"></rect></svg>',
+    justifyStretchVertical: '<svg viewBox="0 0 24 24" style="fill:none" stroke="currentColor" stroke-width="1.5" width="24" height="24" aria-hidden="true" focusable="false"><rect x="10" y="7" width="4" height="10" fill="currentColor" stroke="none"></rect><path d="M4 4.75H20M4 19.25H20"></path></svg>',
+    sidesVertical: '<svg viewBox="0 0 24 24" style="fill:none" stroke="currentColor" stroke-width="1.5" width="24" height="24" aria-hidden="true" focusable="false"><path opacity=".25" d="M5.5 7.5L5.5 16.5M18.5 16.5L18.5 7.5"></path><path d="M16.5 5.5L7.5 5.5M7.5 18.5L16.5 18.5"></path></svg>',
+    sidesHorizontal: '<svg viewBox="0 0 24 24" style="fill:none" stroke="currentColor" stroke-width="1.5" width="24" height="24" aria-hidden="true" focusable="false"><path opacity=".25" d="M7.5 18.5L16.5 18.5M16.5 5.5L7.5 5.5"></path><path d="M18.5 16.5L18.5 7.5M5.5 7.5L5.5 16.5"></path></svg>',
+    // Set custom value (settings), Unlink sides (link), and the inspector's tabs (cog, styles).
+    settings: '<svg viewBox="0 0 24 24" style="fill:none" stroke="currentColor" stroke-width="1.5" width="24" height="24" aria-hidden="true" focusable="false"><path d="M5 8H19M19 16H5M10.75 8C10.75 8.82843 10.0784 9.5 9.25 9.5C8.42157 9.5 7.75 8.82843 7.75 8C7.75 7.17157 8.42157 6.5 9.25 6.5C10.0784 6.5 10.75 7.17157 10.75 8ZM16.25 16C16.25 16.8284 15.5784 17.5 14.75 17.5C13.9216 17.5 13.25 16.8284 13.25 16C13.25 15.1716 13.9216 14.5 14.75 14.5C15.5784 14.5 16.25 15.1716 16.25 16Z"></path></svg>',
+    link: '<svg viewBox="0 0 24 24" style="fill:none" stroke="currentColor" stroke-width="1.5" width="24" height="24" aria-hidden="true" focusable="false"><path d="M9.5 12L14.5 12M10 7.75H8.25C5.90279 7.75 4 9.65279 4 12C4 14.3472 5.90279 16.25 8.25 16.25H10M14 16.25H15.75C18.0972 16.25 20 14.3472 20 12C20 9.65279 18.0972 7.75 15.75 7.75L14 7.75"></path></svg>',
+    cog: '<svg viewBox="0 0 24 24" style="fill:none" stroke="currentColor" stroke-width="1.5" width="24" height="24" aria-hidden="true" focusable="false"><path d="M5.38646 8.95505C5.36302 8.99564 5.37092 9.04706 5.40547 9.07874L6.96476 10.509C7.08306 10.1089 7.24777 9.72864 7.45264 9.37456C7.66022 9.01579 7.90904 8.68387 8.19262 8.38527L6.17287 7.74956C6.12816 7.73549 6.07968 7.75436 6.05624 7.79495L5.38646 8.95505Z" fill="currentColor" stroke-linejoin="round"></path><path d="M12.6698 19.25C12.7167 19.25 12.7573 19.2174 12.7674 19.1717L13.2265 17.106C12.833 17.2001 12.4223 17.25 12 17.25C11.5777 17.25 11.167 17.2001 10.7736 17.106L11.2326 19.1717C11.2428 19.2174 11.2834 19.25 11.3303 19.25L12.6698 19.25Z" fill="currentColor" stroke-linejoin="round"></path><path d="M11.3303 4.75C11.2834 4.75 11.2428 4.78255 11.2326 4.82831L10.7736 6.89403C11.167 6.79986 11.5777 6.75 12 6.75C12.4223 6.75 12.833 6.79987 13.2265 6.89403L12.7674 4.82831C12.7573 4.78255 12.7167 4.75 12.6698 4.75L11.3303 4.75Z" fill="currentColor" stroke-linejoin="round"></path><path d="M17.9438 7.79495C17.9204 7.75436 17.8719 7.73549 17.8272 7.74956L15.8074 8.38528C16.091 8.68388 16.3398 9.0158 16.5474 9.37457C16.7523 9.72865 16.917 10.1089 17.0353 10.509L18.5946 9.07874C18.6291 9.04706 18.637 8.99564 18.6136 8.95505L17.9438 7.79495Z" fill="currentColor" stroke-linejoin="round"></path><path d="M6.05625 16.205C6.07968 16.2456 6.12816 16.2645 6.17287 16.2504L8.19262 15.6147C7.90904 15.3161 7.66022 14.9842 7.45264 14.6254C7.24777 14.2714 7.08307 13.8911 6.96476 13.491L5.40547 14.9213C5.37093 14.9529 5.36303 15.0044 5.38646 15.045L6.05625 16.205Z" fill="currentColor" stroke-linejoin="round"></path><path d="M18.6136 15.0449C18.637 15.0044 18.6291 14.9529 18.5946 14.9213L17.0353 13.491C16.917 13.8911 16.7523 14.2713 16.5474 14.6254C16.3398 14.9842 16.091 15.3161 15.8074 15.6147L17.8272 16.2504C17.8719 16.2645 17.9204 16.2456 17.9438 16.205L18.6136 15.0449Z" fill="currentColor" stroke-linejoin="round"></path><path d="M12 6.75C14.8995 6.75 17.25 9.10051 17.25 12C17.25 14.8995 14.8995 17.25 12 17.25C9.10051 17.25 6.75 14.8995 6.75 12C6.75 9.10051 9.10051 6.75 12 6.75Z"></path><path d="M12 8C14.2091 8 16 9.79086 16 12C16 14.2091 14.2091 16 12 16C9.79086 16 8 14.2091 8 12C8 9.79086 9.79086 8 12 8Z"></path></svg>',
+    styles: '<svg viewBox="0 0 24 24" style="fill:none" stroke="currentColor" stroke-width="1.5" width="24" height="24" aria-hidden="true" focusable="false"><path d="M12 4.75C7.99594 4.75 4.75 7.99593 4.75 12C4.75 16.0041 7.99594 19.25 12 19.25L12 4.75Z" fill="currentColor" stroke="none"></path><path d="M12 19.25C16.0041 19.25 19.25 16.0041 19.25 12C19.25 7.99594 16.0041 4.75 12 4.75C7.99594 4.75 4.75 7.99594 4.75 12C4.75 16.0041 7.99594 19.25 12 19.25Z" stroke-linejoin="round"></path></svg>',
+    alignLeft: '<svg viewBox="0 0 24 24" style="fill:none" stroke="currentColor" stroke-width="1.5" width="24" height="24" aria-hidden="true" focusable="false"><path d="M4 5H13M4 12H20M4 19H13"></path></svg>',
+    alignCenter: '<svg viewBox="0 0 24 24" style="fill:none" stroke="currentColor" stroke-width="1.5" width="24" height="24" aria-hidden="true" focusable="false"><path d="M7.5 5H16.5M4 12H20M7.5 19H16.5"></path></svg>',
+    alignRight: '<svg viewBox="0 0 24 24" style="fill:none" stroke="currentColor" stroke-width="1.5" width="24" height="24" aria-hidden="true" focusable="false"><path d="M11 5H20M4 12H20M11 19H20"></path></svg>'
   };
 
   // Headings show their level, as the editor's heading variations do:
@@ -98,17 +117,111 @@
 
   // ---------- Block types: core's titles, icons and descriptions ----------
 
+  // `settings`: the inspector's panels, in order. `tabs`: for blocks that
+  // core shows with Settings and Styles tabs, the panels on each. `controls`: the toolbar's
+  // block controls, between the movers and ⋮, as core places them.
   const TYPES = {
-    'core/cover': { title: 'Cover', icon: ICONS.cover, container: true, settings: 'overlay', description: 'Add an image or video with a text overlay.' },
-    'core/group': { title: 'Group', icon: ICONS.group, container: true, settings: 'background', description: 'Gather blocks in a layout container.' },
-    'core/columns': { title: 'Columns', icon: ICONS.columns, container: true, settings: 'columns', description: 'Display content in multiple columns, with blocks added to each column.' },
-    'core/column': { title: 'Column', icon: ICONS.column, container: true, settings: 'background', horizontal: true, description: 'A single column within a columns block.' },
+    'core/cover': { title: 'Cover', icon: ICONS.cover, container: true, settings: ['overlay'], description: 'Add an image or video with a text overlay.' },
+    'core/group': { title: 'Group', icon: ICONS.group, container: true, settings: ['background', 'dimensions'], description: 'Gather blocks in a layout container.' },
+    'core/columns': { title: 'Columns', icon: ICONS.columns, container: true, tabs: { settings: ['columns'], styles: ['background', 'dimensions'] }, controls: 'valign', description: 'Display content in multiple columns, with blocks added to each column.' },
+    'core/column': { title: 'Column', icon: ICONS.column, container: true, tabs: { settings: ['width'], styles: ['background', 'dimensions'] }, controls: 'valign-column', horizontal: true, description: 'A single column within a columns block.' },
     'core/buttons': { title: 'Buttons', icon: ICONS.buttons, container: true, description: 'Prompt visitors to take action with a group of button-style links.' },
     'core/button': { title: 'Button', icon: ICONS.button, text: true, horizontal: true, description: 'Prompt visitors to take action with a button-style link.' },
-    'core/heading': { title: 'Heading', icon: ICONS.heading, text: true, settings: 'background', description: 'Introduce new sections and organize content to help visitors (and search engines) understand the structure of your content.' },
-    'core/paragraph': { title: 'Paragraph', icon: ICONS.paragraph, text: true, settings: 'background', description: 'Start with the basic building block of all narrative.' },
-    'core/image': { title: 'Image', icon: ICONS.image, settings: 'alt', description: 'Insert an image to make a visual statement.' }
+    'core/heading': { title: 'Heading', icon: ICONS.heading, text: true, settings: ['background'], controls: 'textalign', description: 'Introduce new sections and organize content to help visitors (and search engines) understand the structure of your content.' },
+    'core/paragraph': { title: 'Paragraph', icon: ICONS.paragraph, text: true, settings: ['background'], controls: 'textalign', description: 'Start with the basic building block of all narrative.' },
+    'core/image': { title: 'Image', icon: ICONS.image, settings: ['alt'], description: 'Insert an image to make a visual statement.' }
   };
+
+  // The toolbar's dropdowns, with core's labels, items and icons.
+  // Columns offers top, middle and bottom; a Column also Stretch to fill.
+  const VALIGN = {
+    top: { title: 'Align top', icon: ICONS.justifyTop },
+    center: { title: 'Align middle', icon: ICONS.justifyCenterVertical },
+    bottom: { title: 'Align bottom', icon: ICONS.justifyBottom },
+    stretch: { title: 'Stretch to fill', icon: ICONS.justifyStretchVertical }
+  };
+  const TEXT_ALIGN = {
+    left: { title: 'Align text left', icon: ICONS.alignLeft },
+    center: { title: 'Align text center', icon: ICONS.alignCenter },
+    right: { title: 'Align text right', icon: ICONS.alignRight }
+  };
+  const DROPDOWNS = {
+    valign: { label: 'Change vertical alignment', attr: 'verticalAlignment', items: VALIGN, keys: ['top', 'center', 'bottom'], fallback: 'top' },
+    'valign-column': { label: 'Change vertical alignment', attr: 'verticalAlignment', items: VALIGN, keys: ['top', 'center', 'bottom', 'stretch'], fallback: 'top' },
+    textalign: { label: 'Align text', attr: 'textAlign', items: TEXT_ALIGN, keys: ['left', 'center', 'right'], fallback: 'left' }
+  };
+
+  // Block spacing: core's default spacing presets (spacingScale), at 16px
+  // to the rem. Fewer than nine, so core shows them as a slider of steps.
+  const SPACING = [
+    { slug: '0', name: 'None', rem: 0 },
+    { slug: '20', name: '2X-Small', rem: 0.44 },
+    { slug: '30', name: 'X-Small', rem: 0.67 },
+    { slug: '40', name: 'Small', rem: 1 },
+    { slug: '50', name: 'Medium', rem: 1.5 },
+    { slug: '60', name: 'Large', rem: 2.25 },
+    { slug: '70', name: 'X-Large', rem: 3.38 },
+    { slug: '80', name: '2X-Large', rem: 5.06 }
+  ];
+  const spacingIndex = (slug) => SPACING.findIndex((p) => p.slug === slug);
+  const spacingPx = (slug) => SPACING[spacingIndex(slug)].rem * 16;
+  const spacingCss = (slug) => SPACING[spacingIndex(slug)].rem + 'rem';
+  const spacingName = (slug) => (slug ? SPACING[spacingIndex(slug)].name : 'default');
+
+  /*
+   * The Dimensions panel's sliders, per block, in core's order. Each is one
+   * attribute holding a preset slug (unset: the block's default):
+   *   paddingV, paddingH  padding top and bottom, left and right
+   *   margin              margin top and bottom
+   *   gapV, gapH          a Columns' Block spacing: between rows (when its
+   *                       columns wrap, so never on this page) and between
+   *                       its columns (the space task 2 asks for)
+   *   gap                 a Group's Block spacing: between its blocks
+   * `icon` is core's side icon; a Group's single Block spacing has none.
+   */
+  const DIMENSIONS = {
+    'core/columns': [
+      { key: 'paddingV', group: 'Padding', icon: 'sidesVertical', label: 'Vertical padding' },
+      { key: 'paddingH', group: 'Padding', icon: 'sidesHorizontal', label: 'Horizontal padding' },
+      { key: 'margin', group: 'Margin', icon: 'sidesVertical', label: 'Vertical margin' },
+      { key: 'gapV', group: 'Block spacing', icon: 'sidesVertical', label: 'Vertical block spacing' },
+      { key: 'gapH', group: 'Block spacing', icon: 'sidesHorizontal', label: 'Horizontal block spacing' }
+    ],
+    'core/group': [
+      { key: 'paddingV', group: 'Padding', icon: 'sidesVertical', label: 'Vertical padding' },
+      { key: 'paddingH', group: 'Padding', icon: 'sidesHorizontal', label: 'Horizontal padding' },
+      { key: 'margin', group: 'Margin', icon: 'sidesVertical', label: 'Vertical margin' },
+      { key: 'gap', group: 'Block spacing', icon: null, label: 'Block spacing' }
+    ],
+    'core/column': [
+      { key: 'paddingV', group: 'Padding', icon: 'sidesVertical', label: 'Vertical padding' },
+      { key: 'paddingH', group: 'Padding', icon: 'sidesHorizontal', label: 'Horizontal padding' }
+    ]
+  };
+  const DIMENSION_KEYS = ['paddingV', 'paddingH', 'margin', 'gapV', 'gapH', 'gap'];
+  // What each is with nothing set, in px. Columns: core's 2em gap, of the
+  // page's 17px text, and core's padding once it has a background. Groups:
+  // their own padding, and the theme's 1.5rem between blocks.
+  function defaultPx(node, key) {
+    const bg = !!node.attrs.background;
+    if (key === 'gapV' || key === 'gapH') return 34;
+    if (key === 'gap') return 24;
+    if (key === 'margin') return 0;
+    if (node.name === 'core/columns' && bg) return key === 'paddingV' ? 21 : 40;
+    return node.attrs.padding || 0;
+  }
+  const dimensionPx = (node, key) => (node.attrs[key] ? spacingPx(node.attrs[key]) : defaultPx(node, key));
+  // Where the slider's thumb sits with nothing set: at the default, between
+  // two steps if it falls between them. (Core puts it at None.)
+  function sliderPosition(node, key) {
+    if (node.attrs[key]) return spacingIndex(node.attrs[key]);
+    const px = defaultPx(node, key);
+    for (let i = 1; i < SPACING.length; i++) {
+      const lo = SPACING[i - 1].rem * 16, hi = SPACING[i].rem * 16;
+      if (px <= hi) return i - 1 + (px - lo) / (hi - lo);
+    }
+    return SPACING.length - 1;
+  }
 
   // The colour swatches in the inspector. Text turns light on the dark ones.
   const COLORS = [
@@ -152,7 +265,8 @@
         ]),
         b('about-col-text', 'core/column', {}, [
           b('about-heading', 'core/heading', { level: 2, content: 'About the studio' }),
-          b('about-text', 'core/paragraph', { content: 'Fernhill opened in 2019 with one room and twelve mats. Classes are kept small, so teachers know your name and can help you settle into each pose.' })
+          // Shorter than the picture beside it, so task 3's vertical alignment shows.
+          b('about-text', 'core/paragraph', { content: 'Fernhill opened in 2019 with one room and twelve mats. Classes are kept small.' })
         ])
       ])
     ]),
@@ -185,7 +299,6 @@
       b('contact-text', 'core/paragraph', { content: 'Fernhill Yoga · 4 Mill Lane, Ashby · 01632 960 418' })
     ])
   ];
-  const START_HOURS_BACKGROUND = 'sand';
   // The blocks the page starts with. Only deleting or removing one of these
   // can be a wrong target: blocks the person added themselves don't count.
   const ORIGINAL = new Set();
@@ -200,7 +313,7 @@
   let editingId;         // the block whose text has the caret, or null
   let expanded;          // Document Overview: the rows that are open
   let overviewOpen;
-  let menuOpen;          // the ⋮ menu
+  let menuOpen;          // the ⋮ menu, or a toolbar dropdown (see menuKind)
   let toolbarHidden;     // while typing, as in the editor, until the pointer moves
   let pointerHoverId, explicitHighlightId;
   let newIds;
@@ -229,6 +342,9 @@
       redos: 0,
       clicksBeforeCaret: 0,
       overviewOpened: 0,
+      stylesOpened: 0,
+      gapLines: 0,
+      gapInserts: 0,
       menuOpened: 0,
       arm: {},        // the arm's own counters, from api.count
       armLabels: {}
@@ -240,6 +356,7 @@
     caretLanded = false;
     lastCanvasDown = -Infinity;
     emptiedFlagged = false;
+    wrongKeys = new Map();
   }
 
   // ---------- Helpers ----------
@@ -322,6 +439,23 @@
     stats.wrong++;
     note('wrong', 'Wrong target: ' + text);
   }
+  /*
+   * A wrong target counts at most once per block per task, until it's
+   * undone: a second swatch, another arrow press or a second Align text on
+   * the same block doesn't count again. `key` is the task and the block. The
+   * change that follows pushes one undo step; once that step is undone the
+   * key is free again (see forgetUndoneWrongs).
+   */
+  let wrongKeys = new Map(); // key → the undo depth its change made
+  function wrongOnce(task, id, text) {
+    const key = task + ':' + id;
+    if (wrongKeys.has(key)) { note('wrong-again', 'Again (not counted): ' + text); return; }
+    wrongKeys.set(key, undoStack.length + 1);
+    wrong(text);
+  }
+  function forgetUndoneWrongs() {
+    for (const [key, depth] of wrongKeys) if (depth > undoStack.length) wrongKeys.delete(key);
+  }
 
   let toastTimer = null;
   function toast(text) {
@@ -347,8 +481,25 @@
     let cls = 'ut-block wp-block-' + node.name.split('/')[1];
     if (bg) cls += ' has-background has-' + bg.slug + '-background-color' + (bg.dark ? ' is-dark' : ' is-light');
     if (a.small) cls += ' is-small-text';
+    // Core's classes for vertical alignment and text alignment.
+    if (a.verticalAlignment) cls += node.name === 'core/columns' ? ' are-vertically-aligned-' + a.verticalAlignment : ' is-vertically-aligned-' + a.verticalAlignment;
+    if (a.textAlign) cls += ' has-text-align-' + a.textAlign;
     const attrs = ' data-block-id="' + esc(node.id) + '" data-block-name="' + node.name + '" data-block-title="' + t.title + '" tabindex="-1" aria-label="Block: ' + t.title + '"';
-    const style = bg ? ' style="--ut-bg:' + bg.value + (a.padding ? ';padding:' + a.padding + 'px' : '') + '"' : (a.padding ? ' style="padding:' + a.padding + 'px"' : '');
+    const css = [];
+    if (bg) css.push('--ut-bg:' + bg.value);
+    // Padding: the block's own (a Group's 48px), or as set in Dimensions.
+    if (a.paddingV || a.paddingH) {
+      const pv = a.paddingV ? spacingCss(a.paddingV) : defaultPx(node, 'paddingV') + 'px';
+      const ph = a.paddingH ? spacingCss(a.paddingH) : defaultPx(node, 'paddingH') + 'px';
+      css.push('padding:' + pv + ' ' + ph);
+    } else if (a.padding) css.push('padding:' + a.padding + 'px');
+    if (a.margin) css.push('margin-top:' + spacingCss(a.margin) + ';margin-bottom:' + spacingCss(a.margin));
+    // Block spacing: between a Group's blocks; between a Columns' columns (gapH) and rows (gapV).
+    if (a.gap) { css.push('--ut-gap:' + spacingCss(a.gap)); cls += ' has-block-gap'; }
+    if (a.gapH) css.push('column-gap:' + spacingCss(a.gapH));
+    if (a.gapV) css.push('row-gap:' + spacingCss(a.gapV));
+    if (a.width) css.push('flex-basis:' + a.width + '%;flex-grow:0');
+    const style = css.length ? ' style="' + css.join(';') + '"' : '';
     const rich = (tag, extra) => '<' + tag + ' class="ut-rich' + (extra || '') + '" contenteditable="true" spellcheck="false" role="textbox" aria-multiline="false" aria-label="' + t.title + ' text" data-placeholder="Type / to choose a block">' + esc(a.content || '') + '</' + tag + '>';
 
     switch (node.name) {
@@ -441,6 +592,7 @@
   // Draw the page again, after any change to it. Selection, hover and the
   // toolbar are put back; focus goes to the selected block if it was in the page.
   function renderCanvas(reason) {
+    leaveGap();
     const hadFocus = page.contains(document.activeElement);
     page.innerHTML = tree.map(blockHTML).join('');
     editingId = null;
@@ -509,11 +661,115 @@
   }
   canvas.addEventListener('pointermove', (e) => {
     if (e.pointerType === 'touch') return;
+    if (gapLine.contains(e.target)) return; // on the insertion line: keep it
     if (inChrome(e.target)) return;
     lastPointer = e;
+    // In the gap between columns core outlines nothing: the gap belongs to
+    // its insertion point (see "The gap between columns").
+    if (trackGap(e)) { setPointerHover(null); return; }
     resolveHover(e, e.target);
   });
-  canvas.addEventListener('pointerleave', () => { lastPointer = null; setPointerHover(null); });
+  canvas.addEventListener('pointerleave', (e) => {
+    lastPointer = null;
+    setPointerHover(null);
+    if (!gapLine.contains(e.relatedTarget)) leaveGap();
+  });
+
+  // ---------- The gap between columns ----------
+
+  /*
+   * As in WordPress 7.1.5, checked in Playground:
+   *   - A press in the gap between two columns, until the insertion line
+   *     below is drawn, selects the Column to the gap's right (between
+   *     columns 1 and 2, column 2). So a click never selects the Columns.
+   *   - After about 500ms there, a blue insertion line is drawn down the
+   *     whole gap, with a "+" in its middle. The "+" inserts an empty Column
+   *     there. A press anywhere else on the line does nothing: the selection
+   *     stays.
+   *   - Nothing is outlined while the pointer is in the gap.
+   */
+  const GAP_LINE_MS = 500;
+  let gapHover = null; // { columnsId, index, enteredAt, timer, shown }
+  const gapLine = document.createElement('div');
+  gapLine.className = 'ut-gap-inserter';
+  gapLine.hidden = true;
+  gapLine.innerHTML = '<button type="button" class="ut-gap-plus" aria-label="Add block" data-tooltip="Add block">' + ICONS.plus + '</button>';
+  overlay.append(gapLine);
+
+  // The gap at a point: the Columns' own area, strictly between two of its
+  // columns and within their height. `index` is the right-hand column's.
+  function gapAt(target, x, y) {
+    const id = idFromElement(target);
+    const node = nodeOf(id);
+    if (!node || node.name !== 'core/columns' || node.children.length < 2 || target !== elementFor(id)) return null;
+    const boxes = node.children.map((c) => elementFor(c.id).getBoundingClientRect());
+    const top = Math.min.apply(null, boxes.map((r) => r.top));
+    const bottom = Math.max.apply(null, boxes.map((r) => r.bottom));
+    if (y < top || y > bottom) return null;
+    for (let i = 1; i < boxes.length; i++) {
+      if (x > boxes[i - 1].right && x < boxes[i].left) return { columnsId: id, index: i, rightId: node.children[i].id, left: boxes[i - 1].right, right: boxes[i].left, top, bottom };
+    }
+    return null;
+  }
+  function trackGap(e) {
+    const g = gapAt(e.target, e.clientX, e.clientY);
+    if (!g) { leaveGap(); return false; }
+    if (gapHover && gapHover.columnsId === g.columnsId && gapHover.index === g.index) return true;
+    leaveGap();
+    gapHover = { columnsId: g.columnsId, index: g.index, enteredAt: performance.now(), shown: false };
+    gapHover.timer = setTimeout(showGapLine, GAP_LINE_MS);
+    return true;
+  }
+  function showGapLine() {
+    if (!gapHover) return;
+    const node = nodeOf(gapHover.columnsId);
+    if (!node || !node.children[gapHover.index]) { leaveGap(); return; }
+    const a = elementFor(node.children[gapHover.index - 1].id).getBoundingClientRect();
+    const c = elementFor(node.children[gapHover.index].id).getBoundingClientRect();
+    const o = inner.getBoundingClientRect();
+    const top = Math.min(a.top, c.top), bottom = Math.max(a.bottom, c.bottom);
+    gapLine.style.left = Math.round((a.right + c.left) / 2 - o.left - 2) + 'px';
+    gapLine.style.top = Math.round(top - o.top) + 'px';
+    gapLine.style.height = Math.round(bottom - top) + 'px';
+    gapLine.hidden = false;
+    gapHover.shown = true;
+    stats.gapLines++;
+    renderNotes();
+  }
+  function leaveGap() {
+    if (!gapHover) return;
+    clearTimeout(gapHover.timer);
+    gapHover = null;
+    gapLine.hidden = true;
+  }
+  // A press where the line is drawn: on the "+", a new Column; anywhere
+  // else, nothing. It doesn't reach the page, so nothing is selected.
+  gapLine.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); });
+  gapLine.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (!gapHover) return;
+    const { columnsId, index } = gapHover;
+    if (e.target.closest('.ut-gap-plus')) { leaveGap(); insertColumnAt(columnsId, index); }
+    else note('select', 'A press on the insertion line between columns ' + index + ' and ' + (index + 1) + ' of ' + describe(columnsId) + ': nothing, as in core');
+  });
+  gapLine.addEventListener('pointerleave', (e) => {
+    const to = e.relatedTarget;
+    if (to && page.contains(to) && gapAt(to, e.clientX, e.clientY)) return;
+    leaveGap();
+  });
+
+  // An empty Column from the gap's "+", selected, as core does. It's a new
+  // block, so never a wrong target.
+  function insertColumnAt(columnsId, index) {
+    const f = find(columnsId);
+    if (!f) return;
+    const node = b(newId('column'), 'core/column', {}, []);
+    change(() => { f.node.children.splice(index, 0, node); }, { reason: 'insert', id: node.id });
+    stats.gapInserts++;
+    note('change', 'Added an empty Column between columns ' + index + ' and ' + (index + 1) + ' of ' + describe(columnsId) + ', by the “+” on the insertion line');
+    selectBlock(node.id, { route: 'insert' });
+    focusBlock(node.id);
+  }
   // When the selection changes under a still pointer, what the hover should
   // show may change too (B shows the next stop), so work it out again at once.
   function refreshHover() {
@@ -634,11 +890,45 @@
     clearTimeout(h.timer);
     if (h.route || h.k) note('select', 'That press was the first of a double click: not counted');
   }
+  /*
+   * A press on a Columns block's own area. Between two columns, see "The gap
+   * between columns": before the line is drawn, the Column to the right;
+   * once it is, nothing. By
+   * a column shorter than the others (aligned to the top, middle or bottom),
+   * that column. Elsewhere (a Columns' padding, once it has a background)
+   * it stays on the Columns.
+   */
+  function gapTarget(e, id) {
+    const g = gapAt(e.target, e.clientX, e.clientY);
+    if (g) {
+      const quick = !gapHover || gapHover.columnsId !== g.columnsId || gapHover.index !== g.index || !gapHover.shown;
+      return quick ? g.rightId : false;
+    }
+    const node = nodeOf(id);
+    if (!node || node.name !== 'core/columns' || !node.children.length || e.target !== elementFor(id)) return id;
+    const boxes = node.children.map((c) => { const r = elementFor(c.id).getBoundingClientRect(); return { id: c.id, left: r.left, right: r.right, top: r.top, bottom: r.bottom }; });
+    const top = Math.min.apply(null, boxes.map((r) => r.top));
+    const bottom = Math.max.apply(null, boxes.map((r) => r.bottom));
+    if (e.clientY < top || e.clientY > bottom) return id;
+    const hit = boxes.find((r) => e.clientX >= r.left && e.clientX <= r.right);
+    return hit ? hit.id : id;
+  }
+
   page.addEventListener('pointerdown', (e) => {
     if (e.button !== 0) return;
     suppressMouse = false;
     lastCanvasDown = performance.now();
-    const targetId = idFromElement(e.target);
+    const rawId = idFromElement(e.target);
+    const targetId = rawId ? gapTarget(e, rawId) : rawId;
+    if (targetId === false) {
+      // On the insertion line, off its "+": core does nothing.
+      if (!caretLanded) stats.clicksBeforeCaret++;
+      if (held) commitHeld();
+      suppressMouse = true;
+      note('select', 'A press on the insertion line between columns: nothing, as in core');
+      return;
+    }
+    if (targetId !== rawId) note('select', 'A press on the Columns’ own area goes to ' + describe(targetId) + ', as in core');
     let r = null;
     if (targetId && clickResolver) {
       try { r = clickResolver({ event: e, targetId, selectedId }); } catch (err) { console.error(err); }
@@ -782,9 +1072,6 @@
     const where = f.parent ? describe(f.parent.id) : 'the page';
     const words = typeFor(f.node).horizontal ? (dir < 0 ? 'left' : 'right') : (dir < 0 ? 'up' : 'down');
     const what = describe(id);
-    if (f.parent && !doneNow[1]) {
-      wrong('moved ' + typeFor(f.node).title + ' inside ' + typeFor(f.parent).title + ' (' + what + ' in ' + where + ', while task 2 isn’t done)');
-    }
     change(() => {
       const [node] = f.list.splice(f.index, 1);
       f.list.splice(to, 0, node);
@@ -799,7 +1086,7 @@
     if (!f) return;
     const what = describe(id);
     const next = f.index > 0 ? f.list[f.index - 1].id : (f.parent ? f.parent.id : (f.list[f.index + 1] ? f.list[f.index + 1].id : null));
-    if (!doneNow[3] && id !== 'saturday' && ORIGINAL.has(id)) wrong('deleted ' + what + ' (not the Saturday column, while task 4 isn’t done)');
+    if (!doneNow[4] && id !== 'saturday' && ORIGINAL.has(id)) wrongOnce(5, id, 'deleted ' + what + ' (not the Saturday column, while task 5 isn’t done)');
     // Let go of the deleted block here, so the selection that follows names
     // it as what was selected before.
     const wasSelected = selectedId === id;
@@ -841,10 +1128,91 @@
     if (!node || node.attrs[key] === slug || (!node.attrs[key] && !slug)) return;
     const what = describe(id);
     const label = key === 'overlay' ? 'Overlay' : 'Background';
-    if (!doneNow[2] && id !== 'hours') wrong('set the ' + label.toLowerCase() + ' of ' + what + ' (not the Opening hours section, before task 3 is done)');
+    // Task 4 wants the Wednesday Column's own background. A background on
+    // what's in it, or on the blocks around it, or on another Column, looks
+    // nearly right.
+    if (key === 'background' && slug && !doneNow[3]) {
+      const near = ['wednesday-heading', 'wednesday-text', 'classes-columns', 'classes'].includes(id);
+      const otherColumn = node.name === 'core/column' && id !== 'wednesday' && ORIGINAL.has(id);
+      if (near || otherColumn) wrongOnce(4, id, 'set the background of ' + what + ' (not the Wednesday Column, while task 4 isn’t done)');
+    }
     const before = node.attrs[key];
     change(() => { node.attrs[key] = slug || null; }, { reason: 'color', id });
     note('change', label + ' of ' + what + ': ' + colorName(before) + ' → ' + colorName(slug));
+  }
+
+  // Change vertical alignment, as core's Columns and Column do it: on a
+  // Columns it sets every column inside it too; on a Column it sets that
+  // column and clears the Columns'. Picking the one that's set unsets it.
+  function setVerticalAlignment(id, value) {
+    const f = find(id);
+    if (!f) return;
+    const node = f.node;
+    const before = node.attrs.verticalAlignment || null;
+    const next = before === value ? null : value;
+    const what = describe(id);
+    // Task 3: the picture's Column alone moves nothing, as the picture is
+    // the tallest thing there.
+    if (id === 'about-col-picture' && next && !doneNow[2]) wrongOnce(3, id, 'set the vertical alignment of ' + what + ' only (not the About Columns or its text Column, while task 3 isn’t done)');
+    change(() => {
+      node.attrs.verticalAlignment = next;
+      if (node.name === 'core/columns') node.children.forEach((c) => { c.attrs.verticalAlignment = next; });
+      else if (f.parent && f.parent.name === 'core/columns') f.parent.attrs.verticalAlignment = null;
+    }, { reason: 'align', id });
+    note('change', 'Vertical alignment of ' + what + (node.name === 'core/columns' ? ' (and every column in it)' : '') + ': ' + (before ? VALIGN[before].title : 'none') + ' → ' + (next ? VALIGN[next].title : 'none'));
+  }
+
+  function setTextAlign(id, value) {
+    const node = nodeOf(id);
+    if (!node) return;
+    const before = node.attrs.textAlign || null;
+    const next = before === value ? null : value;
+    const what = describe(id);
+    // Task 3: lining the words up inside their own box looks nearly right.
+    if (['about-heading', 'about-text'].includes(id) && next && !doneNow[2]) wrongOnce(3, id, 'set Align text on ' + what + ' (not the vertical alignment, while task 3 isn’t done)');
+    change(() => { node.attrs.textAlign = next; }, { reason: 'align', id });
+    note('change', 'Text alignment of ' + what + ': ' + (before || 'none') + ' → ' + (next || 'none'));
+  }
+
+  /*
+   * A Dimensions slider (padding, margin, Block spacing), by its step. A
+   * drag across several steps is one undo step: `sliderDrag` is the drag,
+   * and a change in it after its first doesn't push another undo step.
+   */
+  let sliderDrag = null; // { id, key, pushed } while a slider is held
+  function setDimension(id, key, slug) {
+    const node = nodeOf(id);
+    if (!node || (node.attrs[key] || null) === slug) return;
+    const what = describe(id);
+    const label = DIMENSIONS[node.name].find((d) => d.key === key).label;
+    const before = node.attrs[key] || null;
+    const first = !(sliderDrag && sliderDrag.id === id && sliderDrag.key === key && sliderDrag.pushed);
+    // Task 2 wants the space between the classes: the Classes Columns'
+    // horizontal Block spacing. Anything else in the Classes section's
+    // Dimensions looks nearly right.
+    if (!doneNow[1]) {
+      const classesColumn = node.name === 'core/column' && ancestorsOf(id).includes('classes-columns') && ORIGINAL.has(id);
+      if (id === 'classes' || (id === 'classes-columns' && key !== 'gapH') || classesColumn) {
+        wrongOnce(2, id, 'changed the ' + label.toLowerCase() + ' of ' + what + ' (not the Classes Columns’ horizontal Block spacing, while task 2 isn’t done)');
+      }
+    }
+    if (first) {
+      change(() => { node.attrs[key] = slug; }, { reason: 'spacing', id });
+      if (sliderDrag && sliderDrag.id === id && sliderDrag.key === key) sliderDrag.pushed = true;
+    } else {
+      node.attrs[key] = slug;
+      renderCanvas('spacing');
+      afterChange({ reason: 'spacing', id });
+    }
+    note('change', label + ' of ' + what + ': ' + spacingName(before) + ' → ' + spacingName(slug) + ' (' + Math.round(dimensionPx(node, key)) + 'px)');
+  }
+
+  function setWidth(id, width) {
+    const node = nodeOf(id);
+    if (!node || (node.attrs.width || null) === width) return;
+    const before = node.attrs.width;
+    change(() => { node.attrs.width = width; }, { reason: 'width', id });
+    note('change', 'Width of ' + describe(id) + ': ' + (before ? before + '%' : 'auto') + ' → ' + (width ? width + '%' : 'auto'));
   }
 
   // Columns count: lowering it removes the last column with its contents,
@@ -856,7 +1224,7 @@
     if (n < before) {
       const removed = node.children.slice(n);
       const names = removed.map((c) => describe(c.id)).join(', ');
-      removed.forEach((c) => { if (!doneNow[3] && c.id !== 'saturday' && ORIGINAL.has(c.id)) wrong('removed ' + describe(c.id) + ' by lowering the Columns count (not the Saturday column)'); });
+      removed.forEach((c) => { if (!doneNow[4] && c.id !== 'saturday' && ORIGINAL.has(c.id)) wrongOnce(5, c.id, 'removed ' + describe(c.id) + ' by lowering the Columns count (not the Saturday column)'); });
       change(() => { node.children.splice(n); }, { reason: 'columns', id });
       note('change', 'Columns count of ' + describe(id) + ': ' + before + ' → ' + n + ' (removed ' + names + ' with its contents)');
     } else {
@@ -929,6 +1297,7 @@
     if (!undoStack.length) { endTextSession(); return; }
     endTextSession();
     restore(undoStack, redoStack, undoStack.pop());
+    forgetUndoneWrongs();
     stats.undos++;
     note('undo', 'Undo');
     afterChange({ reason: 'undo' });
@@ -1001,11 +1370,23 @@
           btn('move-down', h ? 'Move right' : 'Move down', h ? ICONS.chevronRight : ICONS.chevronDown, 'ut-tb-mover', last) +
         '</div>' +
       '</div>' +
+      blockControlsHTML(f.node, t) +
       '<div class="ut-tb-group">' + btn('options', 'Options', ICONS.moreVertical, 'ut-tb-options') + '</div>' +
       '</div>';
     toolbarEl.querySelector('[data-action="options"]').setAttribute('aria-haspopup', 'true');
-    toolbarEl.querySelector('[data-action="options"]').setAttribute('aria-expanded', String(menuOpen));
+    toolbarEl.querySelector('[data-action="options"]').setAttribute('aria-expanded', String(menuOpen && menuKind === 'options'));
     placeToolbar();
+  }
+
+  // The block's own controls, in their own group between the movers and ⋮:
+  // a dropdown button showing the current choice's icon, as core's do.
+  function blockControlsHTML(node, t) {
+    const d = t.controls ? DROPDOWNS[t.controls] : null;
+    if (!d) return '';
+    const value = node.attrs[d.attr];
+    const icon = d.items[value && d.items[value] ? value : d.fallback].icon;
+    const open = menuOpen && menuKind === t.controls;
+    return '<div class="ut-tb-group ut-tb-block-controls"><button class="ut-tb-btn ut-tb-dropdown" data-action="dropdown" data-dropdown="' + t.controls + '" aria-label="' + d.label + '" data-tooltip="' + d.label + '" aria-haspopup="true" aria-expanded="' + open + '">' + icon + '</button></div>';
   }
 
   function placeToolbar() {
@@ -1037,8 +1418,13 @@
 
   // ---------- The ⋮ menu ----------
 
+  // The ⋮ menu and the toolbar's dropdowns share one popover. `menuKind` is
+  // 'options' for ⋮, or the dropdown's key (DROPDOWNS).
+  let menuKind = null;
+  const menuAnchor = () => (menuKind === 'options' ? toolbarEl.querySelector('[data-action="options"]') : toolbarEl.querySelector('[data-dropdown="' + menuKind + '"]'));
   function openMenu() {
     if (!selectedId) return;
+    closeMenu();
     const f = find(selectedId);
     const parent = f.parent ? typeFor(f.parent) : null;
     const item = (action, label) => '<button role="menuitem" class="ut-menu-item" data-action="' + action + '">' + esc(label) + '</button>';
@@ -1047,30 +1433,53 @@
       (parent ? item('menu-select-parent', 'Select parent block (' + parent.title + ')') : '') + '</div>' +
       '<div class="ut-menu-group">' + item('delete', 'Delete') + '</div>';
     menuOpen = true;
+    menuKind = 'options';
     menuEl.hidden = false;
+    menuEl.classList.remove('is-dropdown');
     stats.menuOpened++;
     note('menu', 'Opened the ⋮ menu on ' + describe(selectedId));
-    const opt = toolbarEl.querySelector('[data-action="options"]');
+    const opt = menuAnchor();
     if (opt) opt.setAttribute('aria-expanded', 'true');
     placeMenu();
     const firstItem = menuEl.querySelector('button');
     if (firstItem) firstItem.focus({ preventScroll: true });
   }
+  // A toolbar dropdown: core's DropdownMenu of radio items, icon then label,
+  // the current one marked.
+  function openDropdown(kind) {
+    if (!selectedId) return;
+    closeMenu();
+    const d = DROPDOWNS[kind];
+    const node = nodeOf(selectedId);
+    const value = node.attrs[d.attr] || null;
+    menuEl.innerHTML = '<div class="ut-menu-group" role="group" aria-label="' + d.label + '">' + d.keys.map((k) =>
+      '<button role="menuitemradio" aria-checked="' + (value === k) + '" class="ut-menu-item ut-menu-radio' + (value === k ? ' is-active' : '') + '" data-action="set-' + (d.attr === 'textAlign' ? 'textalign' : 'valign') + '" data-value="' + k + '">' + d.items[k].icon + '<span>' + d.items[k].title + '</span></button>').join('') + '</div>';
+    menuOpen = true;
+    menuKind = kind;
+    menuEl.hidden = false;
+    menuEl.classList.add('is-dropdown');
+    note('menu', 'Opened ' + d.label + ' on ' + describe(selectedId));
+    const a = menuAnchor();
+    if (a) a.setAttribute('aria-expanded', 'true');
+    placeMenu();
+    const first = menuEl.querySelector('.is-active') || menuEl.querySelector('button');
+    if (first) first.focus({ preventScroll: true });
+  }
   function closeMenu() {
     if (!menuOpen) return;
+    const a = menuAnchor();
     menuOpen = false;
     menuEl.hidden = true;
-    const opt = toolbarEl.querySelector('[data-action="options"]');
-    if (opt) opt.setAttribute('aria-expanded', 'false');
+    if (a) a.setAttribute('aria-expanded', 'false');
   }
   function placeMenu() {
     if (!menuOpen) return;
-    const opt = toolbarEl.querySelector('[data-action="options"]');
+    const opt = menuAnchor();
     if (!opt || toolbarEl.hidden) { closeMenu(); return; }
     const r = opt.getBoundingClientRect();
     const o = inner.getBoundingClientRect();
     menuEl.style.top = Math.round(r.bottom - o.top + 4) + 'px';
-    // Left-aligned to the ⋮ button; right-aligned to it if that would run
+    // Left-aligned to its button; right-aligned to it if that would run
     // past the canvas's visible right edge, as the editor's popovers flip.
     const w = menuEl.offsetWidth;
     const right = Math.min(inner.clientWidth, canvas.scrollLeft + canvas.clientWidth) - 4;
@@ -1079,48 +1488,159 @@
     menuEl.style.left = Math.round(Math.max(4, Math.min(left, right - w))) + 'px';
   }
   document.addEventListener('pointerdown', (e) => {
-    if (menuOpen && !menuEl.contains(e.target) && !e.target.closest('[data-action="options"]')) closeMenu();
+    if (menuOpen && !menuEl.contains(e.target) && !(menuAnchor() && menuAnchor().contains(e.target))) closeMenu();
   }, true);
 
   // ---------- The inspector (Settings sidebar) ----------
 
+  // Core's inspector tabs, for the blocks that have them: Settings first.
+  let inspectorTab = 'settings';
+  let inspectorTabFor = null;
+
   function renderInspector() {
+    // Not while a Dimensions slider is held: see fromSlider.
+    if (sliderDrag && sliderDrag.id === selectedId && inspectorEl.querySelector('[data-dim]')) return;
     if (!selectedId) {
       inspectorEl.innerHTML = '<div class="ut-sidebar-head"><h2>Page</h2></div><div class="ut-panel"><p class="ut-muted">Select a block to change it.</p></div>';
       return;
     }
     const node = nodeOf(selectedId);
     const t = typeFor(node);
+    // A new block opens on Settings, as core's does.
+    if (inspectorTabFor !== selectedId) { inspectorTab = 'settings'; inspectorTabFor = selectedId; }
+    const inert = (name, icon, cls) => '<button type="button" class="ut-icon-btn ut-icon-btn-small' + (cls ? ' ' + cls : '') + '" data-inert="' + esc(name) + '" aria-label="' + esc(name) + '" data-tooltip="' + esc(name) + '">' + icon + '</button>';
     const swatches = (key) => {
       const current = node.attrs[key] || null;
       return '<div class="ut-swatches" role="group" aria-label="' + (key === 'overlay' ? 'Overlay' : 'Background') + '">' +
         COLORS.map((c) => '<button class="ut-swatch' + (c.dark ? ' is-dark' : '') + '" data-action="color" data-key="' + key + '" data-color="' + c.slug + '" style="--swatch:' + c.value + '" aria-label="' + c.name + '" aria-pressed="' + (current === c.slug) + '" data-tooltip="' + c.name + '">' + (current === c.slug ? ICONS.check : '') + '</button>').join('') +
         '</div><button class="ut-btn ut-btn-small ut-btn-tertiary" data-action="color" data-key="' + key + '" data-color=""' + (current ? '' : ' aria-disabled="true"') + '>Clear</button>';
     };
-    let settings = '';
-    if (t.settings === 'background') {
-      settings = '<section class="ut-panel"><h3 class="ut-panel-title">Color</h3><div class="ut-control"><span class="ut-label">Background</span>' + swatches('background') + '</div></section>';
-    } else if (t.settings === 'overlay') {
-      settings = '<section class="ut-panel"><h3 class="ut-panel-title">Color</h3><div class="ut-control"><span class="ut-label">Overlay</span>' + swatches('overlay') + '</div></section>';
-    } else if (t.settings === 'columns') {
-      const n = node.children.length;
-      settings = '<section class="ut-panel"><h3 class="ut-panel-title">Settings</h3><div class="ut-control"><span class="ut-label" id="ut-columns-label">Columns</span>' +
-        '<div class="ut-number" role="group" aria-labelledby="ut-columns-label">' +
-        '<button class="ut-icon-btn ut-icon-btn-small" data-action="columns-down" aria-label="Fewer columns" data-tooltip="Fewer columns"' + (n <= 1 ? ' aria-disabled="true"' : '') + '>' + ICONS.minus + '</button>' +
-        '<output class="ut-number-value" data-columns-count aria-live="polite">' + n + '</output>' +
-        '<button class="ut-icon-btn ut-icon-btn-small" data-action="columns-up" aria-label="More columns" data-tooltip="More columns"' + (n >= 4 ? ' aria-disabled="true"' : '') + '>' + ICONS.plus + '</button>' +
-        '</div></div></section>';
-    } else if (t.settings === 'alt') {
-      settings = '<section class="ut-panel"><h3 class="ut-panel-title">Settings</h3><div class="ut-control"><label class="ut-label" for="ut-alt">Alternative text</label>' +
+    const panel = (title, body, menu) => '<section class="ut-panel"><div class="ut-panel-head"><h3 class="ut-panel-title">' + title + '</h3>' + (menu ? inert(title + ' options', ICONS.moreVertical) : '') + '</div>' + body + '</section>';
+    // A preset slider, as core's RangeControl draws the spacing presets.
+    const slider = (d) => {
+      const pos = sliderPosition(node, d.key);
+      const max = SPACING.length - 1;
+      const current = node.attrs[d.key] ? SPACING[spacingIndex(node.attrs[d.key])].name : 'Default';
+      const marks = SPACING.slice(1, max).map((p, i) => '<span class="ut-range-mark' + (i + 1 <= pos ? ' is-filled' : '') + '" style="left:' + ((i + 1) / max * 100) + '%"></span>').join('');
+      return '<div class="ut-dim-row">' + (d.icon ? '<span class="ut-dim-icon" aria-hidden="true">' + ICONS[d.icon] + '</span>' : '') +
+        '<div class="ut-range" style="--ut-range-f:' + (pos / max) + '">' +
+        '<input type="range" class="ut-range-input" data-dim="' + d.key + '" aria-label="' + d.label + '" min="0" max="' + max + '" step="any" value="' + pos + '" aria-valuetext="' + current + '">' +
+        '<span class="ut-range-marks" aria-hidden="true">' + marks + '</span></div>' +
+        inert('Set custom value', ICONS.settings) + '</div>';
+    };
+    const panels = {
+      background: () => panel('Background', '<div class="ut-control"><span class="ut-label">Color</span>' + swatches('background') + '</div>', true),
+      overlay: () => panel('Color', '<div class="ut-control"><span class="ut-label">Overlay</span>' + swatches('overlay') + '</div>'),
+      columns: () => {
+        const n = node.children.length;
+        return panel('Settings', '<div class="ut-control"><span class="ut-label" id="ut-columns-label">Columns</span>' +
+          '<div class="ut-number" role="group" aria-labelledby="ut-columns-label">' +
+          '<button class="ut-icon-btn ut-icon-btn-small" data-action="columns-down" aria-label="Fewer columns" data-tooltip="Fewer columns"' + (n <= 1 ? ' aria-disabled="true"' : '') + '>' + ICONS.minus + '</button>' +
+          '<output class="ut-number-value" data-columns-count aria-live="polite">' + n + '</output>' +
+          '<button class="ut-icon-btn ut-icon-btn-small" data-action="columns-up" aria-label="More columns" data-tooltip="More columns"' + (n >= 4 ? ' aria-disabled="true"' : '') + '>' + ICONS.plus + '</button>' +
+          '</div></div>', true);
+      },
+      width: () => panel('Settings', '<div class="ut-control"><label class="ut-label" for="ut-width">Width</label>' +
+        '<div class="ut-unit"><input id="ut-width" type="number" min="1" max="100" step="1" data-width value="' + (node.attrs.width || '') + '"><span>%</span></div></div>', true),
+      // Core's Dimensions panel: a slider of the spacing presets for each
+      // side or axis, grouped under Padding, Margin and Block spacing.
+      dimensions: () => {
+        const rows = DIMENSIONS[node.name];
+        const groups = [];
+        rows.forEach((d) => { let g = groups.find((x) => x.name === d.group); if (!g) groups.push(g = { name: d.group, rows: [] }); g.rows.push(d); });
+        return panel('Dimensions', groups.map((g) => '<div class="ut-dim-group" role="group" aria-label="' + g.name + '"><div class="ut-dim-head"><span class="ut-label">' + g.name + '</span>' +
+          (g.name !== 'Block spacing' ? inert('Unlink sides', ICONS.link) : '') + '</div>' + g.rows.map(slider).join('') + '</div>').join(''), true);
+      },
+      alt: () => panel('Settings', '<div class="ut-control"><label class="ut-label" for="ut-alt">Alternative text</label>' +
         '<textarea id="ut-alt" class="ut-textarea" rows="3" data-alt>' + esc(node.attrs.alt || '') + '</textarea>' +
-        '<p class="ut-help">Describe the purpose of the image. Leave empty if decorative.</p></div></section>';
-    }
+        '<p class="ut-help">Describe the purpose of the image. Leave empty if decorative.</p></div>')
+    };
+    let body;
+    if (t.tabs) {
+      const tab = (name, label, icon) => '<button type="button" role="tab" class="ut-inspector-tab" data-action="inspector-tab" data-tab="' + name + '" aria-selected="' + (inspectorTab === name) + '" aria-label="' + label + '" data-tooltip="' + label + '">' + icon + '</button>';
+      body = '<div class="ut-inspector-tabs" role="tablist">' + tab('settings', 'Settings', ICONS.cog) + tab('styles', 'Styles', ICONS.styles) + '</div>' +
+        '<div role="tabpanel" data-tabpanel="' + inspectorTab + '">' + t.tabs[inspectorTab].map((k) => panels[k]()).join('') + '</div>';
+    } else body = (t.settings || []).map((k) => panels[k]()).join('');
     inspectorEl.innerHTML = '<div class="ut-sidebar-head"><h2>Block</h2></div>' +
-      '<div class="ut-block-card">' + t.icon + '<div><h3>' + t.title + '</h3><p>' + t.description + '</p></div></div>' + settings;
+      '<div class="ut-block-card' + (t.tabs ? ' has-tabs' : '') + '">' + t.icon + '<div><h3>' + t.title + '</h3><p>' + t.description + '</p></div></div>' + body;
   }
+
+  function setInspectorTab(name) {
+    if (name === inspectorTab) return;
+    inspectorTab = name;
+    if (name === 'styles') stats.stylesOpened++;
+    note('inspector', 'Opened the ' + (name === 'styles' ? 'Styles' : 'Settings') + ' tab for ' + describe(selectedId));
+    renderInspector();
+    renderNotes();
+    focusInspector('[data-tab="' + name + '"]');
+  }
+
+  // A Dimensions slider. Its thumb snaps to the steps; with nothing set it
+  // sits at the default, which may be between two. While it's held the
+  // inspector isn't drawn again, so the drag goes on.
+  function fromSlider(input, index) {
+    if (!selectedId) return;
+    const i = Math.max(0, Math.min(SPACING.length - 1, index));
+    setDimension(selectedId, input.dataset.dim, SPACING[i].slug);
+    input.value = i;
+    input.setAttribute('aria-valuetext', SPACING[i].name);
+    const wrap = input.closest('.ut-range');
+    const max = SPACING.length - 1;
+    wrap.style.setProperty('--ut-range-f', String(i / max));
+    wrap.querySelectorAll('.ut-range-mark').forEach((m, k) => m.classList.toggle('is-filled', k + 1 <= i));
+  }
+  inspectorEl.addEventListener('pointerdown', (e) => {
+    const input = e.target.closest('[data-dim]');
+    if (input && selectedId) sliderDrag = { id: selectedId, key: input.dataset.dim, pushed: false };
+  });
+  // The drag ends however the pointer lets go: released anywhere, even
+  // outside the window, cancelled, or the window losing focus.
+  function endSliderDrag() {
+    if (!sliderDrag) return;
+    sliderDrag = null;
+    renderInspector();
+  }
+  document.addEventListener('pointerup', endSliderDrag);
+  document.addEventListener('pointercancel', endSliderDrag);
+  inspectorEl.addEventListener('lostpointercapture', endSliderDrag, true);
+  inspectorEl.addEventListener('change', (e) => { if (e.target.matches('[data-dim]')) endSliderDrag(); });
+  window.addEventListener('blur', endSliderDrag);
+  inspectorEl.addEventListener('pointermove', (e) => { if (sliderDrag && !(e.buttons & 1)) endSliderDrag(); });
+  inspectorEl.addEventListener('input', (e) => {
+    const input = e.target.closest('[data-dim]');
+    if (!input) return;
+    fromSlider(input, Math.round(Number(input.value)));
+  });
+  inspectorEl.addEventListener('keydown', (e) => {
+    const input = e.target.closest('[data-dim]');
+    if (!input) return;
+    const v = Number(input.value);
+    const max = SPACING.length - 1;
+    let to = null;
+    if (e.key === 'ArrowRight' || e.key === 'ArrowUp') to = Math.min(max, Math.floor(v + 1e-6) + 1);
+    else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') to = Math.max(0, Math.ceil(v - 1e-6) - 1);
+    else if (e.key === 'Home') to = 0;
+    else if (e.key === 'End') to = max;
+    if (to === null) return;
+    e.preventDefault();
+    const key = input.dataset.dim;
+    fromSlider(input, to);
+    renderInspector();
+    focusInspector('[data-dim="' + key + '"]');
+  });
+  // Core's buttons that this prototype doesn't need: logged, nothing else.
+  inspectorEl.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-inert]');
+    if (b && selectedId) note('inspector', 'Clicked ' + b.dataset.inert + ' on ' + describe(selectedId) + ' (not in this prototype)');
+  });
 
   inspectorEl.addEventListener('change', (e) => {
     if (e.target.matches('[data-alt]') && selectedId) setAlt(selectedId, e.target.value.trim());
+    if (e.target.matches('[data-width]') && selectedId) {
+      const n = Math.round(Number(e.target.value));
+      setWidth(selectedId, e.target.value === '' || !(n > 0) ? null : Math.min(100, n));
+      focusInspector('[data-width]');
+    }
   });
 
   // ---------- The breadcrumb ----------
@@ -1225,13 +1745,17 @@
       case 'menu-select-parent': { closeMenu(); const p = find(id).parent; if (p) { selectBlock(p.id, { route: 'menu' }); focusBlock(p.id); } break; }
       case 'move-up': moveBlock(id, -1); keepToolbarFocus('move-up', 'move-down'); break;
       case 'move-down': moveBlock(id, 1); keepToolbarFocus('move-down', 'move-up'); break;
-      case 'options': if (menuOpen) closeMenu(); else openMenu(); break;
+      case 'options': if (menuOpen && menuKind === 'options') closeMenu(); else openMenu(); break;
+      case 'dropdown': if (menuOpen && menuKind === el.dataset.dropdown) closeMenu(); else openDropdown(el.dataset.dropdown); break;
+      case 'set-valign': { closeMenu(); setVerticalAlignment(id, el.dataset.value); keepToolbarFocus('dropdown', 'options'); break; }
+      case 'set-textalign': { closeMenu(); setTextAlign(id, el.dataset.value); keepToolbarFocus('dropdown', 'options'); break; }
       case 'duplicate': closeMenu(); duplicateBlock(id); break;
       case 'add-before': closeMenu(); insertBeside(id, false); break;
       case 'add-after': closeMenu(); insertBeside(id, true); break;
       case 'delete': closeMenu(); deleteBlock(id, '⋮ menu'); break;
       case 'color': setColor(id, el.dataset.key, el.dataset.color || null); focusInspector('[data-action="color"][data-key="' + el.dataset.key + '"][data-color="' + el.dataset.color + '"]'); break;
       case 'columns-down': setColumnCount(id, nodeOf(id).children.length - 1); focusInspector('[data-action="columns-down"]'); break;
+      case 'inspector-tab': setInspectorTab(el.dataset.tab); break;
       case 'columns-up': setColumnCount(id, nodeOf(id).children.length + 1); focusInspector('[data-action="columns-up"]'); break;
       case 'crumb': {
         const to = el.dataset.id || null;
@@ -1275,7 +1799,8 @@
   document.addEventListener('keydown', (e) => {
     if (e.target.closest && (e.target.closest('dialog') || e.target.closest('.ut-notes'))) return;
     const inRich = !!(e.target.closest && e.target.closest('.ut-rich'));
-    const inField = !inRich && e.target.matches && e.target.matches('input, textarea, select');
+    // A slider isn't a text field: undo works from it, as from the page.
+    const inField = !inRich && e.target.matches && e.target.matches('input:not([type="range"]), textarea, select');
     const mod = e.metaKey || e.ctrlKey;
 
     if (mod && (e.key === 'z' || e.key === 'Z') && !inField) {
@@ -1286,7 +1811,7 @@
     if (mod && (e.key === 'y' || e.key === 'Y') && !inField) { e.preventDefault(); redo(); return; }
 
     if (e.key === 'Escape') {
-      if (menuOpen) { e.preventDefault(); closeMenu(); keepToolbarFocus('options', 'options'); return; }
+      if (menuOpen) { e.preventDefault(); const a = menuAnchor(); closeMenu(); if (a && document.contains(a)) a.focus({ preventScroll: true }); return; }
       if (inField) return;
       if (escapeHandler) {
         let handled = false;
@@ -1336,6 +1861,7 @@
   // ---------- Keeping things in place ----------
 
   canvas.addEventListener('scroll', () => {
+    leaveGap();
     placeToolbar();
     emit('scroll', { scrollTop: canvas.scrollTop, scrollLeft: canvas.scrollLeft });
   }, { passive: true });
@@ -1364,18 +1890,27 @@
     const n = nodeOf('monday-text');
     return !!n && /beginners/i.test(n.attrs.content) && !/beginers/i.test(n.attrs.content);
   }
+  // More space between the classes: the Classes Columns' horizontal Block
+  // spacing, by at least 16px, so the change can be seen: X-Large (54px) or
+  // more, from the 34px default. Large (36px) is only 2px more.
+  const MORE_SPACE_PX = 16;
   function task2() {
-    const ci = tree.findIndex((n) => n.id === 'classes');
-    const ai = tree.findIndex((n) => n.id === 'about');
-    if (ci < 0 || ai < 0 || ci > ai) return false;
-    const kids = tree[ci].children.map((c) => c.id);
-    return kids.includes('classes-heading') && kids.includes('classes-columns');
+    const n = nodeOf('classes-columns');
+    return !!n && dimensionPx(n, 'gapH') >= defaultPx(n, 'gapH') + MORE_SPACE_PX;
   }
+  // About's text lined up with the middle of its picture: the About Columns
+  // aligned to the middle (which sets its columns too), or the text Column.
   function task3() {
-    const n = tree.find((x) => x.id === 'hours') || nodeOf('hours');
-    return !!n && (n.attrs.background || null) !== START_HOURS_BACKGROUND;
+    const cols = nodeOf('about-columns');
+    const text = nodeOf('about-col-text');
+    return (!!cols && cols.attrs.verticalAlignment === 'center') || (!!text && text.attrs.verticalAlignment === 'center');
   }
+  // The Wednesday class's own background: on its Column.
   function task4() {
+    const n = nodeOf('wednesday');
+    return !!n && !!n.attrs.background;
+  }
+  function task5() {
     const cols = nodeOf('classes-columns');
     if (!cols || cols.children.length !== 2) return false;
     const ids = cols.children.map((c) => c.id).sort().join(',');
@@ -1385,9 +1920,10 @@
 
   const TASKS = [
     { text: 'Fix “beginers” → “beginners” in the Monday class.', hint: 'Ticks when the Monday paragraph says “beginners”.', done: task1 },
-    { text: 'Move “Classes this week” above “About the studio”.', hint: 'Ticks when the Classes Group is a top-level section above the About Group, with its heading and Columns.', done: task2 },
-    { text: 'Give “Opening hours” a different background.', hint: 'Ticks when the Opening hours Group’s own background isn’t Sand.', done: task3 },
-    { text: 'Remove the Saturday class.', hint: 'Ticks when the Classes Columns holds only the Monday and Wednesday Columns, with their content.', done: task4 }
+    { text: 'More space between the three classes.', hint: 'Ticks when the Classes Columns’ horizontal Block spacing is at least 16px more than at the start (34px): X-Large or 2X-Large.', done: task2 },
+    { text: 'Line About’s text up with the middle of the picture.', hint: 'Ticks when the About Columns, or its text Column, is aligned to the middle.', done: task3 },
+    { text: 'Give the Wednesday class its own background.', hint: 'Ticks when the Wednesday Column has a background.', done: task4 },
+    { text: 'Remove the Saturday class.', hint: 'Ticks when the Classes Columns holds only the Monday and Wednesday Columns, with their content.', done: task5 }
   ];
 
   // Auto-tick (and untick) as the page reaches (or leaves) each task's result.
@@ -1407,9 +1943,9 @@
 
   /*
    * For pasting into the testing tool. For example:
-   *   UA-1101-r2.0.1.0.3.4-x1-u0-k3-s245
+   *   UA-11010-r2.0.1.0.3.4-x1-u0-k3-s245
    *   arm (UC control, UA hover tab, UD layers, UE as Create not Learn) ·
-   *   tasks 1–4 done (1) or not (0) when Finished was clicked ·
+   *   tasks 1–5 done (1) or not (0) when Finished was clicked ·
    *   r: container selections by route: toolbar . menu . breadcrumb .
    *      listview . padding . the arm's own (always 0 for the control) ·
    *   x: wrong targets · u: undos ·
@@ -1468,7 +2004,7 @@
     }
     note('finish', 'Clicked Finished');
     finishEl.dataset.step = 'ask';
-    finishEl.innerHTML = '<h2 id="ut-finish-title">Have you done all four tasks?</h2>' +
+    finishEl.innerHTML = '<h2 id="ut-finish-title">Have you done all five tasks?</h2>' +
       '<div class="ut-finish-actions"><button class="ut-btn ut-btn-primary" data-show-code>Yes, show my code</button><button class="ut-btn ut-btn-secondary" data-not-yet>Not yet</button></div>';
     finishEl.showModal();
     finishEl.querySelector('[data-show-code]').focus();
@@ -1534,6 +2070,9 @@
       taskTimes +
       '<dt>Document Overview opened</dt>' + dd('overview-opened', stats.overviewOpened) +
       '<dt>⋮ menu opened</dt>' + dd('menu-opened', stats.menuOpened) +
+      '<dt>Styles tab opened</dt>' + dd('styles-opened', stats.stylesOpened) +
+      '<dt>Insertion line shown in a gap between columns</dt>' + dd('gap-lines', stats.gapLines) +
+      '<dt>Columns added by its “+”</dt>' + dd('gap-inserts', stats.gapInserts) +
       '</dl>' + armRows +
       '<h3>Log</h3><ol class="ut-log">' + (log.map((l) => '<li class="is-' + l.kind + '"><time>' + l.at + '</time>' + esc(l.text) + '</li>').join('') || '<li>Nothing yet.</li>') + '</ol>' +
       '<div class="ut-notes-actions"><button class="ut-btn ut-btn-secondary" data-copy-log>Copy log</button><button class="ut-btn ut-btn-secondary" data-reset>Reset</button></div>';
@@ -1599,6 +2138,9 @@
     },
     elementFor,
     idFromElement,
+    // The gap between two columns at a point (client coordinates), or null:
+    // { columnsId, rightId, index }. Core outlines nothing there.
+    gapAt: (x, y) => { const el = document.elementFromPoint(x, y); return el ? gapAt(el, x, y) : null; },
     rectFor,
     toolbarRect,
     canvas,

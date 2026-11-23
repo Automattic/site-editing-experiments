@@ -480,6 +480,9 @@
     const l = saveLabel();
     b.textContent = l.text;
     b.disabled = !!l.disabled;
+    // Round 2's fourth task is reached by saving, so check again whenever
+    // what's waiting to be saved changes.
+    if (!firstDone[3]) checkTasks();
   }
 
   /*
@@ -1024,11 +1027,20 @@
   }
   const TAGLINE_STATES = ['not changed', 'changed on every page'];
 
-  const TASKS = [
-    { text: 'Update the phone number.', hint: 'Footer, shared. Ticks when every page shows a new number.', done: () => PAGES.every((p) => value('footer', 'phone', p.id) !== START.footer.phone) },
-    { text: 'Change the main heading on the About page.', hint: 'This page only.', done: () => site.pages.about.title !== START.pages.about.title },
-    { text: 'Rename “Contact” in the menu to “Find us”.', hint: 'Header, shared. Ticks when every page’s menu says Find us.', done: () => PAGES.every((p) => /^find us$/i.test(value('header', 'menu2', p.id))) },
-    { text: 'A different line under the site name, on Home only.', hint: 'A probe: it can’t be done, since the line is the same on every page. Ticks if the line is changed at all; tick it yourself if they explain why not.', done: () => taglineState() > 0, state: () => 'Line under the site name: ' + TAGLINE_STATES[taglineState()] },
+  const PHONE = { text: 'Update the phone number.', hint: 'Footer, shared. Ticks when every page shows a new number.', done: () => PAGES.every((p) => value('footer', 'phone', p.id) !== START.footer.phone) };
+  const HEADING = { text: 'Change the main heading on the About page.', hint: 'This page only.', done: () => site.pages.about.title !== START.pages.about.title };
+  const MENU = { text: 'Rename “Contact” in the menu to “Find us”.', hint: 'Header, shared. Ticks when every page’s menu says Find us.', done: () => PAGES.every((p) => /^find us$/i.test(value('header', 'menu2', p.id))) };
+  const TAGLINE = { text: 'A different line under the site name, on Home only.', hint: 'A probe: it can’t be done, since the line is the same on every page. Ticks if the line is changed at all; tick it yourself if they explain why not.', done: () => taglineState() > 0, digit: () => taglineState(), state: () => 'Line under the site name: ' + TAGLINE_STATES[taglineState()] };
+
+  // Round 2 makes the three changes, then saves them together, so that the
+  // save panel appears once, with all three in it, in every version. The
+  // preview task is dropped. Round 1 keeps its five tasks.
+  const TASKS = ROUND2 ? [
+    PHONE, HEADING, MENU,
+    { text: 'Save the three changes.', hint: 'Ticks once the phone number, the About heading and the menu are all changed and none is waiting to be saved. Watch whether the save panel appears and whether they read it.', done: () => !!firstDone[3] || ([PHONE, HEADING, MENU].every((t) => t.done()) && !dirtyEntities().some((id) => ['header', 'footer', 'page:about'].includes(id))) },
+    Object.assign({}, TAGLINE, { text: 'A different line under the site name, on Home only, then save.' })
+  ] : [
+    PHONE, HEADING, MENU, TAGLINE,
     { text: 'Check the site as a visitor would.', hint: 'Ticks when the preview is opened.', done: () => stats.previews > 0, state: () => 'Seen in the preview: ' + (previewPages().join(', ') || 'nothing yet') }
   ];
 
@@ -1083,7 +1095,7 @@
     }[VARIANT];
     return [
       VARIANTS[VARIANT].code,
-      TASKS.map((t, i) => (i === 3 ? taglineState() : (t.done() ? 1 : 0))).join(''),
+      TASKS.map((t) => (t.digit ? t.digit() : (t.done() ? 1 : 0))).join(''),
       'h' + stats.edits.header, 'f' + stats.edits.footer, 'b' + stats.edits.body,
       'c' + checkedCount() + '.' + sharedEdits.length
     ].concat(own ? [own] : [], [

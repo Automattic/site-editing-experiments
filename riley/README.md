@@ -50,10 +50,61 @@ Also new in round 2:
 
 - **No page list.** Round 1's top bar listed the pages to switch between. Round 2's has the editor's document bar in the middle instead: it names what's open ("Home · Homepage", "About · Page", "Footer · Template Part"), and clicking it lists the pages to go to. The site's own menu also goes to that page in the editor while the header is locked, which is what five people tried in round 1. The log records which way each switch was made.
 - **Finished asks first.** Clicking Finished shows "Have you done every task?" before the code. In round 1 one person clicked Finished after the first task.
-- **The completion code** starts `A2`, `B2`, `L2` or `S2`. All four carry `u`: save panels shown, saved from one, cancelled (`u3.2.1`). B2 has `g` before it: times the button appeared, times unlocked. Before `e` comes `n`: page switches with the document bar, then with the site's menu (`n1.1`). A2, L2 and S2 have `o` before it: times the header or footer was selected on a page, times it was opened on its own with Edit original (`o4.3`). The code ends with `e`: times the person clicked Finished and then turned back. The rest is as in the table further down.
+- **The completion code** starts `A2`, `B2`, `L2` or `S2`. Its five task digits follow round 2's tasks below: phone number, About heading, menu, all three saved, and the line under the site name (0 not changed, 1 changed). All four carry `u`: save panels shown, saved from one, cancelled (`u3.2.1`). B2 has `g` before it: times the button appeared, times unlocked. Before `e` comes `n`: page switches with the document bar, then with the site's menu (`n1.1`). A2, L2 and S2 have `o` before it: times the header or footer was selected on a page, times it was opened on its own with Edit original (`o4.3`). The code ends with `e`: times the person clicked Finished and then turned back. The rest is as in the table further down.
 - **The facilitator panel** switches between the four round 2 versions.
 
-Still to decide for round 2's test script: how to get a prediction of which pages will change before the person can look, and how to make it plain that the site has three pages and where to switch between them. In round 1, five of 25 people tried the site's own menu, which doesn't navigate in the editor, and answered as if there were one page.
+### Testing round 2
+
+Round 1 asked "which pages changed?" after each task, and many people answered by going to look. That measured whether people check, not whether the editor told them. It also saved after every task, and in round 2 each of those saves would change one thing, which the editor saves straight away with no panel, so the control's panel and S2 would never be seen. Round 2's script changes both:
+
+- **The three changes are made first and saved together.** The save panel then appears once, listing the header, the footer and the About page, in all four versions.
+- **"Which pages will show this?" is asked straight after each change, before saving.** The completion code's `c` still records whether they looked at another page first, so answers can be split into "said without looking" and "looked first".
+- **No preview task.** It didn't help choose between versions and gave people another way to find the answer by looking.
+
+One version per person, as in round 1. It works unmoderated: each task below is one step in the testing tool, and the prototype keeps its state from one step to the next. Run a short pilot of a few people first.
+
+Start with: "This is the website of a bike repair shop, Pennywheel Bike Repair, in the editor that changes it. It has three pages. The owner has asked you to make a few changes. Please think aloud as you go. There are no wrong answers; we're testing the design, not you."
+
+**Don't say "header", "footer", "shared" or "every page" before they do.**
+
+#### Tasks
+
+1. "The shop's phone number has changed to 01632 960 852. Update it, but don't save yet."
+   Then: **"Which pages of the site will show the new number?"** (Home, About, Contact; all three; not sure.)
+2. "On the About page, change the main heading to something friendlier. Don't save yet."
+   Then: **"Which pages will show the new heading?"**
+3. "In the menu at the top, 'Contact' should say 'Find us'. Don't save yet."
+   Then: **"Which pages will show 'Find us'?"**
+4. "Now save your changes."
+   Then: **"What did you see when you saved? Which pages will each of your three changes show on?"**
+5. "On the Home page only, the shop wants a different line under its name at the top, something like 'Open late on Thursdays'. Do it if you can, and save."
+   Then: **"What happened? What do the About and Contact pages show now?"**
+
+#### Questions to close with
+
+- "Some things on this site are the same on every page and some belong to one page. Which are which? How could you tell?"
+- "If you changed the opening hours tomorrow, how many places would you have to change them in?"
+- "How easy or difficult was it to make these changes?" (1 to 5)
+- A2: "Was there anything that told you which changes would show on other pages?" If they don't mention it: "What did you make of the purple outline?"
+- B2: "What did the 'Edit site header' button tell you?"
+- L2: "Did you notice the label on the purple outline? What did it mean?"
+- S2: "What did the save panel tell you?"
+
+#### What to watch for
+
+- **Right answers to tasks 1 to 3 without looking at another page.** The main measure, compared with A2. Task 1 is the most telling: it comes before anything else has taught them.
+- **Task 4: what they say the panel showed.** In S2, whether "On every page" and "Only on one page" are read and repeated back. In A2 and L2, whether "Template Parts" means anything to them.
+- **Saving early.** Someone who saves during tasks 1 to 3 sees the panel with less in it, or none if only what's open has changed. The log records each save and what it held.
+- **Task 5 changed on every page without the person realising.** The clearest sign the scope wasn't understood.
+- **Finding the header and footer.** In A2, L2 and S2 they're locked until "Edit original"; in B2 until the button. Note anyone who can't get in at all, or who gives up.
+- **Page switching.** How they get to About: the top bar or the site's own menu (`n` in the code).
+
+#### What would favour each
+
+- **B2 (Edit site header)**: right answers to tasks 1 and 3 before saving, and in task 5 they say the line can't differ on one page. It counts against B2 if the button is read only as "click to edit".
+- **L2 (purple label)**: right answers before saving, and people use "every page" in their own words. It counts against L2 if nobody mentions the label.
+- **S2 (clearer save panel)**: answers to tasks 1 to 3 no better than A2, but task 4's answer is right, and task 5 is handled better than in A2. It counts against S2 if people save without reading the panel.
+- **A2 (control)**: people answer as well as in the others. Then the editor as it is already does enough on this.
 
 ## Facilitator notes
 
@@ -88,7 +139,7 @@ The **Finished** button in the bar at the bottom shows a code to copy into the n
 
 The control's code has no part of its own, so it is one part shorter.
 
-## Running a test
+## Running a test (round 1)
 
 Each prototype opens in a desktop browser with no sign-in. Reload between participants (or use Reset in the notes panel).
 

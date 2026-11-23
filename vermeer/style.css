@@ -51,6 +51,9 @@ body { background: var(--vm-bg); color: var(--vm-ink); font-family: var(--vm-fon
 /* The sidebar. */
 .vm-sidebar { width: clamp(256px, 26vw, 380px); flex: none; overflow: auto; background: #fff; border-radius: 8px; color: var(--vm-ink); }
 .vm-app.is-edit .vm-sidebar { display: none; }
+/* With the notes panel open, size by the editor's width, not the window's. */
+.vm-app.has-notes .vm-sidebar { width: clamp(256px, calc((100vw - 360px) * .26), 380px); }
+.vm-app.has-notes .vm-address-btn { width: clamp(160px, calc((100vw - 360px) * .24), 340px); }
 .vm-screen { display: flex; flex-direction: column; min-height: 100%; }
 .vm-sitecard { display: flex; align-items: flex-start; gap: 12px; padding: 20px 20px 16px; border-bottom: 1px solid var(--vm-line); }
 .vm-site-mark { width: 32px; height: 32px; flex: none; display: grid; place-items: center; border-radius: 4px; background: #F6F7F7; box-shadow: inset 0 0 0 1px var(--vm-line); font-weight: 600; font-size: 15px; }

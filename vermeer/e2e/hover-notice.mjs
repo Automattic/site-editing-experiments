@@ -14,6 +14,21 @@ export default async function ({ page, baseUrl, assert, helpers: h }) {
   const spot = async (dy = 0) => { const b = await vp(); return { x: b.x + b.width / 2 + 40, y: b.y + b.height / 2 + dy }; };
   const outside = async () => { const b = await page.locator('.vm-sidebar').boundingBox(); return { x: b.x + b.width / 2, y: b.y + 120 }; };
   const restOnSite = async (dy = 0) => { const p = await spot(dy); await h.restAt(page, p.x, p.y); };
+  // The copy of Edit: same size as the real one, right edges within 1px; the
+  // notice just under the toolbar, its tip aimed at the real button.
+  const checkPlacement = async (where) => {
+    const m = await page.evaluate(() => {
+      const r = (sel) => document.querySelector(sel).getBoundingClientRect();
+      const real = r('.vm-toolbar [data-action="edit"]'), copy = r('.vb-notice [data-vb="start"]'), n = r('.vb-notice'), tb = r('.vm-toolbar');
+      const tipX = n.left + parseFloat(getComputedStyle(document.querySelector('.vb-notice')).getPropertyValue('--vb-tip-x'));
+      return { dr: Math.abs(real.right - copy.right), dw: Math.abs(real.width - copy.width), dh: Math.abs(real.height - copy.height), gap: n.top - tb.bottom, dTip: Math.abs(tipX - (real.left + real.width / 2)),
+        same: ['backgroundColor', 'color', 'borderRadius', 'fontSize', 'fontWeight', 'fontFamily'].every((p) => getComputedStyle(document.querySelector('.vm-toolbar [data-action="edit"]'))[p] === getComputedStyle(document.querySelector('.vb-notice [data-vb="start"]'))[p]) };
+    });
+    assert.ok(m.dr <= 1, where + ': right edges aligned (' + m.dr + ')');
+    assert.ok(m.dw < 0.5 && m.dh < 0.5 && m.same, where + ': the copy looks like the real Edit button');
+    assert.ok(m.gap >= 0 && m.gap <= 16, where + ': just under the toolbar (' + m.gap + ')');
+    assert.ok(m.dTip <= 1, where + ': tip aimed at the real Edit button');
+  };
   const moveOut = async () => { const p = await outside(); await page.mouse.move(p.x, p.y, { steps: 3 }); };
 
   await page.goto(baseUrl + '/hover-notice.html#notes');
@@ -26,21 +41,17 @@ export default async function ({ page, baseUrl, assert, helpers: h }) {
   await page.waitForTimeout(900);
   assert.equal(await notice.count(), 0, 'no notice from a pointer that hasn’t moved since load');
 
-  h.step('appears on the pointer’s first movement over the site, with no wait, centred over the bottom of the site');
+  h.step('appears on the pointer’s first movement over the site, with no wait, top right under the toolbar, its Edit lined up under the real one');
   const p0 = await spot(30);
   await page.mouse.move(p0.x, p0.y);
   assert.equal(await notice.count(), 1, 'shown straight away');
   assert.equal(await notice.locator('.vb-notice-text').innerText(), 'Trying to change something on this page?');
-  assert.equal(await notice.getByRole('button', { name: 'Start editing' }).count(), 1);
+  assert.equal(await notice.getByRole('button', { name: 'Edit', exact: true }).count(), 1);
   assert.equal(await notice.getByRole('button', { name: 'Close' }).count(), 1);
   assert.equal(await notice.getAttribute('role'), 'region');
   {
     await page.waitForTimeout(250); // the slide-in
-    const n = await notice.boundingBox(), v = await vp();
-    assert.ok(Math.abs(n.x + n.width / 2 - (v.x + v.width / 2)) < 2, 'centred');
-    assert.ok(v.y + v.height - (n.y + n.height) > 8 && v.y + v.height - (n.y + n.height) < 40, 'near the bottom of the site area');
-    const menu = await h.k(page, 'nav-events').boundingBox();
-    assert.ok(menu.y + menu.height < n.y, 'doesn’t cover the menu');
+    await checkPlacement('1440 wide, with the notes panel');
   }
   await expectPrompts({ shown: 1, accepted: 0, dismissed: 0, ignored: 0 }, 'shown once');
   await page.waitForTimeout(1100);
@@ -55,13 +66,14 @@ export default async function ({ page, baseUrl, assert, helpers: h }) {
   await page.locator('.vm-viewport').evaluate((el) => { el.scrollTop = 0; });
   assert.equal(await page.locator('.vm-site').evaluate((el) => el.getBoundingClientRect().top), top0, 'site not pushed down');
 
-  h.step('the footer’s opening line can be scrolled clear of it and clicked');
-  await page.locator('.vm-viewport').evaluate((el) => { el.scrollTop = el.scrollHeight; });
-  {
-    const line = await h.k(page, 'footer-open').boundingBox(), n = await notice.boundingBox();
-    assert.ok(line.y + line.height < n.y, 'footer line above the notice when scrolled to the bottom');
-  }
-  await page.locator('.vm-viewport').evaluate((el) => { el.scrollTop = 0; });
+  h.step('it follows the real Edit button when the window changes size (1024 wide)');
+  await page.setViewportSize({ width: 1024 + 360, height: 768 });
+  await page.waitForTimeout(100);
+  await checkPlacement('1024 wide, with the notes panel');
+  await page.setViewportSize({ width: 1440 + 360, height: 900 });
+  await page.waitForTimeout(100);
+  await checkPlacement('back at 1440');
+  assert.equal(await page.locator('.vm-viewport.vb-room').count(), 0, 'no extra room added to the footer');
 
   h.step('leaving for under a second keeps it; leaving for a second is ignored');
   await moveOut();
@@ -84,10 +96,10 @@ export default async function ({ page, baseUrl, assert, helpers: h }) {
   await page.keyboard.press('Escape');
   await page.locator('.vm-finder').waitFor({ state: 'detached' });
 
-  h.step('Start editing: accepted, edit mode with nothing selected');
+  h.step('the notice’s Edit: accepted, edit mode with nothing selected');
   await restOnSite();
   await notice.waitFor();
-  await notice.getByRole('button', { name: 'Start editing' }).click();
+  await notice.getByRole('button', { name: 'Edit', exact: true }).click();
   assert.equal(await h.mode(page), 'edit');
   assert.equal(await h.editingKey(page), null);
   assert.equal(await h.selected(page), null);
@@ -142,7 +154,7 @@ export default async function ({ page, baseUrl, assert, helpers: h }) {
   await page.reload();
   await expectPrompts({ shown: 4, accepted: 1, dismissed: 1, ignored: 2 }, 'not counted again by a second reload');
 
-  h.step('keyboard: focus moving into the site shows it, announced, with Start editing next in the Tab order');
+  h.step('keyboard: focus moving into the site shows it, announced, with its Edit next in the Tab order');
   // Straight out, so no step of the move lands on the site (which now shows it at once).
   { const o = await outside(); await page.mouse.move(o.x, o.y); }
   await h.tool(page, 'edit').focus();
@@ -168,7 +180,7 @@ export default async function ({ page, baseUrl, assert, helpers: h }) {
   await page.keyboard.press('Tab');
   assert.equal(await page.evaluate(() => document.activeElement.dataset.k), 'site-name');
   await page.keyboard.press('Tab');
-  assert.equal(await page.evaluate(() => document.activeElement.dataset.vb), 'start', 'Start editing next again on coming back in');
+  assert.equal(await page.evaluate(() => document.activeElement.dataset.vb), 'start', 'its Edit next again on coming back in');
   await page.keyboard.press('Enter');
   assert.equal(await h.mode(page), 'edit');
   assert.equal((await h.state(page)).stats.byRoute['b-notice-keyboard'], 1);
@@ -200,7 +212,10 @@ export default async function ({ page, baseUrl, assert, helpers: h }) {
     const st = await h.state(tp);
     assert.equal(st.stats.follows, 0, 'no link follow counted');
     assert.equal(st.stats.nfTotal, 0, 'not counted as a click that did nothing');
-    await h.k(tp, 'nav-events').tap();
+    // The notice now sits over the menu, so the second tap is on a link it
+    // doesn't cover: the one in the introduction.
+    assert.equal(await tp.evaluate(() => { const r = document.querySelector('.vm-site [data-k="nav-events"]').getBoundingClientRect(); const top = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return !!top.closest('.vb-notice'); }), true, 'on touch the notice covers the menu until it’s closed');
+    await h.k(tp, 'home-intro-link').tap();
     await tp.waitForTimeout(200);
     assert.equal(await h.currentPage(tp), 'events', 'the second tap follows the link');
     assert.equal(await tp.locator('.vm-layer .vb-notice').count(), 1, 'the notice stays');
@@ -237,7 +252,8 @@ export default async function ({ page, baseUrl, assert, helpers: h }) {
         el.dispatchEvent(new PointerEvent('pointercancel', { pointerType: 'touch', bubbles: true, isPrimary: true }));
       });
       await tp.locator('.vm-layer .vb-notice').waitFor();
-      await h.k(tp, 'nav-events').click();
+      // A link the notice doesn't cover (it sits over the menu).
+      await h.k(tp, 'home-intro-link').click();
       assert.equal(await h.currentPage(tp), 'events', 'the tap after the scroll follows the link');
       h.step('B: going in by the Edit button while the notice shows logs the route’s name');
       await h.edit(tp);

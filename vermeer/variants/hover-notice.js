@@ -1,11 +1,16 @@
 /*
  * Vermeer · B · Hover notice
  *
- * As soon as the pointer moves over the site, a notice floats over
- * the bottom of the site area, centred: “Trying to change something on this
- * page?” with Start editing and ×. It lays over the site without moving it
- * and stays put while the site scrolls. Route: b-notice (b-notice-keyboard
- * when Start editing is pressed from the keyboard). Prompt kind: notice.
+ * As soon as the pointer moves over the site, a notice appears at the top
+ * right of the site area, just under the canvas toolbar: “Trying to change
+ * something on this page?”, a ×, and a copy of the toolbar's Edit button
+ * (same label, pencil, size and colour), its right edge lined up with the
+ * real Edit button's and a small tip on the notice pointing up at it, so
+ * people learn where Edit is. The real button is measured whenever the
+ * notice shows and whenever the window or the site area changes size. It
+ * lays over the site without moving it and stays put while the site
+ * scrolls. Route: b-notice (b-notice-keyboard when its Edit is pressed from
+ * the keyboard). Prompt kind: notice.
  *
  *   - Shown on the first movement of the pointer (mouse or pen) over the
  *     site area, with no wait. A pointer that was already over the site when
@@ -18,15 +23,17 @@
  *   - Stays while the pointer, or keyboard focus, is anywhere in the site area
  *     (the notice included). Goes 1 s after both have left: ignored. Coming
  *     back within that second keeps it. Going to another page keeps it.
- *   - Start editing: accepted, edit mode with nothing selected.
+ *   - The notice's Edit: accepted, edit mode with nothing selected.
  *   - × (or Escape inside the notice): dismissed. Not shown again in this
  *     browse spell, even after a reload; back after the next Exit.
  *   - Going into edit mode another way (the Edit button) while it's showing:
  *     ignored.
  *   - Keyboard: focus moving into the site from outside it shows the notice
- *     and announces it; the next Tab goes to Start editing, then ×, then on
+ *     and announces it; the next Tab goes to the notice's Edit, then ×, then on
  *     into the site after the element focus first went to. Focus coming back
- *     into the site while it shows puts Start editing next again.
+ *     into the site while it shows puts the notice's Edit next again. (The ×
+ *     is drawn before Edit, so Edit stays under the real one, but comes
+ *     after it in the Tab order.)
  *   - Touch: the first touch on the site while no notice has been shown in
  *     this browse spell shows it and does nothing else (the tap isn't passed
  *     through). After that taps work as usual.
@@ -44,8 +51,8 @@
     id: 'hover-notice',
     init(api) {
       const LEAVE_MS = 1000;
-      api.registerRoute('b-notice', 'the notice’s Start editing');
-      api.registerRoute('b-notice-keyboard', 'the notice’s Start editing, by keyboard');
+      api.registerRoute('b-notice', 'the notice’s Edit button');
+      api.registerRoute('b-notice-keyboard', 'the notice’s Edit button, by keyboard');
 
       const stage = api.stage;
       const pencil = '<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false"><path d="m19 7-3-3-8.5 8.5-1 4 4-1L19 7Zm-7 11.5H5V20h7v-1.5Z"/></svg>';
@@ -80,18 +87,42 @@
         notice = document.createElement('div');
         notice.className = 'vb-notice';
         notice.setAttribute('role', 'region');
-        notice.setAttribute('aria-label', 'Start editing');
+        notice.setAttribute('aria-label', 'Trying to change something on this page?');
+        // The copy uses the toolbar Edit button's own classes, so it looks
+        // exactly like it.
         notice.innerHTML =
           '<p class="vb-notice-text">Trying to change something on this page?</p>' +
-          '<button type="button" class="vb-notice-start" data-vb="start">' + pencil + '<span>Start editing</span></button>' +
+          '<button type="button" class="vm-btn vm-btn-primary vm-edit-btn vb-notice-start" data-vb="start">' + pencil + '<span>Edit</span></button>' +
           '<button type="button" class="vb-notice-close" data-vb="close" aria-label="Close">' + cross + '</button>';
         api.layer.append(notice);
-        api.viewport.classList.add('vb-room');
+        place();
         seenCounted = false;
         armSeen();
         requestAnimationFrame(() => { if (notice) notice.classList.add('is-in'); });
-        api.announce('Trying to change something on this page? ' + (how === 'keyboard focus' ? 'Press Tab for Start editing.' : 'Start editing button.'));
+        api.announce('Trying to change something on this page? ' + (how === 'keyboard focus' ? 'Press Tab for Edit.' : 'Edit button.'));
       }
+
+      // Line the copy's right edge up with the real Edit button's, and aim
+      // the tip at the real button's middle. Measured, not assumed, so it
+      // holds at any width and with the notes panel open.
+      function place() {
+        if (!notice) return;
+        const real = document.querySelector('.vm-toolbar [data-action="edit"]');
+        const copy = notice.querySelector('[data-vb="start"]');
+        if (!real || !copy) return;
+        const lr = api.layer.getBoundingClientRect();
+        const pad = parseFloat(getComputedStyle(notice).paddingRight) || 0;
+        let er = real.getBoundingClientRect();
+        notice.style.right = Math.round(lr.right - er.right - pad) + 'px';
+        // Any rounding left over is taken out of the right offset.
+        const cr = copy.getBoundingClientRect();
+        er = real.getBoundingClientRect();
+        notice.style.right = (parseFloat(notice.style.right) + (cr.right - er.right)) + 'px';
+        const nr = notice.getBoundingClientRect();
+        notice.style.setProperty('--vb-tip-x', Math.round(er.left + er.width / 2 - nr.left) + 'px');
+      }
+      window.addEventListener('resize', place);
+      if ('ResizeObserver' in window) new ResizeObserver(place).observe(stage);
 
       function hide(outcome, detail) {
         if (!notice) return;
@@ -102,7 +133,6 @@
         promptId = null;
         notice.remove();
         notice = null;
-        api.viewport.classList.remove('vb-room');
         const anchor = kbAnchor;
         kbAnchor = null;
         if (hadFocus && api.mode() === 'browse') focusQuietly(anchor && anchor.isConnected ? anchor : api.viewport);
@@ -180,7 +210,7 @@
       api.site.addEventListener('focusin', (e) => {
         if (programmatic || !keyboardInUse) return;
         if (e.relatedTarget && stage.contains(e.relatedTarget)) return;
-        if (notice) { clearTimeout(leaveTimer); armSeen(); kbAnchor = e.target; return; } // Start editing is next again
+        if (notice) { clearTimeout(leaveTimer); armSeen(); kbAnchor = e.target; return; } // its Edit is next again
         if (!eligible()) return;
         kbAnchor = e.target;
         show('keyboard focus');
@@ -220,7 +250,7 @@
           hide('dismissed', '×');
         } else {
           const route = e.detail === 0 ? 'b-notice-keyboard' : 'b-notice';
-          if (promptId != null) api.promptOutcome(promptId, 'accepted', 'Start editing');
+          if (promptId != null) api.promptOutcome(promptId, 'accepted', 'Edit');
           promptId = null;
           hide();
           api.enterEdit(route);

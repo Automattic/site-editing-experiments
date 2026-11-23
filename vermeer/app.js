@@ -122,6 +122,8 @@
  *                                      the `a` letter in the code; the Edit button gives `e`.
  *   log(text, kind?)                   add a line to the event log
  *   count(key, label)                  add 1 to an arm-specific count shown in the notes panel
+ *   defineCount(key, label)            show such a count from the start, at 0
+ *   entries()                          times into editing so far, by any route
  *   store.get(key) / store.set(key, v) small per-arm state, kept across reloads, cleared by Reset
  *   spell.get(key) / spell.set(key, v) the same, but cleared whenever a new browse spell starts
  *   spell.id()                         the browse spell's number (1 at first open, +1 per Exit)
@@ -155,7 +157,7 @@
     control: { code: 'V0', letter: '0', file: 'control.html', name: 'Control: only the Edit button' },
     'click-to-edit': { code: 'VA1', letter: 'A1', file: 'click-to-edit.html', name: 'A1 · Click to edit: a click on anything that isn’t a link, button or box goes straight into editing it' },
     'ask-on-click': { code: 'VA2', letter: 'A2', file: 'ask-on-click.html', name: 'A2 · Ask on click: that click asks “Do you want to edit?”' },
-    'hover-notice': { code: 'VB', letter: 'B', file: 'hover-notice.html', name: 'B · Hover notice: the pointer on the site shows a notice under Edit, with a copy of the Edit button' },
+    'hover-notice': { code: 'VB', letter: 'B', file: 'hover-notice.html', name: 'B · Hover notice: the pointer on the site shows a notice wrapped round the Edit button' },
     'choose-on-click': { code: 'VC', letter: 'C', file: 'choose-on-click.html', name: 'C · Choose on click: every click offers its own action or Edit' }
   };
   const VARIANT = VARIANTS[document.body.dataset.variant] ? document.body.dataset.variant : 'control';
@@ -2204,6 +2206,15 @@
       persist();
       renderNotes();
     },
+    // Show an arm count in the notes from the start, at 0.
+    defineCount(key, label) {
+      if (S.stats.arm[key] == null) S.stats.arm[key] = 0;
+      if (label) S.stats.armLabels[key] = label;
+      persist();
+      renderNotes();
+    },
+    // How many times the person has gone into editing so far, by any route.
+    entries: () => S.stats.entries,
     store: {
       get: (k) => S.store[k],
       set(k, v) { S.store[k] = v; persist(); }

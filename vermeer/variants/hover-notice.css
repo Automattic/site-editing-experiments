@@ -1,41 +1,37 @@
 /*
- * Vermeer · B · Hover notice: a card at the top right of the site area, just
- * under the canvas toolbar, with a copy of the toolbar's Edit button lined up
- * under the real one and a tip pointing up at it. The copy takes its look from
- * the toolbar's own classes (.vm-btn.vm-btn-primary.vm-edit-btn); hover-notice.js
- * sets the card's right offset and the tip's position from the real button.
+ * Vermeer · B · Hover notice: a card wrapped round the canvas toolbar's Edit
+ * button. Its copy of Edit sits exactly over the real one (same place and
+ * size); the card has even padding above, right of and below it, and reaches
+ * left for the text and the ×. hover-notice.js sets its position, its
+ * padding (trimmed at the canvas's edge) and its maximum width from the real
+ * button. The copy takes its look from the toolbar's own classes
+ * (.vm-btn.vm-btn-primary.vm-edit-btn).
  */
 
 .vb-notice {
-  position: absolute; top: 10px; right: 0; z-index: 1;
-  width: max-content; max-width: calc(100% - 16px);
-  display: flex; align-items: center; gap: 8px;
+  position: absolute; z-index: 60;
+  width: max-content;
+  display: flex; align-items: flex-start; gap: 8px;
   padding: 8px 8px 8px 16px;
   border-radius: 8px;
   background: #EEF1FD; color: var(--vm-ink);
   box-shadow: inset 0 0 0 1px var(--vm-blue), 0 8px 24px rgba(17, 29, 87, .22);
   font-family: var(--vm-font);
   pointer-events: auto;
-  opacity: 0; transform: translateY(-6px);
-  transition: opacity .18s ease-out, transform .18s ease-out;
+  /* Only a fade: the copy must never be off the real button's place. */
+  opacity: 0;
+  transition: opacity .18s ease-out;
 }
-.vb-notice.is-in { opacity: 1; transform: none; }
+.vb-notice.is-in { opacity: 1; }
 @media (prefers-reduced-motion: reduce) { .vb-notice { transition: none; } }
 
-/* The tip, pointing up at the real Edit button. */
-.vb-notice::before {
-  content: ""; position: absolute; top: -6px; left: var(--vb-tip-x, calc(100% - 40px));
-  width: 11px; height: 11px; margin-left: -5.5px;
-  background: #EEF1FD; border-top: 1px solid var(--vm-blue); border-left: 1px solid var(--vm-blue);
-  transform: rotate(45deg);
-}
+/* Text and × centred on the button's line; the text wraps if it must. */
+.vb-notice-text { flex: 0 1 auto; min-width: 0; margin: 0; align-self: center; font-size: 15px; font-weight: 600; line-height: 1.3; }
 
-.vb-notice-text { margin: 0; font-size: 15px; font-weight: 600; line-height: 1.3; }
-
-/* The copy of Edit: last, so it lines up under the real one; × before it. */
-.vb-notice-start { order: 3; margin-left: 0; }
+/* The copy of Edit: last, so it sits where the real one is; × before it. */
+.vb-notice-start { order: 3; flex: none; margin-left: 0; }
 .vb-notice-close {
-  order: 2; flex: none; width: 32px; height: 32px; display: grid; place-items: center;
+  order: 2; flex: none; align-self: center; width: 32px; height: 32px; display: grid; place-items: center;
   padding: 0; border: 0; border-radius: 2px; background: transparent; color: var(--vm-ink); cursor: pointer;
 }
 .vb-notice-close svg { width: 24px; height: 24px; fill: currentColor; }

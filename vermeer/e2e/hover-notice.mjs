@@ -46,6 +46,7 @@ export default async function ({ page, baseUrl, assert, helpers: h }) {
   await page.goto(baseUrl + '/hover-notice.html#notes');
   await page.waitForTimeout(900);
   assert.equal(await notice.count(), 0, 'no notice from a pointer that hasn’t moved since load');
+  assert.equal(await h.count(page, 'arm-b-later-at-edit'), '0', 'the later-entries count shows from the start');
 
   h.step('appears on the pointer’s first movement over the site, with no wait, top right under the toolbar, its Edit lined up under the real one');
   const p0 = await spot(30);
@@ -203,14 +204,21 @@ export default async function ({ page, baseUrl, assert, helpers: h }) {
   assert.equal(await notice.count(), 1, 'still there while focus is in the site');
   await page.keyboard.press('Shift+Tab');
   await page.keyboard.press('Shift+Tab');
-  assert.equal(await page.evaluate(() => document.activeElement.dataset.action), 'edit', 'back out to the Edit button');
+  assert.equal(await page.evaluate(() => document.activeElement.dataset.action), 'view', 'back out past the real Edit (out of the Tab order while the card is over it) to View');
   await page.keyboard.press('Tab');
   assert.equal(await page.evaluate(() => document.activeElement.dataset.k), 'site-name');
   await page.keyboard.press('Tab');
   assert.equal(await page.evaluate(() => document.activeElement.dataset.vb), 'start', 'its Edit next again on coming back in');
   await page.keyboard.press('Enter');
   assert.equal(await h.mode(page), 'edit');
-  assert.equal((await h.state(page)).stats.byRoute['b-notice-keyboard'], 1);
+  {
+    const st = (await h.state(page)).stats;
+    assert.equal(st.byRoute['b-notice-again'], 1, 'a later press of the copy, after having been in editing, has its own route');
+    assert.equal(st.byRoute['b-notice-keyboard'] || 0, 0);
+    // Entries: the notice's Edit first, then the real Edit, then the copy again.
+    assert.deepEqual(st.byRoute, { 'b-notice': 1, 'edit-button': 1, 'b-notice-again': 1 });
+    assert.equal(await h.count(page, 'arm-b-later-at-edit'), '2', 'later entries at Edit’s place: the real Edit and the copy');
+  }
   await expectPrompts({ shown: 5, accepted: 2, dismissed: 1, ignored: 2 }, 'keyboard accepted');
   await h.exit(page);
 
@@ -280,11 +288,13 @@ export default async function ({ page, baseUrl, assert, helpers: h }) {
       await tp.locator('.vm-stage > .vb-notice').waitFor();
       await h.k(tp, 'nav-events').click();
       assert.equal(await h.currentPage(tp), 'events', 'the tap after the scroll follows the link');
-      h.step('B: the real Edit is covered by the copy; from the keyboard it still works, and the route’s name is logged');
+      h.step('B: the real Edit is covered by the copy and out of the Tab order while it shows; back in it once the notice goes');
       assert.equal(await tp.evaluate(() => { const r = document.querySelector('.vm-toolbar [data-action="edit"]').getBoundingClientRect(); return !!document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2).closest('.vb-notice'); }), true, 'the copy is on top');
-      await h.tool(tp, 'edit').focus();
-      await tp.keyboard.press('Enter');
-      assert.match((await h.logTexts(tp)).join('\n'), /Notice ignored: went into editing by the Edit button, by keyboard/);
+      assert.equal(await h.tool(tp, 'edit').getAttribute('tabindex'), '-1');
+      await tp.locator('.vb-notice').getByRole('button', { name: 'Close' }).click();
+      assert.equal(await h.tool(tp, 'edit').getAttribute('tabindex'), null);
+      await h.edit(tp);
+      assert.equal(await h.mode(tp), 'edit');
       assert.deepEqual(errors, []);
     } finally {
       await ctx.close();

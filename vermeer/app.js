@@ -122,6 +122,8 @@
  *                                      the `a` letter in the code; the Edit button gives `e`.
  *   log(text, kind?)                   add a line to the event log
  *   count(key, label)                  add 1 to an arm-specific count shown in the notes panel
+ *   defineCount(key, label)            show such a count from the start, at 0
+ *   entries()                          times into editing so far, by any route
  *   store.get(key) / store.set(key, v) small per-arm state, kept across reloads, cleared by Reset
  *   spell.get(key) / spell.set(key, v) the same, but cleared whenever a new browse spell starts
  *   spell.id()                         the browse spell's number (1 at first open, +1 per Exit)
@@ -2204,6 +2206,15 @@
       persist();
       renderNotes();
     },
+    // Show an arm count in the notes from the start, at 0.
+    defineCount(key, label) {
+      if (S.stats.arm[key] == null) S.stats.arm[key] = 0;
+      if (label) S.stats.armLabels[key] = label;
+      persist();
+      renderNotes();
+    },
+    // How many times the person has gone into editing so far, by any route.
+    entries: () => S.stats.entries,
     store: {
       get: (k) => S.store[k],
       set(k, v) { S.store[k] = v; persist(); }

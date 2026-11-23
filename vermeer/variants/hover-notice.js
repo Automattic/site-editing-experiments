@@ -6,7 +6,10 @@
  * size and colour) sits exactly where the real one is, so the button doesn't
  * move, with “Trying to change something on this page?” and a × to its left.
  * The card lies over the right end of the canvas toolbar; while it shows, the
- * real Edit under it can't be clicked (the copy is on top). The real button
+ * real Edit under it can't be clicked (the copy is on top) and is out of the
+ * Tab order. Its first press is route b-notice (letter a in the code); a press
+ * after the person has been in editing before is b-notice-again, counted
+ * with later entries by the real Edit as "later entries at Edit's place". The real button
  * is measured whenever the notice shows and whenever the window or the site
  * area changes size. The card lives in the stage, so the pointer over it
  * counts as being in the site area, and clicks on it are neither chrome nor
@@ -56,6 +59,12 @@
       const LEAVE_MS = 1000;
       api.registerRoute('b-notice', 'the notice’s Edit button');
       api.registerRoute('b-notice-keyboard', 'the notice’s Edit button, by keyboard');
+      // The copy sits where the real Edit is, so someone who has been editing
+      // before and heads for Edit may press it: a later entry by the copy is
+      // a route of its own, counted with later entries by the real Edit as
+      // "later entries at Edit's place".
+      api.registerRoute('b-notice-again', 'the Edit button’s place (the notice’s copy), after having been in editing');
+      api.defineCount('b-later-at-edit', 'Later entries at Edit’s place (real Edit or the notice’s copy)');
 
       const stage = api.stage;
       const pencil = '<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false"><path d="m19 7-3-3-8.5 8.5-1 4 4-1L19 7Zm-7 11.5H5V20h7v-1.5Z"/></svg>';
@@ -102,6 +111,7 @@
         // as being in the site area.
         stage.append(notice);
         place();
+        hideRealEdit(true);
         seenCounted = false;
         armSeen();
         requestAnimationFrame(() => { if (notice) notice.classList.add('is-in'); });
@@ -139,6 +149,14 @@
       window.addEventListener('resize', place);
       if ('ResizeObserver' in window) new ResizeObserver(place).observe(stage);
 
+      // While the card covers it, the real Edit is out of the Tab order, so
+      // focus can't land on it unseen; the copy is next in the order instead.
+      function hideRealEdit(on) {
+        const real = document.querySelector('.vm-toolbar [data-action="edit"]');
+        if (!real) return;
+        if (on) real.tabIndex = -1; else real.removeAttribute('tabindex');
+      }
+
       function hide(outcome, detail) {
         if (!notice) return;
         clearTimeout(leaveTimer);
@@ -148,6 +166,7 @@
         promptId = null;
         notice.remove();
         notice = null;
+        hideRealEdit(false);
         const anchor = kbAnchor;
         kbAnchor = null;
         if (hadFocus && api.mode() === 'browse') focusQuietly(anchor && anchor.isConnected ? anchor : api.viewport);
@@ -264,7 +283,7 @@
           api.spell.set('dismissed', true);
           hide('dismissed', '×');
         } else {
-          const route = e.detail === 0 ? 'b-notice-keyboard' : 'b-notice';
+          const route = api.entries() > 0 ? 'b-notice-again' : e.detail === 0 ? 'b-notice-keyboard' : 'b-notice';
           if (promptId != null) api.promptOutcome(promptId, 'accepted', 'Edit');
           promptId = null;
           hide();
@@ -273,8 +292,15 @@
       });
 
       api.on('modechange', ({ mode, route, label }) => {
-        if (mode === 'edit') hide('ignored', 'went into editing by ' + (label || api.routeLabel(route) || 'another way'));
+        if (mode !== 'edit') return;
+        hide('ignored', 'went into editing by ' + (label || api.routeLabel(route) || 'another way'));
+        if (api.entries() > 1 && ['edit-button', 'edit-button-keyboard', 'b-notice-again'].includes(route)) {
+          api.count('b-later-at-edit', 'Later entries at Edit’s place (real Edit or the notice’s copy)');
+        }
       });
+      // A redrawn toolbar (on a page change) has a new Edit button: keep it
+      // out of the Tab order while the card is over it, and the card on it.
+      api.on('render', () => { if (notice) { hideRealEdit(true); place(); } });
     }
   });
 })();

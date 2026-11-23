@@ -3,7 +3,7 @@
  * keyboard entry and the first-touch rule. Run by smoke.mjs.
  */
 export default async function ({ page, baseUrl, assert, helpers: h }) {
-  const notice = page.locator('.vm-layer .vb-notice');
+  const notice = page.locator('.vm-stage > .vb-notice');
   const prompts = async () => (await h.state(page)).stats.prompts;
   const expectPrompts = async (want, label) => {
     const p = await prompts();
@@ -14,20 +14,26 @@ export default async function ({ page, baseUrl, assert, helpers: h }) {
   const spot = async (dy = 0) => { const b = await vp(); return { x: b.x + b.width / 2 + 40, y: b.y + b.height / 2 + dy }; };
   const outside = async () => { const b = await page.locator('.vm-sidebar').boundingBox(); return { x: b.x + b.width / 2, y: b.y + 120 }; };
   const restOnSite = async (dy = 0) => { const p = await spot(dy); await h.restAt(page, p.x, p.y); };
-  // The copy of Edit: same size as the real one, right edges within 1px; the
-  // notice just under the toolbar, its tip aimed at the real button.
+  // The copy of Edit sits exactly on the real one (rect within 0.5px) and
+  // looks like it; the card wraps it with padding and stays in the canvas.
   const checkPlacement = async (where) => {
     const m = await page.evaluate(() => {
       const r = (sel) => document.querySelector(sel).getBoundingClientRect();
-      const real = r('.vm-toolbar [data-action="edit"]'), copy = r('.vb-notice [data-vb="start"]'), n = r('.vb-notice'), tb = r('.vm-toolbar');
-      const tipX = n.left + parseFloat(getComputedStyle(document.querySelector('.vb-notice')).getPropertyValue('--vb-tip-x'));
-      return { dr: Math.abs(real.right - copy.right), dw: Math.abs(real.width - copy.width), dh: Math.abs(real.height - copy.height), gap: n.top - tb.bottom, dTip: Math.abs(tipX - (real.left + real.width / 2)),
-        same: ['backgroundColor', 'color', 'borderRadius', 'fontSize', 'fontWeight', 'fontFamily'].every((p) => getComputedStyle(document.querySelector('.vm-toolbar [data-action="edit"]'))[p] === getComputedStyle(document.querySelector('.vb-notice [data-vb="start"]'))[p]) };
+      const real = r('.vm-toolbar [data-action="edit"]'), copy = r('.vb-notice [data-vb="start"]'), n = r('.vb-notice'), cv = r('.vm-canvas');
+      return {
+        d: Math.max(...['left', 'top', 'width', 'height'].map((k) => Math.abs(real[k] - copy[k]))),
+        pad: [copy.top - n.top, n.right - copy.right, n.bottom - copy.bottom],
+        inCanvas: n.left >= cv.left && n.right <= cv.right + 0.5 && n.top >= cv.top - 0.5,
+        same: ['backgroundColor', 'color', 'borderRadius', 'fontSize', 'fontWeight', 'fontFamily'].every((p) => getComputedStyle(document.querySelector('.vm-toolbar [data-action="edit"]'))[p] === getComputedStyle(document.querySelector('.vb-notice [data-vb="start"]'))[p]),
+        // What's on top at the middle of the real Edit button: the copy.
+        onTop: document.elementFromPoint(real.left + real.width / 2, real.top + real.height / 2).closest('[data-vb="start"]') !== null
+      };
     });
-    assert.ok(m.dr <= 1, where + ': right edges aligned (' + m.dr + ')');
-    assert.ok(m.dw < 0.5 && m.dh < 0.5 && m.same, where + ': the copy looks like the real Edit button');
-    assert.ok(m.gap >= 0 && m.gap <= 16, where + ': just under the toolbar (' + m.gap + ')');
-    assert.ok(m.dTip <= 1, where + ': tip aimed at the real Edit button');
+    assert.ok(m.d <= 0.5, where + ': the copy has the real Edit button’s rect (' + m.d + ')');
+    assert.ok(m.same, where + ': the copy looks like the real Edit button');
+    assert.ok(m.pad.every((p) => p >= 4 && p <= 8.5), where + ': the card wraps it with padding (' + m.pad + ')');
+    assert.ok(m.inCanvas, where + ': the card stays inside the canvas');
+    assert.ok(m.onTop, where + ': the copy is on top of the real Edit');
   };
   const moveOut = async () => { const p = await outside(); await page.mouse.move(p.x, p.y, { steps: 3 }); };
 
@@ -73,7 +79,28 @@ export default async function ({ page, baseUrl, assert, helpers: h }) {
   await page.setViewportSize({ width: 1440 + 360, height: 900 });
   await page.waitForTimeout(100);
   await checkPlacement('back at 1440');
-  assert.equal(await page.locator('.vm-viewport.vb-room').count(), 0, 'no extra room added to the footer');
+
+  h.step('it lies over the toolbar’s right end (···, View, the status tick), not the site; the pointer over it keeps it; clicks on it aren’t chrome or toolbar clicks');
+  const covered = await page.evaluate(() => {
+    const n = document.querySelector('.vb-notice').getBoundingClientRect();
+    const hit = (el) => { const e = el.getBoundingClientRect(); return e.right > n.left && e.left < n.right && e.bottom > n.top && e.top < n.bottom; };
+    return { toolbar: [...document.querySelectorAll('.vm-toolbar [data-action]')].filter(hit).map((el) => el.dataset.action), site: [...document.querySelectorAll('.vm-site [data-k]')].filter(hit).map((el) => el.dataset.k) };
+  });
+  for (const a of ['page-options', 'view', 'edit']) assert.ok(covered.toolbar.includes(a), 'covers ' + a);
+  assert.deepEqual(covered.site, [], 'covers nothing in the site');
+  {
+    const t = await notice.locator('.vb-notice-text').boundingBox();
+    await page.mouse.move(t.x + 20, t.y + t.height / 2, { steps: 6 });
+    await page.waitForTimeout(1400);
+    assert.equal(await notice.count(), 1, 'the pointer over the card keeps it');
+    const g = (await h.state(page)).stats.gTotal, log = (await h.logTexts(page)).length;
+    await page.mouse.click(t.x + 20, t.y + t.height / 2);
+    assert.equal((await h.state(page)).stats.gTotal, g, 'not a chrome click');
+    assert.equal(await h.mode(page), 'browse');
+    assert.equal(await notice.count(), 1);
+    assert.equal((await h.logTexts(page)).length, log, 'nothing logged for a click on its text');
+    await page.mouse.move(p0.x, p0.y, { steps: 4 });
+  }
 
   h.step('leaving for under a second keeps it; leaving for a second is ignored');
   await moveOut();
@@ -205,32 +232,31 @@ export default async function ({ page, baseUrl, assert, helpers: h }) {
   try {
     await tp.goto(baseUrl + '/hover-notice.html');
     await h.k(tp, 'nav-events').tap();
-    await tp.locator('.vm-layer .vb-notice').waitFor();
+    await tp.locator('.vm-stage > .vb-notice').waitFor();
     await tp.waitForTimeout(300);
     assert.equal(await h.currentPage(tp), 'home', 'the first tap wasn’t passed through');
     assert.equal(await h.mode(tp), 'browse');
     const st = await h.state(tp);
     assert.equal(st.stats.follows, 0, 'no link follow counted');
     assert.equal(st.stats.nfTotal, 0, 'not counted as a click that did nothing');
-    // The notice now sits over the menu, so the second tap is on a link it
-    // doesn't cover: the one in the introduction.
-    assert.equal(await tp.evaluate(() => { const r = document.querySelector('.vm-site [data-k="nav-events"]').getBoundingClientRect(); const top = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return !!top.closest('.vb-notice'); }), true, 'on touch the notice covers the menu until it’s closed');
-    await h.k(tp, 'home-intro-link').tap();
+    // The notice sits over the toolbar, so the menu stays clear.
+    assert.equal(await tp.evaluate(() => { const r = document.querySelector('.vm-site [data-k="nav-events"]').getBoundingClientRect(); return !!document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2).closest('.vb-notice'); }), false, 'the notice doesn’t cover the menu');
+    await h.k(tp, 'nav-events').tap();
     await tp.waitForTimeout(200);
     assert.equal(await h.currentPage(tp), 'events', 'the second tap follows the link');
-    assert.equal(await tp.locator('.vm-layer .vb-notice').count(), 1, 'the notice stays');
+    assert.equal(await tp.locator('.vm-stage > .vb-notice').count(), 1, 'the notice stays');
     await tp.locator('.vb-notice').getByRole('button', { name: 'Close' }).tap();
     await h.k(tp, 'nav-contact').tap();
     await tp.waitForTimeout(200);
     assert.equal(await h.currentPage(tp), 'contact');
-    assert.equal(await tp.locator('.vm-layer .vb-notice').count(), 0);
+    assert.equal(await tp.locator('.vm-stage > .vb-notice').count(), 0);
     h.checkCode(await h.finishCode(tp), { arm: 'VB', f: 'x', p: '1.0.1.0', l: '2.0' });
     h.step('touch: a first tap where the notice will appear doesn’t land on its button');
     await tp.evaluate(() => localStorage.clear());
     await tp.reload();
     const b = await tp.locator('.vm-viewport').boundingBox();
     await tp.touchscreen.tap(b.x + b.width / 2, b.y + b.height - 50);
-    await tp.locator('.vm-layer .vb-notice').waitFor();
+    await tp.locator('.vm-stage > .vb-notice').waitFor();
     await tp.waitForTimeout(300);
     assert.equal(await h.mode(tp), 'browse', 'still browsing');
     assert.equal((await h.state(tp)).stats.prompts.accepted, 0);
@@ -251,13 +277,14 @@ export default async function ({ page, baseUrl, assert, helpers: h }) {
         el.dispatchEvent(new PointerEvent('pointerdown', { pointerType: 'touch', bubbles: true, cancelable: true, isPrimary: true }));
         el.dispatchEvent(new PointerEvent('pointercancel', { pointerType: 'touch', bubbles: true, isPrimary: true }));
       });
-      await tp.locator('.vm-layer .vb-notice').waitFor();
-      // A link the notice doesn't cover (it sits over the menu).
-      await h.k(tp, 'home-intro-link').click();
+      await tp.locator('.vm-stage > .vb-notice').waitFor();
+      await h.k(tp, 'nav-events').click();
       assert.equal(await h.currentPage(tp), 'events', 'the tap after the scroll follows the link');
-      h.step('B: going in by the Edit button while the notice shows logs the route’s name');
-      await h.edit(tp);
-      assert.match((await h.logTexts(tp)).join('\n'), /Notice ignored: went into editing by the Edit button/);
+      h.step('B: the real Edit is covered by the copy; from the keyboard it still works, and the route’s name is logged');
+      assert.equal(await tp.evaluate(() => { const r = document.querySelector('.vm-toolbar [data-action="edit"]').getBoundingClientRect(); return !!document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2).closest('.vb-notice'); }), true, 'the copy is on top');
+      await h.tool(tp, 'edit').focus();
+      await tp.keyboard.press('Enter');
+      assert.match((await h.logTexts(tp)).join('\n'), /Notice ignored: went into editing by the Edit button, by keyboard/);
       assert.deepEqual(errors, []);
     } finally {
       await ctx.close();

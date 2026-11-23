@@ -1,13 +1,16 @@
 /*
  * Vermeer · B · Hover notice
  *
- * As soon as the pointer moves over the site, a notice appears at the top
- * right of the site area, just under the canvas toolbar: “Trying to change
- * something on this page?”, a ×, and a copy of the toolbar's Edit button
- * (same label, pencil, size and colour), its right edge lined up with the
- * real Edit button's and a small tip on the notice pointing up at it, so
- * people learn where Edit is. The real button is measured whenever the
- * notice shows and whenever the window or the site area changes size. It
+ * As soon as the pointer moves over the site, a notice appears wrapped round
+ * the toolbar's Edit button: a card whose copy of Edit (same label, pencil,
+ * size and colour) sits exactly where the real one is, so the button doesn't
+ * move, with “Trying to change something on this page?” and a × to its left.
+ * The card lies over the right end of the canvas toolbar; while it shows, the
+ * real Edit under it can't be clicked (the copy is on top). The real button
+ * is measured whenever the notice shows and whenever the window or the site
+ * area changes size. The card lives in the stage, so the pointer over it
+ * counts as being in the site area, and clicks on it are neither chrome nor
+ * toolbar clicks. It
  * lays over the site without moving it and stays put while the site
  * scrolls. Route: b-notice (b-notice-keyboard when its Edit is pressed from
  * the keyboard). Prompt kind: notice.
@@ -94,7 +97,10 @@
           '<p class="vb-notice-text">Trying to change something on this page?</p>' +
           '<button type="button" class="vm-btn vm-btn-primary vm-edit-btn vb-notice-start" data-vb="start">' + pencil + '<span>Edit</span></button>' +
           '<button type="button" class="vb-notice-close" data-vb="close" aria-label="Close">' + cross + '</button>';
-        api.layer.append(notice);
+        // In the stage (the site area's container), not the layer, so it can
+        // reach up over the toolbar, and so the pointer over it still counts
+        // as being in the site area.
+        stage.append(notice);
         place();
         seenCounted = false;
         armSeen();
@@ -102,24 +108,33 @@
         api.announce('Trying to change something on this page? ' + (how === 'keyboard focus' ? 'Press Tab for Edit.' : 'Edit button.'));
       }
 
-      // Line the copy's right edge up with the real Edit button's, and aim
-      // the tip at the real button's middle. Measured, not assumed, so it
-      // holds at any width and with the notes panel open.
+      // Put the copy exactly where the real Edit button is (same left, top,
+      // width and height), with the card wrapped round it: even padding on
+      // its top, right and bottom, trimmed on a side that would otherwise
+      // cross the canvas's edge, and the text and × to its left. Measured,
+      // not assumed, so it holds at any width and with the notes panel open.
+      const PAD = 8;
       function place() {
         if (!notice) return;
         const real = document.querySelector('.vm-toolbar [data-action="edit"]');
         const copy = notice.querySelector('[data-vb="start"]');
+        const canvas = stage.closest('.vm-canvas') || stage;
         if (!real || !copy) return;
-        const lr = api.layer.getBoundingClientRect();
-        const pad = parseFloat(getComputedStyle(notice).paddingRight) || 0;
-        let er = real.getBoundingClientRect();
-        notice.style.right = Math.round(lr.right - er.right - pad) + 'px';
-        // Any rounding left over is taken out of the right offset.
+        const er = real.getBoundingClientRect();
+        const cv = canvas.getBoundingClientRect();
+        const sr = stage.getBoundingClientRect();
+        const padTop = Math.max(0, Math.min(PAD, er.top - cv.top));
+        const padRight = Math.max(0, Math.min(PAD, cv.right - er.right));
+        notice.style.paddingTop = padTop + 'px';
+        notice.style.paddingRight = padRight + 'px';
+        notice.style.paddingBottom = PAD + 'px';
+        notice.style.maxWidth = Math.max(160, er.right + padRight - cv.left - 8) + 'px';
+        notice.style.right = (sr.right - er.right - padRight) + 'px';
+        notice.style.top = (er.top - padTop - sr.top) + 'px';
+        // Whatever rounding is left over is taken out of the offsets.
         const cr = copy.getBoundingClientRect();
-        er = real.getBoundingClientRect();
         notice.style.right = (parseFloat(notice.style.right) + (cr.right - er.right)) + 'px';
-        const nr = notice.getBoundingClientRect();
-        notice.style.setProperty('--vb-tip-x', Math.round(er.left + er.width / 2 - nr.left) + 'px');
+        notice.style.top = (parseFloat(notice.style.top) - (cr.top - er.top)) + 'px';
       }
       window.addEventListener('resize', place);
       if ('ResizeObserver' in window) new ResizeObserver(place).observe(stage);
@@ -242,7 +257,7 @@
         }
       }, true);
 
-      api.layer.addEventListener('click', (e) => {
+      stage.addEventListener('click', (e) => {
         const b = e.target.closest('.vb-notice [data-vb]');
         if (!b || !notice) return;
         if (b.dataset.vb === 'close') {
